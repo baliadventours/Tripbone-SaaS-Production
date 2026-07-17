@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, ShieldCheck, ArrowRight, ArrowLeft, KeyRound, CheckCircle, RefreshCw, AlertCircle } from 'lucide-react';
+import { getActiveTenantId } from '../lib/firebase';
 
 type ResetStep = 'request' | 'verify' | 'success';
 
@@ -32,7 +33,10 @@ export default function ForgotPassword() {
       const response = await fetch('/api/auth/forgot-password-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ 
+          email: email.trim(),
+          tenantId: getActiveTenantId() || 'global'
+        }),
       });
 
       const data = await response.json();

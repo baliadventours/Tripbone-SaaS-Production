@@ -1,5 +1,5 @@
 import { Booking } from "../types";
-import { auth } from "./firebase";
+import { auth, getActiveTenantId } from "./firebase";
 
 /**
  * Sends a booking email by delegating to the backend API.
@@ -11,6 +11,9 @@ export async function sendBookingEmail(type: string, booking: Booking, extraInfo
     const user = auth.currentUser;
     const token = user ? await user.getIdToken() : null;
     
+    const tenantId = booking?.tenantId || getActiveTenantId();
+    const enrichedBooking = booking ? { ...booking, tenantId } : booking;
+    
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch("/api/send-email", {
       method: "POST",
@@ -20,7 +23,8 @@ export async function sendBookingEmail(type: string, booking: Booking, extraInfo
       },
       body: JSON.stringify({
         type,
-        booking,
+        booking: enrichedBooking,
+        tenantId,
         extraInfo: {
           ...extraInfo,
           appUrl: currentOrigin || (extraInfo && extraInfo.appUrl)

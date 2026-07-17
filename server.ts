@@ -521,7 +521,8 @@ export async function createServer() {
       }
 
       console.log(`[API /api/send-otp] Request received to send secure OTP to: ${email}`);
-      const emailConfig = await resolveEmailConfig('global');
+      const resolvedTenantId = req.body.tenantId || 'global';
+      const emailConfig = await resolveEmailConfig(resolvedTenantId);
 
       // Fallback override to Resend if provider is 'none' or 'empty' but process.env has RESEND_API_KEY
       if ((emailConfig.emailProvider === 'none' || !emailConfig.emailApiKey) && process.env.RESEND_API_KEY) {
@@ -624,8 +625,9 @@ export async function createServer() {
 
       console.log(`[API /api/auth/forgot-password-otp] Generated OTP ${otp} for ${emailLower}`);
 
-      // 4. Resolve global settings to send the email
-      const emailConfig = await resolveEmailConfig('global');
+      // 4. Resolve tenant or global settings to send the email
+      const resolvedTenantId = req.body.tenantId || 'global';
+      const emailConfig = await resolveEmailConfig(resolvedTenantId);
 
       // Fallback override to Resend if provider is 'none' or 'empty' but process.env has RESEND_API_KEY
       if ((emailConfig.emailProvider === 'none' || !emailConfig.emailApiKey) && process.env.RESEND_API_KEY) {

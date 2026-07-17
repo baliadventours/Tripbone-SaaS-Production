@@ -234,6 +234,7 @@ export interface Booking {
   paymentStatus: 'pending' | 'paid' | 'failed'; // New field
   paymentId: string | null;
   paymentToken?: string; // New field for manual tokens
+  tenantId?: string; // Multi-tenancy reference
   bookingSource: 'Direct' | 'Klook' | 'Viator' | 'GetYourGuide' | 'Manual' | 'Agent' | string; // Source of the booking
   selectedTransport?: TransportOption | null; // Transport selection for booking
   transportTotal?: number; // Total price calculated for transport option

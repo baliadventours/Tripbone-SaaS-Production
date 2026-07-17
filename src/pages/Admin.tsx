@@ -3872,6 +3872,7 @@ const CommunicationManager = () => {
         body: JSON.stringify({
           to: settings.adminNotificationEmail,
           subject: 'Test Email - Bali AdvenTours',
+          tenantId: getActiveTenantId() || 'global',
           html: `<div style="font-family: sans-serif; padding: 20px; border: 2px solid #0d9488; border-radius: 10px;">
             <h2 style="color: #0d9488;">Email Configuration Test</h2>
             <p>Success! This is a test email from your <strong>Bali AdvenTours</strong> website.</p>
