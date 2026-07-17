@@ -343,31 +343,6 @@ function AppContent() {
       <Suspense fallback={null}>
         <Chatbot />
       </Suspense>
-      {!isMaster && tenant && (
-        <div id="tenant-preview-badge" className="fixed bottom-6 left-6 z-[100] bg-slate-900/95 backdrop-blur-md border border-indigo-500/30 text-white p-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 max-w-sm sm:max-w-lg transition-all animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
-            <div>
-              <p className="text-xs font-bold text-gray-400">Preview Mode</p>
-              <p className="text-sm font-semibold text-indigo-400">{tenant.companyName}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-            <a 
-              href="/admin"
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors"
-            >
-              Dashboard
-            </a>
-            <button 
-              onClick={() => setPreviewTenant(null)}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-gray-300 hover:text-white text-xs font-medium transition-colors"
-            >
-              Exit Preview
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
