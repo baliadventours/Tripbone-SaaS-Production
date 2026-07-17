@@ -230,9 +230,32 @@ export async function createServer() {
 
       const file = req.file;
       const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9_.-]/g, "_");
-      const filePath = `uploads/${Date.now()}_${sanitizedName}`;
 
-      // Try Firebase Storage first
+      // Generate a robust unique ID resembling a Firestore doc ID
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      const docId = Array.from({ length: 20 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join("");
+
+      const localUploadsDir = path.join(process.cwd(), "uploads");
+      if (!fs.existsSync(localUploadsDir)) {
+        fs.mkdirSync(localUploadsDir, { recursive: true });
+      }
+
+      // Save the file buffer and metadata locally on disk
+      const localFilePath = path.join(localUploadsDir, docId);
+      const localMetaPath = path.join(localUploadsDir, `${docId}.json`);
+      fs.writeFileSync(localFilePath, file.buffer);
+      fs.writeFileSync(localMetaPath, JSON.stringify({
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.buffer.length,
+        createdAt: new Date().toISOString()
+      }));
+
+      console.log(`[Local Upload] File successfully saved locally! ID: ${docId}, Path: ${localFilePath}`);
+
+      // Try Firebase Storage first (as a background backup, won't block the response)
+      const filePath = `uploads/${Date.now()}_${sanitizedName}`;
+      let storageUrl: string | null = null;
       try {
         // Ensure admin app is initialized
         getAdminApp();
@@ -274,103 +297,96 @@ export async function createServer() {
           },
         });
 
-        const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(filePath)}?alt=media&token=${downloadToken}`;
-        console.log("[Server Upload] Firebase Storage upload successful! URL:", downloadUrl);
-        return res.json({ success: true, url: downloadUrl });
-
+        storageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(filePath)}?alt=media&token=${downloadToken}`;
+        console.log("[Server Upload] Firebase Storage upload successful! URL:", storageUrl);
       } catch (storageError: any) {
-        console.warn("[Server Upload] Firebase Storage upload failed, trying Firestore fallback:", storageError);
-
-        // Firestore Fallback: only if file size is less than 1MB (limit of firestore document is 1MB)
-        if (file.buffer.length < 1000000) {
-          try {
-            console.log("[Server Upload] Saving file to Firestore uploads collection...");
-            const adminDb = getAdminDb();
-            const docRef = await adminDb.collection("uploads").add({
-              name: file.originalname,
-              mimetype: file.mimetype,
-              base64: file.buffer.toString("base64"),
-              createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            const downloadUrl = `/api/uploads/${docRef.id}`;
-            console.log("[Server Upload] Firestore upload successful! URL:", downloadUrl);
-            return res.json({ success: true, url: downloadUrl });
-          } catch (firestoreError: any) {
-            console.warn("[Server Upload] Firestore SDK upload failed, trying REST fallback:", firestoreError.message || firestoreError);
-            try {
-              const restData = await createDocViaRest("uploads", {
-                name: file.originalname,
-                mimetype: file.mimetype,
-                base64: file.buffer.toString("base64"),
-                createdAt: new Date().toISOString()
-              }, req);
-              if (restData && restData.name) {
-                const docId = restData.name.split("/").pop();
-                const downloadUrl = `/api/uploads/${docId}`;
-                console.log("[Server Upload] Firestore REST upload successful! URL:", downloadUrl);
-                return res.json({ success: true, url: downloadUrl });
-              } else {
-                throw new Error("No REST document name returned");
-              }
-            } catch (restErr: any) {
-              console.warn("[Server Upload] Firestore REST fallback failed, falling back to ImgBB:", restErr.message || restErr);
-            }
-          }
-        } else {
-          console.log("[Server Upload] File is over 1MB, skipping Firestore fallback");
-        }
-
-        const tenantId = req.body.tenantId || req.query.tenantId || null;
-        let tenantImgbbKey: string | undefined;
-        if (tenantId) {
-          try {
-            const adminDb = getAdminDb();
-            const commSettingsDoc = await adminDb.collection('communicationSettings').doc(tenantId).get();
-            if (commSettingsDoc.exists) {
-              const data = commSettingsDoc.data();
-              if (data?.imgbbApiKey) {
-                tenantImgbbKey = data.imgbbApiKey;
-              }
-            }
-          } catch (err) {
-            console.error("[ImgBB Key Resolve Error]:", err);
-          }
-        }
-
-        const imgbbKey = tenantImgbbKey || process.env.VITE_IMGBB_API_KEY || process.env.IMGBB_API_KEY;
-        if (!imgbbKey) {
-          throw new Error(`Firebase Storage and Firestore fallback failed. No ImgBB API key available in environment.`);
-        }
-
-        console.log("[Server Upload] Uploading to ImgBB on backend...");
-        const formData = new FormData();
-        const blob = new Blob([file.buffer], { type: file.mimetype });
-        formData.append("image", blob, file.originalname);
-
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
-          method: "POST",
-          body: formData,
-        });
-
-        const data: any = await response.json();
-        if (data.success) {
-          console.log("[Server Upload] ImgBB upload successful! URL:", data.data.url);
-          return res.json({ success: true, url: data.data.url });
-        } else {
-          throw new Error(data.error?.message || "Failed to upload image to Imgbb");
-        }
+        console.warn("[Server Upload] Firebase Storage upload failed, trying Firestore fallback:", storageError.message || storageError);
       }
+
+      // If we got a Storage URL, we can save that in Firestore under the specified docId,
+      // otherwise we save the base64 content in Firestore as a backup!
+      try {
+        const adminDb = getAdminDb();
+        const base64Data = file.buffer.length < 1000000 ? file.buffer.toString("base64") : null;
+
+        const docPayload: any = {
+          name: file.originalname,
+          mimetype: file.mimetype,
+          createdAt: admin.firestore?.FieldValue?.serverTimestamp ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
+        };
+
+        if (storageUrl) {
+          docPayload.storageUrl = storageUrl;
+        }
+        if (base64Data) {
+          docPayload.base64 = base64Data;
+        }
+
+        try {
+          await adminDb.collection("uploads").doc(docId).set(docPayload);
+          console.log(`[Server Upload] Firestore upload successful! Document ID: ${docId}`);
+        } catch (sdkError: any) {
+          console.warn("[Server Upload] Firestore SDK set failed, trying REST fallback:", sdkError.message || sdkError);
+          const restPayload = {
+            name: file.originalname,
+            mimetype: file.mimetype,
+            createdAt: new Date().toISOString(),
+          } as any;
+          if (storageUrl) restPayload.storageUrl = storageUrl;
+          if (base64Data) restPayload.base64 = base64Data;
+
+          await writeDocViaRest("uploads", docId, restPayload, req);
+          console.log(`[Server Upload] Firestore REST fallback write successful! Document ID: ${docId}`);
+        }
+      } catch (firestoreErr: any) {
+        console.warn("[Server Upload] Firestore backup writes failed. Image is still available locally.", firestoreErr.message || firestoreErr);
+      }
+
+      // Always return the highly reliable local proxy endpoint!
+      const downloadUrl = `/api/uploads/${docId}`;
+      console.log(`[Server Upload] Responding with local proxy URL: ${downloadUrl}`);
+      return res.json({ success: true, url: downloadUrl });
+
     } catch (error: any) {
       console.error("[Server Upload] Critical error:", error);
       res.status(500).json({ error: error.message || "Failed to upload image" });
     }
   });
 
-  // API Route: Serve files from Firestore uploads collection
+  // API Route: Serve files from local filesystem or Firestore uploads collection fallback
   app.get("/api/uploads/:id", async (req: any, res: any) => {
     try {
       const id = req.params.id;
+      const localUploadsDir = path.join(process.cwd(), "uploads");
+      const localFilePath = path.join(localUploadsDir, id);
+      const localMetaPath = path.join(localUploadsDir, `${id}.json`);
+
+      // 1. Try serving from local disk first (100% reliable, fast, bypasses rules/network)
+      if (fs.existsSync(localFilePath)) {
+        const buffer = fs.readFileSync(localFilePath);
+        let mimetype = "application/octet-stream";
+        if (fs.existsSync(localMetaPath)) {
+          try {
+            const meta = JSON.parse(fs.readFileSync(localMetaPath, "utf-8"));
+            if (meta.mimetype) mimetype = meta.mimetype;
+          } catch (e) {
+            // ignore
+          }
+        } else {
+          // simple extension / prefix sniffer fallback
+          if (buffer.slice(0, 4).toString("hex") === "89504e47") mimetype = "image/png";
+          else if (buffer.slice(0, 3).toString("hex") === "ffd8ff") mimetype = "image/jpeg";
+          else if (buffer.slice(8, 12).toString("ascii") === "WEBP") mimetype = "image/webp";
+        }
+
+        res.setHeader("Content-Type", mimetype);
+        res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
+        console.log(`[Serve File] Served from local disk: ${id}, MimeType: ${mimetype}`);
+        return res.end(buffer);
+      }
+
+      // 2. Local disk missed (e.g. after container restart). Fetch from Firestore, cache it, and serve!
+      console.log(`[Serve File] Local disk miss for ID: ${id}. Attempting recovery from Firestore...`);
       let data: any = null;
       try {
         const adminDb = getAdminDb();
@@ -390,12 +406,58 @@ export async function createServer() {
       if (!data) {
         return res.status(404).send("File not found");
       }
+
+      // If the document has a direct Firebase Storage link, we can proxy fetch it
+      if (data.storageUrl) {
+        try {
+          console.log(`[Serve File] Proxying from Firebase Storage URL: ${data.storageUrl}`);
+          const fetchRes = await fetch(data.storageUrl);
+          if (fetchRes.ok) {
+            const arrayBuffer = await fetchRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            // Cache it locally on disk for subsequent hits!
+            if (!fs.existsSync(localUploadsDir)) {
+              fs.mkdirSync(localUploadsDir, { recursive: true });
+            }
+            fs.writeFileSync(localFilePath, buffer);
+            fs.writeFileSync(localMetaPath, JSON.stringify({
+              originalname: data.name || id,
+              mimetype: data.mimetype || fetchRes.headers.get("content-type") || "application/octet-stream",
+              size: buffer.length,
+              createdAt: new Date().toISOString()
+            }));
+
+            res.setHeader("Content-Type", data.mimetype || fetchRes.headers.get("content-type") || "application/octet-stream");
+            res.setHeader("Cache-Control", "public, max-age=31536000");
+            return res.end(buffer);
+          }
+        } catch (e: any) {
+          console.warn(`[Serve File] Failed to fetch proxy from Firebase Storage storageUrl: ${e.message}`);
+        }
+      }
+
       if (!data.base64) {
         return res.status(404).send("File data not found");
       }
+
       const buffer = Buffer.from(data.base64, "base64");
+
+      // Cache it locally on disk for subsequent hits!
+      if (!fs.existsSync(localUploadsDir)) {
+        fs.mkdirSync(localUploadsDir, { recursive: true });
+      }
+      fs.writeFileSync(localFilePath, buffer);
+      fs.writeFileSync(localMetaPath, JSON.stringify({
+        originalname: data.name || id,
+        mimetype: data.mimetype || "application/octet-stream",
+        size: buffer.length,
+        createdAt: new Date().toISOString()
+      }));
+
       res.setHeader("Content-Type", data.mimetype || "application/octet-stream");
       res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
+      console.log(`[Serve File] Served and cached from Firestore base64 backup: ${id}`);
       return res.end(buffer);
     } catch (error: any) {
       console.error("[Serve File Error]:", error);
