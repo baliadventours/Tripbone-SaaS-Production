@@ -1,0 +1,41 @@
+export const fallbackHtmlTemplate = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#00A651" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tripbone SaaS" />
+    <link rel="apple-touch-icon" href="https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png">
+    <link rel="icon" href="https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <title>Tripbone - Premium Tour & Travel Booking</title>
+    <meta name="description" content="Discover the best tours and activities with Tripbone. Premium expeditions, waterfall trails, and outdoor adventures with secure bookings." />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tripbone - Premium Tour & Travel Booking" />
+    <meta property="og:description" content="Discover the best tours and activities with Tripbone. Premium expeditions, waterfall trails, and outdoor adventures with secure bookings." />
+    <meta property="og:image" content="https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tripbone - Premium Tour & Travel Booking" />
+    <meta name="twitter:description" content="Discover the best tours and activities with Tripbone. Premium expeditions, waterfall trails, and outdoor adventures with secure bookings." />
+    <meta name="twitter:image" content="https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp" />
+    <script type="module" crossorigin src="/assets/index-Dnj8N_o5.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-D_jKVSWz.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+`;
