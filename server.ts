@@ -236,22 +236,26 @@ export async function createServer() {
       const docId = Array.from({ length: 20 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join("");
 
       const localUploadsDir = path.join(process.cwd(), "uploads");
-      if (!fs.existsSync(localUploadsDir)) {
-        fs.mkdirSync(localUploadsDir, { recursive: true });
+      try {
+        if (!fs.existsSync(localUploadsDir)) {
+          fs.mkdirSync(localUploadsDir, { recursive: true });
+        }
+
+        // Save the file buffer and metadata locally on disk
+        const localFilePath = path.join(localUploadsDir, docId);
+        const localMetaPath = path.join(localUploadsDir, `${docId}.json`);
+        fs.writeFileSync(localFilePath, file.buffer);
+        fs.writeFileSync(localMetaPath, JSON.stringify({
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.buffer.length,
+          createdAt: new Date().toISOString()
+        }));
+
+        console.log(`[Local Upload] File successfully saved locally! ID: ${docId}, Path: ${localFilePath}`);
+      } catch (localWriteError) {
+        console.warn(`[Local Upload] Warning: Failed to save copy locally (this is expected on read-only systems like Cloud Run): ${localWriteError.message || localWriteError}`);
       }
-
-      // Save the file buffer and metadata locally on disk
-      const localFilePath = path.join(localUploadsDir, docId);
-      const localMetaPath = path.join(localUploadsDir, `${docId}.json`);
-      fs.writeFileSync(localFilePath, file.buffer);
-      fs.writeFileSync(localMetaPath, JSON.stringify({
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.buffer.length,
-        createdAt: new Date().toISOString()
-      }));
-
-      console.log(`[Local Upload] File successfully saved locally! ID: ${docId}, Path: ${localFilePath}`);
 
       // Try Firebase Storage first (as a background backup, won't block the response)
       const filePath = `uploads/${Date.now()}_${sanitizedName}`;
@@ -417,16 +421,20 @@ export async function createServer() {
             const buffer = Buffer.from(arrayBuffer);
 
             // Cache it locally on disk for subsequent hits!
-            if (!fs.existsSync(localUploadsDir)) {
-              fs.mkdirSync(localUploadsDir, { recursive: true });
+            try {
+              if (!fs.existsSync(localUploadsDir)) {
+                fs.mkdirSync(localUploadsDir, { recursive: true });
+              }
+              fs.writeFileSync(localFilePath, buffer);
+              fs.writeFileSync(localMetaPath, JSON.stringify({
+                originalname: data.name || id,
+                mimetype: data.mimetype || fetchRes.headers.get("content-type") || "application/octet-stream",
+                size: buffer.length,
+                createdAt: new Date().toISOString()
+              }));
+            } catch (cacheError: any) {
+              console.warn(`[Serve File] Warning: Failed to write local cache: ${cacheError.message}`);
             }
-            fs.writeFileSync(localFilePath, buffer);
-            fs.writeFileSync(localMetaPath, JSON.stringify({
-              originalname: data.name || id,
-              mimetype: data.mimetype || fetchRes.headers.get("content-type") || "application/octet-stream",
-              size: buffer.length,
-              createdAt: new Date().toISOString()
-            }));
 
             res.setHeader("Content-Type", data.mimetype || fetchRes.headers.get("content-type") || "application/octet-stream");
             res.setHeader("Cache-Control", "public, max-age=31536000");
@@ -444,16 +452,20 @@ export async function createServer() {
       const buffer = Buffer.from(data.base64, "base64");
 
       // Cache it locally on disk for subsequent hits!
-      if (!fs.existsSync(localUploadsDir)) {
-        fs.mkdirSync(localUploadsDir, { recursive: true });
+      try {
+        if (!fs.existsSync(localUploadsDir)) {
+          fs.mkdirSync(localUploadsDir, { recursive: true });
+        }
+        fs.writeFileSync(localFilePath, buffer);
+        fs.writeFileSync(localMetaPath, JSON.stringify({
+          originalname: data.name || id,
+          mimetype: data.mimetype || "application/octet-stream",
+          size: buffer.length,
+          createdAt: new Date().toISOString()
+        }));
+      } catch (cacheError: any) {
+        console.warn(`[Serve File] Warning: Failed to write local cache: ${cacheError.message}`);
       }
-      fs.writeFileSync(localFilePath, buffer);
-      fs.writeFileSync(localMetaPath, JSON.stringify({
-        originalname: data.name || id,
-        mimetype: data.mimetype || "application/octet-stream",
-        size: buffer.length,
-        createdAt: new Date().toISOString()
-      }));
 
       res.setHeader("Content-Type", data.mimetype || "application/octet-stream");
       res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
