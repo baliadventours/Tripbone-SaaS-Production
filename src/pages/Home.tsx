@@ -286,7 +286,7 @@ const DEFAULT_FALLBACK_POSTS: BlogPost[] = [
 
 const SLIDES = [
   {
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1600&q=80",
+    image: "",
     subtitle: "WELCOME TO BALI ADVENTURES",
     title: "Where Adrenaline Meets Natural Beauty",
     description: "Experience an unforgettable off-road journey through lush jungles, scenic rice fields, muddy trails, rivers, and exciting jungle tracks designed for riders of all skill levels.",
@@ -294,7 +294,7 @@ const SLIDES = [
     link: "/tours?search=atv"
   },
   {
-    image: "https://images.unsplash.com/photo-1518548419070-2c61b179ad65?auto=format&fit=crop&w=1600&q=80",
+    image: "",
     subtitle: "UNFORGETTABLE OFF-ROAD JOURNEYS",
     title: "Explore the Wild Side of Ubud",
     description: "Get ready to discover why we offer some of Bali's most exciting and action-packed outdoor experiences.",
@@ -302,7 +302,7 @@ const SLIDES = [
     link: "/tours?search=atv"
   },
   {
-    image: "https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?auto=format&fit=crop&w=1600&q=80",
+    image: "",
     subtitle: "MUDDY TRAILS & RICE FIELDS",
     title: "Conquer Scenic Bali Landscapes",
     description: "Ride through exciting muddy tracks, scenic rivers, and traditional villages on our high-performance quad bikes.",
@@ -310,7 +310,7 @@ const SLIDES = [
     link: "/tours?search=atv"
   },
   {
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    image: "",
     subtitle: "RIDE WITH CONFIDENCE",
     title: "Designed for All Skill Levels",
     description: "Whether you're traveling solo, as a couple, with family, or in a group, our professional team ensures a safe, fun, and thrilling experience.",
@@ -318,7 +318,7 @@ const SLIDES = [
     link: "/tours?search=atv"
   },
   {
-    image: "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=80",
+    image: "",
     subtitle: "MEMORIES TO LAST A LIFETIME",
     title: "Bali's Ultimate Outdoor Adventure",
     description: "Our dedicated professional guides deliver non-stop fun and support as you navigate Ubud's best ATV trails.",
@@ -332,6 +332,8 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const heroBlock = builderSettings?.blocks.find(b => b.id === 'hero');
+  const imagesToUse = heroBlock?.heroImages?.length ? heroBlock.heroImages : settings?.heroImages;
+  const singleImageToUse = heroBlock?.image || settings?.heroImage;
 
   const getHeroTitle = () => {
     const val = heroBlock?.headline || settings?.heroTitle;
@@ -368,9 +370,6 @@ export default function Home() {
   };
 
   const slidesToUse = useMemo(() => {
-    const imagesToUse = heroBlock?.heroImages?.length ? heroBlock.heroImages : settings?.heroImages;
-    const singleImageToUse = heroBlock?.image || settings?.heroImage;
-
     const baseTitle = getHeroTitle() || "Where Adrenaline Meets Natural Beauty";
     const baseSubtitle = getHeroSubtitle() || (settings?.siteName ? `WELCOME TO ${settings.siteName.toUpperCase()}` : "WELCOME TO TRIPBONE");
     const baseDesc = getHeroDescription() || "Experience an unforgettable off-road journey through lush jungles, scenic rice fields, muddy trails, rivers, and exciting jungle tracks designed for riders of all skill levels.";
@@ -400,7 +399,7 @@ export default function Home() {
       subtitle: hasCustomSubtitle ? baseSubtitle : (slide.subtitle.includes('GORILLA') ? baseSubtitle : slide.subtitle),
       description: hasCustomDesc ? baseDesc : slide.description.replace(/Gorilla ATV Adventure/ig, settings?.siteName || 'Tripbone'),
     }));
-  }, [heroBlock?.heroImages, heroBlock?.image, heroBlock?.headline, heroBlock?.subheadline, heroBlock?.description, settings?.heroImages, settings?.heroImage, settings?.heroTitle, settings?.heroSubtitle, settings?.heroDescription, settings?.siteName]);
+  }, [imagesToUse, singleImageToUse, heroBlock?.headline, heroBlock?.subheadline, heroBlock?.description, settings?.heroImages, settings?.heroImage, settings?.heroTitle, settings?.heroSubtitle, settings?.heroDescription, settings?.siteName]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -731,12 +730,27 @@ export default function Home() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/20 z-10" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10 z-10" />
-                  <img
-                    src={slidesToUse[currentSlide]?.image}
-                    alt={slidesToUse[currentSlide]?.title}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+                  {slidesToUse[currentSlide]?.image ? (
+                    <img
+                      src={slidesToUse[currentSlide]?.image}
+                      alt={slidesToUse[currentSlide]?.title}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#0f172a] to-[#1e1b4b]">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(249,115,22,0.12),transparent_60%)] animate-pulse" style={{ animationDuration: '8s' }} />
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(99,102,241,0.08),transparent_60%)] animate-pulse" style={{ animationDuration: '12s' }} />
+                      <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                        <defs>
+                          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                      </svg>
+                    </div>
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -986,11 +1000,19 @@ export default function Home() {
         return (
           <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gray-950 px-4 pt-20">
             <div className="absolute top-0 left-0 w-full h-full opacity-30">
-              <img
-                src="https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=80"
-                className="w-full h-full object-cover filter brightness-50"
-                alt="Dark Bali"
-              />
+              {(singleImageToUse || imagesToUse?.[0]) ? (
+                <img
+                  src={singleImageToUse || imagesToUse?.[0]}
+                  className="w-full h-full object-cover filter brightness-50"
+                  alt="Dark Bali"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#0f172a] to-[#1e1b4b]">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(249,115,22,0.1),transparent_60%)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(99,102,241,0.06),transparent_60%)]" />
+                </div>
+              )}
             </div>
             {isGlass && (
               <div className="absolute inset-0 backdrop-blur-[5px]" />
@@ -1069,11 +1091,20 @@ export default function Home() {
               </div>
             </div>
             <div className="flex-1 hidden md:block grayscale hover:grayscale-0 transition-all duration-700">
-              <img
-                src="https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80"
-                className="w-full h-full object-cover"
-                alt="Minimalist Scene"
-              />
+              {(singleImageToUse || imagesToUse?.[0]) ? (
+                <img
+                  src={singleImageToUse || imagesToUse?.[0]}
+                  className="w-full h-full object-cover"
+                  alt="Minimalist Scene"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-8">
+                  <div className="text-center font-mono text-[10px] text-gray-400 uppercase tracking-widest">
+                    Brand Gallery Empty
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         );
@@ -1089,11 +1120,19 @@ export default function Home() {
             )}
           >
             <div className="absolute inset-0 opacity-40">
-              <img
-                src="https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?auto=format&fit=crop&w=1600&q=80"
-                className="w-full h-full object-cover"
-                alt="Luxury Bali"
-              />
+              {(singleImageToUse || imagesToUse?.[0]) ? (
+                <img
+                  src={singleImageToUse || imagesToUse?.[0]}
+                  className="w-full h-full object-cover"
+                  alt="Luxury Bali"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#111827] via-[#0f172a] to-[#1e1b4b]">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(249,115,22,0.12),transparent_60%)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(99,102,241,0.08),transparent_60%)]" />
+                </div>
+              )}
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black" />
 
