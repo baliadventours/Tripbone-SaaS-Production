@@ -1,4 +1,5 @@
 {
+  "outputDirectory": "dist",
   "functions": {
     "api/ssr.ts": {
       "includeFiles": "dist/**"
