@@ -149,7 +149,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         if (slug) {
           tenantQuery = query(collection(db, 'tenants'), where('slug', '==', slug), limit(1));
         } else {
-          tenantQuery = query(collection(db, 'tenants'), where('customDomain', '==', customDomain), limit(1));
+          // Robust custom domain lookup: match both with and without 'www.' prefix
+          const cleanDomain = customDomain.replace(/^www\./i, '');
+          const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
+          tenantQuery = query(
+            collection(db, 'tenants'), 
+            where('customDomain', 'in', domainsToSearch), 
+            limit(1)
+          );
         }
 
         const querySnapshot = await getDocs(tenantQuery);
