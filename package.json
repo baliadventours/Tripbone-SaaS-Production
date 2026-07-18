@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && node -e \"const fs = require('fs'); const html = fs.readFileSync('dist/index.html', 'utf8'); fs.writeFileSync('src/indexHtmlFallback.ts', 'export const fallbackHtmlTemplate = ' + JSON.stringify(html) + ';'); fs.renameSync('dist/index.html', 'dist/index.template.html');\" && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
