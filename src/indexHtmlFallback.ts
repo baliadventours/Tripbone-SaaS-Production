@@ -16,26 +16,26 @@ export const fallbackHtmlTemplate = `<!doctype html>
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link rel="preconnect" href="https://firestore.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-    <title>Tripbone - Premium Tour & Travel Booking</title>
-    <meta name="description" content="Discover the best tours and activities with Tripbone. Premium expeditions, waterfall trails, and outdoor adventures with secure bookings." />
+    <title>__SEO_TITLE__</title>
+    <meta name="description" content="__SEO_DESCRIPTION__" />
     
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Tripbone - Premium Tour & Travel Booking" />
-    <meta property="og:description" content="Discover the best tours and activities with Tripbone. Premium expeditions, waterfall trails, and outdoor adventures with secure bookings." />
-    <meta property="og:image" content="https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp" />
+    <meta property="og:type" content="__SEO_TYPE__" />
+    <meta property="og:title" content="__SEO_TITLE__" />
+    <meta property="og:description" content="__SEO_DESCRIPTION__" />
+    <meta property="og:image" content="__SEO_IMAGE__" />
+    <meta property="og:site_name" content="__SEO_SITE_NAME__" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Tripbone - Premium Tour & Travel Booking" />
-    <meta name="twitter:description" content="Discover the best tours and activities with Tripbone. Premium expeditions, waterfall trails, and outdoor adventures with secure bookings." />
-    <meta name="twitter:image" content="https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp" />
-    <script type="module" crossorigin src="/assets/index-Dnj8N_o5.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-D_jKVSWz.css">
+    <meta name="twitter:title" content="__SEO_TITLE__" />
+    <meta name="twitter:description" content="__SEO_DESCRIPTION__" />
+    <meta name="twitter:image" content="__SEO_IMAGE__" />
+    <script type="module" crossorigin src="/assets/index-DDTC7dG0.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CW4u-8Tp.css">
   </head>
   <body>
     <div id="root"></div>
   </body>
 </html>
-
 `;

@@ -5378,51 +5378,56 @@ RULES:
   };
 
   const applySEO = (html: string, seo: any) => {
-    const safeTitle = (seo.title || seo.siteName).replace(/"/g, '&quot;');
+    const safeTitle = (seo.title || seo.siteName || 'Tripbone').replace(/"/g, '&quot;');
     const safeDesc = (seo.description || '').replace(/"/g, '&quot;');
     const safeKeywords = (seo.keywords || '').replace(/"/g, '&quot;');
-    const debugTag = `\n    <!-- SEO INJECTED BY SERVER (${seo.status}) - ${new Date().toISOString()} -->\n    <meta name="seo-engine" content="express-ssr-v3" />\n    <meta name="seo-status" content="${seo.status}" />`;
+    const safeImage = seo.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
+    const safeType = seo.isProduct ? 'product' : (seo.isArticle ? 'article' : 'website');
+    const safeSiteName = (seo.siteName || 'Tripbone').replace(/"/g, '&quot;');
+
+    const debugTag = `\n    <!-- SEO INJECTED BY SERVER (${seo.status}) - ${new Date().toISOString()} -->\n    <meta name="seo-engine" content="express-ssr-v4" />\n    <meta name="seo-status" content="${seo.status}" />`;
 
     // Data injection for hydration
     const dataScript = seo.preloadedData ? `\n    <script id="preloaded-data" type="application/json">${JSON.stringify(seo.preloadedData)}</script>\n    <script>window.__PRELOADED_DATA__ = JSON.parse(document.getElementById('preloaded-data').innerHTML);</script>` : '';
 
-    // Preload critical assets (Removed broken direct gstatic URL to avoid 404s)
-    const preloadTags = `
-    ${seo.image ? `\n    <link rel="preload" as="image" href="${seo.image}" />` : ''}`;
+    const preloadTags = safeImage ? `\n    <link rel="preload" as="image" href="${safeImage}" />` : '';
 
     let modified = html;
 
-    // Remove pre-existing duplicate/fallback open graph, twitter, and keywords tags in template
-    modified = modified.replace(/<meta\s+[^>]*property="og:[^"]*"[^>]*\/?>/gi, '');
-    modified = modified.replace(/<meta\s+[^>]*name="twitter:[^"]*"[^>]*\/?>/gi, '');
-    modified = modified.replace(/<meta\s+[^>]*name="keywords"[^>]*\/?>/gi, '');
-    
-    // Replace Title
-    if (modified.includes('<title>')) {
-      modified = modified.replace(/<title>.*?<\/title>/i, `<title>${safeTitle}</title>`);
-    } else {
-      modified = modified.replace('</head>', `<title>${safeTitle}</title></head>`);
-    }
+    // 1. Direct placeholder replacements
+    modified = modified.replace(/__SEO_TITLE__/g, safeTitle);
+    modified = modified.replace(/__SEO_DESCRIPTION__/g, safeDesc);
+    modified = modified.replace(/__SEO_KEYWORDS__/g, safeKeywords);
+    modified = modified.replace(/__SEO_IMAGE__/g, safeImage);
+    modified = modified.replace(/__SEO_TYPE__/g, safeType);
+    modified = modified.replace(/__SEO_SITE_NAME__/g, safeSiteName);
 
-    // Replace Description
-    if (modified.includes('name="description"')) {
-      modified = modified.replace(/<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i, `<meta name="description" content="${safeDesc}" />`);
-    } else {
-      modified = modified.replace('</head>', `<meta name="description" content="${safeDesc}" /></head>`);
-    }
+    // 2. Clear out any legacy/hardcoded elements just in case the template hasn't been updated
+    // Strip existing title
+    modified = modified.replace(/<title>.*?<\/title>/gi, '');
+    // Strip existing meta descriptions
+    modified = modified.replace(/<meta\s+[^>]*name=["']description["'][^>]*\/?>/gi, '');
+    // Strip existing keywords
+    modified = modified.replace(/<meta\s+[^>]*name=["']keywords["'][^>]*\/?>/gi, '');
+    // Strip existing og:* tags
+    modified = modified.replace(/<meta\s+[^>]*property=["']og:[^"']*["'][^>]*\/?>/gi, '');
+    // Strip existing twitter:* tags
+    modified = modified.replace(/<meta\s+[^>]*name=["']twitter:[^"']*["'][^>]*\/?>/gi, '');
 
-    // Inject OG & Keywords Tags
+    // 3. Inject fully compiled fresh tags right before </head>
     const ogTags = `
+    <title>${safeTitle}</title>
+    <meta name="description" content="${safeDesc}" />
     <meta name="keywords" content="${safeKeywords}" />
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:description" content="${safeDesc}" />
-    <meta property="og:image" content="${seo.image}" />
-    <meta property="og:type" content="${seo.isProduct ? 'product' : (seo.isArticle ? 'article' : 'website')}" />
-    <meta property="og:site_name" content="${seo.siteName}" />
+    <meta property="og:image" content="${safeImage}" />
+    <meta property="og:type" content="${safeType}" />
+    <meta property="og:site_name" content="${safeSiteName}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDesc}" />
-    <meta name="twitter:image" content="${seo.image}" />${dataScript}${preloadTags}${debugTag}`;
+    <meta name="twitter:image" content="${safeImage}" />${dataScript}${preloadTags}${debugTag}`;
 
     return modified.replace('</head>', `${ogTags}</head>`);
   };
@@ -5445,7 +5450,7 @@ RULES:
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
     });
 
     // Mount Vite development middleware FIRST to handle assets, sourcemaps, and client websockets correctly
