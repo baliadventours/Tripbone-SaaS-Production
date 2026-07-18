@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/ssr.ts": {
+      "includeFiles": "dist/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
