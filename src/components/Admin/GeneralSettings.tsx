@@ -74,13 +74,14 @@ const SECTIONS = [
 ];
 
 export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'company-info' | 'seo' | 'website' | 'domain' | 'builder' | 'all' }) {
-  const { tenantId } = useTenant();
+  const { tenantId, tenant } = useTenant();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [initialCustomDomain, setInitialCustomDomain] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [uploadingHeroMultiple, setUploadingHeroMultiple] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -121,22 +122,22 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
   };
 
   const defaultSettings: SiteSettings = {
-    siteName: 'bali adventours',
-    siteDescription: 'Premium Bali Tours & Adventure Experiences',
-    siteKeywords: 'bali, tours, adventure, trekking, mount batur, waterfalls',
-    supportEmail: 'baliadventours@gmail.com',
-    supportPhone: '+62 812-3456-7890',
-    whatsappNumber: '+62 812-3456-7890',
-    logoURL: '',
-    faviconURL: '',
+    siteName: tenant?.companyName || 'Tripbone',
+    siteDescription: tenant?.companyName ? `Premium Tours & Adventure Experiences with ${tenant.companyName}` : 'Premium Tours & Adventure Experiences',
+    siteKeywords: 'tours, adventure, travel, booking, vacation',
+    supportEmail: tenant?.email || 'support@tripbone.com',
+    supportPhone: tenant?.phone || '+62 812-3456-7890',
+    whatsappNumber: tenant?.phone || '+62 812-3456-7890',
+    logoURL: tenant?.logo || '',
+    faviconURL: tenant?.favicon || '',
     heroImage: '',
-    officeAddress: 'Jl. Raya Ubud, Gianyar, Bali, Indonesia 80571',
-    primaryColor: '#00A651',
-    secondaryColor: '#ffffff',
+    officeAddress: tenant?.address || 'Jl. Raya Ubud, Gianyar, Bali, Indonesia 80571',
+    primaryColor: tenant?.primaryColor || '#00A651',
+    secondaryColor: tenant?.secondaryColor || '#ffffff',
     bodyFont: 'Inter',
     headingFont: 'Space Grotesk',
     currency: 'USD',
-    customDomain: ''
+    customDomain: tenant?.customDomain || ''
   };
 
   useEffect(() => {
@@ -153,7 +154,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
       setLoading(false);
     }
     fetchSettings();
-  }, [tenantId]);
+  }, [tenantId, tenant]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -538,53 +539,110 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
               </div>
             )}
             {(activeTab === 'all' || activeTab === 'company-info' || activeTab === 'website') && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Logo</label>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                  <div className="md:col-span-1 h-16 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
-                    {settings?.logoURL ? (
-                      <img src={settings.logoURL} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">No Logo</span>
-                    )}
-                  </div>
-                  <div className="md:col-span-3 space-y-2">
-                    <div className="relative">
-                      <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input 
-                        type="text" 
-                        value={settings?.logoURL || ''}
-                        onChange={(e) => setSettings(s => s ? {...s, logoURL: e.target.value} : null)}
-                        className="w-full bg-gray-50 border-none rounded-[12px] pl-12 pr-28 py-3 text-sm focus:ring-2 focus:ring-primary"
-                        placeholder="https://example.com/logo.png"
-                      />
-                      <label className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-gray-600 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center gap-1">
-                        {uploadingLogo ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Upload className="h-3 w-3" />
-                        )}
-                        <span>Upload</span>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Logo</label>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                    <div className="md:col-span-1 h-16 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
+                      {settings?.logoURL ? (
+                        <img src={settings.logoURL} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">No Logo</span>
+                      )}
+                    </div>
+                    <div className="md:col-span-3 space-y-2">
+                      <div className="relative">
+                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            setUploadingLogo(true);
-                            try {
-                              const url = await uploadImage(file);
-                              setSettings(s => s ? {...s, logoURL: url} : null);
-                            } catch (err) {
-                              console.error(err);
-                              alert("Failed to upload logo image");
-                            } finally {
-                              setUploadingLogo(false);
-                            }
-                          }}
+                          type="text" 
+                          value={settings?.logoURL || ''}
+                          onChange={(e) => setSettings(s => s ? {...s, logoURL: e.target.value} : null)}
+                          className="w-full bg-gray-50 border-none rounded-[12px] pl-12 pr-28 py-3 text-sm focus:ring-2 focus:ring-primary"
+                          placeholder="https://example.com/logo.png"
                         />
-                      </label>
+                        <label className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-gray-600 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center gap-1">
+                          {uploadingLogo ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Upload className="h-3 w-3" />
+                          )}
+                          <span>Upload</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setUploadingLogo(true);
+                              try {
+                                const url = await uploadImage(file);
+                                setSettings(s => s ? {...s, logoURL: url} : null);
+                              } catch (err) {
+                                console.error(err);
+                                alert("Failed to upload logo image");
+                              } finally {
+                                setUploadingLogo(false);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Favicon</label>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                    <div className="md:col-span-1 h-16 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
+                      {settings?.faviconURL ? (
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <img src={settings.faviconURL} alt="Favicon Preview" className="h-8 w-8 object-contain rounded" />
+                          <span className="text-[9px] text-gray-400 font-mono font-medium">16x16 / 32x32</span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">No Favicon</span>
+                      )}
+                    </div>
+                    <div className="md:col-span-3 space-y-2">
+                      <div className="relative">
+                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input 
+                          type="text" 
+                          value={settings?.faviconURL || ''}
+                          onChange={(e) => setSettings(s => s ? {...s, faviconURL: e.target.value} : null)}
+                          className="w-full bg-gray-50 border-none rounded-[12px] pl-12 pr-28 py-3 text-sm focus:ring-2 focus:ring-primary"
+                          placeholder="https://example.com/favicon.ico"
+                        />
+                        <label className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-gray-600 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center gap-1">
+                          {uploadingFavicon ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Upload className="h-3 w-3" />
+                          )}
+                          <span>Upload</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setUploadingFavicon(true);
+                              try {
+                                const url = await uploadImage(file);
+                                setSettings(s => s ? {...s, faviconURL: url} : null);
+                              } catch (err) {
+                                console.error(err);
+                                alert("Failed to upload favicon image");
+                              } finally {
+                                setUploadingFavicon(false);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -817,21 +875,6 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
               )}
             </div>
           )}
-            {(activeTab === 'all' || activeTab === 'company-info' || activeTab === 'website') && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Favicon URL</label>
-                <div className="relative">
-                  <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input 
-                    type="text" 
-                    value={settings?.faviconURL}
-                    onChange={(e) => setSettings(s => s ? {...s, faviconURL: e.target.value} : null)}
-                    className="w-full bg-gray-50 border-none rounded-[12px] pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary"
-                    placeholder="https://example.com/favicon.ico"
-                  />
-                </div>
-              </div>
-            )}
             {(activeTab === 'all' || activeTab === 'company-info') && (
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Office Address</label>

@@ -42,7 +42,7 @@ const SettingsContext = createContext<SettingsContextType>({
 export const useSettings = () => useContext(SettingsContext);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const { tenantId, loading: tenantLoading } = useTenant();
+  const { tenantId, tenant, loading: tenantLoading } = useTenant();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [builderSettings, setBuilderSettings] = useState<WebsiteBuilderSettings | null>(null);
   const [labels, setLabels] = useState<TourLabel[]>([]);
@@ -60,8 +60,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setSettings(data);
         applySettings(data);
       } else {
-        setSettings(defaultSettings);
-        applySettings(defaultSettings);
+        const fallback: SiteSettings = {
+          ...defaultSettings,
+          siteName: tenant?.companyName || 'Tripbone',
+          siteDescription: tenant?.companyName ? `Premium Tours & Experiences with ${tenant.companyName}` : `Premium Tours & Experiences with Tripbone`,
+          supportEmail: tenant?.email || defaultSettings.supportEmail,
+          supportPhone: tenant?.phone || defaultSettings.supportPhone,
+          logoURL: tenant?.logo || defaultSettings.logoURL,
+          primaryColor: tenant?.primaryColor || defaultSettings.primaryColor,
+          secondaryColor: tenant?.secondaryColor || defaultSettings.secondaryColor,
+        };
+        setSettings(fallback);
+        applySettings(fallback);
       }
     });
 

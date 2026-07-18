@@ -5037,17 +5037,22 @@ RULES:
     let resolvedSlug: string | null = null;
     let resolvedCustomDomain: string | null = null;
     try {
-      let hostname = req.hostname || '';
-      const hostHeader = req.get('host') || '';
-      if (hostHeader) {
+      let hostname = '';
+      const forwardedHost = req.headers['x-forwarded-host'] || req.get?.('x-forwarded-host');
+      const hostHeader = req.get?.('host') || '';
+      if (forwardedHost) {
+        hostname = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost).split(',')[0].trim().split(':')[0];
+      } else if (hostHeader) {
         hostname = hostHeader.split(':')[0]; // remove port
+      } else {
+        hostname = req.hostname || '';
       }
 
       const queryTenant = req.query.tenant;
       const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
       const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
       const isAppSubdomain = hostname.startsWith('app.') || hostname.startsWith('app-');
-      const isAiStudio = hostname.includes('run.app');
+      const isAiStudio = hostname.includes('run.app') && !forwardedHost;
 
       if (queryTenant && !isAppSubdomain) {
         resolvedSlug = (queryTenant as string).toLowerCase();

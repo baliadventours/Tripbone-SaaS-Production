@@ -93,12 +93,10 @@ function AppContent() {
       if (tenant.secondaryColor) {
         root.style.setProperty('--secondary-color', tenant.secondaryColor);
       }
-      document.title = `${tenant.companyName} | Premium Bookings`;
     } else {
       const root = document.documentElement;
       root.style.setProperty('--primary-color', '#FF7A00');
       root.style.setProperty('--secondary-color', '#1F3B1F');
-      document.title = "Tripbone | Enterprise Multi-Tenant SaaS Platform";
     }
   }, [isMaster, tenant]);
 
