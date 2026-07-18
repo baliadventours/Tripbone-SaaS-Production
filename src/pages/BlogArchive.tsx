@@ -11,6 +11,7 @@ import { Helmet } from 'react-helmet-async';
 import { formatPageTitle } from '../lib/seoUtils';
 import { useDynamicPage } from '../hooks/useDynamicPage';
 import DynamicPageLayout from '../components/DynamicPageLayout';
+import SmartImage from '../components/SmartImage';
 
 export default function BlogArchive() {
   const { settings } = useSettings();
@@ -97,7 +98,12 @@ export default function BlogArchive() {
                {posts.map(post => (
                   <Link key={post.id} to={`/blog/${post.slug}`} className="group block">
                      <div className="relative aspect-square overflow-hidden rounded-2xl mb-4">
-                        <img src={post.featuredImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <SmartImage 
+                          src={post.featuredImage} 
+                          alt={post.title}
+                          className="group-hover:scale-105 transition-transform" 
+                          aspectRatio="square"
+                        />
                      </div>
                      <h3 className="font-bold text-gray-900 group-hover:underline">{post.title}</h3>
                      <p className="text-gray-500 text-sm mt-2 line-clamp-2">{post.excerpt}</p>
@@ -126,7 +132,12 @@ export default function BlogArchive() {
                  {filteredPosts.map(post => (
                     <Link key={post.id} to={`/blog/${post.slug}`} className="group bg-white p-4 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all">
                        <div className="relative aspect-[16/10] overflow-hidden rounded-[2rem] mb-6">
-                          <img src={post.featuredImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <SmartImage 
+                            src={post.featuredImage} 
+                            alt={post.title}
+                            className="group-hover:scale-110 transition-transform duration-500" 
+                            aspectRatio="auto"
+                          />
                        </div>
                        <div className="px-4 pb-4">
                           <span className="text-[10px] font-black uppercase tracking-widest text-[#00A651] mb-2 block">{post.category}</span>
@@ -214,11 +225,11 @@ export default function BlogArchive() {
                     >
                       <Link to={`/blog/${post.slug}`}>
                         <div className="relative aspect-[16/9] overflow-hidden rounded-3xl mb-6 shadow-2xl shadow-gray-200/50">
-                          <img 
+                          <SmartImage 
                             src={post.featuredImage || `https://picsum.photos/seed/${post.slug}/1200/800`} 
                             alt={post.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            referrerPolicy="no-referrer"
+                            className="group-hover:scale-110 transition-transform duration-700"
+                            aspectRatio="video"
                           />
                         </div>
                         <div className="space-y-4">
@@ -264,12 +275,12 @@ export default function BlogArchive() {
                   >
                     <Link to={`/blog/${post.slug}`}>
                       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl mb-6 shadow-xl shadow-gray-100">
-                        <img 
-                          src={post.featuredImage || `https://picsum.photos/seed/${post.slug}/800/600`} 
-                          alt={post.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          referrerPolicy="no-referrer"
-                        />
+                         <SmartImage 
+                           src={post.featuredImage || `https://picsum.photos/seed/${post.slug}/800/600`} 
+                           alt={post.title}
+                           className="group-hover:scale-110 transition-transform duration-500"
+                           aspectRatio="standard"
+                         />
                       </div>
                       <div className="flex-1 flex flex-col">
                         <div className="mb-4">
