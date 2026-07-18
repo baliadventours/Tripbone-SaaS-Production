@@ -5022,8 +5022,11 @@ RULES:
     const reqPath = req.path;
 
     // 1. Core Defaults (The "Zero-Failure" Layer)
-    let siteName = 'Bali Adventours';
-    let siteDescription = 'Book Tour and Adventours in Bali - Bali Adventours';
+    // Default to Master SaaS marketing details
+    let siteName = 'Tripbone';
+    let siteDescription = 'Tripbone is an enterprise multi-tenant SaaS platform for tour operators and agencies. Built with AI-powered trip planning, secure billing, and modern booking workflows.';
+    let defaultTitle = 'Tripbone - Enterprise Multi Tenant SaaS Platform';
+    
     try {
       const metaPath = path.join(process.cwd(), 'metadata.json');
       if (fs.existsSync(metaPath)) {
@@ -5123,18 +5126,19 @@ RULES:
     }
 
     if (tenantDoc) {
-      siteName = tenantDoc.companyName || siteName;
-      siteDescription = tenantDoc.description || `Book Tour and Adventures with ${siteName}`;
+      siteName = tenantDoc.companyName || 'Bali Adventours';
+      siteDescription = tenantDoc.description || `Book Tour and Adventours in Bali - ${siteName}`;
+      defaultTitle = `Book Tour and Adventours - ${siteName}`;
     }
 
     const seo = {
-      title: siteName,
+      title: defaultTitle,
       description: siteDescription,
       image: tenantDoc?.logo || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
       siteName: siteName,
       isProduct: false,
       isArticle: false,
-      status: tenantDoc ? `tenant-${tenantDoc.slug}` : 'default',
+      status: tenantDoc ? `tenant-${tenantDoc.slug}` : 'master-default',
       preloadedData: null as any,
       keywords: ''
     };
@@ -5187,9 +5191,15 @@ RULES:
     }
 
     if (reqPath === '/') {
-       seo.title = `Book Tour and Adventours in Bali - ${siteName}`;
-       seo.description = siteDescription;
-       seo.status = 'home-default';
+       if (tenantDoc) {
+         seo.title = `Book Tour and Adventours in Bali - ${siteName}`;
+         seo.description = siteDescription;
+         seo.status = 'tenant-home-default';
+       } else {
+         seo.title = defaultTitle;
+         seo.description = siteDescription;
+         seo.status = 'master-home-default';
+       }
     }
 
     // 3. Database Fetch (The "Gold Standard" Layer - with resilient permission-proof REST fallback)
@@ -5224,7 +5234,7 @@ RULES:
         if (!derivedTitle && settings.homeTitleFormat) {
           derivedTitle = settings.homeTitleFormat.replace(/\{\{siteName\}\}/gi, seo.siteName);
         }
-        seo.title = derivedTitle || seo.title;
+        seo.title = derivedTitle || (tenantDoc ? `Book Tour and Adventours in Bali - ${seo.siteName}` : defaultTitle);
         seo.description = settings.siteDescription || settings.metaDescription || seo.description;
       }
     }
@@ -5606,14 +5616,34 @@ RULES:
       } catch (error) {
         console.error("[SEO Prod Error]:", error);
         try {
-          res.status(500).set({
-            'Content-Type': 'text/html',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          });
+          const fallbackSeo = {
+            title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+            description: 'Tripbone is an enterprise multi-tenant SaaS platform for tour operators and agencies. Built with AI-powered trip planning, secure billing, and modern booking workflows.',
+            image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+            siteName: 'Tripbone',
+            isProduct: false,
+            isArticle: false,
+            status: 'prod-error-fallback',
+            preloadedData: null,
+            keywords: 'saas, travel, tour operator, booking software, multi tenant'
+          };
+          
+          let rawHtml = fallbackHtmlTemplate;
           const fallbackPath = fs.existsSync(path.join(distPath, 'index.template.html'))
             ? path.join(distPath, 'index.template.html')
             : path.join(distPath, 'index.html');
-          res.sendFile(fallbackPath);
+          
+          if (fs.existsSync(fallbackPath)) {
+            rawHtml = await fs.promises.readFile(fallbackPath, 'utf-8');
+          }
+          
+          const html = applySEO(rawHtml, fallbackSeo);
+          res.status(200).set({
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'X-SEO-Engine': 'express-ssr-error-fallback',
+            'X-SEO-Status': 'fallback'
+          }).send(html);
         } catch (sendErr) {
           res.status(200).set({
             'Content-Type': 'text/html',
