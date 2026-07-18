@@ -3,6 +3,8 @@ import { db, collection, getDocs, addDoc, setDoc, doc, auth, setActiveTenantId }
 import { getDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useTenant } from '../lib/TenantContext';
+import { Helmet } from 'react-helmet-async';
+import { useSettings } from '../lib/SettingsContext';
 import Admin from './Admin';
 import TicketManager from '../components/Admin/TicketManager';
 import { cn } from '../lib/utils';
@@ -21,6 +23,7 @@ import { createCreemCheckoutSession } from '../services/creemService';
 
 export default function SaaSHome() {
   const { setPreviewTenant } = useTenant();
+  const { settings } = useSettings();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(true);
   const [step, setStep] = useState(1); // 1 = Main/Dashboard/Auth, 2 = Website Setup, 3 = Website Info, 4 = Business Address
@@ -1251,6 +1254,9 @@ export default function SaaSHome() {
   if (!currentUser || !otpVerified) {
     return (
       <div className="min-h-screen bg-[#061c15] text-gray-100 flex flex-col justify-center items-center p-6 relative select-none font-sans selection:bg-[#00b272]">
+        <Helmet>
+          <title>{settings?.siteName ? `${settings.siteName} - Partner Portal` : 'Tripbone - Partner Portal'}</title>
+        </Helmet>
         {/* Centered White Card */}
         <div className="w-full max-w-[460px] bg-white rounded-[32px] p-10 shadow-2xl flex flex-col items-stretch text-gray-900 border border-gray-100">
           {/* Logo */}
@@ -1514,6 +1520,9 @@ export default function SaaSHome() {
   if (isProvisioning) {
     return (
       <div className="min-h-screen bg-[#080c14] flex flex-col items-center justify-center font-sans select-none relative overflow-hidden">
+        <Helmet>
+          <title>Provisioning Workspace... | Tripbone</title>
+        </Helmet>
         {/* Animated Background */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[100px] animate-pulse" />
@@ -1558,6 +1567,9 @@ export default function SaaSHome() {
   if (currentUser && (!showDashboard || userWorkspaces.length === 0 || step > 1)) {
     return (
       <div className="min-h-screen bg-white text-gray-900 flex font-sans select-none selection:bg-[#00b272]">
+        <Helmet>
+          <title>Workspace Setup | Tripbone</title>
+        </Helmet>
         {/* Left panel step tracker */}
         <aside className="w-80 bg-[#061c15] text-gray-300 p-8 flex flex-col justify-between border-r border-white/5 relative">
           <div className="space-y-12">
@@ -2070,6 +2082,9 @@ export default function SaaSHome() {
       "min-h-screen flex flex-col font-sans select-none relative transition-colors duration-200",
       isDarkMode ? "bg-[#080c14] text-slate-100" : "bg-slate-50 text-gray-800 animate-fadeIn"
     )}>
+      <Helmet>
+        <title>{settings?.siteName ? `${settings.siteName} - Agency Console` : 'Tripbone - Agency Console'}</title>
+      </Helmet>
       {/* Top Royal Blue Navbar */}
       <header className={cn(
         "h-16 px-6 flex items-center justify-between shadow-md relative z-30 select-none transition-colors duration-200",

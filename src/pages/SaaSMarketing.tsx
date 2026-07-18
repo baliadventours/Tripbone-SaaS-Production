@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { useSettings } from '../lib/SettingsContext';
 import { 
   Compass, ArrowRight, Play, Sparkles, 
   MousePointerClick, MessageCircle, Users,
@@ -10,6 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function SaaSMarketing() {
+  const { settings } = useSettings();
   const logos = [
     { src: "https://i.ibb.co.com/5W12VwnL/gorillalogo-nobg.png", alt: "Gorilla Logo" },
     { src: "https://i.ibb.co.com/RpCmjgXW/baliadventoursvertical.png", alt: "Bali Adventours" },
@@ -79,6 +82,11 @@ export default function SaaSMarketing() {
 
   return (
     <>
+      <Helmet>
+        <title>{settings?.metaTitle || (settings?.siteName ? `${settings.siteName} - Enterprise Multi Tenant SaaS Platform` : 'Tripbone - Enterprise Multi Tenant SaaS Platform')}</title>
+        <meta name="description" content={settings?.siteDescription || 'Tripbone is an enterprise multi-tenant SaaS platform for tour operators and agencies. Built with AI-powered trip planning, secure billing, and modern booking workflows.'} />
+        <meta name="keywords" content={settings?.siteKeywords || 'saas, travel, tour operator, booking software, multi tenant'} />
+      </Helmet>
       <main>
         {/* 1. Hero Section */}
         <section className="pt-32 pb-24 lg:pt-48 lg:pb-32 px-6 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">

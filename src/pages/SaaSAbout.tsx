@@ -1,8 +1,17 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useSettings } from '../lib/SettingsContext';
 
 export default function SaaSAbout() {
+  const { settings } = useSettings();
+
   return (
-    <div className="min-h-screen bg-white pt-32 pb-16">
+    <>
+      <Helmet>
+        <title>{settings?.siteName ? `About Us | ${settings.siteName}` : 'About Us | Tripbone'}</title>
+        <meta name="description" content="Learn about our mission to provide the most authentic and premium experiences." />
+      </Helmet>
+      <div className="min-h-screen bg-white pt-32 pb-16">
       <div className="max-w-4xl mx-auto px-4 text-center">
         <h1 className="text-5xl font-black mb-8">About Tripbone</h1>
         <p className="text-xl text-gray-600 mb-8 leading-relaxed">
@@ -20,5 +29,6 @@ export default function SaaSAbout() {
         </div>
       </div>
     </div>
+    </>
   );
 }
