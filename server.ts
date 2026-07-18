@@ -5017,7 +5017,9 @@ RULES:
   });
 
   // --- ROBUST SEO ENGINE (PERMISSION-PROOF) ---
-  const getSEOContent = async (reqPath: string, type?: 'tour' | 'blog') => {
+  const getSEOContent = async (req: any, type?: 'tour' | 'blog') => {
+    const reqPath = req.path;
+
     // 1. Core Defaults (The "Zero-Failure" Layer)
     let siteName = 'Bali Adventours';
     let siteDescription = 'Book Tour and Adventours in Bali - Bali Adventours';
@@ -5030,14 +5032,103 @@ RULES:
       }
     } catch (e) {}
 
+    // Resolve tenant based on request domain or query param (identical to Client-Side TenantContext)
+    let tenantDoc: any = null;
+    let resolvedSlug: string | null = null;
+    let resolvedCustomDomain: string | null = null;
+    try {
+      let hostname = req.hostname || '';
+      const hostHeader = req.get('host') || '';
+      if (hostHeader) {
+        hostname = hostHeader.split(':')[0]; // remove port
+      }
+
+      const queryTenant = req.query.tenant;
+      const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
+      const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+      const isAppSubdomain = hostname.startsWith('app.') || hostname.startsWith('app-');
+      const isAiStudio = hostname.includes('run.app');
+
+      if (queryTenant && !isAppSubdomain) {
+        resolvedSlug = (queryTenant as string).toLowerCase();
+      } else if (!isAppSubdomain) {
+        if (!isAiStudio) {
+          if (isMainDomain) {
+            const parts = hostname.split('.');
+            if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
+              if (parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== 'app') {
+                resolvedSlug = parts[0].toLowerCase();
+              }
+            } else if (parts.length > 2) {
+              const subdomain = parts[0];
+              if (subdomain !== 'www' && subdomain !== 'app') {
+                resolvedSlug = subdomain.toLowerCase();
+              }
+            }
+          } else {
+            resolvedCustomDomain = hostname.toLowerCase();
+          }
+        }
+      }
+
+      if (resolvedSlug) {
+        try {
+          const tenantsSnap = await db.collection('tenants').where('slug', '==', resolvedSlug).limit(1).get();
+          if (!tenantsSnap.empty) {
+            tenantDoc = { id: tenantsSnap.docs[0].id, ...tenantsSnap.docs[0].data() };
+            console.log(`[SEO Server] Resolved tenant ${resolvedSlug} (ID: ${tenantDoc.id}) via Admin SDK`);
+          }
+        } catch (e) {
+          try {
+            const docs = await fetchFromREST('tenants', undefined, {
+              whereFilters: [{ field: 'slug', op: 'EQUAL', value: resolvedSlug }],
+              limit: 1
+            });
+            if (docs && docs.length > 0) {
+              tenantDoc = docs[0];
+              console.log(`[SEO Server] Resolved tenant ${resolvedSlug} (ID: ${tenantDoc.id}) via REST API`);
+            }
+          } catch (restE) {}
+        }
+      } else if (resolvedCustomDomain) {
+        const cleanDomain = resolvedCustomDomain.replace(/^www\./i, '');
+        const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
+        try {
+          const tenantsSnap = await db.collection('tenants').where('customDomain', 'in', domainsToSearch).limit(1).get();
+          if (!tenantsSnap.empty) {
+            tenantDoc = { id: tenantsSnap.docs[0].id, ...tenantsSnap.docs[0].data() };
+            console.log(`[SEO Server] Resolved tenant from custom domain ${resolvedCustomDomain} (ID: ${tenantDoc.id}) via Admin SDK`);
+          }
+        } catch (e) {
+          try {
+            const docs = await fetchFromREST('tenants', undefined, {
+              whereFilters: [{ field: 'customDomain', op: 'IN', value: domainsToSearch }],
+              limit: 1
+            });
+            if (docs && docs.length > 0) {
+              tenantDoc = docs[0];
+              console.log(`[SEO Server] Resolved tenant from custom domain ${resolvedCustomDomain} (ID: ${tenantDoc.id}) via REST API`);
+            }
+          } catch (restE) {}
+        }
+      }
+    } catch (err: any) {
+      console.error("[SEO Server Tenant Resolve Error]:", err.message || err);
+    }
+
+    if (tenantDoc) {
+      siteName = tenantDoc.companyName || siteName;
+      siteDescription = tenantDoc.description || `Book Tour and Adventures with ${siteName}`;
+    }
+
     const seo = {
       title: siteName,
       description: siteDescription,
-      image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+      image: tenantDoc?.logo || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
       siteName: siteName,
       isProduct: false,
       isArticle: false,
-      status: 'default',
+      status: tenantDoc ? `tenant-${tenantDoc.slug}` : 'default',
       preloadedData: null as any,
       keywords: ''
     };
@@ -5096,19 +5187,20 @@ RULES:
     }
 
     // 3. Database Fetch (The "Gold Standard" Layer - with resilient permission-proof REST fallback)
+    const settingsDocId = tenantDoc ? tenantDoc.id : 'general';
     let settings: any = null;
     try {
       // Fetch site-wide settings first
-      const settingsSnap = await db.collection('settings').doc('general').get();
+      const settingsSnap = await db.collection('settings').doc(settingsDocId).get();
       if (settingsSnap.exists) {
         settings = settingsSnap.data() || {};
-        console.log("[SEO Admin] Successfully fetched general settings via Admin SDK");
+        console.log(`[SEO Admin] Successfully fetched ${settingsDocId} settings via Admin SDK`);
       }
     } catch (e: any) {
       try {
-        settings = await fetchFromREST('settings', 'general');
+        settings = await fetchFromREST('settings', settingsDocId);
         if (settings) {
-          console.log("[SEO Channel] Successfully matched general settings");
+          console.log(`[SEO Channel] Successfully matched ${settingsDocId} settings`);
         }
       } catch (restErr: any) {
         // Fallback silently to defaults
@@ -5116,8 +5208,8 @@ RULES:
     }
 
     if (settings) {
-      seo.siteName = settings.siteName || seo.siteName;
-      seo.image = settings.ogImage || seo.image;
+      seo.siteName = settings.siteName || tenantDoc?.companyName || seo.siteName;
+      seo.image = settings.ogImage || tenantDoc?.logo || seo.image;
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
@@ -5170,12 +5262,12 @@ RULES:
         };
 
         try {
+          let toursQuery = db.collection('tours').where('status', 'in', ['published', 'active']);
+          if (tenantDoc) {
+            toursQuery = toursQuery.where('tenantId', '==', tenantDoc.id);
+          }
           const [featuredToursSnap, categoriesSnap] = await Promise.all([
-            db.collection('tours')
-              .where('status', 'in', ['published', 'active'])
-              .orderBy('createdAt', 'desc')
-              .limit(12)
-              .get(),
+            toursQuery.orderBy('createdAt', 'desc').limit(12).get(),
             db.collection('categories').orderBy('name', 'asc').get()
           ]);
           
@@ -5184,9 +5276,13 @@ RULES:
           console.log("[SEO Admin] Successfully preloaded and pruned home content via Admin SDK");
         } catch (adminHomeErr: any) {
           try {
+            const whereFilters: any[] = [{ field: 'status', op: 'IN', value: ['published', 'active'] }];
+            if (tenantDoc) {
+              whereFilters.push({ field: 'tenantId', op: 'EQUAL', value: tenantDoc.id });
+            }
             const [featuredRest, categoriesRest] = await Promise.all([
               fetchFromREST('tours', undefined, {
-                whereFilters: [{ field: 'status', op: 'IN', value: ['published', 'active'] }],
+                whereFilters,
                 orderByField: 'createdAt',
                 direction: 'DESCENDING',
                 limit: 12
@@ -5208,7 +5304,7 @@ RULES:
           featuredTours: featured,
           categories: categories
         };
-        seo.status = 'db-home-hydrated';
+        seo.status = tenantDoc ? `tenant-${tenantDoc.slug}-hydrated` : 'db-home-hydrated';
       }
 
       if (isSingleDoc && slug) {
@@ -5351,7 +5447,7 @@ RULES:
         if (url.startsWith('/tour/')) type = 'tour';
         if (url.startsWith('/blog/')) type = 'blog';
 
-        const seo = await getSEOContent(req.path, type);
+        const seo = await getSEOContent(req, type);
         let template = await fs.promises.readFile(path.join(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
         const html = applySEO(template, seo);
@@ -5436,7 +5532,7 @@ RULES:
         if (req.path.startsWith('/tour/')) type = 'tour';
         if (req.path.startsWith('/blog/')) type = 'blog';
 
-        const seo = await getSEOContent(req.path, type);
+        const seo = await getSEOContent(req, type);
         
         // Find correct index.template.html or index.html path resolving dynamically
         let htmlPath = path.join(distPath, 'index.template.html');
