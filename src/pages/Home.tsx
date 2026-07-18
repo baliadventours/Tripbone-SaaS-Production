@@ -286,23 +286,23 @@ const DEFAULT_FALLBACK_POSTS: BlogPost[] = [
 
 const SLIDES = [
   {
-    image: "https://i.ibb.co.com/gbHvLmVx/IMG-3050-optimized.webp",
-    subtitle: "WELCOME TO TRIPBONE UBUD",
+    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1600&q=80",
+    subtitle: "WELCOME TO BALI ADVENTURES",
     title: "Where Adrenaline Meets Natural Beauty",
     description: "Experience an unforgettable off-road journey through lush jungles, scenic rice fields, muddy trails, rivers, and exciting jungle tracks designed for riders of all skill levels.",
     badge: "Ubud, Bali",
     link: "/tours?search=atv"
   },
   {
-    image: "https://i.ibb.co.com/ynDpTdSb/IMG-7555-optimized.webp",
+    image: "https://images.unsplash.com/photo-1518548419070-2c61b179ad65?auto=format&fit=crop&w=1600&q=80",
     subtitle: "UNFORGETTABLE OFF-ROAD JOURNEYS",
     title: "Explore the Wild Side of Ubud",
-    description: "Get ready to discover why Tripbone is one of Bali's most exciting and action-packed outdoor experiences.",
+    description: "Get ready to discover why we offer some of Bali's most exciting and action-packed outdoor experiences.",
     badge: "Exciting Trails",
     link: "/tours?search=atv"
   },
   {
-    image: "https://i.ibb.co.com/WWvVPBKR/IMG-7565-optimized.webp",
+    image: "https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?auto=format&fit=crop&w=1600&q=80",
     subtitle: "MUDDY TRAILS & RICE FIELDS",
     title: "Conquer Scenic Bali Landscapes",
     description: "Ride through exciting muddy tracks, scenic rivers, and traditional villages on our high-performance quad bikes.",
@@ -310,7 +310,7 @@ const SLIDES = [
     link: "/tours?search=atv"
   },
   {
-    image: "https://i.ibb.co.com/5gznPBmp/IMG-3781-optimized.webp",
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
     subtitle: "RIDE WITH CONFIDENCE",
     title: "Designed for All Skill Levels",
     description: "Whether you're traveling solo, as a couple, with family, or in a group, our professional team ensures a safe, fun, and thrilling experience.",
@@ -318,7 +318,7 @@ const SLIDES = [
     link: "/tours?search=atv"
   },
   {
-    image: "https://i.ibb.co.com/vvzQC44D/IMG-3746-optimized.webp",
+    image: "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=80",
     subtitle: "MEMORIES TO LAST A LIFETIME",
     title: "Bali's Ultimate Outdoor Adventure",
     description: "Our dedicated professional guides deliver non-stop fun and support as you navigate Ubud's best ATV trails.",
@@ -914,7 +914,7 @@ export default function Home() {
                     className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-[3/4]"
                   >
                     <SmartImage
-                      src="https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"
+                      src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80"
                       alt="Exploring Rice Terrace"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                       aspectRatio="portrait"
@@ -938,7 +938,7 @@ export default function Home() {
                     className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-square"
                   >
                     <SmartImage
-                      src="https://i.ibb.co.com/HTXHHj6f/DSCF3376-optimized.webp"
+                      src="https://images.unsplash.com/photo-1518548419070-2c61b179ad65?auto=format&fit=crop&w=800&q=80"
                       alt="Best Sunrise Trekking"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                       aspectRatio="square"
@@ -958,7 +958,7 @@ export default function Home() {
                     className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-square"
                   >
                     <SmartImage
-                      src="https://i.ibb.co.com/wxj3nPb/DSCF4121-optimized.webp"
+                      src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80"
                       alt="For Your Instagram Feed"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                       aspectRatio="square"
@@ -987,7 +987,7 @@ export default function Home() {
           <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gray-950 px-4 pt-20">
             <div className="absolute top-0 left-0 w-full h-full opacity-30">
               <img
-                src="https://i.ibb.co/ksfhmLX0/Ulundanu-Beratan5-optimized.webp"
+                src="https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=80"
                 className="w-full h-full object-cover filter brightness-50"
                 alt="Dark Bali"
               />
@@ -1070,7 +1070,7 @@ export default function Home() {
             </div>
             <div className="flex-1 hidden md:block grayscale hover:grayscale-0 transition-all duration-700">
               <img
-                src="https://i.ibb.co/ksfhmLX0/Ulundanu-Beratan5-optimized.webp"
+                src="https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80"
                 className="w-full h-full object-cover"
                 alt="Minimalist Scene"
               />
@@ -1090,7 +1090,7 @@ export default function Home() {
           >
             <div className="absolute inset-0 opacity-40">
               <img
-                src="https://i.ibb.co/5WcLnbqj/DSCF4293-optimized.webp"
+                src="https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?auto=format&fit=crop&w=1600&q=80"
                 className="w-full h-full object-cover"
                 alt="Luxury Bali"
               />
@@ -1194,7 +1194,7 @@ export default function Home() {
                 </div>
                 <div className="lg:w-1/2 relative">
                   <img
-                    src="https://i.ibb.co/dwHFt397/DSCF4223-optimized.webp"
+                    src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"
                     className="w-full aspect-square object-cover rounded-[3rem] shadow-2xl"
                     alt="SaaS Hero"
                   />
@@ -1236,7 +1236,7 @@ export default function Home() {
                     videoId
                       ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
                       : settings?.ogImage ||
-                        "https://i.ibb.co/ksfhmLX0/Ulundanu-Beratan5-optimized.webp"
+                        "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=80"
                   }
                   alt="Bali Landscape"
                   className="h-full w-full object-cover"
@@ -1552,7 +1552,7 @@ export default function Home() {
         />
         <meta
           property="og:image"
-          content={settings?.ogImage || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"}
+          content={settings?.ogImage || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
         />
 
         {/* Twitter */}
@@ -1571,7 +1571,7 @@ export default function Home() {
         />
         <meta
           property="twitter:image"
-          content={settings?.ogImage || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"}
+          content={settings?.ogImage || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
         />
 
         <script type="application/ld+json">

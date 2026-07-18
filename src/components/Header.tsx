@@ -13,7 +13,9 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export default function Header() {
   const { settings } = useSettings();
-  const { tenantId } = useTenant();
+  const { tenantId, tenant } = useTenant();
+  const siteName = settings?.siteName || tenant?.companyName || 'Tripbone';
+  const logoURL = settings?.logoURL || tenant?.logo;
   const [user, setUser] = useState<any>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -146,7 +148,7 @@ export default function Header() {
           <div className="bg-white border-b border-gray-100 py-2 hidden md:block">
             <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between text-[11px] font-bold text-gray-500">
               <div className="flex items-center gap-4">
-                 <span>Welcome to {settings?.siteName}</span>
+                 <span>Welcome to {siteName}</span>
                  <span className="h-3 w-px bg-gray-200" />
                  <a href={`https://wa.me/${settings?.whatsappNumber?.replace(/\D/g, '')}`} className="hover:text-gray-900 transition-colors">WhatsApp Assistance</a>
               </div>
@@ -189,7 +191,7 @@ export default function Header() {
                  <span>E: {settings?.supportEmail}</span>
                </div>
                <div className="flex gap-4">
-                 <span className="text-gray-900 font-bold tracking-[0.2em]">{settings?.siteName?.toUpperCase()}</span>
+                 <span className="text-gray-900 font-bold tracking-[0.2em]">{siteName.toUpperCase()}</span>
                  <CurrencySwitcher variant="minimal" />
                </div>
             </div>
@@ -305,7 +307,7 @@ export default function Header() {
         return (
           <div className={cn(headerClass, "h-24 md:h-28")}>
              <Link to="/" className="flex items-center">
-                <img src={getSafeImageUrl(settings?.logoURL) || '/logo.png'} className="h-10 md:h-12 w-auto object-contain" alt={settings?.siteName} width="240" height="60" referrerPolicy="no-referrer" />
+                <img src={getSafeImageUrl(logoURL) || '/logo.png'} className="h-10 md:h-12 w-auto object-contain" alt={siteName} width="240" height="60" referrerPolicy="no-referrer" />
              </Link>
              
              <div className="hidden md:flex items-center bg-white border border-gray-200 rounded-full py-2 px-6 shadow-sm hover:shadow-md transition-all cursor-pointer group">
@@ -363,7 +365,7 @@ export default function Header() {
         return (
           <div className={cn(headerClass, "border-b border-gray-100 h-24")}>
             <Link to="/" className="text-3xl font-black text-gray-900 uppercase tracking-tighter hover:tracking-normal transition-all">
-              {settings?.siteName || 'BALI'}
+              {siteName || 'BALI'}
             </Link>
             
             <nav className="hidden lg:flex items-center gap-12 font-mono text-[10px] uppercase tracking-[0.3em] text-gray-400">
@@ -394,7 +396,7 @@ export default function Header() {
             </div>
   
             <Link to="/" className="absolute left-1/2 -translate-x-1/2 text-center group">
-               <span className={cn("block font-serif text-4xl italic leading-none transition-transform group-hover:scale-105", isDark ? "text-white" : "text-gray-900")}>{settings?.siteName || 'Bali'}</span>
+               <span className={cn("block font-serif text-4xl italic leading-none transition-transform group-hover:scale-105", isDark ? "text-white" : "text-gray-900")}>{siteName || 'Bali'}</span>
                <span className="block text-[8px] font-black tracking-[0.5em] uppercase text-amber-500 mt-2">Private Expeditions</span>
             </Link>
   
@@ -440,10 +442,10 @@ export default function Header() {
         return (
           <div className={headerClass}>
             <Link to="/" className="flex items-center gap-2 group">
-              {settings?.logoURL ? (
+              {logoURL ? (
                 <img 
-                  src={getSafeImageUrl(settings.logoURL)} 
-                  alt={settings?.siteName} 
+                  src={getSafeImageUrl(logoURL)} 
+                  alt={siteName} 
                   className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
                   loading="eager"
                   width="240"
@@ -456,28 +458,28 @@ export default function Header() {
                     <Leaf className="h-9 w-9 text-primary transition-transform group-hover:rotate-12" />
                   </div>
                   <div className="flex flex-col -space-y-1">
-                    {settings?.siteName ? (
-                      settings.siteName.includes(' ') ? (
+                    {siteName ? (
+                      siteName.includes(' ') ? (
                         <>
                           <span className="text-xl font-black text-gray-900 leading-tight tracking-tighter">
-                            {settings.siteName.split(' ')[0]}
+                            {siteName.split(' ')[0]}
                           </span>
                           <span className="text-xl font-black text-primary leading-tight tracking-tighter">
-                            {settings.siteName.split(' ').slice(1).join(' ')}
+                            {siteName.split(' ').slice(1).join(' ')}
                           </span>
                         </>
-                      ) : settings.siteName.includes('.') ? (
+                      ) : siteName.includes('.') ? (
                         <>
                           <span className="text-xl font-black text-gray-900 leading-tight tracking-tighter">
-                            {settings.siteName.split('.')[0]}
+                            {siteName.split('.')[0]}
                           </span>
                           <span className="text-xl font-black text-primary leading-tight tracking-tighter">
-                            .{settings.siteName.split('.').slice(1).join('.')}
+                            .{siteName.split('.').slice(1).join('.')}
                           </span>
                         </>
                       ) : (
                         <span className="text-xl font-black text-gray-900 leading-tight tracking-tighter">
-                          {settings.siteName}
+                          {siteName}
                         </span>
                       )
                     ) : (
@@ -751,7 +753,7 @@ export default function Header() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-base font-bold text-gray-900 tracking-tight text-center flex-1 mx-2">
-              {location.pathname.startsWith('/tour/') ? 'Tour Details' : (settings?.siteName || 'Tripbone')}
+              {location.pathname.startsWith('/tour/') ? 'Tour Details' : (siteName || 'Tripbone')}
             </h1>
             <button className="p-2 -mr-2 text-gray-600 active:bg-gray-100 rounded-full transition-colors">
               <MoreHorizontal className="h-5 w-5" />

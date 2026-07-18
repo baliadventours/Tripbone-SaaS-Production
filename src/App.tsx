@@ -8,7 +8,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import { SettingsProvider } from './lib/SettingsContext';
+import { SettingsProvider, useSettings } from './lib/SettingsContext';
 import { CurrencyProvider } from './lib/CurrencyContext';
 import { AuthProvider } from './lib/AuthContext';
 import { TenantProvider, useTenant } from './lib/TenantContext';
@@ -73,6 +73,7 @@ const Chatbot = lazy(() => import('./components/Chatbot'));
 
 function AppContent() {
   const { isMaster, isAppGate, tenant, loading: tenantLoading, setPreviewTenant } = useTenant();
+  const { loading: settingsLoading } = useSettings();
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
   const isSupplier = location.pathname.startsWith('/supplier');
@@ -172,9 +173,9 @@ function AppContent() {
   const hideMobileNav = hideMainLayout || isTourDetail || isCheckout;
   const hideFooter = hideMainLayout || isDashboard;
 
-  if (tenantLoading) {
+  if (tenantLoading || settingsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b0f19]">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader />
       </div>
     );
