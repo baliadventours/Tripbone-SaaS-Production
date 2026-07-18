@@ -5018,6 +5018,7 @@ RULES:
 
   // --- ROBUST SEO ENGINE (PERMISSION-PROOF) ---
   const getSEOContent = async (req: any, type?: 'tour' | 'blog') => {
+    const db = getAdminDb();
     const reqPath = req.path;
 
     // 1. Core Defaults (The "Zero-Failure" Layer)
