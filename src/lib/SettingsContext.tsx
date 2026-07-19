@@ -109,9 +109,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     // Apply colors to CSS variables
     document.documentElement.style.setProperty('--primary-color', data.primaryColor);
+
+    // Apply branding preset class to root
+    const root = document.documentElement;
+    root.classList.remove('theme-swiss-minimalist', 'theme-tech-dark', 'theme-elegant-editorial', 'theme-default');
+    const activePreset = data.brandingPreset || 'default';
+    root.classList.add(`theme-${activePreset}`);
     
-    // Inject fonts if they are from Google Fonts
-    if (data.headingFont || data.bodyFont) {
+    // Inject fonts if they are from Google Fonts or branding presets
+    if (data.headingFont || data.bodyFont || activePreset !== 'default') {
         const fontId = 'google-fonts-link';
         let link = document.getElementById(fontId) as HTMLLinkElement;
         if (!link) {
@@ -120,16 +126,31 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             link.rel = 'stylesheet';
             document.head.appendChild(link);
         }
+        
+        let headingFont = data.headingFont || 'Oswald';
+        let bodyFont = data.bodyFont || 'Poppins';
+
+        if (activePreset === 'swiss-minimalist') {
+            headingFont = 'Inter';
+            bodyFont = 'Inter';
+        } else if (activePreset === 'tech-dark') {
+            headingFont = 'Space Grotesk';
+            bodyFont = 'JetBrains Mono';
+        } else if (activePreset === 'elegant-editorial') {
+            headingFont = 'Playfair Display';
+            bodyFont = 'Inter';
+        }
+
         const families = [];
-        if (data.headingFont) families.push(`family=${data.headingFont.replace(/ /g, '+')}:wght@400;700`);
-        if (data.bodyFont) families.push(`family=${data.bodyFont.replace(/ /g, '+')}:wght@400;500;600`);
+        if (headingFont) families.push(`family=${headingFont.replace(/ /g, '+')}:wght@400;500;700;900`);
+        if (bodyFont) families.push(`family=${bodyFont.replace(/ /g, '+')}:wght@400;500;600`);
         
         if (families.length > 0) {
             link.href = `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap`;
         }
         
-        document.documentElement.style.setProperty('--font-heading', data.headingFont);
-        document.documentElement.style.setProperty('--font-body', data.bodyFont);
+        document.documentElement.style.setProperty('--font-heading', headingFont);
+        document.documentElement.style.setProperty('--font-body', bodyFont);
     }
 
     // Apply favicon

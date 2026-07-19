@@ -148,3 +148,244 @@
   }
 }
 
+body {
+  font-family: var(--font-body), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ==========================================================================
+   THEME PRESET OVERRIDES
+   ========================================================================== */
+
+/* 1. SWISS MINIMALIST PRESET */
+.theme-swiss-minimalist {
+  --primary-color: #000000 !important;
+  --secondary-color: #18181b !important;
+}
+
+.theme-swiss-minimalist body {
+  background-color: #f4f4f6 !important;
+  color: #09090b !important;
+}
+
+/* Sharp elements & Brutalist Swiss print aesthetic */
+.theme-swiss-minimalist .rounded-sm,
+.theme-swiss-minimalist .rounded-md,
+.theme-swiss-minimalist .rounded-lg,
+.theme-swiss-minimalist .rounded-xl,
+.theme-swiss-minimalist .rounded-2xl,
+.theme-swiss-minimalist .rounded-3xl,
+.theme-swiss-minimalist .rounded-full {
+  border-radius: 0px !important;
+}
+
+.theme-swiss-minimalist .shadow,
+.theme-swiss-minimalist .shadow-sm,
+.theme-swiss-minimalist .shadow-md,
+.theme-swiss-minimalist .shadow-lg,
+.theme-swiss-minimalist .shadow-xl,
+.theme-swiss-minimalist .shadow-2xl {
+  box-shadow: none !important;
+  border: 1px solid #d4d4d8 !important;
+}
+
+/* Swiss Minimalist Borders */
+.theme-swiss-minimalist border,
+.theme-swiss-minimalist .border,
+.theme-swiss-minimalist .border-slate-100,
+.theme-swiss-minimalist .border-slate-200,
+.theme-swiss-minimalist .border-gray-100,
+.theme-swiss-minimalist .border-gray-200 {
+  border-color: #18181b !important;
+  border-width: 1px !important;
+}
+
+/* Swiss solid flat primary colors & buttons */
+.theme-swiss-minimalist .bg-primary,
+.theme-swiss-minimalist .bg-primary-500,
+.theme-swiss-minimalist .bg-orange-500,
+.theme-swiss-minimalist .bg-orange-600 {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.theme-swiss-minimalist .text-primary,
+.theme-swiss-minimalist .text-orange-500,
+.theme-swiss-minimalist .text-orange-600 {
+  color: #000000 !important;
+}
+
+.theme-swiss-minimalist button,
+.theme-swiss-minimalist .btn,
+.theme-swiss-minimalist .btn-primary {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-radius: 0px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  border: 1px solid #000000 !important;
+  transition: all 0.2s ease !important;
+}
+
+.theme-swiss-minimalist button:hover,
+.theme-swiss-minimalist .btn:hover,
+.theme-swiss-minimalist .btn-primary:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* 2. TECHNICAL DARK GRID PRESET */
+.theme-tech-dark {
+  --primary-color: #10b981 !important; /* Cyber emerald green */
+  --secondary-color: #06b6d4 !important; /* Cyber neon cyan */
+}
+
+.theme-tech-dark body {
+  background-color: #09090b !important;
+  color: #e4e4e7 !important;
+}
+
+.theme-tech-dark .bg-white,
+.theme-tech-dark .bg-slate-50,
+.theme-tech-dark .bg-slate-50\/50,
+.theme-tech-dark .bg-gray-50,
+.theme-tech-dark .bg-zinc-50,
+.theme-tech-dark .bg-stone-50 {
+  background-color: #121214 !important;
+}
+
+.theme-tech-dark .text-slate-900,
+.theme-tech-dark .text-gray-900,
+.theme-tech-dark .text-zinc-900,
+.theme-tech-dark .text-slate-800,
+.theme-tech-dark .text-gray-800 {
+  color: #f4f4f5 !important;
+}
+
+.theme-tech-dark .text-slate-600,
+.theme-tech-dark .text-gray-600,
+.theme-tech-dark .text-zinc-600,
+.theme-tech-dark .text-slate-500,
+.theme-tech-dark .text-gray-500 {
+  color: #a1a1aa !important;
+}
+
+/* Cyber Terminal borders and micro-grids */
+.theme-tech-dark .border,
+.theme-tech-dark .border-slate-100,
+.theme-tech-dark .border-slate-200,
+.theme-tech-dark .border-gray-200,
+.theme-tech-dark .border-slate-300 {
+  border-color: #27272a !important;
+}
+
+.theme-tech-dark .rounded-xl,
+.theme-tech-dark .rounded-2xl,
+.theme-tech-dark .rounded-3xl {
+  border-radius: 6px !important;
+}
+
+/* Glowing buttons and accents */
+.theme-tech-dark .bg-primary,
+.theme-tech-dark .bg-primary-500,
+.theme-tech-dark .bg-orange-500,
+.theme-tech-dark .bg-orange-600 {
+  background-color: #10b981 !important;
+  color: #09090b !important;
+  font-weight: 600 !important;
+}
+
+.theme-tech-dark .text-primary,
+.theme-tech-dark .text-orange-500,
+.theme-tech-dark .text-orange-600 {
+  color: #10b981 !important;
+}
+
+.theme-tech-dark button,
+.theme-tech-dark .btn,
+.theme-tech-dark .btn-primary {
+  border-radius: 4px !important;
+  font-family: var(--font-mono), monospace !important;
+  border: 1px solid #10b981 !important;
+}
+
+.theme-tech-dark .shadow,
+.theme-tech-dark .shadow-sm,
+.theme-tech-dark .shadow-md,
+.theme-tech-dark .shadow-lg {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.08) !important;
+}
+
+/* 3. ELEGANT EDITORIAL PRESET */
+.theme-elegant-editorial {
+  --primary-color: #b45309 !important; /* Classic terracotta */
+  --secondary-color: #2b5138 !important; /* Forest green */
+}
+
+.theme-elegant-editorial body {
+  background-color: #fbf9f6 !important; /* Soft warm paper */
+  color: #1c1917 !important;
+}
+
+.theme-elegant-editorial .bg-white,
+.theme-elegant-editorial .bg-slate-50,
+.theme-elegant-editorial .bg-slate-50\/50 {
+  background-color: #ffffff !important;
+}
+
+.theme-elegant-editorial .bg-gray-50,
+.theme-elegant-editorial .bg-zinc-50 {
+  background-color: #f6f3eb !important; /* Linen texture background */
+}
+
+/* Soft luxurious rounded shapes */
+.theme-elegant-editorial .rounded-xl {
+  border-radius: 16px !important;
+}
+
+.theme-elegant-editorial .rounded-2xl {
+  border-radius: 24px !important;
+}
+
+.theme-elegant-editorial .rounded-3xl {
+  border-radius: 36px !important;
+}
+
+/* Classic Muted Editorial Borders */
+.theme-elegant-editorial .border,
+.theme-elegant-editorial .border-slate-100,
+.theme-elegant-editorial .border-slate-200,
+.theme-elegant-editorial .border-gray-100,
+.theme-elegant-editorial .border-gray-200 {
+  border-color: #e7e5e4 !important;
+}
+
+/* Warm terracotta accents and pill-shaped italic buttons */
+.theme-elegant-editorial .bg-primary,
+.theme-elegant-editorial .bg-primary-500,
+.theme-elegant-editorial .bg-orange-500,
+.theme-elegant-editorial .bg-orange-600 {
+  background-color: #b45309 !important;
+  color: #ffffff !important;
+}
+
+.theme-elegant-editorial .text-primary,
+.theme-elegant-editorial .text-orange-500,
+.theme-elegant-editorial .text-orange-600 {
+  color: #b45309 !important;
+}
+
+.theme-elegant-editorial button,
+.theme-elegant-editorial .btn,
+.theme-elegant-editorial .btn-primary {
+  border-radius: 9999px !important; /* Classic pill */
+  font-family: var(--font-heading), serif !important;
+  font-style: italic !important;
+  font-weight: 500 !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  letter-spacing: 0.02em !important;
+}
+

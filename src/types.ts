@@ -428,6 +428,7 @@ export interface SiteSettings {
   sitemapUrl?: string;
   // Theme Settings
   themeMode?: 'default' | 'custom';
+  brandingPreset?: 'default' | 'swiss-minimalist' | 'tech-dark' | 'elegant-editorial';
   sectionStyles?: {
     topNav?: string;
     mainNav?: string;

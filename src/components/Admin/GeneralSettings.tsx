@@ -137,7 +137,8 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
     bodyFont: 'Inter',
     headingFont: 'Space Grotesk',
     currency: 'USD',
-    customDomain: tenant?.customDomain || ''
+    customDomain: tenant?.customDomain || '',
+    brandingPreset: 'default'
   };
 
   useEffect(() => {
@@ -948,9 +949,126 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
           <div className="space-y-6 bg-white p-6 rounded-[24px] border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 border-b border-gray-50 pb-4 flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
-              Visual Identity
+              Visual Identity & Design Presets
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Visual Branding & Layout Presets Selector */}
+            <div className="space-y-3 pb-6 border-b border-gray-50">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">
+                  Layout & Design Preset
+                </label>
+                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Tenant Customization Engine
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 pl-1 mb-2">
+                Instantly launch a world-class digital brand layout with curated fonts, spacings, and styles, or select Custom to define your own style guidelines.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  {
+                    id: 'default',
+                    name: 'Custom / Classic',
+                    desc: 'Your custom primary/secondary colors and custom Google Fonts selections.',
+                    badge: 'Fully Custom',
+                    colorClass: 'from-[#FF7A00] to-[#1F3B1F]',
+                    fontLabel: 'Poppins & Oswald'
+                  },
+                  {
+                    id: 'swiss-minimalist',
+                    name: 'Swiss Minimalist',
+                    desc: 'Soft light greys, sharp corners, flat black accents, and high typographic contrast.',
+                    badge: 'Sleek & Modern',
+                    colorClass: 'from-[#000000] to-[#f4f4f6]',
+                    fontLabel: 'Inter Sans-Serif'
+                  },
+                  {
+                    id: 'tech-dark',
+                    name: 'Technical Dark Grid',
+                    desc: 'Deep charcoal canvas, glowing borders, and high-density technical modules.',
+                    badge: 'Neon Cyber',
+                    colorClass: 'from-[#10b981] to-[#09090b]',
+                    fontLabel: 'Space Grotesk + Mono'
+                  },
+                  {
+                    id: 'elegant-editorial',
+                    name: 'Elegant Editorial',
+                    desc: 'Warm off-white background, luxurious serif headings, and generous organic curves.',
+                    badge: 'Luxury Print',
+                    colorClass: 'from-[#b45309] to-[#faf8f5]',
+                    fontLabel: 'Playfair Serif'
+                  }
+                ].map((preset) => {
+                  const isSelected = (settings?.brandingPreset || 'default') === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setSettings(s => s ? { ...s, brandingPreset: preset.id as any } : null)}
+                      className={cn(
+                        "flex flex-col text-left p-4 rounded-[16px] border transition-all duration-300 relative overflow-hidden group",
+                        isSelected 
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-md" 
+                          : "border-gray-100 bg-white hover:border-gray-300 hover:shadow-sm"
+                      )}
+                    >
+                      {/* Gradient Accent Pill */}
+                      <div className="flex items-center justify-between w-full mb-3">
+                        <span className={cn(
+                          "text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full",
+                          isSelected ? "bg-primary text-white" : "bg-gray-100 text-gray-500"
+                        )}>
+                          {preset.badge}
+                        </span>
+                        
+                        {/* Circle Theme Color Preview */}
+                        <div className={cn(
+                          "h-4 w-4 rounded-full bg-gradient-to-br shadow-inner",
+                          preset.colorClass
+                        )} />
+                      </div>
+
+                      <h4 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                        {preset.name}
+                      </h4>
+                      <p className="text-xs text-gray-500 leading-snug flex-1 mb-3">
+                        {preset.desc}
+                      </p>
+
+                      <div className="text-[10px] font-mono text-gray-400 border-t border-gray-100 pt-2 w-full flex items-center justify-between">
+                        <span>Typography:</span>
+                        <span className="font-bold text-gray-600">{preset.fontLabel}</span>
+                      </div>
+
+                      {/* Selected Indicator Checkmark */}
+                      {isSelected && (
+                        <div className="absolute right-2 top-2 bg-primary text-white p-0.5 rounded-full z-10">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Manual Style Overrides (Collapsible or labeled appropriately if not using preset) */}
+            <div className={cn(
+              "space-y-6 transition-all duration-300",
+              (settings?.brandingPreset || 'default') !== 'default' && "opacity-40 pointer-events-none filter grayscale"
+            )}>
+              <div className="flex items-center justify-between pl-1">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Manual Custom Style Overrides
+                </span>
+                {(settings?.brandingPreset || 'default') !== 'default' && (
+                  <span className="text-[10px] font-semibold text-gray-400 italic">
+                    (Disabled while a design preset is active)
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Primary Color</label>
                 <div className="flex items-center gap-2">
@@ -1014,6 +1132,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                 </div>
               </div>
             </div>
+          </div>
           </div>
         )}
 
