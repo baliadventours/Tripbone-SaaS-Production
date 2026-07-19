@@ -58,6 +58,7 @@ export default function WebsiteBuilder() {
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
 
   const [pagesList, setPagesList] = useState<any[]>([]);
+  const [toursList, setToursList] = useState<any[]>([]);
   const [selectedPageSlug, setSelectedPageSlug] = useState<string>('about');
   const [pageEditorState, setPageEditorState] = useState<{
     id?: string;
@@ -105,6 +106,14 @@ export default function WebsiteBuilder() {
     if (!tenantId) return;
     const unsubscribe = onSnapshot(collection(db, 'pages'), (snapshot) => {
       setPagesList(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsubscribe;
+  }, [tenantId]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsubscribe = onSnapshot(collection(db, 'tours'), (snapshot) => {
+      setToursList(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     return unsubscribe;
   }, [tenantId]);
@@ -525,7 +534,7 @@ export default function WebsiteBuilder() {
                                    updateBlock(block.id, { heroImages: newImgs });
                                  }} 
                                  className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                               >
+                                >
                                  <X className="w-3 h-3" />
                                </button>
                              </div>
@@ -552,6 +561,51 @@ export default function WebsiteBuilder() {
                             )}
                           </div>
                        </div>
+                    </div>
+                  )}
+
+                  {/* Tour Picker for featuredTours and guestFavorites */}
+                  {['featuredTours', 'guestFavorites'].includes(block.id) && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                          Select Tours to Display (Leave empty to show all published tours)
+                        </label>
+                        <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-xl p-4 space-y-2 bg-gray-50/50">
+                          {toursList.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic">No tours found. Please create tours first.</p>
+                          ) : (
+                            toursList.map(tour => {
+                              const isChecked = (block.tourIds || []).includes(tour.id);
+                              return (
+                                <label key={tour.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      const currentIds = block.tourIds || [];
+                                      const nextIds = isChecked
+                                        ? currentIds.filter(id => id !== tour.id)
+                                        : [...currentIds, tour.id];
+                                      updateBlock(block.id, { tourIds: nextIds });
+                                    }}
+                                    className="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                  />
+                                  <div className="text-xs">
+                                    <div className="font-bold text-gray-900">{tour.title}</div>
+                                    {tour.duration && <span className="text-gray-400 font-medium">{tour.duration}</span>}
+                                  </div>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                        {(block.tourIds || []).length > 0 && (
+                          <p className="text-xs text-primary font-semibold mt-2">
+                            {(block.tourIds || []).length} tour(s) selected.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
 

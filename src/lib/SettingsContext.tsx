@@ -122,6 +122,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       'theme-mediterranean-breeze',
       'theme-brutalist-mono',
       'theme-royal-safari',
+      'theme-zen-oasis',
+      'theme-alpine-chalet',
+      'theme-sunset-ibiza',
       'theme-default'
     );
     const activePreset = data.brandingPreset || 'default';
@@ -168,6 +171,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         } else if (activePreset === 'royal-safari') {
             headingFont = 'Cormorant Garamond';
             bodyFont = 'Lora';
+        } else if (activePreset === 'zen-oasis') {
+            headingFont = 'Outfit';
+            bodyFont = 'Inter';
+        } else if (activePreset === 'alpine-chalet') {
+            headingFont = 'Bricolage Grotesque';
+            bodyFont = 'Lora';
+        } else if (activePreset === 'sunset-ibiza') {
+            headingFont = 'Syne';
+            bodyFont = 'Plus Jakarta Sans';
         }
 
         const families = [];

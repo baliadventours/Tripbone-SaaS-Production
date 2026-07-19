@@ -786,3 +786,174 @@ body {
   box-shadow: 0 4px 10px rgba(181, 137, 61, 0.1) !important;
 }
 
+/* 11. ZEN OASIS PRESET */
+.theme-zen-oasis {
+  --primary-color: #10b981 !important;
+  --secondary-color: #64748b !important;
+}
+
+.theme-zen-oasis body {
+  background-color: #fcfdfb !important;
+  color: #2f3e35 !important;
+}
+
+.theme-zen-oasis .bg-white,
+.theme-zen-oasis .bg-slate-50,
+.theme-zen-oasis .bg-slate-50\/50,
+.theme-zen-oasis .bg-gray-50,
+.theme-zen-oasis .bg-zinc-50 {
+  background-color: #f4fbf7 !important;
+}
+
+.theme-zen-oasis .border,
+.theme-zen-oasis .border-slate-100,
+.theme-zen-oasis .border-slate-200,
+.theme-zen-oasis .border-gray-200 {
+  border-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.theme-zen-oasis .rounded-xl,
+.theme-zen-oasis .rounded-2xl,
+.theme-zen-oasis .rounded-3xl {
+  border-radius: 4px !important;
+}
+
+.theme-zen-oasis .bg-primary,
+.theme-zen-oasis .bg-primary-500,
+.theme-zen-oasis .bg-orange-500,
+.theme-zen-oasis .bg-orange-600 {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.theme-zen-oasis .text-primary,
+.theme-zen-oasis .text-orange-500,
+.theme-zen-oasis .text-orange-600 {
+  color: #10b981 !important;
+}
+
+.theme-zen-oasis button,
+.theme-zen-oasis .btn,
+.theme-zen-oasis .btn-primary {
+  border-radius: 2px !important;
+  font-family: var(--font-sans), sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.15em !important;
+  border: 1px solid #10b981 !important;
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* 12. ALPINE CHALET PRESET */
+.theme-alpine-chalet {
+  --primary-color: #7c2d12 !important;
+  --secondary-color: #b45309 !important;
+}
+
+.theme-alpine-chalet body {
+  background-color: #fdfaf6 !important;
+  color: #291a10 !important;
+}
+
+.theme-alpine-chalet .bg-white,
+.theme-alpine-chalet .bg-slate-50,
+.theme-alpine-chalet .bg-slate-50\/50,
+.theme-alpine-chalet .bg-gray-50,
+.theme-alpine-chalet .bg-zinc-50 {
+  background-color: #f5ede4 !important;
+}
+
+.theme-alpine-chalet .border,
+.theme-alpine-chalet .border-slate-100,
+.theme-alpine-chalet .border-slate-200,
+.theme-alpine-chalet .border-gray-200 {
+  border-color: rgba(124, 45, 18, 0.15) !important;
+}
+
+.theme-alpine-chalet .rounded-xl,
+.theme-alpine-chalet .rounded-2xl,
+.theme-alpine-chalet .rounded-3xl {
+  border-radius: 8px !important;
+}
+
+.theme-alpine-chalet .bg-primary,
+.theme-alpine-chalet .bg-primary-500,
+.theme-alpine-chalet .bg-orange-500,
+.theme-alpine-chalet .bg-orange-600 {
+  background-color: #7c2d12 !important;
+  color: #ffffff !important;
+}
+
+.theme-alpine-chalet .text-primary,
+.theme-alpine-chalet .text-orange-500,
+.theme-alpine-chalet .text-orange-600 {
+  color: #7c2d12 !important;
+}
+
+.theme-alpine-chalet button,
+.theme-alpine-chalet .btn,
+.theme-alpine-chalet .btn-primary {
+  border-radius: 6px !important;
+  border: 1px solid #7c2d12 !important;
+  background-color: #7c2d12 !important;
+  color: #ffffff !important;
+}
+
+/* 13. IBIZA SUNSET PRESET */
+.theme-sunset-ibiza {
+  --primary-color: #f43f5e !important;
+  --secondary-color: #fb923c !important;
+}
+
+.theme-sunset-ibiza body {
+  background-color: #fffafb !important;
+  color: #1e1114 !important;
+}
+
+.theme-sunset-ibiza .bg-white,
+.theme-sunset-ibiza .bg-slate-50,
+.theme-sunset-ibiza .bg-slate-50\/50,
+.theme-sunset-ibiza .bg-gray-50,
+.theme-sunset-ibiza .bg-zinc-50 {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+.theme-sunset-ibiza .border,
+.theme-sunset-ibiza .border-slate-100,
+.theme-sunset-ibiza .border-slate-200,
+.theme-sunset-ibiza .border-gray-200 {
+  border-color: rgba(244, 63, 94, 0.08) !important;
+}
+
+.theme-sunset-ibiza .rounded-xl,
+.theme-sunset-ibiza .rounded-2xl,
+.theme-sunset-ibiza .rounded-3xl {
+  border-radius: 32px !important;
+}
+
+.theme-sunset-ibiza .bg-primary,
+.theme-sunset-ibiza .bg-primary-500,
+.theme-sunset-ibiza .bg-orange-500,
+.theme-sunset-ibiza .bg-orange-600 {
+  background: linear-gradient(135deg, #f43f5e, #fb923c) !important;
+  color: #ffffff !important;
+}
+
+.theme-sunset-ibiza .text-primary,
+.theme-sunset-ibiza .text-orange-500,
+.theme-sunset-ibiza .text-orange-600 {
+  color: #f43f5e !important;
+}
+
+.theme-sunset-ibiza button,
+.theme-sunset-ibiza .btn,
+.theme-sunset-ibiza .btn-primary {
+  border-radius: 9999px !important;
+  background: linear-gradient(135deg, #f43f5e, #fb923c) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.2) !important;
+}
+

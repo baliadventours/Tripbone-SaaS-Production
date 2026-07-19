@@ -644,12 +644,32 @@ export default function Home() {
   };
   const favoriteTours = getFavoriteTours();
 
+  const getFeaturedToursData = () => {
+    const block = builderSettings?.blocks?.find(b => b.id === 'featuredTours');
+    if (block?.tourIds && block.tourIds.length > 0) {
+      const selected = tours.filter(t => block.tourIds!.includes(t.id));
+      if (selected.length > 0) return selected;
+    }
+    return filteredTours;
+  };
+
+  const getGuestFavoritesData = () => {
+    const block = builderSettings?.blocks?.find(b => b.id === 'guestFavorites');
+    if (block?.tourIds && block.tourIds.length > 0) {
+      const selected = tours.filter(t => block.tourIds!.includes(t.id));
+      if (selected.length > 0) return selected;
+    }
+    return favoriteTours;
+  };
+
   const showEmptyState = !loading && tours.length === 0;
 
   // Theme Logic
   const getBlock = (id: string) => builderSettings?.blocks.find(b => b.id === id);
   const heroStyle = getBlock('hero')?.design || "slideshow-atv";
   const featuredToursStyle = getBlock('featuredTours')?.design || "default";
+  const reviewsStyle = getBlock('reviews')?.design || "slider";
+  const blogStyle = getBlock('blog')?.design || "carousel";
 
   const renderHero = () => {
     switch (heroStyle) {
@@ -1310,6 +1330,7 @@ export default function Home() {
   };
 
   const renderFeaturedTours = () => {
+    const featuredToursData = getFeaturedToursData();
     switch (featuredToursStyle) {
       case "airbnb-classic":
       case "airbnb-fluid":
@@ -1327,7 +1348,7 @@ export default function Home() {
               </Link>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredTours.slice(0, 4).map((tour, index) => (
+              {featuredToursData.slice(0, 4).map((tour, index) => (
                 <TourCard
                   key={tour.id}
                   tour={tour}
@@ -1358,7 +1379,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredTours.slice(0, 3).map((tour, index) => (
+                {featuredToursData.slice(0, 3).map((tour, index) => (
                   <TourCard
                     key={tour.id}
                     tour={tour}
@@ -1394,7 +1415,7 @@ export default function Home() {
                 </div>
                 <div className="md:w-3/4">
                   <div className="grid gap-12 sm:grid-cols-2">
-                    {filteredTours.slice(0, 4).map((tour, index) => (
+                    {featuredToursData.slice(0, 4).map((tour, index) => (
                       <div key={tour.id} className="group cursor-pointer">
                         <div className="aspect-[16/10] bg-gray-50 overflow-hidden mb-6 filter grayscale group-hover:grayscale-0 transition-all duration-700">
                           <img
@@ -1435,7 +1456,7 @@ export default function Home() {
                 <div className="h-px w-20 bg-amber-400 mx-auto" />
               </div>
               <div className="grid gap-24">
-                {filteredTours.slice(0, 3).map((tour, index) => (
+                {featuredToursData.slice(0, 3).map((tour, index) => (
                   <div
                     key={tour.id}
                     className={cn(
@@ -1487,7 +1508,7 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid gap-px bg-gray-100 border border-gray-100 rounded-[2rem] overflow-hidden">
-              {filteredTours.slice(0, 6).map((tour, index) => (
+              {featuredToursData.slice(0, 6).map((tour, index) => (
                 <div
                   key={tour.id}
                   className="bg-white p-12 hover:bg-gray-50 transition-colors flex flex-col md:flex-row items-center gap-12 group"
@@ -1553,7 +1574,7 @@ export default function Home() {
                       </div>
                     </div>
                   ))
-                : filteredTours
+                : featuredToursData
                     .slice(0, 8)
                     .map((tour, index) => (
                       <TourCard key={tour.id} tour={tour} index={index} />
@@ -1785,7 +1806,7 @@ export default function Home() {
                     <div className="h-4 bg-gray-100 rounded-full w-full" />
                   </div>
                 ))
-              ) : favoriteTours.length === 0 ? (
+              ) : getGuestFavoritesData().length === 0 ? (
                 <div className="w-[80vw] shrink-0 py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col justify-center items-center">
                   <LucideIcons.Star className="h-8 w-8 text-gray-400 mb-2" />
                   <p className="text-xs font-bold text-gray-500">
@@ -1793,7 +1814,7 @@ export default function Home() {
                   </p>
                 </div>
               ) : (
-                favoriteTours.map((tour) => (
+                getGuestFavoritesData().map((tour) => (
                   <div
                     key={tour.id}
                     className="w-[80vw] shrink-0 snap-start snap-always"
@@ -1830,12 +1851,20 @@ export default function Home() {
                 Verified Reviews
               </p>
             </div>
-            <div className="flex overflow-x-auto gap-4 px-6 pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar scroll-pl-6">
+            <div className={cn(
+              reviewsStyle === "grid" 
+                ? "grid gap-6 px-6 pb-4 sm:grid-cols-2 lg:grid-cols-3"
+                : "flex overflow-x-auto gap-4 px-6 pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar scroll-pl-6"
+            )}>
               {loading && reviews.length === 0 ? (
                 Array.from({ length: 2 }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[80vw] shrink-0 snap-start snap-always bg-white p-5 rounded-2xl space-y-4 animate-pulse"
+                    className={cn(
+                      reviewsStyle === "grid"
+                        ? "w-full bg-white p-5 rounded-2xl space-y-4 animate-pulse border border-gray-100"
+                        : "w-[80vw] sm:w-[380px] shrink-0 snap-start snap-always bg-white p-5 rounded-2xl space-y-4 animate-pulse"
+                    )}
                   >
                     <div className="h-3 bg-gray-100 rounded-full w-1/4" />
                     <div className="space-y-2">
@@ -1852,7 +1881,11 @@ export default function Home() {
                   </div>
                 ))
               ) : reviews.length === 0 ? (
-                <div className="w-[80vw] shrink-0 py-10 bg-white rounded-2xl border border-dashed border-gray-100 text-center flex flex-col justify-center items-center">
+                <div className={cn(
+                  reviewsStyle === "grid"
+                    ? "w-full col-span-full py-10 bg-white rounded-2xl border border-dashed border-gray-100 text-center flex flex-col justify-center items-center"
+                    : "w-[80vw] shrink-0 py-10 bg-white rounded-2xl border border-dashed border-gray-100 text-center flex flex-col justify-center items-center"
+                )}>
                   <LucideIcons.MessageSquare className="h-8 w-8 text-gray-400 mb-2" />
                   <p className="text-xs font-bold text-gray-500">
                     No reviews found yet
@@ -1862,7 +1895,11 @@ export default function Home() {
                 reviews.slice(0, 6).map((review) => (
                   <div
                     key={review.id}
-                    className="w-[80vw] shrink-0 snap-start snap-always bg-white p-5 rounded-12 flex flex-col justify-between shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative overflow-hidden text-left border border-gray-100"
+                    className={cn(
+                      reviewsStyle === "grid"
+                        ? "w-full bg-white p-5 rounded-12 flex flex-col justify-between shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative overflow-hidden text-left border border-gray-100"
+                        : "w-[80vw] sm:w-[380px] shrink-0 snap-start snap-always bg-white p-5 rounded-12 flex flex-col justify-between shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative overflow-hidden text-left border border-gray-100"
+                    )}
                   >
                     <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-gray-900">
                       <LucideIcons.Quote className="h-10 w-10" />
@@ -1928,12 +1965,20 @@ export default function Home() {
                 See All
               </Link>
             </div>
-            <div className="flex overflow-x-auto gap-4 px-6 pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar scroll-pl-6">
+            <div className={cn(
+              blogStyle === "grid"
+                ? "grid gap-6 px-6 pb-4 sm:grid-cols-2 lg:grid-cols-3"
+                : "flex overflow-x-auto gap-4 px-6 pb-4 scroll-smooth snap-x snap-mandatory no-scrollbar scroll-pl-6"
+            )}>
               {loading && posts.length === 0 ? (
                 Array.from({ length: 2 }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[80vw] shrink-0 snap-start snap-always space-y-4 animate-pulse"
+                    className={cn(
+                      blogStyle === "grid"
+                        ? "w-full space-y-4 animate-pulse border border-gray-100 rounded-2xl p-4 bg-white"
+                        : "w-[80vw] shrink-0 snap-start snap-always space-y-4 animate-pulse"
+                    )}
                   >
                     <div className="aspect-[16/10] w-full bg-gray-100 rounded-2xl" />
                     <div className="space-y-2">
@@ -1943,7 +1988,11 @@ export default function Home() {
                   </div>
                 ))
               ) : posts.length === 0 ? (
-                <div className="w-[80vw] shrink-0 py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col justify-center items-center">
+                <div className={cn(
+                  blogStyle === "grid"
+                    ? "w-full col-span-full py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col justify-center items-center"
+                    : "w-[80vw] shrink-0 py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col justify-center items-center"
+                )}>
                   <LucideIcons.BookOpen className="h-8 w-8 text-gray-400 mb-2" />
                   <p className="text-xs font-bold text-gray-500">
                     No inspirational posts found
@@ -1954,7 +2003,11 @@ export default function Home() {
                   <Link
                     key={post.id}
                     to={`/blog/${post.slug}`}
-                    className="w-[80vw] shrink-0 snap-start snap-always block bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm group"
+                    className={cn(
+                      blogStyle === "grid"
+                        ? "w-full block bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm group"
+                        : "w-[80vw] shrink-0 snap-start snap-always block bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm group"
+                    )}
                   >
                     <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
                       <SmartImage

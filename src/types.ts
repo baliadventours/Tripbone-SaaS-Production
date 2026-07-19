@@ -428,7 +428,7 @@ export interface SiteSettings {
   sitemapUrl?: string;
   // Theme Settings
   themeMode?: 'default' | 'custom';
-  brandingPreset?: 'default' | 'swiss-minimalist' | 'tech-dark' | 'elegant-editorial' | 'nordic-forest' | 'retro-adventure' | 'tokyo-neon' | 'mediterranean-breeze' | 'brutalist-mono' | 'royal-safari';
+  brandingPreset?: 'default' | 'swiss-minimalist' | 'tech-dark' | 'elegant-editorial' | 'nordic-forest' | 'retro-adventure' | 'tokyo-neon' | 'mediterranean-breeze' | 'brutalist-mono' | 'royal-safari' | 'zen-oasis' | 'alpine-chalet' | 'sunset-ibiza';
   sectionStyles?: {
     topNav?: string;
     mainNav?: string;

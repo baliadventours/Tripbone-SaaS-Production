@@ -10,7 +10,7 @@ import { useSettings } from '../../lib/SettingsContext';
 
 export default function TopRatedTours() {
   const [tours, setTours] = useState<Tour[]>([]);
-  const { settings } = useSettings();
+  const { settings, builderSettings } = useSettings();
 
   const themeMode = settings?.themeMode || 'default';
   const styleId = themeMode === 'custom' ? settings?.sectionStyles?.guestFavorites : 'default';
@@ -23,19 +23,28 @@ export default function TopRatedTours() {
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allTours = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Tour));
-      let ratedTours = allTours
-        .filter(t => (t.rating ?? 4.9) >= 4.5)
-        .sort((a, b) => (b.rating ?? 4.9) - (a.rating ?? 4.9));
       
-      if (ratedTours.length === 0) {
-        ratedTours = allTours;
+      const guestFavsBlock = builderSettings?.blocks?.find(b => b.id === 'guestFavorites');
+      if (guestFavsBlock?.tourIds && guestFavsBlock.tourIds.length > 0) {
+        const selected = guestFavsBlock.tourIds
+          .map(id => allTours.find(t => t.id === id))
+          .filter((t): t is Tour => !!t);
+        setTours(selected);
+      } else {
+        let ratedTours = allTours
+          .filter(t => (t.rating ?? 4.9) >= 4.5)
+          .sort((a, b) => (b.rating ?? 4.9) - (a.rating ?? 4.9));
+        
+        if (ratedTours.length === 0) {
+          ratedTours = allTours;
+        }
+        setTours(ratedTours.slice(0, 8));
       }
-      setTours(ratedTours.slice(0, 8));
     }, (error) => {
       console.error("Error in TopRatedTours onSnapshot:", error);
     });
     return unsubscribe;
-  }, []);
+  }, [builderSettings]);
 
   const renderContent = () => {
     switch (styleId) {

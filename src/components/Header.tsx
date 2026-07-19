@@ -12,7 +12,7 @@ import { cn, getSafeImageUrl } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Header() {
-  const { settings } = useSettings();
+  const { settings, builderSettings } = useSettings();
   const { tenantId, tenant } = useTenant();
   const siteName = settings?.siteName || tenant?.companyName || 'Tripbone';
   const logoURL = settings?.logoURL || tenant?.logo;
@@ -27,6 +27,17 @@ export default function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const getMenuLinks = (blockId: string) => {
+    const block = builderSettings?.blocks?.find(b => b.id === blockId);
+    if (block?.menuId) {
+      const menu = builderSettings.menus?.find(m => m.id === block.menuId);
+      if (menu && menu.links && menu.links.length > 0) {
+        return menu.links;
+      }
+    }
+    return null;
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -141,6 +152,14 @@ export default function Header() {
   const mainNavStyle = themeMode === 'custom' ? settings?.sectionStyles?.mainNav : 'default';
 
   const renderTopNav = () => {
+    if (builderSettings) {
+      const topNavBlock = builderSettings.blocks?.find(b => b.id === 'topNav');
+      if (topNavBlock && topNavBlock.active === false) {
+        return null;
+      }
+    }
+    const topNavLinks = getMenuLinks('topNav');
+
     switch (topNavStyle) {
       case 'airbnb-classic':
       case 'airbnb-fluid':
@@ -154,8 +173,16 @@ export default function Header() {
               </div>
               <div className="flex items-center gap-5">
                  <CurrencySwitcher variant="minimal" />
-                 <Link to="/about" className="hover:text-gray-900 transition-colors">Our Story</Link>
-                 <Link to="/contact" className="hover:text-gray-900 transition-colors">Help Center</Link>
+                 {topNavLinks ? (
+                   topNavLinks.map((link, idx) => (
+                     <Link key={idx} to={link.url} className="hover:text-gray-900 transition-colors">{link.label}</Link>
+                   ))
+                 ) : (
+                   <>
+                     <Link to="/about" className="hover:text-gray-900 transition-colors">Our Story</Link>
+                     <Link to="/contact" className="hover:text-gray-900 transition-colors">Help Center</Link>
+                   </>
+                 )}
               </div>
             </div>
           </div>
@@ -175,7 +202,13 @@ export default function Header() {
               </div>
               <div className="flex items-center gap-8 opacity-80">
                  <CurrencySwitcher variant="minimal" />
-                 <Link to="/planner" className="px-3 py-1 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-all">Smart Planner</Link>
+                 {topNavLinks ? (
+                   topNavLinks.map((link, idx) => (
+                     <Link key={idx} to={link.url} className="px-3 py-1 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-all">{link.label}</Link>
+                   ))
+                 ) : (
+                   <Link to="/planner" className="px-3 py-1 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-all">Smart Planner</Link>
+                 )}
               </div>
             </div>
           </div>
@@ -193,6 +226,9 @@ export default function Header() {
                <div className="flex gap-4">
                  <span className="text-gray-900 font-bold tracking-[0.2em]">{siteName.toUpperCase()}</span>
                  <CurrencySwitcher variant="minimal" />
+                 {topNavLinks && topNavLinks.map((link, idx) => (
+                   <Link key={idx} to={link.url} className="text-gray-900 hover:text-primary transition-colors ml-4">{link.label}</Link>
+                 ))}
                </div>
             </div>
           </div>
@@ -210,9 +246,17 @@ export default function Header() {
                   <span>Concierge Service Active</span>
                </div>
                <div className="flex items-center gap-8 uppercase not-italic font-sans text-[9px] tracking-[.3em] font-black">
-                  <Link to="/contact" className="hover:text-primary transition-colors">Inquire</Link>
+                  {topNavLinks ? (
+                    topNavLinks.map((link, idx) => (
+                      <Link key={idx} to={link.url} className="hover:text-primary transition-colors">{link.label}</Link>
+                    ))
+                  ) : (
+                    <>
+                      <Link to="/contact" className="hover:text-primary transition-colors">Inquire</Link>
+                      <Link to="/login" className="hover:text-primary transition-colors">Portal</Link>
+                    </>
+                  )}
                   <CurrencySwitcher variant="minimal" />
-                  <Link to="/login" className="hover:text-primary transition-colors">Portal</Link>
                </div>
             </div>
           </div>
@@ -228,9 +272,17 @@ export default function Header() {
                   <span className="text-gray-400">Environment: Production</span>
                </div>
                <div className="flex items-center gap-6">
-                  <a href="#" className="hover:text-primary transition-colors flex items-center gap-1.5 opacity-60"><BookOpen className="h-3 w-3" /> Resources</a>
+                  {topNavLinks ? (
+                    topNavLinks.map((link, idx) => (
+                      <Link key={idx} to={link.url} className="hover:text-primary transition-colors flex items-center gap-1.5 opacity-60">{link.label}</Link>
+                    ))
+                  ) : (
+                    <>
+                      <a href="#" className="hover:text-primary transition-colors flex items-center gap-1.5 opacity-60"><BookOpen className="h-3 w-3" /> Resources</a>
+                      <Link to="/contact" className="hover:text-primary transition-colors">Developer Support</Link>
+                    </>
+                  )}
                   <CurrencySwitcher variant="minimal" />
-                  <Link to="/contact" className="hover:text-primary transition-colors">Developer Support</Link>
                </div>
             </div>
           </div>
@@ -274,9 +326,17 @@ export default function Header() {
               </div>
               <div className="flex items-center gap-6">
                 <CurrencySwitcher variant="minimal" />
-                <Link to="/contact" className="flex items-center gap-2 text-[10px] font-black text-white/80 hover:text-white transition-colors tracking-[0.1em]">
-                  <HelpCircle className="h-3 w-3" /> Support
-                </Link>
+                {topNavLinks ? (
+                  topNavLinks.map((link, idx) => (
+                    <Link key={idx} to={link.url} className="flex items-center gap-2 text-[10px] font-black text-white/80 hover:text-white transition-colors tracking-[0.1em]">
+                      {link.label}
+                    </Link>
+                  ))
+                ) : (
+                  <Link to="/contact" className="flex items-center gap-2 text-[10px] font-black text-white/80 hover:text-white transition-colors tracking-[0.1em]">
+                    <HelpCircle className="h-3 w-3" /> Support
+                  </Link>
+                )}
                 {user ? (
                    <button onClick={handleLogout} className="text-[10px] font-black text-white/80 hover:text-red-400 transition-colors tracking-[0.1em] flex items-center gap-2">
                      Logout
@@ -296,6 +356,14 @@ export default function Header() {
   };
 
   const renderMainNav = () => {
+    if (builderSettings) {
+      const mainNavBlock = builderSettings.blocks?.find(b => b.id === 'mainNav');
+      if (mainNavBlock && mainNavBlock.active === false) {
+        return null;
+      }
+    }
+    const customLinks = getMenuLinks('mainNav');
+
     const headerClass = cn(
       "container mx-auto h-20 items-center justify-between px-4 lg:px-8",
       (isTourDetail || isCheckout) ? "hidden md:flex" : "flex"
@@ -320,7 +388,13 @@ export default function Header() {
              </div>
   
              <div className="flex items-center gap-4">
-                <Link to="/tours" className="hidden lg:block text-sm font-bold text-gray-900 hover:bg-gray-50 px-4 py-2 rounded-full transition-colors">Experiences</Link>
+                {customLinks ? (
+                  customLinks.map((link, idx) => (
+                    <Link key={idx} to={link.url} className="hidden lg:block text-sm font-bold text-gray-900 hover:bg-gray-50 px-4 py-2 rounded-full transition-colors">{link.label}</Link>
+                  ))
+                ) : (
+                  <Link to="/tours" className="hidden lg:block text-sm font-bold text-gray-900 hover:bg-gray-50 px-4 py-2 rounded-full transition-colors">Experiences</Link>
+                )}
                 <button className="hidden lg:block text-gray-900 hover:bg-gray-50 p-3 rounded-full transition-colors" aria-label="Language and currency selection"><Globe className="h-4 w-4" /></button>
                 {renderActionArea(true)}
              </div>
@@ -344,16 +418,24 @@ export default function Header() {
                "hidden lg:flex items-center gap-1 p-1 rounded-2xl border",
                isGlass ? "bg-black/20 border-white/5" : "bg-gray-50 border-gray-100"
              )}>
-                <Link to="/" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Index</Link>
-                <Link to="/tours" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "bg-white text-gray-900" : "bg-white text-gray-900 shadow-sm border border-gray-100")}>Expeditions</Link>
-                <Link to="/planner" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Planner</Link>
-                <Link to="/blog" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>News</Link>
+                {customLinks ? (
+                  customLinks.map((link, idx) => (
+                    <Link key={idx} to={link.url} className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>{link.label}</Link>
+                  ))
+                ) : (
+                  <>
+                    <Link to="/" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Index</Link>
+                    <Link to="/tours" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "bg-white text-gray-900" : "bg-white text-gray-900 shadow-sm border border-gray-100")}>Expeditions</Link>
+                    <Link to="/planner" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Planner</Link>
+                    <Link to="/blog" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>News</Link>
+                  </>
+                )}
              </nav>
   
              <div className="flex items-center gap-3">
                 <button className={cn(
-                  "p-2.5 rounded-xl transition-all hover:scale-105 shadow-xl",
-                  isGlass ? "bg-white text-gray-900 shadow-white/5" : "bg-gray-900 text-white"
+                   "p-2.5 rounded-xl transition-all hover:scale-105 shadow-xl",
+                   isGlass ? "bg-white text-gray-900 shadow-white/5" : "bg-gray-900 text-white"
                 )}><Search className="h-4 w-4" /></button>
                 {renderActionArea(true)}
              </div>
@@ -369,16 +451,24 @@ export default function Header() {
             </Link>
             
             <nav className="hidden lg:flex items-center gap-12 font-mono text-[10px] uppercase tracking-[0.3em] text-gray-400">
-               <Link to="/" className="hover:text-gray-900 transition-colors">Vol 1.0</Link>
-               <Link to="/tours" className="text-gray-900 font-bold border-b border-gray-900">Archive</Link>
-               <Link to="/planner" className="hover:text-gray-900 transition-colors">Tools</Link>
-               <Link to="/contact" className="hover:text-gray-900 transition-colors">Inquire</Link>
+               {customLinks ? (
+                 customLinks.map((link, idx) => (
+                   <Link key={idx} to={link.url} className="hover:text-gray-900 transition-colors">{link.label}</Link>
+                 ))
+               ) : (
+                 <>
+                   <Link to="/" className="hover:text-gray-900 transition-colors">Vol 1.0</Link>
+                   <Link to="/tours" className="text-gray-900 font-bold border-b border-gray-900">Archive</Link>
+                   <Link to="/planner" className="hover:text-gray-900 transition-colors">Tools</Link>
+                   <Link to="/contact" className="hover:text-gray-900 transition-colors">Inquire</Link>
+                 </>
+               )}
             </nav>
   
-            <div className="flex items-center gap-8">
-               <button className="text-gray-900 hover:scale-110 transition-transform"><Search className="h-4 w-4" /></button>
-               {renderActionArea()}
-            </div>
+             <div className="flex items-center gap-8">
+                <button className="text-gray-900 hover:scale-110 transition-transform"><Search className="h-4 w-4" /></button>
+                {renderActionArea()}
+             </div>
           </div>
         );
 
@@ -389,10 +479,18 @@ export default function Header() {
           <div className={cn(headerClass, "h-28", isDark && "text-white")}>
             <div className="flex items-center gap-10">
                <button className={cn("hidden lg:block transition-colors", isDark ? "text-white/20 hover:text-white" : "text-[#80766d] hover:text-[#2d2a26]")}><LayoutGrid className="h-5 w-5" /></button>
-               <nav className={cn("hidden lg:flex items-center gap-10 font-serif text-[13px] tracking-[0.15em] uppercase", isDark ? "text-white/50" : "text-[#80766d]")}>
-                  <Link to="/tours" className="hover:text-primary transition-colors">Collections</Link>
-                  <Link to="/about" className="hover:text-primary transition-colors">Ethos</Link>
-               </nav>
+               {customLinks ? (
+                 <nav className={cn("hidden lg:flex items-center gap-10 font-serif text-[13px] tracking-[0.15em] uppercase", isDark ? "text-white/50" : "text-[#80766d]")}>
+                    {customLinks.slice(0, Math.ceil(customLinks.length / 2)).map((link, idx) => (
+                      <Link key={idx} to={link.url} className="hover:text-primary transition-colors">{link.label}</Link>
+                    ))}
+                 </nav>
+               ) : (
+                 <nav className={cn("hidden lg:flex items-center gap-10 font-serif text-[13px] tracking-[0.15em] uppercase", isDark ? "text-white/50" : "text-[#80766d]")}>
+                    <Link to="/tours" className="hover:text-primary transition-colors">Collections</Link>
+                    <Link to="/about" className="hover:text-primary transition-colors">Ethos</Link>
+                 </nav>
+               )}
             </div>
   
             <Link to="/" className="absolute left-1/2 -translate-x-1/2 text-center group">
@@ -401,10 +499,18 @@ export default function Header() {
             </Link>
   
             <div className="flex items-center gap-10">
-               <nav className={cn("hidden lg:flex items-center gap-10 font-serif text-[13px] tracking-[0.15em] uppercase", isDark ? "text-white/50" : "text-[#80766d]")}>
-                  <Link to="/blog" className="hover:text-primary transition-colors">Narratives</Link>
-                  <Link to="/contact" className="hover:text-primary transition-colors">Concierge</Link>
-               </nav>
+               {customLinks ? (
+                 <nav className={cn("hidden lg:flex items-center gap-10 font-serif text-[13px] tracking-[0.15em] uppercase", isDark ? "text-white/50" : "text-[#80766d]")}>
+                    {customLinks.slice(Math.ceil(customLinks.length / 2)).map((link, idx) => (
+                      <Link key={idx} to={link.url} className="hover:text-primary transition-colors">{link.label}</Link>
+                    ))}
+                 </nav>
+               ) : (
+                 <nav className={cn("hidden lg:flex items-center gap-10 font-serif text-[13px] tracking-[0.15em] uppercase", isDark ? "text-white/50" : "text-[#80766d]")}>
+                    <Link to="/blog" className="hover:text-primary transition-colors">Narratives</Link>
+                    <Link to="/contact" className="hover:text-primary transition-colors">Concierge</Link>
+                 </nav>
+               )}
                {renderActionArea()}
             </div>
           </div>
@@ -420,8 +526,16 @@ export default function Header() {
                   <span className="font-extrabold text-xl tracking-tight text-gray-900">BaliEngine</span>
                </Link>
                <nav className="hidden lg:flex items-center gap-8 text-xs font-black uppercase tracking-widest text-gray-400">
-                  <Link to="/tours" className="hover:text-primary transition-colors">Cloud</Link>
-                  <Link to="/about" className="hover:text-primary transition-colors">Infrastructure</Link>
+                  {customLinks ? (
+                    customLinks.map((link, idx) => (
+                      <Link key={idx} to={link.url} className="hover:text-primary transition-colors">{link.label}</Link>
+                    ))
+                  ) : (
+                    <>
+                      <Link to="/tours" className="hover:text-primary transition-colors">Cloud</Link>
+                      <Link to="/about" className="hover:text-primary transition-colors">Infrastructure</Link>
+                    </>
+                  )}
                </nav>
             </div>
   
@@ -499,16 +613,24 @@ export default function Header() {
   
             {/* Desktop Menu */}
             <nav className="hidden md:flex items-center gap-5">
-              <Link to="/" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Home</Link>
-              <Link to="/tours" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Tours</Link>
-              <Link to="/planner" className="relative text-sm font-black text-primary hover:text-orange-700 transition-colors flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                Plan Your Trip
-                <span className="absolute -top-3 -right-6 bg-orange-500 text-[8px] text-white px-1.5 py-0.5 rounded-full animate-pulse uppercase tracking-widest">New</span>
-              </Link>
-              <Link to="/blog" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Blog</Link>
-              <Link to="/about" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">About</Link>
-              <Link to="/contact" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Contact</Link>
+              {customLinks ? (
+                customLinks.map((link, idx) => (
+                  <Link key={idx} to={link.url} className="text-sm font-black text-gray-900 hover:text-primary transition-colors">{link.label}</Link>
+                ))
+              ) : (
+                <>
+                  <Link to="/" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Home</Link>
+                  <Link to="/tours" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Tours</Link>
+                  <Link to="/planner" className="relative text-sm font-black text-primary hover:text-orange-700 transition-colors flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Plan Your Trip
+                    <span className="absolute -top-3 -right-6 bg-orange-500 text-[8px] text-white px-1.5 py-0.5 rounded-full animate-pulse uppercase tracking-widest">New</span>
+                  </Link>
+                  <Link to="/blog" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Blog</Link>
+                  <Link to="/about" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">About</Link>
+                  <Link to="/contact" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Contact</Link>
+                </>
+              )}
             </nav>
   
             {/* Action Area */}

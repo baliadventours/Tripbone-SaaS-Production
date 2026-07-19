@@ -1046,6 +1046,30 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     badge: 'Regal Wilderness',
                     colorClass: 'from-[#b5893d] to-[#0a0a0d]',
                     fontLabel: 'Cormorant + Lora'
+                  },
+                  {
+                    id: 'zen-oasis',
+                    name: 'Zen Oasis',
+                    desc: 'Serene soft celadon greens, massive white negative spaces, and ultra thin minimalist lines.',
+                    badge: 'Organic Peace',
+                    colorClass: 'from-[#a7f3d0] to-[#f4fbf7]',
+                    fontLabel: 'Outfit + Inter'
+                  },
+                  {
+                    id: 'alpine-chalet',
+                    name: 'Alpine Chalet',
+                    desc: 'Rustic wood browns, warm glowing fireplace copper accents, and heavy rugged typography.',
+                    badge: 'Cozy Timber',
+                    colorClass: 'from-[#78350f] to-[#fdfaf6]',
+                    fontLabel: 'Bricolage + Lora'
+                  },
+                  {
+                    id: 'sunset-ibiza',
+                    name: 'Ibiza Sunset',
+                    desc: 'Smooth orange-pink dream gradients, ultra-fluid border curves, and transparent white glass cards.',
+                    badge: 'Dream Riviera',
+                    colorClass: 'from-[#f43f5e] to-[#fff7ed]',
+                    fontLabel: 'Syne + Jakarta'
                   }
                 ].map((preset) => {
                   const isSelected = (settings?.brandingPreset || 'default') === preset.id;
