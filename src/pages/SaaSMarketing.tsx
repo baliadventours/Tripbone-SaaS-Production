@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { db } from '../lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import { Helmet } from 'react-helmet-async';
 import { useSettings } from '../lib/SettingsContext';
 import { 
@@ -8,7 +10,8 @@ import {
   MousePointerClick, MessageCircle, Users,
   Check, Globe, DollarSign, Activity,
   ChevronRight, Layout, Map, CreditCard, Mail, 
-  FileText, BarChart, X, ChevronDown, ChevronUp
+  FileText, BarChart, X, ChevronDown, ChevronUp,
+  Layers, ExternalLink
 } from 'lucide-react';
 
 export default function SaaSMarketing() {
@@ -72,6 +75,29 @@ export default function SaaSMarketing() {
   ];
 
   const [currentHeroImg, setCurrentHeroImg] = useState(0);
+  const [showcases, setShowcases] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadShowcases() {
+      try {
+        const snap = await getDocs(collection(db, 'clientShowcase'));
+        const list: any[] = [];
+        snap.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        list.sort((a, b) => {
+          const wA = a.weight || 0;
+          const wB = b.weight || 0;
+          if (wA !== wB) return wB - wA;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+        setShowcases(list);
+      } catch (err) {
+        console.error('Error loading showcases on homepage:', err);
+      }
+    }
+    loadShowcases();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -323,51 +349,123 @@ export default function SaaSMarketing() {
               <h2 className="text-4xl md:text-5xl font-black mb-4 text-slate-900 tracking-tight">Live sites powered by Tripbone</h2>
               <p className="text-xl text-slate-500 max-w-2xl mx-auto">Explore how tour operators are transforming their digital presence and driving more sales.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                "https://i.ibb.co.com/99tvYdwv/image.png",
-                "https://i.ibb.co.com/LzZYPvq3/image.png",
-                "https://i.ibb.co.com/s9mtG824/image.png"
-              ].map((img, i) => (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.2 }}
-                  key={i} 
-                  className="rounded-2xl overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-200 bg-white group hover:shadow-2xl transition-all duration-300"
-                >
-                  <div className="w-full h-10 bg-slate-50 border-b border-slate-200 flex items-center px-4 gap-1.5 z-10 relative">
-                    <div className="w-3 h-3 rounded-full bg-slate-300"></div>
-                    <div className="w-3 h-3 rounded-full bg-slate-300"></div>
-                    <div className="w-3 h-3 rounded-full bg-slate-300"></div>
-                  </div>
-                  <div className="relative h-[450px] w-full overflow-hidden bg-slate-100">
-                    <img 
-                      src={img} 
-                      alt={`Live site showcase ${i + 1}`} 
-                      className="w-full absolute top-0 left-0 object-cover object-top transition-transform duration-[8s] ease-linear hover:-translate-y-[calc(100%-450px)] cursor-ns-resize" 
-                    />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {showcases.length > 0 ? (
+                showcases.slice(0, 5).map((item, i) => (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    key={item.id} 
+                    className="rounded-2xl overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-200 bg-white group hover:shadow-2xl transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="w-full h-10 bg-slate-50 border-b border-slate-200 flex items-center px-4 justify-between z-10 relative">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[150px]">
+                          {item.url ? item.url.replace(/^https?:\/\//i, '') : 'client-site'}
+                        </span>
+                        <div className="w-4"></div>
+                      </div>
+                      <div className="relative h-[240px] w-full overflow-hidden bg-slate-100">
+                        {item.screenshotUrl ? (
+                          <img 
+                            src={item.screenshotUrl} 
+                            alt={item.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                            <Layers className="w-12 h-12 stroke-1" />
+                            <span className="text-[9px] font-mono mt-2 uppercase tracking-widest font-bold">Preview Image</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6 text-left">
+                        <h3 className="text-lg font-black text-slate-900 group-hover:text-[#1db3cd] transition-colors truncate mb-1">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                          {item.description || 'Verified Tripbone partner website.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="px-6 pb-6 text-left">
+                      <a 
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-[#1db3cd] hover:text-[#1596ad] inline-flex items-center space-x-1"
+                      >
+                        <span>Visit Live Site</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                /* Fallback fallback if firestore has no showcases yet */
+                [
+                  { img: "https://i.ibb.co.com/99tvYdwv/image.png", title: "Bali Adventure Tours", desc: "Premium booking platform for white water rafting, ATV rides, and volcano hikes." },
+                  { img: "https://i.ibb.co.com/LzZYPvq3/image.png", title: "Batur Sunrise Trekking", desc: "Specialist trekking guides featuring live pricing and fast ticket generation." },
+                  { img: "https://i.ibb.co.com/s9mtG824/image.png", title: "First Bali Excursions", desc: "Multi-supplier custom itinerary platform with native WhatsApp tickets." }
+                ].map((item, i) => (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.2 }}
+                    key={i} 
+                    className="rounded-2xl overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-200 bg-white group hover:shadow-2xl transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="w-full h-10 bg-slate-50 border-b border-slate-200 flex items-center px-4 gap-1.5 z-10 relative">
+                        <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+                        <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+                        <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+                      </div>
+                      <div className="relative h-[240px] w-full overflow-hidden bg-slate-100">
+                        <img 
+                          src={item.img} 
+                          alt={item.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                      </div>
+                      <div className="p-6 text-left">
+                        <h3 className="text-lg font-black text-slate-900 group-hover:text-[#1db3cd] transition-colors truncate mb-1">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="px-6 pb-6 text-left">
+                      <span className="text-xs font-bold text-[#1db3cd] hover:text-[#1596ad] inline-flex items-center space-x-1 cursor-pointer">
+                        <span>Visit Live Site</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+
             <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/pricing"
-                className="w-full sm:w-auto bg-[#1db3cd] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#1596ad] hover:shadow-lg hover:shadow-[#1db3cd]/25 transition-all text-center flex items-center justify-center gap-2"
+                to="/directory"
+                className="w-full sm:w-auto bg-[#1db3cd] hover:bg-[#1596ad] text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-[#1db3cd]/25 transition-all text-center flex items-center justify-center gap-2"
               >
-                Try it Free
+                <span>See More Sites</span>
+                <Globe className="w-5 h-5" />
               </Link>
-              <a
-                href="https://demo.tripbone.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto bg-white text-slate-900 border-2 border-slate-200 px-8 py-4 rounded-xl font-bold hover:border-slate-900 transition-colors text-center flex items-center justify-center gap-2"
-              >
-                See it in Action <ArrowRight className="w-5 h-5" />
-              </a>
             </div>
           </div>
         </section>

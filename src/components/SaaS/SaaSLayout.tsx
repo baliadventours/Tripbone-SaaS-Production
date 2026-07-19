@@ -106,6 +106,7 @@ export default function SaaSLayout() {
               </div>
 
               <Link to="/pricing" className="hover:text-[#1db3cd] transition-colors py-8">Pricing</Link>
+              <Link to="/directory" className="hover:text-[#1db3cd] transition-colors py-8">Directory</Link>
               <Link to="/about" className="hover:text-[#1db3cd] transition-colors py-8">Company</Link>
               <Link to="/contact" className="hover:text-[#1db3cd] transition-colors py-8">Contact</Link>
             </nav>

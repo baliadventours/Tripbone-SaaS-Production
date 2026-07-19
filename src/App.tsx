@@ -54,6 +54,7 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const SaaSHome = lazy(() => import('./pages/SaaSHome'));
 const SaaSSuperAdmin = lazy(() => import('./pages/SaaSSuperAdmin'));
 const SaaSMarketing = lazy(() => import('./pages/SaaSMarketing'));
+const SaaSShowcase = lazy(() => import('./pages/SaaSShowcase'));
 const SaaSLayout = lazy(() => import('./components/SaaS/SaaSLayout'));
 const SaaSFeatures = lazy(() => import('./pages/SaaSFeatures'));
 const AIFeatures = lazy(() => import('./pages/SaaSFeatures/AIFeatures'));
@@ -199,6 +200,7 @@ function AppContent() {
             {!isAppGate && (
               <Route element={<SaaSLayout />}>
                 <Route path="/" element={<SaaSMarketing />} />
+                <Route path="/directory" element={<SaaSShowcase />} />
                 <Route path="/features" element={<SaaSFeatures />} />
                 <Route path="/features/ai" element={<AIFeatures />} />
                 <Route path="/features/operations" element={<OperationsFeatures />} />

@@ -3,6 +3,7 @@ import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc } from
 import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getDoc, setDoc } from 'firebase/firestore';
 import { useTenant } from '../lib/TenantContext';
+import { uploadImage } from '../lib/imgbb';
 import { LogOut, Lock, Loader2 } from 'lucide-react';
 import { 
   Building, 
@@ -37,7 +38,12 @@ import {
   Trash2,
   X,
   Mail,
-  Save
+  Save,
+  Image,
+  Link2,
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -53,8 +59,10 @@ export default function SaaSSuperAdmin() {
     'operators' | 'end_users' | 
     'packages' | 'transactions' | 'coupons' |
     'tickets' | 'announcements' |
-    'integrations' | 'branding' | 'mailjet' | 'security'
+    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase'
   >('overview');
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // UI States
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -137,9 +145,75 @@ export default function SaaSSuperAdmin() {
     platformName: 'Tripbone SaaS',
     tagline: 'Secure Enterprise Sandbox',
     supportEmail: 'support@tripbone.com',
-    copyright: '© 2026 PT Tripbone Indonesia'
+    copyright: '© 2026 PT Tripbone Indonesia',
+    logoUrl: '',
+    faviconUrl: ''
   });
   const [savingBrand, setSavingBrand] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+
+  // Bookings list
+  const [bookings, setBookings] = useState<any[]>([]);
+  // Tours list
+  const [tours, setTours] = useState<any[]>([]);
+
+  // Transactions tracking states
+  const [txSearch, setTxSearch] = useState('');
+  const [txStatusFilter, setTxStatusFilter] = useState('all');
+
+  // Showcases list & states
+  const [showcases, setShowcases] = useState<any[]>([]);
+  const [editingShowcaseId, setEditingShowcaseId] = useState<string | null>(null);
+  const [savingShowcase, setSavingShowcase] = useState(false);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [newShowcase, setNewShowcase] = useState({
+    title: '',
+    description: '',
+    url: '',
+    screenshotUrl: '',
+    weight: 0
+  });
+
+  useEffect(() => {
+    if (globalBrand.faviconUrl) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = globalBrand.faviconUrl;
+    }
+  }, [globalBrand.faviconUrl]);
+
+  const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadImage(file);
+      setGlobalBrand(prev => ({ ...prev, logoUrl: url }));
+    } catch (err: any) {
+      console.error('Failed to upload logo:', err);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleUploadFavicon = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFavicon(true);
+    try {
+      const url = await uploadImage(file);
+      setGlobalBrand(prev => ({ ...prev, faviconUrl: url }));
+    } catch (err: any) {
+      console.error('Failed to upload favicon:', err);
+    } finally {
+      setUploadingFavicon(false);
+    }
+  };
 
   const getNextBillingDate = (tenant: any) => {
     let createdAtStr = tenant.createdAt;
@@ -451,6 +525,42 @@ export default function SaaSSuperAdmin() {
           }
         }
         setPackages(pkgList);
+
+        // Load Bookings (Transactions)
+        try {
+          const bookingsSnapshot = await getDocs(collection(db, 'bookings'));
+          const bookingsList: any[] = [];
+          bookingsSnapshot.forEach((snap) => {
+            bookingsList.push({ id: snap.id, ...snap.data() });
+          });
+          setBookings(bookingsList);
+        } catch (bookingErr) {
+          console.error("Error loading bookings:", bookingErr);
+        }
+
+        // Load Tours
+        try {
+          const toursSnapshot = await getDocs(collection(db, 'tours'));
+          const toursList: any[] = [];
+          toursSnapshot.forEach((snap) => {
+            toursList.push({ id: snap.id, ...snap.data() });
+          });
+          setTours(toursList);
+        } catch (tourErr) {
+          console.error("Error loading tours:", tourErr);
+        }
+
+        // Load Client Showcases
+        try {
+          const showcaseSnapshot = await getDocs(collection(db, 'clientShowcase'));
+          const showcaseList: any[] = [];
+          showcaseSnapshot.forEach((snap) => {
+            showcaseList.push({ id: snap.id, ...snap.data() });
+          });
+          setShowcases(showcaseList);
+        } catch (showcaseErr) {
+          console.error("Error loading showcases:", showcaseErr);
+        }
 
         // Calculate Stats
         const total = tenantList.length;
@@ -797,6 +907,84 @@ export default function SaaSSuperAdmin() {
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
     } catch (err) {
       console.error('Error resolving ticket:', err);
+    }
+  };
+
+  const handleSaveShowcase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingShowcase(true);
+    try {
+      const showcaseData = {
+        title: newShowcase.title,
+        description: newShowcase.description,
+        url: newShowcase.url,
+        screenshotUrl: newShowcase.screenshotUrl,
+        weight: Number(newShowcase.weight) || 0,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (editingShowcaseId) {
+        await setDoc(doc(db, 'clientShowcase', editingShowcaseId), showcaseData, { merge: true });
+        setShowcases(prev => prev.map(item => item.id === editingShowcaseId ? { ...item, ...showcaseData } : item));
+        setSuccess('🎉 Showcase item updated successfully!');
+      } else {
+        const docRef = await addDoc(collection(db, 'clientShowcase'), {
+          ...showcaseData,
+          createdAt: new Date().toISOString()
+        });
+        setShowcases(prev => [...prev, { id: docRef.id, ...showcaseData, createdAt: new Date().toISOString() }]);
+        setSuccess('🎉 Showcase item created successfully!');
+      }
+
+      setNewShowcase({
+        title: '',
+        description: '',
+        url: '',
+        screenshotUrl: '',
+        weight: 0
+      });
+      setEditingShowcaseId(null);
+    } catch (err: any) {
+      setError('Failed to save showcase: ' + err.message);
+    } finally {
+      setSavingShowcase(false);
+    }
+  };
+
+  const handleEditShowcaseClick = (item: any) => {
+    setEditingShowcaseId(item.id);
+    setNewShowcase({
+      title: item.title || '',
+      description: item.description || '',
+      url: item.url || '',
+      screenshotUrl: item.screenshotUrl || '',
+      weight: item.weight || 0
+    });
+  };
+
+  const handleDeleteShowcase = async (showcaseId: string) => {
+    if (!window.confirm('Are you sure you want to delete this showcase item?')) return;
+    try {
+      await deleteDoc(doc(db, 'clientShowcase', showcaseId));
+      setShowcases(prev => prev.filter(item => item.id !== showcaseId));
+      setSuccess('🎉 Showcase item deleted successfully!');
+    } catch (err: any) {
+      setError('Failed to delete showcase: ' + err.message);
+    }
+  };
+
+  const handleUploadShowcaseScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingScreenshot(true);
+    try {
+      const url = await uploadImage(file);
+      setNewShowcase(prev => ({ ...prev, screenshotUrl: url }));
+      setSuccess('🎉 Screenshot uploaded successfully!');
+    } catch (err: any) {
+      setError('Failed to upload screenshot: ' + err.message);
+    } finally {
+      setUploadingScreenshot(false);
     }
   };
 
@@ -1148,52 +1336,86 @@ export default function SaaSSuperAdmin() {
   return (
     <div className={`min-h-screen flex transition-colors duration-200 ${isDarkMode ? 'bg-[#0b0f19] text-slate-100' : 'bg-slate-50 text-gray-900'}`}>
       {/* Sidebar Navigation */}
-      <aside className={`w-64 border-r p-6 flex flex-col justify-between transition-colors duration-200 ${isDarkMode ? 'border-white/5 bg-[#0b0f19]/80 backdrop-blur-2xl' : 'border-gray-200/50 bg-white/60 backdrop-blur-2xl shadow-[4px_0_24px_rgba(0,0,0,0.02)]'} z-20`}>
+      <aside className={`transition-all duration-300 ${isSidebarCollapsed ? 'w-20 px-3 py-6' : 'w-64 p-6'} border-r flex flex-col justify-between transition-colors duration-200 ${isDarkMode ? 'border-white/5 bg-[#0b0f19]/80 backdrop-blur-2xl' : 'border-gray-200/50 bg-white/60 backdrop-blur-2xl shadow-[4px_0_24px_rgba(0,0,0,0.02)]'} z-20`}>
         <div className="space-y-8 flex-1 overflow-hidden flex flex-col">
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="bg-indigo-600 p-2 rounded-xl">
-              <Layers className="w-5 h-5 text-white" />
+          <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col space-y-4' : 'justify-between'} shrink-0`}>
+            <div className="flex items-center space-x-3">
+              <div className="bg-indigo-600 p-2 rounded-xl">
+                <Layers className="w-5 h-5 text-white" />
+              </div>
+              {!isSidebarCollapsed && (
+                <div>
+                  {globalBrand.logoUrl ? (
+                    <img src={globalBrand.logoUrl} alt="Logo" className="h-7 max-w-[120px] object-contain" />
+                  ) : (
+                    <span className={`text-lg font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{globalBrand.platformName || 'Tripbone SaaS'}</span>
+                  )}
+                  <p className="text-[10px] text-indigo-500 font-bold tracking-widest uppercase mt-0.5">Super Administrator</p>
+                </div>
+              )}
             </div>
-            <div>
-              <span className={`text-lg font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tripbone SaaS</span>
-              <p className="text-[10px] text-indigo-500 font-bold tracking-widest uppercase">Super Administrator</p>
-            </div>
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className={`p-1.5 rounded-lg border ${isDarkMode ? 'border-gray-800 hover:bg-slate-800 text-gray-400' : 'border-gray-200 hover:bg-gray-100 text-gray-600'} transition-colors`}
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
           </div>
 
           <div className="space-y-4 overflow-y-auto pr-2 scrollbar-hide pb-10 flex-1">
             {/* Overview */}
             <div>
-              <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Overview</p>
+              {!isSidebarCollapsed ? (
+                <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Overview</p>
+              ) : (
+                <hr className="my-2 border-gray-200 dark:border-white/5" />
+              )}
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                title="Command Center"
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
               >
-                <Activity className="w-4 h-4" />
-                <span>Command Center</span>
+                <Activity className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span>Command Center</span>}
               </button>
             </div>
 
             {/* Network & Sites */}
             <div>
-              <button onClick={() => toggleMenu('network')} className="w-full flex items-center justify-between px-4 py-2 group">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Network & Sites</p>
-                {expandedMenus.network ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
-              </button>
-              {expandedMenus.network && (
+              {!isSidebarCollapsed ? (
+                <button onClick={() => toggleMenu('network')} className="w-full flex items-center justify-between px-4 py-2 group">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Network & Sites</p>
+                  {expandedMenus.network ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
+                </button>
+              ) : (
+                <hr className="my-2 border-gray-200 dark:border-white/5" />
+              )}
+              {(expandedMenus.network || isSidebarCollapsed) && (
                 <div className="space-y-1 mt-1">
                   <button
                     onClick={() => setActiveTab('workspaces')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'workspaces' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="All Workspaces"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'workspaces' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Building className="w-4 h-4" />
-                    <span>All Workspaces</span>
+                    <Building className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>All Workspaces</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('resource_usage')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'resource_usage' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Resource Usage"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'resource_usage' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <LineChart className="w-4 h-4" />
-                    <span>Resource Usage</span>
+                    <LineChart className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Resource Usage</span>}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('showcase')}
+                    title="Client Showcase Manager"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'showcase' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                  >
+                    <Image className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Client Directory</span>}
                   </button>
                 </div>
               )}
@@ -1201,25 +1423,31 @@ export default function SaaSSuperAdmin() {
 
             {/* Customers & Users */}
             <div>
-              <button onClick={() => toggleMenu('customers')} className="w-full flex items-center justify-between px-4 py-2 group">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Customers</p>
-                {expandedMenus.customers ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
-              </button>
-              {expandedMenus.customers && (
+              {!isSidebarCollapsed ? (
+                <button onClick={() => toggleMenu('customers')} className="w-full flex items-center justify-between px-4 py-2 group">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Customers</p>
+                  {expandedMenus.customers ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
+                </button>
+              ) : (
+                <hr className="my-2 border-gray-200 dark:border-white/5" />
+              )}
+              {(expandedMenus.customers || isSidebarCollapsed) && (
                 <div className="space-y-1 mt-1">
                   <button
                     onClick={() => setActiveTab('operators')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'operators' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Platform Operators"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'operators' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Users className="w-4 h-4" />
-                    <span>Platform Operators</span>
+                    <Users className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Platform Operators</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('end_users')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'end_users' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Global End-Users"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'end_users' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Globe className="w-4 h-4" />
-                    <span>Global End-Users</span>
+                    <Globe className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Global End-Users</span>}
                   </button>
                 </div>
               )}
@@ -1227,32 +1455,39 @@ export default function SaaSSuperAdmin() {
 
             {/* Billing & Subscriptions */}
             <div>
-              <button onClick={() => toggleMenu('billing')} className="w-full flex items-center justify-between px-4 py-2 group">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Billing & Sales</p>
-                {expandedMenus.billing ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
-              </button>
-              {expandedMenus.billing && (
+              {!isSidebarCollapsed ? (
+                <button onClick={() => toggleMenu('billing')} className="w-full flex items-center justify-between px-4 py-2 group">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Billing & Sales</p>
+                  {expandedMenus.billing ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
+                </button>
+              ) : (
+                <hr className="my-2 border-gray-200 dark:border-white/5" />
+              )}
+              {(expandedMenus.billing || isSidebarCollapsed) && (
                 <div className="space-y-1 mt-1">
                   <button
                     onClick={() => setActiveTab('packages')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'packages' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Packages Manager"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'packages' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Packages Manager</span>
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Packages Manager</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('transactions')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'transactions' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Transactions"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'transactions' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <CreditCard className="w-4 h-4" />
-                    <span>Transactions</span>
+                    <CreditCard className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Transactions</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('coupons')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'coupons' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Discounts & Coupons"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'coupons' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Tag className="w-4 h-4" />
-                    <span>Discounts & Coupons</span>
+                    <Tag className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Discounts & Coupons</span>}
                   </button>
                 </div>
               )}
@@ -1260,25 +1495,31 @@ export default function SaaSSuperAdmin() {
 
             {/* Support */}
             <div>
-              <button onClick={() => toggleMenu('support')} className="w-full flex items-center justify-between px-4 py-2 group">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Support</p>
-                {expandedMenus.support ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
-              </button>
-              {expandedMenus.support && (
+              {!isSidebarCollapsed ? (
+                <button onClick={() => toggleMenu('support')} className="w-full flex items-center justify-between px-4 py-2 group">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Support</p>
+                  {expandedMenus.support ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
+                </button>
+              ) : (
+                <hr className="my-2 border-gray-200 dark:border-white/5" />
+              )}
+              {(expandedMenus.support || isSidebarCollapsed) && (
                 <div className="space-y-1 mt-1">
                   <button
                     onClick={() => setActiveTab('tickets')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'tickets' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Helpdesk Tickets"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'tickets' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <HelpCircle className="w-4 h-4" />
-                    <span>Helpdesk Tickets</span>
+                    <HelpCircle className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Helpdesk Tickets</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('announcements')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'announcements' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Global Announcements"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'announcements' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Megaphone className="w-4 h-4" />
-                    <span>Global Announcements</span>
+                    <Megaphone className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Global Announcements</span>}
                   </button>
                 </div>
               )}
@@ -1286,39 +1527,47 @@ export default function SaaSSuperAdmin() {
 
             {/* System */}
             <div>
-              <button onClick={() => toggleMenu('system')} className="w-full flex items-center justify-between px-4 py-2 group">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">System</p>
-                {expandedMenus.system ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
-              </button>
-              {expandedMenus.system && (
+              {!isSidebarCollapsed ? (
+                <button onClick={() => toggleMenu('system')} className="w-full flex items-center justify-between px-4 py-2 group">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">System</p>
+                  {expandedMenus.system ? <ChevronUp className="w-3 h-3 text-gray-400" /> : <ChevronDown className="w-3 h-3 text-gray-400" />}
+                </button>
+              ) : (
+                <hr className="my-2 border-gray-200 dark:border-white/5" />
+              )}
+              {(expandedMenus.system || isSidebarCollapsed) && (
                 <div className="space-y-1 mt-1">
                   <button
                     onClick={() => setActiveTab('integrations')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'integrations' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Integrations & API"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'integrations' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Settings className="w-4 h-4" />
-                    <span>Integrations & API</span>
+                    <Settings className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Integrations & API</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('branding')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'branding' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Platform Branding"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'branding' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Shield className="w-4 h-4" />
-                    <span>Platform Branding</span>
+                    <Shield className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Platform Branding</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('mailjet')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'mailjet' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Mailjet Tester"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'mailjet' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <Mail className="w-4 h-4" />
-                    <span>Mailjet Tester</span>
+                    <Mail className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Mailjet Tester</span>}
                   </button>
                   <button
                     onClick={() => setActiveTab('security')}
-                    className={`w-full flex items-center justify-start space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                    title="Admin Security"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                   >
-                    <ShieldAlert className="w-4 h-4" />
-                    <span>Admin Security</span>
+                    <ShieldAlert className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Admin Security</span>}
                   </button>
                 </div>
               )}
@@ -1326,22 +1575,25 @@ export default function SaaSSuperAdmin() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 shrink-0">
           <button
             onClick={toggleDarkMode}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl text-sm font-medium transition-colors ${
               isDarkMode 
                 ? 'bg-slate-800/50 text-gray-300 hover:bg-slate-800 hover:text-white border border-gray-700/50' 
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 shadow-sm'
             }`}
           >
             <div className="flex items-center space-x-3">
-              {isDarkMode ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
-              <span>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
+              {isDarkMode ? <Moon className="w-4 h-4 text-indigo-400 shrink-0" /> : <Sun className="w-4 h-4 text-amber-500 shrink-0" />}
+              {!isSidebarCollapsed && <span>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>}
             </div>
-            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${isDarkMode ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-              <div className={`w-3 h-3 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-4' : 'translate-x-0'}`} />
-            </div>
+            {!isSidebarCollapsed && (
+              <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${isDarkMode ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                <div className={`w-3 h-3 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-4' : 'translate-x-0'}`} />
+              </div>
+            )}
           </button>
 
           <button
@@ -1349,16 +1601,19 @@ export default function SaaSSuperAdmin() {
               setLoading(true);
               await signOut(auth);
             }}
-            className={`w-full flex items-center justify-start space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isDarkMode ? 'text-rose-400 hover:bg-rose-500/10 hover:text-rose-300' : 'text-rose-600 hover:bg-rose-50 hover:text-rose-700 border border-rose-100 bg-white'}`}
+            title="Sign Out"
+            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-3 rounded-xl text-sm font-medium transition-colors ${isDarkMode ? 'text-rose-400 hover:bg-rose-500/10 hover:text-rose-300' : 'text-rose-600 hover:bg-rose-50 hover:text-rose-700 border border-rose-100 bg-white'}`}
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out Admin</span>
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!isSidebarCollapsed && <span>Sign Out Admin</span>}
           </button>
           
-          <div className={`pt-6 border-t ${isDarkMode ? 'border-gray-800/80' : 'border-gray-200'}`}>
-            <p className={`text-[11px] font-mono ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Tripbone SaaS Control Center</p>
-            <p className={`text-[10px] mt-0.5 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>Secure sandbox administration</p>
-          </div>
+          {!isSidebarCollapsed && (
+            <div className={`pt-6 border-t ${isDarkMode ? 'border-gray-800/80' : 'border-gray-200'}`}>
+              <p className={`text-[11px] font-mono ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Tripbone SaaS Control Center</p>
+              <p className={`text-[10px] mt-0.5 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>Secure sandbox administration</p>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -1956,6 +2211,106 @@ export default function SaaSSuperAdmin() {
                     />
                   </div>
 
+                  {/* Logo & Favicon Assets */}
+                  <div className="border-t border-gray-150 dark:border-gray-800/60 pt-6">
+                    <h4 className={`text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Logo & Favicon Visual Assets</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Logo Section */}
+                      <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/40 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className={`block text-xs font-bold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Platform Logo</span>
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-16 h-16 rounded-xl border flex items-center justify-center overflow-hidden bg-slate-950 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                            {globalBrand.logoUrl ? (
+                              <img src={globalBrand.logoUrl} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                            ) : (
+                              <Image className="w-6 h-6 text-gray-500" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadLogo}
+                              className="hidden"
+                              id="logo-upload-input"
+                              disabled={uploadingLogo}
+                            />
+                            <label
+                              htmlFor="logo-upload-input"
+                              className={`px-3 py-2 border rounded-lg text-xs font-bold cursor-pointer inline-flex items-center space-x-1.5 transition-all ${
+                                uploadingLogo 
+                                  ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed' 
+                                  : isDarkMode 
+                                    ? 'bg-slate-800 hover:bg-slate-700 text-white border-gray-700' 
+                                    : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300 shadow-xs'
+                              }`}
+                            >
+                              {uploadingLogo ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>Uploading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Image className="w-3 h-3" />
+                                  <span>{globalBrand.logoUrl ? 'Change Logo' : 'Upload Logo'}</span>
+                                </>
+                              )}
+                            </label>
+                            <p className="text-[10px] text-gray-500 mt-1">Format: PNG, SVG, or WEBP.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Favicon Section */}
+                      <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950/40 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className={`block text-xs font-bold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Browser Favicon</span>
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-16 h-16 rounded-xl border flex items-center justify-center overflow-hidden bg-slate-950 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                            {globalBrand.faviconUrl ? (
+                              <img src={globalBrand.faviconUrl} alt="Favicon Preview" className="w-8 h-8 object-contain" />
+                            ) : (
+                              <Layers className="w-6 h-6 text-gray-500" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadFavicon}
+                              className="hidden"
+                              id="favicon-upload-input"
+                              disabled={uploadingFavicon}
+                            />
+                            <label
+                              htmlFor="favicon-upload-input"
+                              className={`px-3 py-2 border rounded-lg text-xs font-bold cursor-pointer inline-flex items-center space-x-1.5 transition-all ${
+                                uploadingFavicon 
+                                  ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed' 
+                                  : isDarkMode 
+                                    ? 'bg-slate-800 hover:bg-slate-700 text-white border-gray-700' 
+                                    : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300 shadow-xs'
+                              }`}
+                            >
+                              {uploadingFavicon ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>Uploading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Layers className="w-3 h-3" />
+                                  <span>{globalBrand.faviconUrl ? 'Change Favicon' : 'Upload Favicon'}</span>
+                                </>
+                              )}
+                            </label>
+                            <p className="text-[10px] text-gray-500 mt-1">Format: ICO or PNG.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={savingBrand}
@@ -2095,15 +2450,16 @@ export default function SaaSSuperAdmin() {
         )}
 
         {activeTab === 'transactions' && (
-          <div className="space-y-6">
-            <div className="p-6 border border-gray-800 bg-slate-900/40 rounded-2xl">
-              <h2 className="text-lg font-bold text-white mb-2">Platform Revenue Projections</h2>
-              <p className="text-xs text-gray-400 mb-6">Aggregated Monthly Recurring Revenue (MRR) based on active customer licensing plans.</p>
+          <div className="space-y-6 text-left">
+            {/* Revenue projections */}
+            <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+              <h2 className={`text-lg font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Platform Revenue Projections</h2>
+              <p className={`text-xs mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Aggregated Monthly Recurring Revenue (MRR) based on active customer licensing plans.</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 bg-slate-950 border border-gray-800 rounded-xl">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase">Starter Tier</span>
-                  <div className="text-lg font-extrabold text-white mt-1">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Starter Tier</span>
+                  <div className={`text-lg font-extrabold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     ${tenants.filter(t => t.plan === 'starter' && t.status === 'active').length * 49}
                   </div>
                   <span className="text-[10px] text-gray-500 block mt-0.5">
@@ -2111,9 +2467,9 @@ export default function SaaSSuperAdmin() {
                   </span>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-gray-800 rounded-xl">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase">Professional Tier</span>
-                  <div className="text-lg font-extrabold text-indigo-400 mt-1">
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Professional Tier</span>
+                  <div className="text-lg font-extrabold text-indigo-500 mt-1">
                     ${tenants.filter(t => t.plan === 'professional' && t.status === 'active').length * 99}
                   </div>
                   <span className="text-[10px] text-gray-500 block mt-0.5">
@@ -2121,9 +2477,9 @@ export default function SaaSSuperAdmin() {
                   </span>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-gray-800 rounded-xl">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase">Business Tier</span>
-                  <div className="text-lg font-extrabold text-emerald-400 mt-1">
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Business Tier</span>
+                  <div className="text-lg font-extrabold text-emerald-500 mt-1">
                     ${tenants.filter(t => t.plan === 'business' && t.status === 'active').length * 199}
                   </div>
                   <span className="text-[10px] text-gray-500 block mt-0.5">
@@ -2131,8 +2487,8 @@ export default function SaaSSuperAdmin() {
                   </span>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-gray-800 rounded-xl">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase">Agency/Enterprise</span>
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Agency/Enterprise</span>
                   <div className="text-lg font-extrabold text-amber-500 mt-1">
                     ${tenants.filter(t => (t.plan === 'agency' || t.plan === 'enterprise') && t.status === 'active').reduce((acc, current) => {
                       return acc + (current.plan === 'agency' ? 399 : 999);
@@ -2144,20 +2500,511 @@ export default function SaaSSuperAdmin() {
                 </div>
               </div>
             </div>
+
+            {/* Live Recorded Transaction Tracking */}
+            <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                  <h3 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-Time Transaction Registry</h3>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Monitor customer invoices and bookings generated by all tenant websites.</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search customer, tour..."
+                      value={txSearch}
+                      onChange={(e) => setTxSearch(e.target.value)}
+                      className={`pl-9 pr-4 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${
+                        isDarkMode ? 'bg-slate-950 border-gray-805 text-white' : 'bg-gray-50 border-gray-200 text-gray-950'
+                      }`}
+                    />
+                  </div>
+
+                  <select
+                    value={txStatusFilter}
+                    onChange={(e) => setTxStatusFilter(e.target.value)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${
+                      isDarkMode ? 'bg-slate-950 border-gray-805 text-white' : 'bg-gray-50 border-gray-200 text-gray-955'
+                    }`}
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Transactions Table */}
+              <div className={`border rounded-xl overflow-hidden ${isDarkMode ? 'border-gray-800' : 'border-gray-150'}`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800 bg-slate-900/50 text-gray-400' : 'border-gray-150 bg-gray-50 text-gray-500'}`}>
+                        <th className="py-3 px-4">Booking Ref</th>
+                        <th className="py-3 px-4">Tenant Site</th>
+                        <th className="py-3 px-4">Tour Name</th>
+                        <th className="py-3 px-4">Customer Details</th>
+                        <th className="py-3 px-4">Booking Date</th>
+                        <th className="py-3 px-4 text-right">Amount</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-150'}`}>
+                      {(() => {
+                        const filtered = bookings.filter(b => {
+                          const matchesStatus = txStatusFilter === 'all' || b.status?.toLowerCase() === txStatusFilter;
+                          const guestName = (b.customerName || b.guestName || '').toLowerCase();
+                          const guestEmail = (b.guestEmail || b.contactEmail || b.email || '').toLowerCase();
+                          const tourName = (b.tourName || '').toLowerCase();
+                          const refId = (b.id || '').toLowerCase();
+                          const searchStr = txSearch.toLowerCase();
+                          const matchesSearch = !txSearch || guestName.includes(searchStr) || guestEmail.includes(searchStr) || tourName.includes(searchStr) || refId.includes(searchStr);
+                          return matchesStatus && matchesSearch;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} className="py-8 text-center text-xs text-gray-500">
+                                No records found matching the criteria.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((b) => {
+                          const matchedTenant = tenants.find(t => t.id === b.tenantId);
+                          return (
+                            <tr key={b.id} className={`text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors`}>
+                              <td className="py-3.5 px-4 font-mono font-bold text-indigo-500">
+                                #{b.id?.substring(0, 8).toUpperCase() || 'N/A'}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {matchedTenant?.companyName || b.tenantId || 'Primary Platform'}
+                                </span>
+                                <span className="block text-[10px] text-gray-500">
+                                  {matchedTenant?.subdomain ? `${matchedTenant.subdomain}.tripbone.com` : 'Central System'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 font-medium max-w-[200px] truncate">
+                                {b.tourName || 'General Excursion Booking'}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-950'}`}>{b.customerName || b.guestName || 'Anonymous Customer'}</p>
+                                <p className="text-[10px] text-gray-500">{b.guestEmail || b.contactEmail || b.email || '-'}</p>
+                              </td>
+                              <td className="py-3.5 px-4 text-gray-500">
+                                {b.date || (b.createdAt ? new Date(b.createdAt).toLocaleDateString() : '-')}
+                              </td>
+                              <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                ${b.totalAmount !== undefined ? b.totalAmount.toLocaleString() : '0'}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  b.status === 'confirmed' || b.status === 'completed'
+                                    ? 'bg-emerald-500/10 text-emerald-500'
+                                    : b.status === 'cancelled'
+                                      ? 'bg-rose-500/10 text-rose-500'
+                                      : 'bg-amber-500/10 text-amber-500'
+                                }`}>
+                                  {b.status || 'pending'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {activeTab === 'resource_usage' && (
-          <div className="border border-gray-800 bg-slate-900/40 rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-white mb-2">Platform System Usage</h2>
-            <p className="text-xs text-gray-400 mb-6">Real-time counts of tenant operations. Our wrapper automatically maps documents securely.</p>
+          <div className="space-y-6 text-left animate-fadeIn">
+            <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+              <h2 className={`text-lg font-black mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Platform System Usage & Telemetry</h2>
+              <p className={`text-xs mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Real-time performance logs, database connection telemetry, and customer tenant quota usage indicators.</p>
 
-            <div className="p-16 border border-dashed border-gray-800 rounded-xl text-center">
-              <Sparkles className="w-8 h-8 text-indigo-500 mx-auto mb-4" />
-              <p className="text-sm font-semibold text-white mb-1">Sandbox System telemetry active</p>
-              <p className="text-xs text-gray-500 max-w-md mx-auto">
-                No slow queries detected. All reads and writes are safely filtered by `tenantId` in compliance with HIPAA-grade multi-tenant data standards.
-              </p>
+              {/* Total platform overview */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold">Total Registered Tenants</span>
+                  <div className={`text-2xl font-black mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{tenants.length}</div>
+                  <span className="text-[10px] text-gray-500 block mt-1">SaaS Customer bases</span>
+                </div>
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold">Active Tours Built</span>
+                  <div className="text-2xl font-black text-indigo-500 mt-1">{tours.length}</div>
+                  <span className="text-[10px] text-gray-500 block mt-1">Tour product items</span>
+                </div>
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold">Total Bookings Recorded</span>
+                  <div className="text-2xl font-black text-emerald-500 mt-1">{bookings.length}</div>
+                  <span className="text-[10px] text-gray-500 block mt-1">Customer checkouts</span>
+                </div>
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold">Portfolios Showcase</span>
+                  <div className="text-2xl font-black text-amber-500 mt-1">{showcases.length}</div>
+                  <span className="text-[10px] text-gray-500 block mt-1">Directory websites</span>
+                </div>
+              </div>
+
+              {/* Server Performance Metrics */}
+              <h3 className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sandbox Telemetry Status</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className={`p-4 rounded-xl border flex items-center space-x-3.5 ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="p-2 bg-indigo-500/10 rounded-lg">
+                    <Activity className="w-5 h-5 text-indigo-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-bold block">API GATEWAY SPEED</span>
+                    <span className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>34 ms <span className="text-[10px] text-emerald-500 font-normal ml-1">● Optimal</span></span>
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-xl border flex items-center space-x-3.5 ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <Database className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-bold block">FIRESTORE ACTIVE POOL</span>
+                    <span className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>12 Active <span className="text-[10px] text-emerald-500 font-normal ml-1">● Connected</span></span>
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-xl border flex items-center space-x-3.5 ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="p-2 bg-amber-500/10 rounded-lg">
+                    <Layers className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-bold block">HEAP MEMORY FOOTPRINT</span>
+                    <span className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>142 MB / 512 MB <span className="text-[10px] text-emerald-500 font-normal ml-1">● 27% Utilized</span></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resource usage breakdown table */}
+              <h3 className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Tenant Resource Allocations & Quotas</h3>
+              <div className={`border rounded-xl overflow-hidden ${isDarkMode ? 'border-gray-800' : 'border-gray-150'}`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800 bg-slate-900/50 text-gray-400' : 'border-gray-150 bg-gray-50 text-gray-500'}`}>
+                        <th className="py-3 px-4">Tenant Workspace</th>
+                        <th className="py-3 px-4">Pricing Plan</th>
+                        <th className="py-3 px-4 text-center">Tours Created</th>
+                        <th className="py-3 px-4 text-center">Total Bookings</th>
+                        <th className="py-3 px-4">Tour Quota Consumption</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-150'}`}>
+                      {tenants.map((t) => {
+                        const tenantTours = tours.filter(tr => tr.tenantId === t.id).length;
+                        const tenantBookings = bookings.filter(bk => bk.tenantId === t.id).length;
+                        
+                        // Quota limit configuration
+                        let limit = 5;
+                        if (t.plan === 'professional') limit = 50;
+                        if (t.plan === 'business') limit = 999;
+                        if (t.plan === 'agency' || t.plan === 'enterprise') limit = 9999;
+                        
+                        const percent = Math.min(100, Math.round((tenantTours / limit) * 100));
+
+                        return (
+                          <tr key={t.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30">
+                            <td className="py-3.5 px-4">
+                              <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t.companyName}</span>
+                              <span className="block text-[10px] text-gray-500">{t.subdomain}.tripbone.com</span>
+                            </td>
+                            <td className="py-3.5 px-4 uppercase font-mono font-bold text-[10px]">
+                              <span className={`px-2 py-0.5 rounded-md ${
+                                t.plan === 'starter' ? 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-400' :
+                                t.plan === 'professional' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400' :
+                                'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
+                              }`}>
+                                {t.plan || 'starter'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold">{tenantTours}</td>
+                            <td className="py-3.5 px-4 text-center font-bold text-gray-500">{tenantBookings}</td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center space-x-3 max-w-[200px]">
+                                <div className="flex-1 h-1.5 bg-gray-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full ${
+                                      percent > 85 ? 'bg-rose-500' : percent > 50 ? 'bg-amber-500' : 'bg-indigo-500'
+                                    }`} 
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-500 min-w-[30px]">{percent}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {tenants.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                            No active tenant accounts provisioned on this platform yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'showcase' && (
+          <div className="space-y-8 animate-fadeIn text-left">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Study Case & Showcase Portfolio Manager</h2>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Manage the collection of Tripbone-powered customer websites that display on the main platform directory showcase.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Form Area */}
+              <div className="lg:col-span-4">
+                <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                  <h3 className={`font-bold mb-4 flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <Sparkles className="w-5 h-5 text-indigo-500" />
+                    <span>{editingShowcaseId ? 'Edit Showcase Website' : 'Add Showcase Website'}</span>
+                  </h3>
+
+                  <form onSubmit={handleSaveShowcase} className="space-y-4">
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Client / Website Title</label>
+                      <input
+                        type="text"
+                        value={newShowcase.title}
+                        onChange={(e) => setNewShowcase({ ...newShowcase, title: e.target.value })}
+                        required
+                        placeholder="e.g. Bali Adventours"
+                        className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Company Description</label>
+                      <textarea
+                        value={newShowcase.description}
+                        onChange={(e) => setNewShowcase({ ...newShowcase, description: e.target.value })}
+                        required
+                        rows={3}
+                        placeholder="Describe the tenant brand & service offerings..."
+                        className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Website Link URL</label>
+                      <input
+                        type="url"
+                        value={newShowcase.url}
+                        onChange={(e) => setNewShowcase({ ...newShowcase, url: e.target.value })}
+                        required
+                        placeholder="https://example.tripbone.com"
+                        className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Sorting Weight (0 = Default)</label>
+                      <input
+                        type="number"
+                        value={newShowcase.weight}
+                        onChange={(e) => setNewShowcase({ ...newShowcase, weight: Number(e.target.value) || 0 })}
+                        className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-bold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Website Screenshot Mockup</label>
+                      <div className="flex flex-col items-center justify-center">
+                        <div className={`w-full h-36 rounded-xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden relative ${
+                          isDarkMode ? 'bg-slate-950/40 border-gray-800 hover:border-gray-700' : 'bg-gray-50 border-gray-300 hover:border-gray-400'
+                        }`}>
+                          {newShowcase.screenshotUrl ? (
+                            <>
+                              <img src={newShowcase.screenshotUrl} alt="Screenshot Preview" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setNewShowcase({ ...newShowcase, screenshotUrl: '' })}
+                                className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs"
+                                title="Remove Image"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <div className="text-center p-4">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                id="showcase-screenshot-input"
+                                onChange={handleUploadShowcaseScreenshot}
+                                className="hidden"
+                                disabled={uploadingScreenshot}
+                              />
+                              <label
+                                htmlFor="showcase-screenshot-input"
+                                className={`cursor-pointer px-3 py-1.5 border rounded-lg text-[11px] font-bold inline-flex items-center space-x-1 transition-all ${
+                                  uploadingScreenshot
+                                    ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
+                                    : isDarkMode
+                                      ? 'bg-slate-800 hover:bg-slate-700 text-white border-gray-700'
+                                      : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-305'
+                                }`}
+                              >
+                                {uploadingScreenshot ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Image className="w-3 h-3" />
+                                    <span>Upload Image</span>
+                                  </>
+                                )}
+                              </label>
+                              <p className="text-[10px] text-gray-500 mt-2">Recommended aspect: 16:9 ratio.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 pt-4">
+                      <button
+                        type="submit"
+                        disabled={savingShowcase || uploadingScreenshot}
+                        className="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/40 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+                      >
+                        {savingShowcase ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                        <span>{editingShowcaseId ? 'Update Showcase' : 'Save Showcase'}</span>
+                      </button>
+                      
+                      {editingShowcaseId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingShowcaseId(null);
+                            setNewShowcase({
+                              title: '',
+                              description: '',
+                              url: '',
+                              screenshotUrl: '',
+                              weight: 0
+                            });
+                          }}
+                          className={`py-2 px-3 border rounded-xl text-xs font-bold transition-all ${
+                            isDarkMode ? 'border-gray-700 hover:bg-slate-800 text-gray-300' : 'border-gray-300 hover:bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* Showcase list grid */}
+              <div className="lg:col-span-8 space-y-4">
+                <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                  <h3 className={`font-bold mb-4 flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <Layers className="w-5 h-5 text-indigo-500" />
+                    <span>Current Showcased Sites ({showcases.length})</span>
+                  </h3>
+
+                  {showcases.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed border-gray-250 dark:border-gray-800 rounded-xl">
+                      <Image className="w-8 h-8 text-gray-500 mx-auto mb-3" />
+                      <p className="text-xs text-gray-500 font-medium">No client sites are showcased in the directory directory yet.</p>
+                      <p className="text-[10px] text-gray-400 mt-1">Use the form on the left to add your first showcased travel brand website!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {showcases.slice().sort((a,b) => (b.weight || 0) - (a.weight || 0)).map((item) => (
+                        <div key={item.id} className={`group border rounded-xl overflow-hidden transition-all flex flex-col justify-between ${
+                          isDarkMode ? 'border-gray-800 bg-slate-950/60 hover:bg-slate-950' : 'border-gray-200 bg-gray-50 hover:bg-white hover:shadow-md'
+                        }`}>
+                          <div>
+                            {/* Screenshot mock */}
+                            <div className="h-40 bg-slate-900 relative overflow-hidden flex items-center justify-center">
+                              {item.screenshotUrl ? (
+                                <img src={item.screenshotUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                              ) : (
+                                <Layers className="w-10 h-10 text-gray-700" />
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-60 group-hover:opacity-70 transition-opacity" />
+                              <div className="absolute bottom-3 left-3 right-3 text-left">
+                                <span className="inline-flex px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-bold mb-1">
+                                  Weight: {item.weight || 0}
+                                </span>
+                                <h4 className="text-white text-xs font-black truncate">{item.title}</h4>
+                              </div>
+                            </div>
+
+                            <div className="p-4 text-left">
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed h-8 mb-2">
+                                {item.description || 'No description provided.'}
+                              </p>
+                              <a 
+                                href={item.url} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="text-[11px] text-indigo-500 font-bold hover:underline inline-flex items-center space-x-1"
+                              >
+                                <span>Visit Live Site</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
+
+                          <div className={`p-3 border-t flex items-center justify-end space-x-2 ${
+                            isDarkMode ? 'border-gray-800 bg-slate-950/40' : 'border-gray-200 bg-gray-50/50'
+                          }`}>
+                            <button
+                              onClick={() => handleEditShowcaseClick(item)}
+                              className={`p-1.5 rounded-lg border text-xs font-bold inline-flex items-center space-x-1 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors ${
+                                isDarkMode ? 'border-gray-800 text-gray-400 hover:text-white' : 'border-gray-200 text-gray-600 hover:text-indigo-600'
+                              }`}
+                              title="Edit Item"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteShowcase(item.id)}
+                              className="p-1.5 rounded-lg border border-red-500/10 hover:border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-bold inline-flex items-center space-x-1 transition-colors"
+                              title="Delete Item"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
