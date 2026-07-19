@@ -43,7 +43,10 @@ import {
   Link2,
   Menu,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Database,
+  ExternalLink,
+  Edit
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -2589,7 +2592,7 @@ export default function SaaSSuperAdmin() {
                                   {matchedTenant?.companyName || b.tenantId || 'Primary Platform'}
                                 </span>
                                 <span className="block text-[10px] text-gray-500">
-                                  {matchedTenant?.subdomain ? `${matchedTenant.subdomain}.tripbone.com` : 'Central System'}
+                                  {matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : 'Central System'}
                                 </span>
                               </td>
                               <td className="py-3.5 px-4 font-medium max-w-[200px] truncate">
@@ -2723,7 +2726,7 @@ export default function SaaSSuperAdmin() {
                           <tr key={t.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30">
                             <td className="py-3.5 px-4">
                               <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t.companyName}</span>
-                              <span className="block text-[10px] text-gray-500">{t.subdomain}.tripbone.com</span>
+                              <span className="block text-[10px] text-gray-500">{t.slug}.tripbone.com</span>
                             </td>
                             <td className="py-3.5 px-4 uppercase font-mono font-bold text-[10px]">
                               <span className={`px-2 py-0.5 rounded-md ${

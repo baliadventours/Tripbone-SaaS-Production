@@ -296,6 +296,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- Client Showcase ---
+    match /clientShowcase/{id} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
     // --- Posts (Blog) ---
     match /posts/{postId} {
       allow get: if (existing().status == 'published' || existing().status == 'active') || isAdmin();
