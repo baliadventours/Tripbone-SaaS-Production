@@ -389,3 +389,400 @@ body {
   letter-spacing: 0.02em !important;
 }
 
+/* 4. NORDIC FOREST PRESET */
+.theme-nordic-forest {
+  --primary-color: #164e63 !important; /* Deep Pine */
+  --secondary-color: #0f766e !important; /* Spruce Teal */
+}
+
+.theme-nordic-forest body {
+  background-color: #f0f4f1 !important; /* Pale Birch Sage */
+  color: #1e293b !important;
+}
+
+.theme-nordic-forest .bg-white,
+.theme-nordic-forest .bg-slate-50,
+.theme-nordic-forest .bg-slate-50\/50,
+.theme-nordic-forest .bg-gray-50,
+.theme-nordic-forest .bg-zinc-50 {
+  background-color: #ffffff !important;
+}
+
+.theme-nordic-forest .border,
+.theme-nordic-forest .border-slate-100,
+.theme-nordic-forest .border-slate-200,
+.theme-nordic-forest .border-gray-200 {
+  border-color: #cbd5e1 !important;
+}
+
+.theme-nordic-forest .rounded-xl,
+.theme-nordic-forest .rounded-2xl,
+.theme-nordic-forest .rounded-3xl {
+  border-radius: 12px !important;
+}
+
+.theme-nordic-forest .bg-primary,
+.theme-nordic-forest .bg-primary-500,
+.theme-nordic-forest .bg-orange-500,
+.theme-nordic-forest .bg-orange-600 {
+  background-color: #164e63 !important;
+  color: #ffffff !important;
+}
+
+.theme-nordic-forest .text-primary,
+.theme-nordic-forest .text-orange-500,
+.theme-nordic-forest .text-orange-600 {
+  color: #164e63 !important;
+}
+
+.theme-nordic-forest button,
+.theme-nordic-forest .btn,
+.theme-nordic-forest .btn-primary {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  box-shadow: 0 2px 4px rgba(22, 78, 99, 0.1) !important;
+}
+
+/* 5. RETRO ADVENTURE PRESET */
+.theme-retro-adventure {
+  --primary-color: #d97706 !important; /* Ochre yellow */
+  --secondary-color: #1e3a8a !important; /* Vintage Navy */
+}
+
+.theme-retro-adventure body {
+  background-color: #faf6f0 !important; /* Eggshell Parchment */
+  color: #1f2937 !important;
+}
+
+.theme-retro-adventure .bg-white,
+.theme-retro-adventure .bg-slate-50,
+.theme-retro-adventure .bg-slate-50\/50 {
+  background-color: #fffdfa !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.theme-retro-adventure .border,
+.theme-retro-adventure .border-slate-100,
+.theme-retro-adventure .border-slate-200,
+.theme-retro-adventure .border-gray-200 {
+  border-color: #d1d5db !important;
+}
+
+.theme-retro-adventure .rounded-xl,
+.theme-retro-adventure .rounded-2xl,
+.theme-retro-adventure .rounded-3xl {
+  border-radius: 8px !important;
+}
+
+.theme-retro-adventure .bg-primary,
+.theme-retro-adventure .bg-primary-500,
+.theme-retro-adventure .bg-orange-500,
+.theme-retro-adventure .bg-orange-600 {
+  background-color: #d97706 !important;
+  color: #ffffff !important;
+}
+
+.theme-retro-adventure .text-primary,
+.theme-retro-adventure .text-orange-500,
+.theme-retro-adventure .text-orange-600 {
+  color: #d97706 !important;
+}
+
+.theme-retro-adventure button,
+.theme-retro-adventure .btn,
+.theme-retro-adventure .btn-primary {
+  border-radius: 6px !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  border: 2px solid #1e3a8a !important;
+  box-shadow: 2px 2px 0px #1e3a8a !important;
+  transition: all 0.1s ease !important;
+}
+
+.theme-retro-adventure button:hover,
+.theme-retro-adventure .btn:hover {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0px #1e3a8a !important;
+}
+
+/* 6. TOKYO NEON PRESET */
+.theme-tokyo-neon {
+  --primary-color: #db2777 !important; /* Hot Pink */
+  --secondary-color: #7c3aed !important; /* Neon Violet */
+}
+
+.theme-tokyo-neon body {
+  background-color: #03000a !important; /* Deep Midnight Space */
+  color: #f3f4f6 !important;
+}
+
+.theme-tokyo-neon .bg-white,
+.theme-tokyo-neon .bg-slate-50,
+.theme-tokyo-neon .bg-slate-50\/50,
+.theme-tokyo-neon .bg-gray-50,
+.theme-tokyo-neon .bg-zinc-50 {
+  background-color: rgba(18, 9, 36, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(219, 39, 119, 0.15) !important;
+}
+
+.theme-tokyo-neon .text-slate-900,
+.theme-tokyo-neon .text-gray-900,
+.theme-tokyo-neon .text-zinc-900,
+.theme-tokyo-neon .text-slate-800,
+.theme-tokyo-neon .text-gray-800 {
+  color: #fdf2f8 !important;
+}
+
+.theme-tokyo-neon .text-slate-600,
+.theme-tokyo-neon .text-gray-600,
+.theme-tokyo-neon .text-zinc-600,
+.theme-tokyo-neon .text-slate-500,
+.theme-tokyo-neon .text-gray-500 {
+  color: #e879f9 !important; /* Magenta tint fallback */
+}
+
+.theme-tokyo-neon .border,
+.theme-tokyo-neon .border-slate-100,
+.theme-tokyo-neon .border-slate-200,
+.theme-tokyo-neon .border-gray-200 {
+  border-color: rgba(124, 58, 237, 0.2) !important;
+}
+
+.theme-tokyo-neon .rounded-xl,
+.theme-tokyo-neon .rounded-2xl,
+.theme-tokyo-neon .rounded-3xl {
+  border-radius: 16px !important;
+}
+
+.theme-tokyo-neon .bg-primary,
+.theme-tokyo-neon .bg-primary-500,
+.theme-tokyo-neon .bg-orange-500,
+.theme-tokyo-neon .bg-orange-600 {
+  background-color: #db2777 !important;
+  color: #ffffff !important;
+}
+
+.theme-tokyo-neon .text-primary,
+.theme-tokyo-neon .text-orange-500,
+.theme-tokyo-neon .text-orange-600 {
+  color: #db2777 !important;
+}
+
+.theme-tokyo-neon button,
+.theme-tokyo-neon .btn,
+.theme-tokyo-neon .btn-primary {
+  border-radius: 30px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  border: 1px solid #7c3aed !important;
+  box-shadow: 0 0 15px rgba(219, 39, 119, 0.3) !important;
+}
+
+/* 7. MEDITERRANEAN BREEZE PRESET */
+.theme-mediterranean-breeze {
+  --primary-color: #0284c7 !important; /* Marine Blue */
+  --secondary-color: #f59e0b !important; /* Citrus Yellow */
+}
+
+.theme-mediterranean-breeze body {
+  background-color: #f0f9ff !important; /* Light Sea Foam */
+  color: #0f172a !important;
+}
+
+.theme-mediterranean-breeze .bg-white,
+.theme-mediterranean-breeze .bg-slate-50,
+.theme-mediterranean-breeze .bg-slate-50\/50,
+.theme-mediterranean-breeze .bg-gray-50,
+.theme-mediterranean-breeze .bg-zinc-50 {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.04) !important;
+}
+
+.theme-mediterranean-breeze .border,
+.theme-mediterranean-breeze .border-slate-100,
+.theme-mediterranean-breeze .border-slate-200,
+.theme-mediterranean-breeze .border-gray-200 {
+  border-color: #e0f2fe !important;
+}
+
+.theme-mediterranean-breeze .rounded-xl,
+.theme-mediterranean-breeze .rounded-2xl,
+.theme-mediterranean-breeze .rounded-3xl {
+  border-radius: 20px !important;
+}
+
+.theme-mediterranean-breeze .bg-primary,
+.theme-mediterranean-breeze .bg-primary-500,
+.theme-mediterranean-breeze .bg-orange-500,
+.theme-mediterranean-breeze .bg-orange-600 {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+.theme-mediterranean-breeze .text-primary,
+.theme-mediterranean-breeze .text-orange-500,
+.theme-mediterranean-breeze .text-orange-600 {
+  color: #0284c7 !important;
+}
+
+.theme-mediterranean-breeze button,
+.theme-mediterranean-breeze .btn,
+.theme-mediterranean-breeze .btn-primary {
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* 8. BRUTALIST MONO PRESET */
+.theme-brutalist-mono {
+  --primary-color: #facc15 !important; /* Intense Yellow */
+  --secondary-color: #000000 !important;
+}
+
+.theme-brutalist-mono body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.theme-brutalist-mono .bg-white,
+.theme-brutalist-mono .bg-slate-50,
+.theme-brutalist-mono .bg-slate-50\/50,
+.theme-brutalist-mono .bg-gray-50,
+.theme-brutalist-mono .bg-zinc-50 {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+.theme-brutalist-mono .rounded-sm,
+.theme-brutalist-mono .rounded-md,
+.theme-brutalist-mono .rounded-lg,
+.theme-brutalist-mono .rounded-xl,
+.theme-brutalist-mono .rounded-2xl,
+.theme-brutalist-mono .rounded-3xl,
+.theme-brutalist-mono .rounded-full {
+  border-radius: 0px !important;
+}
+
+.theme-brutalist-mono .border,
+.theme-brutalist-mono .border-slate-100,
+.theme-brutalist-mono .border-slate-200,
+.theme-brutalist-mono .border-gray-200 {
+  border-color: #000000 !important;
+  border-width: 2px !important;
+}
+
+.theme-brutalist-mono .bg-primary,
+.theme-brutalist-mono .bg-primary-500,
+.theme-brutalist-mono .bg-orange-500,
+.theme-brutalist-mono .bg-orange-600 {
+  background-color: #facc15 !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+}
+
+.theme-brutalist-mono .text-primary,
+.theme-brutalist-mono .text-orange-500,
+.theme-brutalist-mono .text-orange-600 {
+  color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.theme-brutalist-mono button,
+.theme-brutalist-mono .btn,
+.theme-brutalist-mono .btn-primary {
+  border-radius: 0px !important;
+  background-color: #facc15 !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  text-transform: uppercase !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.1s ease !important;
+}
+
+.theme-brutalist-mono button:hover,
+.theme-brutalist-mono .btn:hover {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+}
+
+/* 9. ROYAL SAFARI PRESET */
+.theme-royal-safari {
+  --primary-color: #b5893d !important; /* Regal Bronze Gold */
+  --secondary-color: #2c2518 !important; /* Luxury Coffee Dark */
+}
+
+.theme-royal-safari body {
+  background-color: #0a0a0d !important; /* Obsidian Gold-Dust */
+  color: #f3f3f3 !important;
+}
+
+.theme-royal-safari .bg-white,
+.theme-royal-safari .bg-slate-50,
+.theme-royal-safari .bg-slate-50\/50,
+.theme-royal-safari .bg-gray-50,
+.theme-royal-safari .bg-zinc-50 {
+  background-color: #141419 !important;
+  border: 1px solid rgba(181, 137, 61, 0.15) !important;
+}
+
+.theme-royal-safari .text-slate-900,
+.theme-royal-safari .text-gray-900,
+.theme-royal-safari .text-zinc-900,
+.theme-royal-safari .text-slate-800,
+.theme-royal-safari .text-gray-800 {
+  color: #fafafa !important;
+}
+
+.theme-royal-safari .text-slate-600,
+.theme-royal-safari .text-gray-600,
+.theme-royal-safari .text-zinc-600,
+.theme-royal-safari .text-slate-500,
+.theme-royal-safari .text-gray-500 {
+  color: #b5893d !important;
+}
+
+.theme-royal-safari .border,
+.theme-royal-safari .border-slate-100,
+.theme-royal-safari .border-slate-200,
+.theme-royal-safari .border-gray-200 {
+  border-color: rgba(181, 137, 61, 0.2) !important;
+}
+
+.theme-royal-safari .rounded-xl,
+.theme-royal-safari .rounded-2xl,
+.theme-royal-safari .rounded-3xl {
+  border-radius: 12px !important;
+}
+
+.theme-royal-safari .bg-primary,
+.theme-royal-safari .bg-primary-500,
+.theme-royal-safari .bg-orange-500,
+.theme-royal-safari .bg-orange-600 {
+  background-color: #b5893d !important;
+  color: #141419 !important;
+  font-weight: 700 !important;
+}
+
+.theme-royal-safari .text-primary,
+.theme-royal-safari .text-orange-500,
+.theme-royal-safari .text-orange-600 {
+  color: #b5893d !important;
+}
+
+.theme-royal-safari button,
+.theme-royal-safari .btn,
+.theme-royal-safari .btn-primary {
+  border-radius: 6px !important;
+  font-family: var(--font-heading), serif !important;
+  font-weight: 500 !important;
+  border: 1px solid #b5893d !important;
+  box-shadow: 0 4px 10px rgba(181, 137, 61, 0.1) !important;
+}
+

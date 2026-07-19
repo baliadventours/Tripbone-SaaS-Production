@@ -112,7 +112,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     // Apply branding preset class to root
     const root = document.documentElement;
-    root.classList.remove('theme-swiss-minimalist', 'theme-tech-dark', 'theme-elegant-editorial', 'theme-default');
+    root.classList.remove(
+      'theme-swiss-minimalist', 
+      'theme-tech-dark', 
+      'theme-elegant-editorial', 
+      'theme-nordic-forest',
+      'theme-retro-adventure',
+      'theme-tokyo-neon',
+      'theme-mediterranean-breeze',
+      'theme-brutalist-mono',
+      'theme-royal-safari',
+      'theme-default'
+    );
     const activePreset = data.brandingPreset || 'default';
     root.classList.add(`theme-${activePreset}`);
     
@@ -138,7 +149,25 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             bodyFont = 'JetBrains Mono';
         } else if (activePreset === 'elegant-editorial') {
             headingFont = 'Playfair Display';
-            bodyFont = 'Inter';
+            bodyFont = 'Lora';
+        } else if (activePreset === 'nordic-forest') {
+            headingFont = 'Outfit';
+            bodyFont = 'Plus Jakarta Sans';
+        } else if (activePreset === 'retro-adventure') {
+            headingFont = 'Bricolage Grotesque';
+            bodyFont = 'Plus Jakarta Sans';
+        } else if (activePreset === 'tokyo-neon') {
+            headingFont = 'Syne';
+            bodyFont = 'Plus Jakarta Sans';
+        } else if (activePreset === 'mediterranean-breeze') {
+            headingFont = 'Lexend';
+            bodyFont = 'Plus Jakarta Sans';
+        } else if (activePreset === 'brutalist-mono') {
+            headingFont = 'Archivo Black';
+            bodyFont = 'Fira Code';
+        } else if (activePreset === 'royal-safari') {
+            headingFont = 'Cormorant Garamond';
+            bodyFont = 'Lora';
         }
 
         const families = [];

@@ -965,7 +965,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
               <p className="text-xs text-gray-400 pl-1 mb-2">
                 Instantly launch a world-class digital brand layout with curated fonts, spacings, and styles, or select Custom to define your own style guidelines.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {[
                   {
                     id: 'default',
@@ -986,7 +986,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                   {
                     id: 'tech-dark',
                     name: 'Technical Dark Grid',
-                    desc: 'Deep charcoal canvas, glowing borders, and high-density technical modules.',
+                    desc: 'Deep charcoal canvas, glowing emerald borders, and high-density technical modules.',
                     badge: 'Neon Cyber',
                     colorClass: 'from-[#10b981] to-[#09090b]',
                     fontLabel: 'Space Grotesk + Mono'
@@ -997,7 +997,55 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     desc: 'Warm off-white background, luxurious serif headings, and generous organic curves.',
                     badge: 'Luxury Print',
                     colorClass: 'from-[#b45309] to-[#faf8f5]',
-                    fontLabel: 'Playfair Serif'
+                    fontLabel: 'Playfair + Lora Serif'
+                  },
+                  {
+                    id: 'nordic-forest',
+                    name: 'Nordic Forest',
+                    desc: 'Deep organic spruce green, soft birch background, and balanced rounded card silhouettes.',
+                    badge: 'Muted Organic',
+                    colorClass: 'from-[#164e63] to-[#f0f4f1]',
+                    fontLabel: 'Outfit + Jakarta'
+                  },
+                  {
+                    id: 'retro-adventure',
+                    name: 'Retro Adventure',
+                    desc: 'Golden amber tones, vintage navy accents, paper stamp card designs, and adventurous feel.',
+                    badge: 'Wanderlust',
+                    colorClass: 'from-[#d97706] to-[#faf6f0]',
+                    fontLabel: 'Bricolage + Jakarta'
+                  },
+                  {
+                    id: 'tokyo-neon',
+                    name: 'Tokyo Neon Grid',
+                    desc: 'Deep cosmic dark space background, hot pink and violet glow, and glassy components.',
+                    badge: 'Shinjuku Midnight',
+                    colorClass: 'from-[#db2777] to-[#03000a]',
+                    fontLabel: 'Syne + Jakarta'
+                  },
+                  {
+                    id: 'mediterranean-breeze',
+                    name: 'Coastal Riviera',
+                    desc: 'Brilliant marine azure blue, sunny citrus accents, soft curved waves, and breezy feels.',
+                    badge: 'Sunny Sea Breeze',
+                    colorClass: 'from-[#0284c7] to-[#f0f9ff]',
+                    fontLabel: 'Lexend + Jakarta'
+                  },
+                  {
+                    id: 'brutalist-mono',
+                    name: 'Neo-Brutalist',
+                    desc: 'Intense high-contrast yellow canvas, 3px raw black borders, and heavy flat offset drop shadows.',
+                    badge: 'Avant-Garde Mono',
+                    colorClass: 'from-[#facc15] to-[#ffffff]',
+                    fontLabel: 'Archivo Black + Fira'
+                  },
+                  {
+                    id: 'royal-safari',
+                    name: 'Royal Safari',
+                    desc: 'Imperial rich bronze gold details over a luxurious deep obsidian dark canvas.',
+                    badge: 'Regal Wilderness',
+                    colorClass: 'from-[#b5893d] to-[#0a0a0d]',
+                    fontLabel: 'Cormorant + Lora'
                   }
                 ].map((preset) => {
                   const isSelected = (settings?.brandingPreset || 'default') === preset.id;

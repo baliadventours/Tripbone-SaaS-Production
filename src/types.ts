@@ -428,7 +428,7 @@ export interface SiteSettings {
   sitemapUrl?: string;
   // Theme Settings
   themeMode?: 'default' | 'custom';
-  brandingPreset?: 'default' | 'swiss-minimalist' | 'tech-dark' | 'elegant-editorial';
+  brandingPreset?: 'default' | 'swiss-minimalist' | 'tech-dark' | 'elegant-editorial' | 'nordic-forest' | 'retro-adventure' | 'tokyo-neon' | 'mediterranean-breeze' | 'brutalist-mono' | 'royal-safari';
   sectionStyles?: {
     topNav?: string;
     mainNav?: string;
