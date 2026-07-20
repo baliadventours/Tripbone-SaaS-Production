@@ -4129,10 +4129,18 @@ export default function SaaSSuperAdmin() {
         {activeTab === 'tickets' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Tickets List */}
-            <div className="lg:col-span-5 border border-gray-800 bg-slate-900/40 rounded-2xl overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-gray-800 bg-slate-900/60">
-                <h2 className="text-lg font-bold text-white">Submitted Tickets</h2>
-                <p className="text-xs text-gray-400 mt-1">Select an active customer query to view and reply.</p>
+            <div className={`lg:col-span-5 border rounded-2xl overflow-hidden flex flex-col ${
+              isDarkMode 
+                ? 'bg-slate-900/40 border-gray-800' 
+                : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
+            }`}>
+              <div className={`p-6 border-b ${
+                isDarkMode 
+                  ? 'border-gray-800 bg-slate-900/60' 
+                  : 'border-slate-100 bg-slate-50/50'
+              }`}>
+                <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Submitted Tickets</h2>
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-slate-500'}`}>Select an active customer query to view and reply.</p>
 
                 {/* Search Bar */}
                 <div className="relative mt-4">
@@ -4144,7 +4152,11 @@ export default function SaaSSuperAdmin() {
                     value={ticketSearchQuery}
                     onChange={(e) => setTicketSearchQuery(e.target.value)}
                     placeholder="Search by subject, email, tenant..."
-                    className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-950 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                    className={`w-full pl-9 pr-4 py-2 text-xs rounded-xl transition-all font-medium focus:outline-none ${
+                      isDarkMode 
+                        ? 'bg-slate-950 border-gray-800 text-white placeholder-gray-500 focus:border-indigo-500' 
+                        : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500'
+                    }`}
                   />
                   {ticketSearchQuery && (
                     <button
@@ -4164,10 +4176,17 @@ export default function SaaSSuperAdmin() {
                       <button
                         key={filter}
                         onClick={() => setTicketStatusFilter(filter)}
+                        style={isActive ? {
+                          backgroundColor: `rgba(${brandRgb}, 0.1)`,
+                          color: brandColor,
+                          borderColor: `rgba(${brandRgb}, 0.2)`
+                        } : {}}
                         className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${
                           isActive
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-sm'
-                            : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'
+                            ? 'shadow-xs'
+                            : isDarkMode
+                              ? 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'
+                              : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
                         }`}
                       >
                         {filter}
@@ -4178,7 +4197,9 @@ export default function SaaSSuperAdmin() {
               </div>
 
               {/* Tickets List Area */}
-              <div className="divide-y divide-gray-800/60 max-h-[550px] overflow-y-auto">
+              <div className={`divide-y max-h-[550px] overflow-y-auto ${
+                isDarkMode ? 'divide-gray-800/60' : 'divide-slate-100'
+              }`}>
                 {tickets.filter((t) => {
                   const matchesSearch = 
                     (t.subject || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
@@ -4223,29 +4244,52 @@ export default function SaaSSuperAdmin() {
                       <button
                         key={t.id}
                         onClick={() => setSelectedTicketId(t.id)}
-                        className={`w-full text-left p-5 transition-all hover:bg-slate-900/30 flex flex-col gap-2 border-l-4 ${
-                          isSelected ? 'bg-indigo-500/5 border-l-indigo-500' : 'border-l-transparent'
+                        style={isSelected ? {
+                          borderLeftColor: brandColor,
+                          backgroundColor: `rgba(${brandRgb}, 0.04)`
+                        } : {}}
+                        className={`w-full text-left p-5 transition-all flex flex-col gap-2 border-l-4 ${
+                          isSelected 
+                            ? '' 
+                            : isDarkMode 
+                              ? 'hover:bg-slate-800/30 border-l-transparent' 
+                              : 'hover:bg-slate-50/50 border-l-transparent'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2 w-full">
-                          <span className="text-[9px] font-mono text-gray-400 tracking-wider">
+                          <span className={`text-[9px] font-mono tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-slate-500'}`}>
                             Tenant: {t.tenantId || 'SaaS'}
                           </span>
-                          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${
-                            t.status === 'open' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                            t.status === 'replied' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
-                            t.status === 'pending' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                            'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}>
+                          <span 
+                            style={t.status === 'replied' ? {
+                              backgroundColor: `rgba(${brandRgb}, 0.1)`,
+                              color: brandColor,
+                              borderColor: `rgba(${brandRgb}, 0.2)`
+                            } : {}}
+                            className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${
+                              t.status === 'open' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                              t.status === 'replied' ? '' :
+                              t.status === 'pending' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                              'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            }`}
+                          >
                             {t.status}
                           </span>
                         </div>
                         <div>
-                          <h4 className="text-xs font-extrabold text-white line-clamp-1">{t.subject}</h4>
-                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5">By: {t.userName || t.userEmail}</p>
+                          <h4 className={`text-xs font-extrabold line-clamp-1 ${
+                            isDarkMode ? 'text-white' : 'text-slate-800'
+                          }`}>{t.subject}</h4>
+                          <p className={`text-[11px] line-clamp-1 mt-0.5 ${
+                            isDarkMode ? 'text-gray-400' : 'text-slate-500'
+                          }`}>By: {t.userName || t.userEmail}</p>
                         </div>
                         <div className="flex justify-between items-center text-[9px] text-gray-500 font-medium">
-                          <span className="bg-slate-950 border border-gray-800 px-2 py-0.5 rounded text-gray-400">
+                          <span className={`px-2 py-0.5 rounded border ${
+                            isDarkMode 
+                              ? 'bg-slate-950 border-gray-800 text-gray-400' 
+                              : 'bg-slate-150 border-slate-200 text-slate-600'
+                          }`}>
                             {t.category || 'General'}
                           </span>
                           <span>{dateStr}</span>
@@ -4258,7 +4302,11 @@ export default function SaaSSuperAdmin() {
             </div>
 
             {/* Right Column: Ticket Conversation Thread */}
-            <div className="lg:col-span-7 border border-gray-800 bg-slate-900/40 rounded-2xl overflow-hidden flex flex-col min-h-[600px]">
+            <div className={`lg:col-span-7 border rounded-2xl overflow-hidden flex flex-col min-h-[600px] ${
+              isDarkMode 
+                ? 'bg-slate-900/40 border-gray-800' 
+                : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
+            }`}>
               {selectedTicketId ? (() => {
                 const activeTicket = tickets.find((t) => t.id === selectedTicketId);
                 if (!activeTicket) return null;
@@ -4267,17 +4315,23 @@ export default function SaaSSuperAdmin() {
                 return (
                   <div className="flex flex-col flex-1 h-[600px]">
                     {/* Active Ticket Header */}
-                    <div className="p-6 border-b border-gray-800 bg-slate-900/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className={`p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                      isDarkMode 
+                        ? 'border-gray-800 bg-slate-900/60' 
+                        : 'border-slate-100 bg-slate-50/50'
+                    }`}>
                       <div>
-                        <div className="flex items-center space-x-2 text-[10px] text-gray-400 uppercase tracking-widest font-mono mb-1">
+                        <div className={`flex items-center space-x-2 text-[10px] uppercase tracking-widest font-mono mb-1 ${
+                          isDarkMode ? 'text-gray-400' : 'text-slate-450'
+                        }`}>
                           <span>{activeTicket.category || 'Support'}</span>
                           <span>•</span>
                           <span>Tenant: {activeTicket.tenantId || 'SaaS'}</span>
                         </div>
-                        <h3 className="font-extrabold text-white text-md">{activeTicket.subject}</h3>
-                        <p className="text-xs text-gray-400 font-medium mt-1">
-                          From: <span className="text-gray-200 font-bold">{activeTicket.userName || 'Operator'}</span>{' '}
-                          <span className="font-mono text-[11px] text-indigo-400">({activeTicket.userEmail})</span>
+                        <h3 className={`font-extrabold text-md ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{activeTicket.subject}</h3>
+                        <p className={`text-xs font-medium mt-1 ${isDarkMode ? 'text-gray-400' : 'text-slate-550'}`}>
+                          From: <span className={`font-bold ${isDarkMode ? 'text-gray-200' : 'text-slate-800'}`}>{activeTicket.userName || 'Operator'}</span>{' '}
+                          <span className="font-mono text-[11px]" style={{ color: brandColor }}>({activeTicket.userEmail})</span>
                         </p>
                       </div>
 
@@ -4286,7 +4340,11 @@ export default function SaaSSuperAdmin() {
                         <select
                           value={activeTicket.status}
                           onChange={(e) => handleUpdateTicketStatus(activeTicket.id, e.target.value)}
-                          className="text-xs font-bold bg-slate-950 border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                          className={`text-xs font-bold rounded-xl px-3 py-2 focus:outline-none transition-all border ${
+                            isDarkMode 
+                              ? 'bg-slate-950 border-gray-800 text-white focus:border-indigo-500' 
+                              : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-500'
+                          }`}
                         >
                           <option value="open">Open</option>
                           <option value="replied">Replied</option>
@@ -4297,7 +4355,11 @@ export default function SaaSSuperAdmin() {
                         {activeTicket.status !== 'resolved' && (
                           <button
                             onClick={() => handleUpdateTicketStatus(activeTicket.id, 'resolved')}
-                            className="p-2 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1"
+                            className={`p-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1 border ${
+                              isDarkMode 
+                                ? 'bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border-emerald-500/20' 
+                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border-emerald-200 shadow-xs'
+                            }`}
                             title="Mark Resolved"
                           >
                             <CheckCircle className="w-4 h-4" />
@@ -4307,7 +4369,9 @@ export default function SaaSSuperAdmin() {
                     </div>
 
                     {/* Chat Messages Stream */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/20 max-h-[380px]">
+                    <div className={`flex-1 overflow-y-auto p-6 space-y-4 max-h-[380px] ${
+                      isDarkMode ? 'bg-slate-950/20' : 'bg-slate-50/30'
+                    }`}>
                       {messages.map((m: any, index: number) => {
                         const isStaff = m.senderRole === 'admin';
                         const dateStr = m.timestamp
@@ -4317,17 +4381,34 @@ export default function SaaSSuperAdmin() {
                         return (
                           <div
                             key={m.id || index}
-                            className={`flex flex-col max-w-[85%] rounded-2xl p-4 shadow-md ${
+                            style={isStaff ? {
+                              backgroundColor: brandColor
+                            } : {}}
+                            className={`flex flex-col max-w-[85%] rounded-2xl p-4 shadow-xs ${
                               isStaff
-                                ? 'ml-auto bg-indigo-600 text-white rounded-tr-none'
-                                : 'mr-auto bg-slate-900 text-gray-100 border border-gray-800 rounded-tl-none'
+                                ? 'ml-auto text-white rounded-tr-none'
+                                : isDarkMode
+                                  ? 'mr-auto bg-slate-900 text-gray-100 border border-gray-800 rounded-tl-none'
+                                  : 'mr-auto bg-white text-slate-800 border border-slate-150 rounded-tl-none shadow-xs'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-4 mb-1.5">
-                              <span className={`text-[9px] font-black uppercase tracking-widest ${isStaff ? 'text-indigo-200' : 'text-gray-400'}`}>
+                              <span className={`text-[9px] font-black uppercase tracking-widest ${
+                                isStaff 
+                                  ? 'text-white/80' 
+                                  : isDarkMode 
+                                    ? 'text-gray-400' 
+                                    : 'text-slate-500'
+                              }`}>
                                 {m.senderName || (isStaff ? 'Staff Support' : 'Customer')}
                               </span>
-                              <span className={`text-[8px] opacity-75 font-mono ${isStaff ? 'text-indigo-200' : 'text-gray-500'}`}>
+                              <span className={`text-[8px] font-mono ${
+                                isStaff 
+                                  ? 'text-white/70' 
+                                  : isDarkMode 
+                                    ? 'text-gray-500' 
+                                    : 'text-slate-400'
+                              }`}>
                                 {dateStr}
                               </span>
                             </div>
@@ -4339,19 +4420,28 @@ export default function SaaSSuperAdmin() {
                     </div>
 
                     {/* Reply Input Form */}
-                    <div className="p-4 border-t border-gray-800 bg-slate-900/40">
+                    <div className={`p-4 border-t ${
+                      isDarkMode ? 'border-gray-800 bg-slate-900/40' : 'border-slate-100 bg-slate-50/50'
+                    }`}>
                       <form onSubmit={handleSendTicketReply} className="flex gap-3">
                         <input
                           type="text"
                           value={ticketReplyText}
                           onChange={(e) => setTicketReplyText(e.target.value)}
                           placeholder="Type your reply to the tenant operator..."
-                          className="flex-1 py-3 px-4 bg-slate-950 border border-gray-800 focus:border-indigo-500 rounded-xl focus:outline-none text-xs font-semibold text-white transition-all placeholder-gray-500"
+                          className={`flex-1 py-3 px-4 rounded-xl focus:outline-none text-xs font-semibold transition-all ${
+                            isDarkMode 
+                              ? 'bg-slate-950 border-gray-800 text-white placeholder-gray-500 focus:border-indigo-500' 
+                              : 'bg-white border border-slate-250 text-slate-800 placeholder-slate-400 focus:border-indigo-500'
+                          }`}
                         />
                         <button
                           type="submit"
                           disabled={!ticketReplyText.trim() || sendingTicketReply}
-                          className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded-xl transition-all cursor-pointer font-bold flex items-center justify-center shrink-0 hover:shadow-lg"
+                          style={(!ticketReplyText.trim() || sendingTicketReply) ? {} : {
+                            backgroundColor: brandColor
+                          }}
+                          className="px-4 py-3 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded-xl transition-all cursor-pointer font-bold flex items-center justify-center shrink-0 hover:shadow-lg"
                         >
                           {sendingTicketReply ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -4365,11 +4455,13 @@ export default function SaaSSuperAdmin() {
                 );
               })() : (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-[600px] select-none">
-                  <div className="w-16 h-16 rounded-3xl bg-slate-950 border border-gray-800 flex items-center justify-center mb-4">
-                    <MessageSquare className="h-7 w-7 text-indigo-500 animate-pulse" />
+                  <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-4 border ${
+                    isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-slate-50 border-slate-200 shadow-xs'
+                  }`}>
+                    <MessageSquare className="h-7 w-7 animate-pulse" style={{ color: brandColor }} />
                   </div>
-                  <h4 className="font-extrabold text-white text-md">Helpdesk Ticket Workspace</h4>
-                  <p className="text-xs text-gray-500 mt-2 max-w-sm leading-relaxed">
+                  <h4 className={`font-extrabold text-md ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Helpdesk Ticket Workspace</h4>
+                  <p className={`text-xs mt-2 max-w-sm leading-relaxed ${isDarkMode ? 'text-gray-500' : 'text-slate-400'}`}>
                     Select a support ticket from the list to load the conversation, change status, and send replies directly to operators.
                   </p>
                 </div>
