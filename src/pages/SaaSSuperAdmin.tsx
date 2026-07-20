@@ -218,6 +218,7 @@ export default function SaaSSuperAdmin() {
   // Transactions tracking states
   const [txSearch, setTxSearch] = useState('');
   const [txStatusFilter, setTxStatusFilter] = useState('all');
+  const [txSubTab, setTxSubTab] = useState<'bookings' | 'invoices'>('bookings');
 
   // Showcases list & states
   const [showcases, setShowcases] = useState<any[]>([]);
@@ -314,6 +315,9 @@ export default function SaaSSuperAdmin() {
 
   // Tickets
   const [tickets, setTickets] = useState<any[]>([]);
+  
+  // Operator Invoices
+  const [invoices, setInvoices] = useState<any[]>([]);
   
   // Users list
   const [users, setUsers] = useState<any[]>([]);
@@ -477,6 +481,18 @@ export default function SaaSSuperAdmin() {
           tixList.push({ id: snap.id, ...snap.data() });
         });
         setTickets(tixList);
+
+        // Load Operator Invoices
+        try {
+          const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+          const invoicesList: any[] = [];
+          invoicesSnapshot.forEach((snap) => {
+            invoicesList.push({ id: snap.id, ...snap.data() });
+          });
+          setInvoices(invoicesList);
+        } catch (invErr) {
+          console.error("Error loading invoices:", invErr);
+        }
 
         // Load Users
         const userSnapshot = await getDocs(collection(db, 'users'));
@@ -719,6 +735,59 @@ export default function SaaSSuperAdmin() {
     } catch (err: any) {
       console.error("Error deleting lead:", err);
       alert("Failed to delete lead: " + err.message);
+    }
+  };
+
+  const handleApproveInvoice = async (invoice: any) => {
+    if (!window.confirm(`Are you sure you want to approve invoice #${invoice.no} for tenant ${invoice.tenantId || 'Unknown'}?`)) return;
+    try {
+      // 1. Update invoice status in database
+      const invoiceDocId = invoice.id || `${invoice.tenantId}_${invoice.no}`;
+      await updateDoc(doc(db, 'invoices', invoiceDocId), {
+        status: 'PAID'
+      });
+      
+      // 2. Update corresponding tenant subscription status to active
+      if (invoice.tenantId) {
+        await updateDoc(doc(db, 'tenants', invoice.tenantId), {
+          status: 'active',
+          manualPaymentPending: false
+        });
+        
+        // Update local tenants state
+        setTenants(prev => prev.map(t => t.id === invoice.tenantId ? { ...t, status: 'active', manualPaymentPending: false } : t));
+      }
+      
+      // Update local invoices state
+      setInvoices(prev => prev.map(inv => inv.id === invoice.id ? { ...inv, status: 'PAID' } : inv));
+      
+      alert("✨ Invoice and Tenant subscription successfully activated and approved!");
+    } catch (err: any) {
+      console.error("Error approving invoice:", err);
+      alert("Failed to approve invoice: " + err.message);
+    }
+  };
+
+  const handleRejectInvoice = async (invoice: any) => {
+    if (!window.confirm(`Are you sure you want to reject/mark unpaid invoice #${invoice.no}?`)) return;
+    try {
+      const invoiceDocId = invoice.id || `${invoice.tenantId}_${invoice.no}`;
+      await updateDoc(doc(db, 'invoices', invoiceDocId), {
+        status: 'UNPAID'
+      });
+      
+      if (invoice.tenantId) {
+        await updateDoc(doc(db, 'tenants', invoice.tenantId), {
+          manualPaymentPending: false
+        });
+        setTenants(prev => prev.map(t => t.id === invoice.tenantId ? { ...t, manualPaymentPending: false } : t));
+      }
+      
+      setInvoices(prev => prev.map(inv => inv.id === invoice.id ? { ...inv, status: 'UNPAID' } : inv));
+      alert("Invoice marked as UNPAID.");
+    } catch (err: any) {
+      console.error("Error rejecting invoice:", err);
+      alert("Failed to reject invoice: " + err.message);
     }
   };
 
@@ -3166,11 +3235,11 @@ export default function SaaSSuperAdmin() {
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Search customer, tour..."
+                      placeholder="Search customer, operator..."
                       value={txSearch}
                       onChange={(e) => setTxSearch(e.target.value)}
                       className={`pl-9 pr-4 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${
-                        isDarkMode ? 'bg-slate-950 border-gray-805 text-white' : 'bg-gray-50 border-gray-200 text-gray-950'
+                        isDarkMode ? 'bg-slate-950 border-gray-805 text-white' : 'bg-gray-50 border-gray-200 text-gray-955'
                       }`}
                     />
                   </div>
@@ -3183,12 +3252,45 @@ export default function SaaSSuperAdmin() {
                     }`}
                   >
                     <option value="all">All Statuses</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed / Paid</option>
+                    <option value="pending">Pending Approval</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Tab Selector for bookings vs invoices */}
+              <div className="flex space-x-2 border-b border-gray-200/50 dark:border-gray-800/50 pb-4 mb-6">
+                <button
+                  onClick={() => { setTxSubTab('bookings'); setTxStatusFilter('all'); }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    txSubTab === 'bookings'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
+                      : isDarkMode
+                        ? 'bg-slate-900 text-slate-400 hover:text-white'
+                        : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Tenant End-Customer Bookings
+                </button>
+                <button
+                  onClick={() => { setTxSubTab('invoices'); setTxStatusFilter('all'); }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                    txSubTab === 'invoices'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
+                      : isDarkMode
+                        ? 'bg-slate-900 text-slate-400 hover:text-white'
+                        : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Operator Subscription Invoices</span>
+                  {invoices.filter(inv => inv.status === 'PENDING').length > 0 && (
+                    <span className="bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-full animate-pulse">
+                      {invoices.filter(inv => inv.status === 'PENDING').length} REQ
+                    </span>
+                  )}
+                </button>
               </div>
 
               {/* Transactions Table */}
@@ -3197,17 +3299,32 @@ export default function SaaSSuperAdmin() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800 bg-slate-900/50 text-gray-400' : 'border-gray-150 bg-gray-50 text-gray-500'}`}>
-                        <th className="py-3 px-4">Booking Ref</th>
-                        <th className="py-3 px-4">Tenant Site</th>
-                        <th className="py-3 px-4">Tour Name</th>
-                        <th className="py-3 px-4">Customer Details</th>
-                        <th className="py-3 px-4">Booking Date</th>
-                        <th className="py-3 px-4 text-right">Amount</th>
-                        <th className="py-3 px-4 text-center">Status</th>
+                        {txSubTab === 'bookings' ? (
+                          <>
+                            <th className="py-3 px-4">Booking Ref</th>
+                            <th className="py-3 px-4">Tenant Site</th>
+                            <th className="py-3 px-4">Tour Name</th>
+                            <th className="py-3 px-4">Customer Details</th>
+                            <th className="py-3 px-4">Booking Date</th>
+                            <th className="py-3 px-4 text-right">Amount</th>
+                            <th className="py-3 px-4 text-center">Status</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="py-3 px-4">Invoice #</th>
+                            <th className="py-3 px-4">SaaS Tenant Operator</th>
+                            <th className="py-3 px-4">Plan & Cycle</th>
+                            <th className="py-3 px-4">Invoice Date</th>
+                            <th className="py-3 px-4">Due Date</th>
+                            <th className="py-3 px-4 text-right">Amount</th>
+                            <th className="py-3 px-4 text-center">Status</th>
+                            <th className="py-3 px-4 text-right">Manual Proof / Actions</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-150'}`}>
-                      {(() => {
+                      {txSubTab === 'bookings' ? (() => {
                         const filtered = bookings.filter(b => {
                           const matchesStatus = txStatusFilter === 'all' || b.status?.toLowerCase() === txStatusFilter;
                           const guestName = (b.customerName || b.guestName || '').toLowerCase();
@@ -3248,7 +3365,7 @@ export default function SaaSSuperAdmin() {
                                 {b.tourName || 'General Excursion Booking'}
                               </td>
                               <td className="py-3.5 px-4">
-                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-950'}`}>{b.customerName || b.guestName || 'Anonymous Customer'}</p>
+                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-955'}`}>{b.customerName || b.guestName || 'Anonymous Customer'}</p>
                                 <p className="text-[10px] text-gray-500">{b.guestEmail || b.contactEmail || b.email || '-'}</p>
                               </td>
                               <td className="py-3.5 px-4 text-gray-500">
@@ -3267,6 +3384,100 @@ export default function SaaSSuperAdmin() {
                                 }`}>
                                   {b.status || 'pending'}
                                 </span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })() : (() => {
+                        const filtered = invoices.filter(inv => {
+                          const matchedTenant = tenants.find(t => t.id === inv.tenantId);
+                          const matchesStatus = txStatusFilter === 'all' || inv.status?.toLowerCase() === txStatusFilter || (txStatusFilter === 'pending' && inv.status === 'PENDING');
+                          const companyName = (matchedTenant?.companyName || '').toLowerCase();
+                          const adminEmail = (matchedTenant?.adminEmail || matchedTenant?.email || '').toLowerCase();
+                          const slugName = (matchedTenant?.slug || '').toLowerCase();
+                          const invoiceNo = (inv.no || '').toLowerCase();
+                          const searchStr = txSearch.toLowerCase();
+                          const matchesSearch = !txSearch || companyName.includes(searchStr) || adminEmail.includes(searchStr) || slugName.includes(searchStr) || invoiceNo.includes(searchStr);
+                          return matchesStatus && matchesSearch;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="py-8 text-center text-xs text-gray-500">
+                                No operator invoices found matching the criteria.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((inv) => {
+                          const matchedTenant = tenants.find(t => t.id === inv.tenantId);
+                          return (
+                            <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                              <td className="py-3.5 px-4 font-mono font-bold text-indigo-500">
+                                #{inv.no || 'INV-00'}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {matchedTenant?.companyName || 'Operator Workspace'}
+                                </span>
+                                <span className="block text-[10px] text-gray-500">
+                                  {matchedTenant?.adminEmail || matchedTenant?.email || 'N/A'} • {matchedTenant?.slug}.tripbone.com
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 capitalize font-medium">
+                                <span className="px-2 py-0.5 rounded bg-slate-500/10 text-slate-400 font-mono text-[10px] uppercase">
+                                  {matchedTenant?.plan || 'Starter'} ({matchedTenant?.billingInterval || 'Monthly'})
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-gray-500">
+                                {inv.invoiceDate}
+                              </td>
+                              <td className="py-3.5 px-4 text-gray-500">
+                                {inv.dueDate}
+                              </td>
+                              <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {inv.amount}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                  inv.status === 'PAID'
+                                    ? 'bg-emerald-500/10 text-emerald-500'
+                                    : inv.status === 'PENDING'
+                                      ? 'bg-amber-500/10 text-amber-500 animate-pulse'
+                                      : 'bg-rose-500/10 text-rose-500'
+                                }`}>
+                                  {inv.status || 'UNPAID'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-right">
+                                {inv.status === 'PENDING' ? (
+                                  <div className="flex items-center justify-end space-x-1.5">
+                                    <div className="text-left mr-2 max-w-[120px] truncate">
+                                      <p className="text-[9px] text-amber-500 font-bold uppercase">Pending Proof</p>
+                                      <p className="text-[8px] text-gray-500 truncate" title={inv.manualPaymentNotes}>
+                                        {inv.manualPaymentNotes || 'No notes'}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={() => handleApproveInvoice(inv)}
+                                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold shadow-xs transition-colors"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectInvoice(inv)}
+                                      className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold shadow-xs transition-colors"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                ) : inv.status === 'PAID' ? (
+                                  <span className="text-[10px] text-emerald-500 font-extrabold uppercase">Payment Complete</span>
+                                ) : (
+                                  <span className="text-[10px] text-gray-500 uppercase">Unpaid / Manual Transfer</span>
+                                )}
                               </td>
                             </tr>
                           );

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSettings } from '../../lib/SettingsContext';
 
 interface OpenWaMessage {
   id: string;
@@ -40,6 +41,9 @@ const getJidString = (val: any): string => {
 };
 
 export default function TicketManager({ isTenantPortal = false }: { isTenantPortal?: boolean }) {
+  const { globalBrand } = useSettings();
+  const brandColor = globalBrand?.brandColor || '#1db3cd';
+
   const [activeTab, setActiveTab] = useState<'web' | 'whatsapp'>('web');
   
   // Web dynamic tickets
@@ -828,7 +832,8 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
                   setShowCreateForm(true);
                   setActiveWebTicketId(null);
                 }}
-                className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                className="px-2.5 py-1.5 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all hover:brightness-110"
+                style={{ backgroundColor: brandColor }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>New Ticket</span>
@@ -838,7 +843,7 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
           <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
             {webLoading ? (
               <div className="flex h-40 items-center justify-center">
-                <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" style={{ color: brandColor }} />
               </div>
             ) : webTickets.length === 0 ? (
               <div className="p-8 text-center text-gray-400">
@@ -857,12 +862,15 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
                     setShowCreateForm(false);
                   }}
                   className={cn(
-                    "w-full text-left p-4.5 hover:bg-gray-50/60 transition-colors flex flex-col gap-2 relative border-l-4",
-                    t.id === activeWebTicketId ? "border-l-indigo-500 bg-indigo-50/10" : "border-l-transparent"
+                    "w-full text-left p-4.5 hover:bg-gray-50/60 transition-colors flex flex-col gap-2 relative border-l-4 border-l-transparent"
                   )}
+                  style={t.id === activeWebTicketId ? { borderLeftColor: brandColor, backgroundColor: `${brandColor}10` } : {}}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md">
+                    <span 
+                      className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md"
+                      style={{ color: brandColor, backgroundColor: `${brandColor}15` }}
+                    >
                       {t.category}
                     </span>
                     <span className={cn(
@@ -946,7 +954,8 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
                   <button
                     type="submit"
                     disabled={newTicketSubmitting}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 rounded-xl shadow-lg shadow-indigo-600/10 transition-colors flex items-center space-x-2"
+                    className="px-5 py-2.5 text-xs font-bold text-white disabled:bg-gray-200 disabled:text-gray-400 rounded-xl shadow-lg transition-all hover:brightness-110 flex items-center space-x-2"
+                    style={{ backgroundColor: brandColor }}
                   >
                     {newTicketSubmitting ? (
                       <>
@@ -1010,21 +1019,30 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
                       className={cn(
                         "flex flex-col max-w-[80%] rounded-[16px] p-4 shadow-sm",
                         isStaffReply 
-                          ? "mr-auto bg-white text-gray-800 border border-gray-100 rounded-tl-none" 
-                          : "ml-auto bg-indigo-600 text-white rounded-tr-none"
+                          ? (isTenantPortal 
+                              ? "mr-auto bg-white text-gray-800 border border-gray-100 rounded-tl-none" 
+                              : "ml-auto text-white rounded-tr-none")
+                          : (isTenantPortal 
+                              ? "ml-auto text-white rounded-tr-none" 
+                              : "mr-auto bg-white text-gray-800 border border-gray-100 rounded-tl-none")
                       )}
+                      style={
+                        isTenantPortal
+                          ? (!isStaffReply ? { backgroundColor: brandColor } : {})
+                          : (isStaffReply ? { backgroundColor: brandColor } : {})
+                      }
                     >
-                      <span className={cn(
-                        "text-[9px] font-black uppercase tracking-widest mb-1",
-                        isStaffReply ? "text-indigo-600" : "text-indigo-100"
-                      )}>
+                      <span 
+                        className="text-[9px] font-black uppercase tracking-widest mb-1 block"
+                        style={isStaffReply ? { color: brandColor } : { color: 'rgba(255,255,255,0.85)' }}
+                      >
                         {m.senderName}
                       </span>
                       <p className="text-sm whitespace-pre-line leading-relaxed">{m.text}</p>
-                      <span className={cn(
-                        "text-[8px] text-right mt-1 opacity-85 block self-end",
-                        isStaffReply ? "text-gray-400" : "text-indigo-100"
-                      )}>
+                      <span 
+                        className="text-[8px] text-right mt-1 opacity-75 block self-end"
+                        style={isStaffReply ? { color: '#9ca3af' } : { color: 'rgba(255,255,255,0.75)' }}
+                      >
                         {m.timestamp instanceof Date ? m.timestamp.toLocaleString() : 'Just now'}
                       </span>
                     </div>
@@ -1041,12 +1059,13 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
                     value={webReply}
                     onChange={(e) => setWebReply(e.target.value)}
                     placeholder="Type your reply to support..."
-                    className="flex-1 py-3 px-4 bg-gray-50 focus:bg-white border border-indigo-50 rounded-[12px] focus:outline-none focus:border-indigo-500 text-sm font-medium transition-all"
+                    className="flex-1 py-3 px-4 bg-gray-50 focus:bg-white border border-gray-150 rounded-[12px] focus:outline-none focus:border-indigo-500 text-sm font-medium transition-all"
                   />
                   <button
                     type="submit"
                     disabled={!webReply.trim() || webSubmitting}
-                    className="p-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-[12px] transition-all cursor-pointer font-bold uppercase tracking-wider text-xs shrink-0"
+                    className="p-3 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-[12px] transition-all cursor-pointer font-bold uppercase tracking-wider text-xs shrink-0 hover:brightness-110"
+                    style={{ backgroundColor: brandColor }}
                   >
                     {webSubmitting ? 'Sending...' : <Send className="h-5 w-5" />}
                   </button>

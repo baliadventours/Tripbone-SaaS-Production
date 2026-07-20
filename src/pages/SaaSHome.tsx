@@ -14,7 +14,7 @@ import {
   Laptop, MapPin, Mail, Calendar, LineChart, DollarSign, Database, 
   Lock, UserPlus, Building, ArrowLeft, Smartphone, Eye, CreditCard, Wallet,
   User, Settings, Key, Receipt, Copy, Plus, MessageSquare, LogOut,
-  HelpCircle, EyeOff, ChevronRight, AlertTriangle, AlertCircle, X,
+  HelpCircle, EyeOff, ChevronRight, AlertTriangle, AlertCircle, X, Megaphone,
   Map, UserCheck, Briefcase, FileText, Image, Bell, Sliders, ChevronDown,
   LifeBuoy, Terminal, Clock, Moon, Sun, BookOpen
 } from 'lucide-react';
@@ -23,7 +23,10 @@ import { createCreemCheckoutSession } from '../services/creemService';
 
 export default function SaaSHome() {
   const { setPreviewTenant } = useTenant();
-  const { settings } = useSettings();
+  const { settings, globalBrand } = useSettings();
+  const brandColor = globalBrand?.brandColor || '#1db3cd';
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [closedAnnouncements, setClosedAnnouncements] = useState<string[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(true);
   const [step, setStep] = useState(1); // 1 = Main/Dashboard/Auth, 2 = Website Setup, 3 = Website Info, 4 = Business Address
@@ -223,6 +226,25 @@ export default function SaaSHome() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'announcements'));
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Filter out expired if needed, or just sort by date
+        const sortedList = list.sort((a: any, b: any) => {
+          const tA = a.createdAt?.seconds || 0;
+          const tB = b.createdAt?.seconds || 0;
+          return tB - tA; // latest first
+        });
+        setAnnouncements(sortedList);
+      } catch (err) {
+        console.warn("Failed to fetch announcements in SaaSHome:", err);
+      }
+    };
+    fetchAnnouncements();
+  }, [currentUser]);
 
   const [isProvisioning, setIsProvisioning] = useState(false);
 
@@ -2194,6 +2216,35 @@ export default function SaaSHome() {
       <Helmet>
         <title>{settings?.siteName ? `${settings.siteName} - Agency Console` : 'Tripbone - Agency Console'}</title>
       </Helmet>
+      {/* Global Operator Announcements */}
+      {announcements.length > 0 && announcements.filter((ann) => !closedAnnouncements.includes(ann.id)).length > 0 && (
+        <div className="space-y-1 shrink-0 relative z-40">
+          {announcements
+            .filter((ann) => !closedAnnouncements.includes(ann.id))
+            .map((ann) => (
+              <div 
+                key={ann.id}
+                className="px-6 py-2.5 text-white flex items-center justify-between gap-4 text-xs font-semibold relative shadow-inner"
+                style={{ backgroundColor: brandColor }}
+              >
+                <div className="flex items-center space-x-2 flex-1">
+                  <Megaphone className="w-4 h-4 text-white shrink-0 animate-pulse" />
+                  <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest text-white">
+                    {ann.type || 'Platform'}
+                  </span>
+                  <span className="font-extrabold">{ann.title}</span>
+                  <span className="opacity-95 font-medium">{ann.message}</span>
+                </div>
+                <button 
+                  onClick={() => setClosedAnnouncements([...closedAnnouncements, ann.id])}
+                  className="p-1 hover:bg-white/10 rounded transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-white" />
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
       {/* Top Royal Blue Navbar */}
       <header className={cn(
         "h-16 px-6 flex items-center justify-between shadow-md relative z-30 select-none transition-colors duration-200",

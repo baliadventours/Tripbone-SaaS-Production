@@ -52,6 +52,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const faviconUrl = settings?.faviconURL || globalBrand?.faviconUrl;
+    if (faviconUrl) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = faviconUrl;
+    }
+  }, [globalBrand?.faviconUrl, settings?.faviconURL]);
+
+  useEffect(() => {
     if (tenantLoading) return;
 
     const docRef = doc(db, 'settings', tenantId || 'general');
@@ -117,6 +130,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       unsubscribeLabels();
     };
   }, [tenantId, tenantLoading]);
+
+  useEffect(() => {
+    const favicon = settings?.faviconURL || globalBrand?.faviconUrl;
+    if (favicon) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = favicon;
+    }
+  }, [settings?.faviconURL, globalBrand?.faviconUrl]);
 
 
   const applySettings = (data: SiteSettings) => {
