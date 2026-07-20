@@ -208,6 +208,12 @@ export default function SaaSLayout() {
               <p className="text-sm leading-relaxed mb-6">
                 The ultimate all-in-one platform for tour operators. Drive sales, automate bookings, and scale your business.
               </p>
+              <div className="text-sm text-slate-300 space-y-2 mt-4">
+                <p className="flex items-center gap-2">
+                  <span className="font-bold text-white">Support Email:</span>
+                  <a href="mailto:support@tripbone.com" className="text-brand hover:underline">support@tripbone.com</a>
+                </p>
+              </div>
             </div>
             
             <div>
@@ -243,23 +249,17 @@ export default function SaaSLayout() {
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-sm">&copy; {new Date().getFullYear()} {globalBrand?.platformName || "Tripbone"}. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              {globalBrand?.twitterUrl ? (
+              {globalBrand?.twitterUrl && (
                 <a href={globalBrand.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Twitter</a>
-              ) : (
-                <span className="text-sm hover:text-white cursor-pointer transition-colors">Twitter</span>
               )}
-              {globalBrand?.linkedinUrl ? (
+              {globalBrand?.linkedinUrl && (
                 <a href={globalBrand.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">LinkedIn</a>
-              ) : (
-                <span className="text-sm hover:text-white cursor-pointer transition-colors">LinkedIn</span>
               )}
-              {globalBrand?.facebookUrl ? (
+              {globalBrand?.facebookUrl && (
                 <a href={globalBrand.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Facebook</a>
-              ) : null}
-              {globalBrand?.instagramUrl ? (
+              )}
+              {globalBrand?.instagramUrl && (
                 <a href={globalBrand.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Instagram</a>
-              ) : (
-                <span className="text-sm hover:text-white cursor-pointer transition-colors">Instagram</span>
               )}
             </div>
           </div>

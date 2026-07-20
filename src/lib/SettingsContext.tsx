@@ -18,7 +18,7 @@ const defaultSettings: SiteSettings = {
   siteName: 'Tripbone',
   siteDescription: 'Discover the best tours and experiences with Tripbone.',
   siteKeywords: 'bali, tours, adventure, tripbone',
-  supportEmail: 'info@tripbone.com',
+  supportEmail: 'support@tripbone.com',
   supportPhone: '+6281234567890',
   whatsappNumber: '+62 812-3456-7890',
   logoURL: '',

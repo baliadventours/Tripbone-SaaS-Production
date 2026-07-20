@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Scale, Printer, Calendar, BookOpen, ShieldCheck, AlertCircle, FileText, CreditCard, Lock, Globe } from 'lucide-react';
 
 const BRAND = 'Tripbone';
-const SUPPORT_EMAIL = 'hello@tripbone.com';
+const SUPPORT_EMAIL = 'support@tripbone.com';
 const EFFECTIVE_DATE = 'July 1, 2025';
 
 const sections = [

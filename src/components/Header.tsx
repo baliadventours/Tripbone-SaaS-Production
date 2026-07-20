@@ -320,7 +320,7 @@ export default function Header() {
                     <Phone className="h-3 w-3 text-primary" /> {settings?.supportPhone || '+62 812 3456 7890'}
                   </a>
                   <a href={`mailto:${settings?.supportEmail}`} className="flex items-center gap-2 text-[10px] font-bold text-white/60 hover:text-white transition-colors tracking-widest">
-                    <Mail className="h-3 w-3 text-primary" /> {settings?.supportEmail || 'info@tripbone.com'}
+                    <Mail className="h-3 w-3 text-primary" /> {settings?.supportEmail || 'support@tripbone.com'}
                   </a>
                 </div>
               </div>

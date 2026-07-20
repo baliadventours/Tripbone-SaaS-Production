@@ -244,24 +244,6 @@ export default function SaaSMarketing() {
               </button>
             </motion.div>
 
-            {/* Trust / Operator Avatars */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3"
-            >
-              <div className="flex -space-x-3 overflow-hidden">
-                <img className="inline-block h-9 w-9 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Operator" />
-                <img className="inline-block h-9 w-9 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Operator" />
-                <img className="inline-block h-9 w-9 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=100&q=80" alt="Operator" />
-                <img className="inline-block h-9 w-9 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80" alt="Operator" />
-              </div>
-              <span className="text-sm font-medium text-slate-500">
-                Trusted by <strong className="text-slate-900 font-extrabold">2,400+</strong> tour operators worldwide
-              </span>
-            </motion.div>
-
             {/* --- PRODUCT SCREENSHOT / INTEGRATED DASHBOARD SIMULATOR --- */}
             <motion.div 
               initial={{ opacity: 0, y: 40 }}
@@ -1099,64 +1081,6 @@ export default function SaaSMarketing() {
               </div>
 
             </div>
-          </div>
-        </section>
-
-        {/* --- 9. TRUSTED BY BUSINESSES WORLDWIDE (Social Proof / Testimonials) --- */}
-        <section className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-6 text-center">
-            
-            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 border border-indigo-200/50 px-3.5 py-1.5 rounded-full mb-4 inline-block">
-              SOCIAL PROOF
-            </span>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-20">
-              Trusted by businesses worldwide
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  quote: "We launched our tour website in under 10 minutes. The AI-generated content was spot on and the WhatsApp automation saved us hours every week.",
-                  author: "Anita Raharjo",
-                  agency: "Bali Explorer Trips",
-                  avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-                },
-                {
-                  quote: "Finally a platform that just works. I replaced 6 different tools with one subscription. My bookings have doubled in 3 months.",
-                  author: "Mateus Fernandez",
-                  agency: "Costa Rica Wild Tours",
-                  avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80"
-                },
-                {
-                  quote: "The SEO content generator is a game changer. We rank on Google for 40+ keywords within weeks without hiring a single SEO consultant.",
-                  author: "Yuki Tanaka",
-                  agency: "Japan Zen Journeys",
-                  avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="bg-slate-50 border border-slate-150 rounded-3xl p-8 text-left space-y-6 flex flex-col justify-between shadow-sm">
-                  <div className="space-y-4">
-                    {/* Stars */}
-                    <div className="flex text-amber-400 gap-0.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-4 h-4 fill-amber-400 stroke-amber-400" />
-                      ))}
-                    </div>
-                    <p className="text-sm text-slate-600 leading-relaxed italic">
-                      "{item.quote}"
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3.5 pt-4 border-t border-slate-200/50">
-                    <img src={item.avatar} alt={item.author} className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-50" />
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900">{item.author}</h4>
-                      <p className="text-[11px] text-[#1db3cd] font-bold uppercase tracking-wider">{item.agency}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
           </div>
         </section>
 

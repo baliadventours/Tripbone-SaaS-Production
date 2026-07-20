@@ -21,7 +21,7 @@ export default function Privacy() {
   }
   
   const siteName = settings?.siteName || 'Bali Adventours';
-  const supportEmail = settings?.supportEmail || 'baliadventours@gmail.com';
+  const supportEmail = settings?.supportEmail || 'support@tripbone.com';
   const supportPhone = settings?.supportPhone || '+62 812-3456-7890';
 
   const [activeSection, setActiveSection] = useState('intro');
