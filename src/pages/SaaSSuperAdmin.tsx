@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getDoc, setDoc } from 'firebase/firestore';
@@ -50,7 +50,9 @@ import {
   Edit,
   Bell,
   Zap,
-  Download
+  Download,
+  Send,
+  Clock
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -316,6 +318,41 @@ export default function SaaSSuperAdmin() {
 
   // Tickets
   const [tickets, setTickets] = useState<any[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [ticketReplyText, setTicketReplyText] = useState('');
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<'all' | 'open' | 'replied' | 'pending' | 'resolved'>('all');
+  const [sendingTicketReply, setSendingTicketReply] = useState(false);
+  const superAdminMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Helper to safely get message arrays from a ticket
+  const getTicketMessages = (ticket: any) => {
+    if (ticket.messages && Array.isArray(ticket.messages) && ticket.messages.length > 0) {
+      return ticket.messages;
+    }
+    if (ticket.description) {
+      return [
+        {
+          id: 'initial',
+          senderId: ticket.userId || 'user',
+          senderName: ticket.userName || 'Tenant Operator',
+          senderRole: 'customer',
+          text: ticket.description,
+          timestamp: ticket.createdAt
+        }
+      ];
+    }
+    return [];
+  };
+
+  // Auto scroll to bottom of selected ticket messages
+  useEffect(() => {
+    if (selectedTicketId) {
+      setTimeout(() => {
+        superAdminMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [selectedTicketId, tickets]);
   
   // Operator Invoices
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -1169,6 +1206,67 @@ export default function SaaSSuperAdmin() {
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
     } catch (err) {
       console.error('Error resolving ticket:', err);
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId: string, status: string) => {
+    try {
+      await updateDoc(doc(db, 'supportTickets', ticketId), {
+        status,
+        updatedAt: new Date()
+      });
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status, updatedAt: new Date() } : t));
+    } catch (err) {
+      console.error('Error updating ticket status:', err);
+    }
+  };
+
+  const handleSendTicketReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketReplyText.trim() || !selectedTicketId || sendingTicketReply) return;
+
+    setSendingTicketReply(true);
+    try {
+      const activeTicket = tickets.find(t => t.id === selectedTicketId);
+      if (!activeTicket) return;
+
+      const replyMessage = {
+        id: crypto.randomUUID(),
+        senderId: 'superadmin',
+        senderName: 'Staff Support',
+        senderRole: 'admin',
+        text: ticketReplyText.trim(),
+        timestamp: new Date()
+      };
+
+      const currentMessages = getTicketMessages(activeTicket);
+      const revisedMessages = [...currentMessages, replyMessage];
+
+      await updateDoc(doc(db, 'supportTickets', selectedTicketId), {
+        messages: revisedMessages,
+        status: 'replied',
+        updatedAt: new Date()
+      });
+
+      // Update local state
+      setTickets(prev => prev.map(t => {
+        if (t.id === selectedTicketId) {
+          return {
+            ...t,
+            messages: revisedMessages,
+            status: 'replied',
+            updatedAt: new Date()
+          };
+        }
+        return t;
+      }));
+
+      setTicketReplyText('');
+    } catch (err) {
+      console.error('Error sending ticket reply:', err);
+      alert('Failed to send reply. Please try again.');
+    } finally {
+      setSendingTicketReply(false);
     }
   };
 
@@ -4029,44 +4127,254 @@ export default function SaaSSuperAdmin() {
         )}
 
         {activeTab === 'tickets' && (
-          <div className="border border-gray-800 bg-slate-900/40 rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-gray-800 bg-slate-900/60 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-white">Submitted Support Tickets</h2>
-                <p className="text-xs text-gray-400">Resolve customer problems and technical inquiries submitted by workspace administrators.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Tickets List */}
+            <div className="lg:col-span-5 border border-gray-800 bg-slate-900/40 rounded-2xl overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-800 bg-slate-900/60">
+                <h2 className="text-lg font-bold text-white">Submitted Tickets</h2>
+                <p className="text-xs text-gray-400 mt-1">Select an active customer query to view and reply.</p>
+
+                {/* Search Bar */}
+                <div className="relative mt-4">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Search className="h-4 w-4 text-gray-500" />
+                  </span>
+                  <input
+                    type="text"
+                    value={ticketSearchQuery}
+                    onChange={(e) => setTicketSearchQuery(e.target.value)}
+                    placeholder="Search by subject, email, tenant..."
+                    className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-950 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                  />
+                  {ticketSearchQuery && (
+                    <button
+                      onClick={() => setTicketSearchQuery('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-white"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1">
+                  {(['all', 'open', 'replied', 'pending', 'resolved'] as const).map((filter) => {
+                    const isActive = ticketStatusFilter === filter;
+                    return (
+                      <button
+                        key={filter}
+                        onClick={() => setTicketStatusFilter(filter)}
+                        className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${
+                          isActive
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-sm'
+                            : 'bg-transparent text-gray-500 border-transparent hover:text-gray-300'
+                        }`}
+                      >
+                        {filter}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tickets List Area */}
+              <div className="divide-y divide-gray-800/60 max-h-[550px] overflow-y-auto">
+                {tickets.filter((t) => {
+                  const matchesSearch = 
+                    (t.subject || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                    (t.tenantId || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                    (t.userEmail || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                    (t.userName || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                    (t.category || '').toLowerCase().includes(ticketSearchQuery.toLowerCase());
+
+                  const matchesStatus = 
+                    ticketStatusFilter === 'all' || 
+                    t.status === ticketStatusFilter ||
+                    (ticketStatusFilter === 'resolved' && t.status === 'closed');
+
+                  return matchesSearch && matchesStatus;
+                }).length === 0 ? (
+                  <div className="p-12 text-center text-gray-500 flex flex-col items-center justify-center">
+                    <MessageSquare className="h-10 w-10 text-gray-700 mb-3" />
+                    <p className="text-xs font-semibold">No tickets found matching your filters</p>
+                  </div>
+                ) : (
+                  tickets.filter((t) => {
+                    const matchesSearch = 
+                      (t.subject || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                      (t.tenantId || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                      (t.userEmail || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                      (t.userName || '').toLowerCase().includes(ticketSearchQuery.toLowerCase()) ||
+                      (t.category || '').toLowerCase().includes(ticketSearchQuery.toLowerCase());
+
+                    const matchesStatus = 
+                      ticketStatusFilter === 'all' || 
+                      t.status === ticketStatusFilter ||
+                      (ticketStatusFilter === 'resolved' && t.status === 'closed');
+
+                    return matchesSearch && matchesStatus;
+                  }).map((t) => {
+                    const isSelected = selectedTicketId === t.id;
+                    const dateStr = t.updatedAt
+                      ? (t.updatedAt.toDate ? t.updatedAt.toDate() : new Date(t.updatedAt)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : 'Active';
+
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTicketId(t.id)}
+                        className={`w-full text-left p-5 transition-all hover:bg-slate-900/30 flex flex-col gap-2 border-l-4 ${
+                          isSelected ? 'bg-indigo-500/5 border-l-indigo-500' : 'border-l-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span className="text-[9px] font-mono text-gray-400 tracking-wider">
+                            Tenant: {t.tenantId || 'SaaS'}
+                          </span>
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${
+                            t.status === 'open' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                            t.status === 'replied' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                            t.status === 'pending' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {t.status}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-extrabold text-white line-clamp-1">{t.subject}</h4>
+                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5">By: {t.userName || t.userEmail}</p>
+                        </div>
+                        <div className="flex justify-between items-center text-[9px] text-gray-500 font-medium">
+                          <span className="bg-slate-950 border border-gray-800 px-2 py-0.5 rounded text-gray-400">
+                            {t.category || 'General'}
+                          </span>
+                          <span>{dateStr}</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            {tickets.length === 0 ? (
-              <p className="text-xs text-gray-500 text-center py-16">No support tickets found.</p>
-            ) : (
-              <div className="divide-y divide-gray-800">
-                {tickets.map((t) => (
-                  <div key={t.id} className="p-6 hover:bg-slate-900/20 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded border ${t.status === 'open' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                          {t.status.toUpperCase()}
-                        </span>
-                        <span className="text-xs text-gray-400 font-mono">Tenant ID: {t.tenantId || 'SaaS Master'}</span>
+            {/* Right Column: Ticket Conversation Thread */}
+            <div className="lg:col-span-7 border border-gray-800 bg-slate-900/40 rounded-2xl overflow-hidden flex flex-col min-h-[600px]">
+              {selectedTicketId ? (() => {
+                const activeTicket = tickets.find((t) => t.id === selectedTicketId);
+                if (!activeTicket) return null;
+                const messages = getTicketMessages(activeTicket);
+
+                return (
+                  <div className="flex flex-col flex-1 h-[600px]">
+                    {/* Active Ticket Header */}
+                    <div className="p-6 border-b border-gray-800 bg-slate-900/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center space-x-2 text-[10px] text-gray-400 uppercase tracking-widest font-mono mb-1">
+                          <span>{activeTicket.category || 'Support'}</span>
+                          <span>•</span>
+                          <span>Tenant: {activeTicket.tenantId || 'SaaS'}</span>
+                        </div>
+                        <h3 className="font-extrabold text-white text-md">{activeTicket.subject}</h3>
+                        <p className="text-xs text-gray-400 font-medium mt-1">
+                          From: <span className="text-gray-200 font-bold">{activeTicket.userName || 'Operator'}</span>{' '}
+                          <span className="font-mono text-[11px] text-indigo-400">({activeTicket.userEmail})</span>
+                        </p>
                       </div>
-                      <h4 className="text-sm font-bold text-white mb-1">{t.subject}</h4>
-                      <p className="text-xs text-gray-400 max-w-xl">{t.description}</p>
+
+                      {/* Status and Resolution Controls */}
+                      <div className="flex items-center gap-3 self-start md:self-auto">
+                        <select
+                          value={activeTicket.status}
+                          onChange={(e) => handleUpdateTicketStatus(activeTicket.id, e.target.value)}
+                          className="text-xs font-bold bg-slate-950 border border-gray-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="open">Open</option>
+                          <option value="replied">Replied</option>
+                          <option value="pending">Pending</option>
+                          <option value="resolved">Resolved / Closed</option>
+                        </select>
+
+                        {activeTicket.status !== 'resolved' && (
+                          <button
+                            onClick={() => handleUpdateTicketStatus(activeTicket.id, 'resolved')}
+                            className="p-2 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1"
+                            title="Mark Resolved"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    {t.status === 'open' && (
-                      <button
-                        onClick={() => handleResolveTicket(t.id)}
-                        className="px-3.5 py-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Mark Resolved</span>
-                      </button>
-                    )}
+                    {/* Chat Messages Stream */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/20 max-h-[380px]">
+                      {messages.map((m: any, index: number) => {
+                        const isStaff = m.senderRole === 'admin';
+                        const dateStr = m.timestamp
+                          ? (m.timestamp.toDate ? m.timestamp.toDate() : new Date(m.timestamp)).toLocaleString('en-US', { hour12: false, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          : 'Just now';
+
+                        return (
+                          <div
+                            key={m.id || index}
+                            className={`flex flex-col max-w-[85%] rounded-2xl p-4 shadow-md ${
+                              isStaff
+                                ? 'ml-auto bg-indigo-600 text-white rounded-tr-none'
+                                : 'mr-auto bg-slate-900 text-gray-100 border border-gray-800 rounded-tl-none'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-4 mb-1.5">
+                              <span className={`text-[9px] font-black uppercase tracking-widest ${isStaff ? 'text-indigo-200' : 'text-gray-400'}`}>
+                                {m.senderName || (isStaff ? 'Staff Support' : 'Customer')}
+                              </span>
+                              <span className={`text-[8px] opacity-75 font-mono ${isStaff ? 'text-indigo-200' : 'text-gray-500'}`}>
+                                {dateStr}
+                              </span>
+                            </div>
+                            <p className="text-xs whitespace-pre-line leading-relaxed font-medium">{m.text}</p>
+                          </div>
+                        );
+                      })}
+                      <div ref={superAdminMessagesEndRef} />
+                    </div>
+
+                    {/* Reply Input Form */}
+                    <div className="p-4 border-t border-gray-800 bg-slate-900/40">
+                      <form onSubmit={handleSendTicketReply} className="flex gap-3">
+                        <input
+                          type="text"
+                          value={ticketReplyText}
+                          onChange={(e) => setTicketReplyText(e.target.value)}
+                          placeholder="Type your reply to the tenant operator..."
+                          className="flex-1 py-3 px-4 bg-slate-950 border border-gray-800 focus:border-indigo-500 rounded-xl focus:outline-none text-xs font-semibold text-white transition-all placeholder-gray-500"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!ticketReplyText.trim() || sendingTicketReply}
+                          className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded-xl transition-all cursor-pointer font-bold flex items-center justify-center shrink-0 hover:shadow-lg"
+                        >
+                          {sendingTicketReply ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </button>
+                      </form>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })() : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-[600px] select-none">
+                  <div className="w-16 h-16 rounded-3xl bg-slate-950 border border-gray-800 flex items-center justify-center mb-4">
+                    <MessageSquare className="h-7 w-7 text-indigo-500 animate-pulse" />
+                  </div>
+                  <h4 className="font-extrabold text-white text-md">Helpdesk Ticket Workspace</h4>
+                  <p className="text-xs text-gray-500 mt-2 max-w-sm leading-relaxed">
+                    Select a support ticket from the list to load the conversation, change status, and send replies directly to operators.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
