@@ -46,6 +46,15 @@ export async function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Redirect /index.html to / for SEO duplicate content prevention
+  app.use((req, res, next) => {
+    if (req.path === '/index.html') {
+      const query = Object.keys(req.query).length > 0 ? req.url.slice(req.url.indexOf('?')) : '';
+      return res.redirect(301, '/' + query);
+    }
+    next();
+  });
+
   // Configure multer for in-memory file uploads (max 10MB)
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -4484,7 +4493,7 @@ export async function createServer() {
        seo.status = 'slug-parsed';
     }
 
-    if (reqPath === '/') {
+    if (reqPath === '/' || reqPath === '/index.html') {
        if (tenantDoc) {
          seo.title = `Book Tour and Adventours in Bali - ${siteName}`;
          seo.description = siteDescription;
@@ -4523,7 +4532,7 @@ export async function createServer() {
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
-      if (reqPath === '/') {
+      if (reqPath === '/' || reqPath === '/index.html') {
         let derivedTitle = settings.metaTitle;
         if (!derivedTitle && settings.homeTitleFormat) {
           derivedTitle = settings.homeTitleFormat.replace(/\{\{siteName\}\}/gi, seo.siteName);
@@ -4544,7 +4553,7 @@ export async function createServer() {
       } else if (reqPath.startsWith('/blog/')) {
         collection = 'posts';
         isSingleDoc = true;
-      } else if (reqPath === '/') {
+      } else if (reqPath === '/' || reqPath === '/index.html') {
         // PRELOAD HOME CONTENT: Fetch featured tours and categories for the home page
         let featured: any[] = [];
         let categories: any[] = [];
