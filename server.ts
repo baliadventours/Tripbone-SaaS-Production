@@ -46,9 +46,9 @@ export async function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Redirect /index.html to / for SEO duplicate content prevention
+  // Redirect /index.html and /app.html to / for SEO duplicate content prevention
   app.use((req, res, next) => {
-    if (req.path === '/index.html') {
+    if (req.path === '/index.html' || req.path === '/app.html') {
       const query = Object.keys(req.query).length > 0 ? req.url.slice(req.url.indexOf('?')) : '';
       return res.redirect(301, '/' + query);
     }
@@ -4493,7 +4493,7 @@ export async function createServer() {
        seo.status = 'slug-parsed';
     }
 
-    if (reqPath === '/' || reqPath === '/index.html') {
+    if (reqPath === '/' || reqPath === '/index.html' || reqPath === '/app.html') {
        if (tenantDoc) {
          seo.title = `Book Tour and Adventours in Bali - ${siteName}`;
          seo.description = siteDescription;
@@ -4532,7 +4532,7 @@ export async function createServer() {
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
-      if (reqPath === '/' || reqPath === '/index.html') {
+      if (reqPath === '/' || reqPath === '/index.html' || reqPath === '/app.html') {
         let derivedTitle = settings.metaTitle;
         if (!derivedTitle && settings.homeTitleFormat) {
           derivedTitle = settings.homeTitleFormat.replace(/\{\{siteName\}\}/gi, seo.siteName);
@@ -4553,7 +4553,7 @@ export async function createServer() {
       } else if (reqPath.startsWith('/blog/')) {
         collection = 'posts';
         isSingleDoc = true;
-      } else if (reqPath === '/' || reqPath === '/index.html') {
+      } else if (reqPath === '/' || reqPath === '/index.html' || reqPath === '/app.html') {
         // PRELOAD HOME CONTENT: Fetch featured tours and categories for the home page
         let featured: any[] = [];
         let categories: any[] = [];
@@ -4757,6 +4757,14 @@ export async function createServer() {
       appType: "custom",
     });
 
+    // Rewrite / to /app.html for Vite dev server so it doesn't show directory listing
+    app.use((req, res, next) => {
+      if (req.path === '/') {
+        req.url = '/app.html';
+      }
+      next();
+    });
+
     // Mount Vite development middleware FIRST to handle assets, sourcemaps, and client websockets correctly
     app.use(vite.middlewares);
 
@@ -4773,7 +4781,7 @@ export async function createServer() {
         if (url.startsWith('/blog/')) type = 'blog';
 
         const seo = await getSEOContent(req, type);
-        let template = await fs.promises.readFile(path.join(process.cwd(), 'index.html'), 'utf-8');
+        let template = await fs.promises.readFile(path.join(process.cwd(), 'app.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
         const html = applySEO(template, seo);
         res.status(200).set({ 
@@ -4790,7 +4798,7 @@ export async function createServer() {
     let distPath = path.join(process.cwd(), 'dist');
     
     // Auto-detect correct dist folder in serverless or standard container environments
-    const hasIndexFile = (dir: string) => fs.existsSync(path.join(dir, 'index.html')) || fs.existsSync(path.join(dir, 'index.template.html'));
+    const hasIndexFile = (dir: string) => fs.existsSync(path.join(dir, 'app.html')) || fs.existsSync(path.join(dir, 'index.template.html'));
     
     if (!fs.existsSync(distPath) || !hasIndexFile(distPath)) {
       const currentFilename = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== 'undefined' ? __filename : '');
@@ -4862,7 +4870,7 @@ export async function createServer() {
         // Find correct index.template.html or index.html path resolving dynamically
         let htmlPath = path.join(distPath, 'index.template.html');
         if (!fs.existsSync(htmlPath)) {
-          htmlPath = path.join(distPath, 'index.html');
+          htmlPath = path.join(distPath, 'app.html');
         }
         
         if (!fs.existsSync(htmlPath)) {
@@ -4870,17 +4878,17 @@ export async function createServer() {
           const currentDirname = currentFilename ? path.dirname(currentFilename) : (typeof __dirname !== 'undefined' ? __dirname : '');
           const htmlCandidates = [
             path.resolve(process.cwd(), 'dist', 'index.template.html'),
-            path.resolve(process.cwd(), 'dist', 'index.html'),
+            path.resolve(process.cwd(), 'dist', 'app.html'),
             path.resolve(currentDirname, 'dist', 'index.template.html'),
-            path.resolve(currentDirname, 'dist', 'index.html'),
+            path.resolve(currentDirname, 'dist', 'app.html'),
             path.resolve(currentDirname, '..', 'dist', 'index.template.html'),
-            path.resolve(currentDirname, '..', 'dist', 'index.html'),
+            path.resolve(currentDirname, '..', 'dist', 'app.html'),
             path.resolve(currentDirname, '..', '..', 'dist', 'index.template.html'),
-            path.resolve(currentDirname, '..', '..', 'dist', 'index.html'),
+            path.resolve(currentDirname, '..', '..', 'dist', 'app.html'),
             '/var/task/dist/index.template.html',
-            '/var/task/dist/index.html',
+            '/var/task/dist/app.html',
             '/var/task/app/dist/index.template.html',
-            '/var/task/app/dist/index.html'
+            '/var/task/app/dist/app.html'
           ];
           for (const cand of htmlCandidates) {
             if (fs.existsSync(cand)) {
@@ -4932,7 +4940,7 @@ export async function createServer() {
           let rawHtml = fallbackHtmlTemplate;
           const fallbackPath = fs.existsSync(path.join(distPath, 'index.template.html'))
             ? path.join(distPath, 'index.template.html')
-            : path.join(distPath, 'index.html');
+            : path.join(distPath, 'app.html');
           
           if (fs.existsSync(fallbackPath)) {
             rawHtml = await fs.promises.readFile(fallbackPath, 'utf-8');
