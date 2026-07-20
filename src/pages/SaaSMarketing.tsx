@@ -70,11 +70,11 @@ export default function SaaSMarketing() {
     const hostname = window.location.hostname;
     const port = window.location.port ? `:${window.location.port}` : '';
     if (hostname.includes('run.app')) {
-      window.location.href = `${window.location.protocol}//${window.location.host}/`;
+      window.location.href = '/signup';
     } else {
       window.location.href = hostname === 'localhost' 
-        ? `http://app.localhost${port}` 
-        : 'https://app.tripbone.com';
+        ? `http://app.localhost${port}/signup` 
+        : 'https://app.tripbone.com/signup';
     }
   };
 

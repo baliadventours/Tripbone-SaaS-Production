@@ -150,10 +150,27 @@ export default function SaaSHome() {
   const [loadingStats, setLoadingStats] = useState(false);
 
   // Auth/Auth view states
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+  const [authView, setAuthView] = useState<'login' | 'signup'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname === '/signup') return 'signup';
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'signup') return 'signup';
+    }
+    return 'login';
+  });
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname === '/signup') {
+        setAuthView('signup');
+      } else if (window.location.pathname === '/login') {
+        setAuthView('login');
+      }
+    }
+  }, []);
 
   const getStorefrontUrl = (slug: string, customDomain?: string) => {
     if (customDomain) {
@@ -1388,7 +1405,7 @@ export default function SaaSHome() {
                   onClick={handleGoogleLogin}
                   className="w-full py-3 border border-gray-200 hover:bg-gray-50 rounded-xl text-sm font-semibold text-gray-700 flex items-center justify-center space-x-2 transition-all"
                 >
-                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" className="w-4 h-4" alt="Google logo" />
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="Google logo" />
                   <span>{authView === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
                 </button>
 

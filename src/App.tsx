@@ -187,6 +187,8 @@ function AppContent() {
           <Routes>
             <Route path="/admin/*" element={<SaaSSuperAdmin />} />
             <Route path="/superadmin/*" element={<SaaSSuperAdmin />} />
+            <Route path="/login" element={<SaaSHome />} />
+            <Route path="/signup" element={<SaaSHome />} />
             
             {/* SaaS App Gate (Legacy Mode) */}
             {isAppGate && (

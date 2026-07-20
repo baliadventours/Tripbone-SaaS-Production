@@ -35,12 +35,12 @@ export default function PricingTab() {
     
     let targetUrl = '';
     if (host.includes('run.app')) {
-      targetUrl = `${protocol}//${host}/?plan=${planSlug}`;
+      targetUrl = `${protocol}//${host}/signup?plan=${planSlug}`;
     } else if (host.includes('localhost') || host.includes('127.0.0.1')) {
-      targetUrl = `http://app.localhost${port}/?plan=${planSlug}`;
+      targetUrl = `http://app.localhost${port}/signup?plan=${planSlug}`;
     } else {
       const cleanHost = host.replace(/^(www)\./, '');
-      targetUrl = `${protocol}//app.${cleanHost}/?plan=${planSlug}`;
+      targetUrl = `${protocol}//app.${cleanHost}/signup?plan=${planSlug}`;
     }
     
     window.location.href = targetUrl;

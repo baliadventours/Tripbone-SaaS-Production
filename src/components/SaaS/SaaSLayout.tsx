@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Compass, ChevronDown, Sparkles, Box, LayoutTemplate, BriefcaseBusiness, Globe, Bot, Navigation, ShieldCheck, X } from 'lucide-react';
 import { useSettings } from '../../lib/SettingsContext';
+import { useAuth } from '../../lib/AuthContext';
 
 export default function SaaSLayout() {
   const { settings, globalBrand } = useSettings();
+  const { user } = useAuth();
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
 
@@ -30,15 +32,27 @@ export default function SaaSLayout() {
 
   const brandColor = globalBrand?.brandColor || '#1db3cd';
 
-  const handleGetStarted = () => {
+  const handleLoginClick = () => {
     const hostname = window.location.hostname;
     const port = window.location.port ? `:${window.location.port}` : '';
     if (hostname.includes('run.app')) {
-      window.location.href = `${window.location.protocol}//${window.location.host}/`;
+      window.location.href = '/login';
     } else {
       window.location.href = hostname === 'localhost' 
-        ? `http://app.localhost${port}` 
-        : 'https://app.tripbone.com';
+        ? `http://app.localhost${port}/login` 
+        : 'https://app.tripbone.com/login';
+    }
+  };
+
+  const handleSignupClick = () => {
+    const hostname = window.location.hostname;
+    const port = window.location.port ? `:${window.location.port}` : '';
+    if (hostname.includes('run.app')) {
+      window.location.href = '/signup';
+    } else {
+      window.location.href = hostname === 'localhost' 
+        ? `http://app.localhost${port}/signup` 
+        : 'https://app.tripbone.com/signup';
     }
   };
 
@@ -153,16 +167,18 @@ export default function SaaSLayout() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button onClick={handleGetStarted} className="text-sm font-semibold text-slate-600 hover:text-brand transition-colors px-4 py-2">
-              Log in
+            <button onClick={handleLoginClick} className="text-sm font-semibold text-slate-600 hover:text-brand transition-colors px-4 py-2">
+              {user ? 'Dashboard' : 'Log in'}
             </button>
-            <button 
-              onClick={handleGetStarted} 
-              className="hidden md:flex text-white text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-sm hover:brightness-110 cursor-pointer text-center"
-              style={{ backgroundColor: brandColor }}
-            >
-              Get Started
-            </button>
+            {!user && (
+              <button 
+                onClick={handleSignupClick} 
+                className="hidden md:flex text-white text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-sm hover:brightness-110 cursor-pointer text-center"
+                style={{ backgroundColor: brandColor }}
+              >
+                Get Started
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -210,7 +226,7 @@ export default function SaaSLayout() {
                 <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
                 <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
                 <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><button onClick={handleGetStarted} className="hover:text-white transition-colors">Log In</button></li>
+                <li><button onClick={handleLoginClick} className="hover:text-white transition-colors">{user ? 'Dashboard' : 'Log In'}</button></li>
               </ul>
             </div>
 
