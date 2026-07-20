@@ -7,6 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import { useSettings } from '../lib/SettingsContext';
 import Admin from './Admin';
 import TicketManager from '../components/Admin/TicketManager';
+import SaaSKnowledgeBase from '../components/SaaS/SaaSKnowledgeBase';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { 
@@ -2478,7 +2479,7 @@ export default function SaaSHome() {
                   <span>Support & Tickets</span>
                 </button>
 
-                {/* Documentation */}
+                {/* Knowledge Base */}
                 <button
                   onClick={() => { setActiveLeftMenu('docs'); setTenantActiveMenu(null); }}
                   className={cn(
@@ -2491,7 +2492,7 @@ export default function SaaSHome() {
                   )}
                 >
                   <BookOpen className="w-4 h-4 text-[#00b272]" />
-                  <span>Documentation</span>
+                  <span>Knowledge Base</span>
                 </button>
 
                 {/* Profile Setting */}
@@ -3797,78 +3798,9 @@ export default function SaaSHome() {
             </div>
           )}
 
-          {/* PANEL 3.8: DOCUMENTATION (Elegant markdown-inspired layout) */}
+          {/* PANEL 3.8: KNOWLEDGE BASE (Interactive, comprehensive instructions system) */}
           {activeLeftMenu === 'docs' && (
-            <div className="space-y-8 animate-fadeIn max-w-4xl">
-              <div>
-                <h1 className={cn("text-2xl font-extrabold", isDarkMode ? "text-white" : "text-gray-900")}>Documentation</h1>
-                <p className={cn("text-xs mt-1", isDarkMode ? "text-slate-400" : "text-gray-500")}>
-                  Learn how to configure your storefront custom domains, add products, manage bookings, and custom payment gateways.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className={cn(
-                  "border rounded-2xl p-5 space-y-3 shadow-xs",
-                  isDarkMode ? "bg-[#111928] border-slate-800" : "bg-white border-gray-200"
-                )}>
-                  <div className="w-8 h-8 rounded-lg bg-[#005ea6]/10 flex items-center justify-center text-[#005ea6]">
-                    <Sliders className="w-4 h-4" />
-                  </div>
-                  <h3 className={cn("font-bold text-sm", isDarkMode ? "text-white" : "text-gray-900")}>Tenant Admin SSO</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Access your sub-portal console instantly using custom single sign-on tokens. Open directly in a new tab without re-entering credentials.
-                  </p>
-                </div>
-
-                <div className={cn(
-                  "border rounded-2xl p-5 space-y-3 shadow-xs",
-                  isDarkMode ? "bg-[#111928] border-slate-800" : "bg-white border-gray-200"
-                )}>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <h3 className={cn("font-bold text-sm", isDarkMode ? "text-white" : "text-gray-900")}>Custom Domains</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Map custom domains seamlessly. Staging domains automatically load under <code>*.localhost</code> for pristine offline verification.
-                  </p>
-                </div>
-
-                <div className={cn(
-                  "border rounded-2xl p-5 space-y-3 shadow-xs",
-                  isDarkMode ? "bg-[#111928] border-slate-800" : "bg-white border-gray-200"
-                )}>
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <h3 className={cn("font-bold text-sm", isDarkMode ? "text-white" : "text-gray-900")}>Billing Models</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Subscriptions are synchronized securely with Stripe and Creem.io databases under <code>billingPlans</code>, matching your active plan tier.
-                  </p>
-                </div>
-              </div>
-
-              <div className={cn(
-                "border rounded-2xl p-6 shadow-sm space-y-4",
-                isDarkMode ? "bg-[#111928] border-slate-800 text-slate-300" : "bg-white border-gray-200 text-gray-700"
-              )}>
-                <h3 className={cn("text-base font-extrabold", isDarkMode ? "text-white" : "text-gray-900")}>Frequently Asked Questions</h3>
-                <div className="space-y-4 text-xs leading-relaxed">
-                  <div>
-                    <h4 className={cn("font-bold", isDarkMode ? "text-white" : "text-gray-900")}>Q: How do I manage tours and bookings?</h4>
-                    <p className="text-gray-400 mt-1">
-                      Click <strong>Visit Website</strong> to view the agency site or click <strong>Admin Console ↗</strong> inside the <strong>My Site</strong> menu. This launches your tenant operator admin dashboard in a dedicated new tab/window for full control.
-                    </p>
-                  </div>
-                  <div className="border-t border-gray-200/20 pt-4">
-                    <h4 className={cn("font-bold", isDarkMode ? "text-white" : "text-gray-900")}>Q: How can I change my billing tier?</h4>
-                    <p className="text-gray-400 mt-1">
-                      Navigate to the <strong>Billing & Plan</strong> section, select a premium plan matching your company volume, and proceed through our high-grade payment gateway.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SaaSKnowledgeBase isDarkMode={isDarkMode} />
           )}
 
           {/* PANEL 5: SUPPORT & TICKETS */}
