@@ -395,6 +395,8 @@ export interface SiteSettings {
   siteName: string;
   siteDescription: string;
   siteKeywords: string;
+  metaTitle?: string;
+  metaDescription?: string;
   supportEmail: string;
   supportPhone: string;
   whatsappNumber: string;

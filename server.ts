@@ -4612,7 +4612,8 @@ export async function createServer() {
         
         seo.preloadedData = { 
           featuredTours: featured,
-          categories: categories
+          categories: categories,
+          settings: settings || null
         };
         seo.status = tenantDoc ? `tenant-${tenantDoc.slug}-hydrated` : 'db-home-hydrated';
       }
@@ -4880,17 +4881,9 @@ export async function createServer() {
           }
         }
 
-        // Calculate optimized Cache-Control header for Edge CDN caching of public user-facing routes.
-        // This ensures pages are served instantly by the CDN with 0% database or CPU overhead on subsequent hits.
+        // Disable CDN caching for SSR routes to prevent cross-domain cache poisoning on shared CDNs (like Firebase Hosting)
+        // because Firebase Hosting does not support Vary: Host.
         let cacheHeader = 'no-store, no-cache, must-revalidate, proxy-revalidate';
-        const isPublicPage = req.path === '/' || 
-                             req.path.startsWith('/tour/') || 
-                             req.path.startsWith('/blog/') || 
-                             ['/tours', '/blog', '/about', '/contact', '/destinations', '/planner', '/ai-hub', '/price-list', '/track-booking'].includes(req.path);
-        
-        if (isPublicPage) {
-          cacheHeader = 'public, max-age=0, s-maxage=600, stale-while-revalidate=1200';
-        }
 
         if (fs.existsSync(htmlPath)) {
           const template = await fs.promises.readFile(htmlPath, 'utf-8');

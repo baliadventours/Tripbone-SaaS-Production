@@ -45,11 +45,23 @@ export const useSettings = () => useContext(SettingsContext);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { tenantId, tenant, loading: tenantLoading } = useTenant();
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settings, setSettings] = useState<SiteSettings | null>(() => {
+    if (typeof window !== 'undefined' && (window as any).__PRELOADED_DATA__?.settings) {
+      return (window as any).__PRELOADED_DATA__.settings as SiteSettings;
+    }
+    return null;
+  });
   const [builderSettings, setBuilderSettings] = useState<WebsiteBuilderSettings | null>(null);
   const [globalBrand, setGlobalBrand] = useState<any>(null);
   const [labels, setLabels] = useState<TourLabel[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Apply settings initially if preloaded
+  useEffect(() => {
+    if (settings) {
+      applySettings(settings);
+    }
+  }, []);
 
   useEffect(() => {
     const faviconUrl = settings?.faviconURL || globalBrand?.faviconUrl;
@@ -145,11 +157,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [settings?.faviconURL, globalBrand?.faviconUrl]);
 
 
-  const applySettings = (data: SiteSettings) => {
+  function applySettings(data: SiteSettings) {
     // Apply SEO metadata
-    document.title = data.siteName;
+    document.title = data.metaTitle || data.siteTitle || data.siteName;
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute('content', data.siteDescription);
+    if (metaDesc) metaDesc.setAttribute('content', data.metaDescription || data.siteDescription);
     
     const metaKeywords = document.querySelector('meta[name="keywords"]');
     if (metaKeywords) metaKeywords.setAttribute('content', data.siteKeywords);
