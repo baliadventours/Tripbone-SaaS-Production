@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Compass, ChevronDown, Sparkles, Box, LayoutTemplate, BriefcaseBusiness, Globe, Bot, Navigation, ShieldCheck } from 'lucide-react';
+import { useSettings } from '../../lib/SettingsContext';
 
 export default function SaaSLayout() {
+  const { settings, globalBrand } = useSettings();
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
 
   const handleGetStarted = () => {
@@ -25,10 +27,16 @@ export default function SaaSLayout() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-2.5 cursor-pointer">
-              <Compass className="h-8 w-8 text-[#1db3cd]" />
-              <span className="text-2xl font-bold tracking-tight text-slate-900">
-                Tripbone
-              </span>
+              {globalBrand?.logoUrl || settings?.logoURL ? (
+                <img src={globalBrand?.logoUrl || settings?.logoURL} alt={globalBrand?.platformName || settings?.siteName || "Tripbone"} className="h-9 max-w-[150px] object-contain" />
+              ) : (
+                <>
+                  <Compass className="h-8 w-8 text-[#1db3cd]" />
+                  <span className="text-2xl font-bold tracking-tight text-slate-900">
+                    {globalBrand?.platformName || settings?.siteName || "Tripbone"}
+                  </span>
+                </>
+              )}
             </Link>
 
             <nav className="hidden lg:flex items-center space-x-8 text-sm font-semibold text-slate-600">
@@ -134,10 +142,16 @@ export default function SaaSLayout() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center space-x-2.5 mb-6">
-                <Compass className="h-8 w-8 text-[#1db3cd]" />
-                <span className="text-2xl font-bold tracking-tight text-white">
-                  Tripbone
-                </span>
+                {globalBrand?.logoUrl || settings?.logoURL ? (
+                  <img src={globalBrand?.logoUrl || settings?.logoURL} alt={globalBrand?.platformName || settings?.siteName || "Tripbone"} className="h-9 max-w-[150px] object-contain" />
+                ) : (
+                  <>
+                    <Compass className="h-8 w-8 text-[#1db3cd]" />
+                    <span className="text-2xl font-bold tracking-tight text-white">
+                      {globalBrand?.platformName || settings?.siteName || "Tripbone"}
+                    </span>
+                  </>
+                )}
               </div>
               <p className="text-sm leading-relaxed mb-6">
                 The ultimate all-in-one platform for tour operators. Drive sales, automate bookings, and scale your business.
@@ -175,7 +189,7 @@ export default function SaaSLayout() {
           </div>
           
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between">
-            <p className="text-sm">&copy; {new Date().getFullYear()} Tripbone SaaS. All rights reserved.</p>
+            <p className="text-sm">&copy; {new Date().getFullYear()} {globalBrand?.platformName || "Tripbone"}. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <span className="text-sm hover:text-white cursor-pointer transition-colors">Twitter</span>
               <span className="text-sm hover:text-white cursor-pointer transition-colors">LinkedIn</span>

@@ -9,6 +9,7 @@ import { WebsiteBuilderSettings } from '../components/Admin/WebsiteBuilder';
 interface SettingsContextType {
   settings: SiteSettings | null;
   builderSettings: WebsiteBuilderSettings | null;
+  globalBrand: any | null;
   labels: TourLabel[];
   loading: boolean;
 }
@@ -35,6 +36,7 @@ const defaultSettings: SiteSettings = {
 const SettingsContext = createContext<SettingsContextType>({
   settings: null,
   builderSettings: null,
+  globalBrand: null,
   labels: [],
   loading: true
 });
@@ -45,6 +47,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { tenantId, tenant, loading: tenantLoading } = useTenant();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [builderSettings, setBuilderSettings] = useState<WebsiteBuilderSettings | null>(null);
+  const [globalBrand, setGlobalBrand] = useState<any>(null);
   const [labels, setLabels] = useState<TourLabel[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +87,23 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Listen for global platform branding
+    const globalBrandRef = doc(db, 'settings', 'globalBrand');
+    const unsubscribeGlobalBrand = onSnapshot(globalBrandRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setGlobalBrand(snapshot.data());
+      } else {
+        setGlobalBrand({
+          platformName: 'Tripbone SaaS',
+          tagline: 'Secure Enterprise Sandbox',
+          supportEmail: 'support@tripbone.com',
+          copyright: '© 2026 PT Tripbone Indonesia',
+          logoUrl: '',
+          faviconUrl: ''
+        });
+      }
+    });
+
     // Listen for labels
     const unsubscribeLabels = onSnapshot(query(collection(db, 'tourLabels'), orderBy('name')), (snapshot) => {
       setLabels(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TourLabel)));
@@ -93,6 +113,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => {
       unsubscribeSettings();
       unsubscribeBuilder();
+      unsubscribeGlobalBrand();
       unsubscribeLabels();
     };
   }, [tenantId, tenantLoading]);
@@ -207,7 +228,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, builderSettings, labels, loading }}>
+    <SettingsContext.Provider value={{ settings, builderSettings, globalBrand, labels, loading }}>
       {children}
     </SettingsContext.Provider>
   );

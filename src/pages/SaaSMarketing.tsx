@@ -165,10 +165,10 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.05] max-w-5xl mx-auto mb-6"
+              className="text-4xl md:text-5xl lg:text-[3.15rem] xl:text-[3.45rem] font-black text-slate-900 tracking-tight leading-[1.1] max-w-5xl mx-auto mb-6"
             >
-              Instant Tour Agency <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-500 via-slate-600 to-slate-400">in a Box</span>
+              Your Tour Website, Live in 2 Minutes.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-500 via-slate-600 to-slate-400">No Coding. No Developer. No Excuses.</span>
             </motion.h1>
 
             {/* Subheading Description */}
@@ -178,7 +178,7 @@ export default function SaaSMarketing() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-3xl mx-auto mb-10"
             >
-              Stop wrestling with clunky plugins and expensive developers. Tripbone uses AI to instantly generate a stunning, mobile-first website with built-in booking, SEO, and WhatsApp automation.
+              AI builds it, you own it. A blazing-fast, fully automated booking site — your data, your rules, zero technical skill required.
             </motion.p>
 
             {/* Action Buttons */}
