@@ -12,7 +12,7 @@ import {
   Map, CreditCard, Mail, FileText, BarChart, 
   X, ChevronDown, ChevronUp, Layers, ExternalLink,
   Rocket, Zap, Smartphone, Bot, TrendingUp, Star,
-  CheckCircle2, ShieldAlert
+  CheckCircle2, ShieldAlert, Database, Triangle
 } from 'lucide-react';
 
 export default function SaaSMarketing() {
@@ -151,12 +151,12 @@ export default function SaaSMarketing() {
 
   // Grayscale logos for the trust section
   const logos = [
-    { name: "Stripe", url: "https://i.ibb.co.com/8L8wnxLq/baturvolcanotrip.png" }, // fallback placeholders styled gray
-    { name: "PayPal", url: "https://i.ibb.co.com/GQ35K2QS/baliblissfulltours.png" },
-    { name: "WhatsApp", url: "https://i.ibb.co.com/4ZyNgmZD/balibestexperiencetour.png" },
-    { name: "Google Cloud", url: "https://i.ibb.co.com/pv2gjVk0/firstbalitours.png" },
-    { name: "Twilio", url: "https://i.ibb.co.com/QjF33QJ1/baliwanderlust3.png" },
-    { name: "Mailgun", url: "https://i.ibb.co.com/RpCmjgXW/baliadventoursvertical.png" }
+    { name: "Google Firebase", icon: Database },
+    { name: "PayPal", icon: CreditCard },
+    { name: "Stripe", icon: CreditCard },
+    { name: "WhatsApp", icon: MessageCircle },
+    { name: "Resend", icon: Mail },
+    { name: "Vercel", icon: Triangle }
   ];
 
   return (
@@ -507,12 +507,15 @@ export default function SaaSMarketing() {
               POWERED BY THE STACK YOU TRUST
             </p>
             <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all">
-              {logos.map((logo, idx) => (
-                <div key={idx} className="flex items-center space-x-2">
-                  <Globe className="w-5 h-5 text-slate-400" />
-                  <span className="font-mono text-sm font-bold text-slate-600 tracking-wider uppercase">{logo.name}</span>
-                </div>
-              ))}
+              {logos.map((logo, idx) => {
+                const IconComponent = logo.icon;
+                return (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <IconComponent className="w-5 h-5 text-slate-400" />
+                    <span className="font-mono text-sm font-bold text-slate-600 tracking-wider uppercase">{logo.name}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
