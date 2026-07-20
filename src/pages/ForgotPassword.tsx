@@ -213,17 +213,7 @@ export default function ForgotPassword() {
                 </div>
               )}
 
-              {fallbackOtp && (
-                <div className="mb-6 p-4 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-100/50 flex flex-col gap-1.5">
-                  <div className="flex gap-2 items-center font-bold">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span>Demo Mode Auto-Code:</span>
-                  </div>
-                  <p className="leading-normal text-amber-700 font-medium">
-                    No active email provider is configured. We logged the code to the terminal, and printed it here for instant testing: <strong className="font-bold text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-200 tracking-widest text-sm">{fallbackOtp}</strong>
-                  </p>
-                </div>
-              )}
+
 
               {error && (
                 <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100/50 flex gap-3 items-start">

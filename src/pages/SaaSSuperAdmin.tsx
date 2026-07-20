@@ -4,7 +4,7 @@ import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWith
 import { getDoc, setDoc } from 'firebase/firestore';
 import { useTenant } from '../lib/TenantContext';
 import { uploadImage } from '../lib/imgbb';
-import { LogOut, Lock, Loader2 } from 'lucide-react';
+import { LogOut, Lock, Loader2, Key } from 'lucide-react';
 import { 
   Building, 
   Users, 
@@ -151,6 +151,12 @@ export default function SaaSSuperAdmin() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [tempSuperadminUser, setTempSuperadminUser] = useState<any | null>(null);
+
+  // Backup Codes states
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [generatingBackupCodes, setGeneratingBackupCodes] = useState(false);
+  const [backupCodeSuccess, setBackupCodeSuccess] = useState<string | null>(null);
+  const [backupCodeError, setBackupCodeError] = useState<string | null>(null);
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -683,6 +689,19 @@ export default function SaaSSuperAdmin() {
           urgentTicketsCount: urgentTix
         });
 
+        // Load Superadmin Backup Codes
+        if (auth.currentUser) {
+          try {
+            const userSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              setBackupCodes(userData.backupCodes || []);
+            }
+          } catch (backupErr) {
+            console.warn("Failed to load user backup codes:", backupErr);
+          }
+        }
+
       } catch (err) {
         console.error('Error loading super admin data:', err);
       } finally {
@@ -781,19 +800,52 @@ export default function SaaSSuperAdmin() {
     }
   }, [tempSuperadminUser, generatedOtp]);
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError(null);
     if (!otpCode) return;
 
-    if (otpCode.trim() === generatedOtp) {
+    const entered = otpCode.trim().toUpperCase();
+
+    if (entered === generatedOtp) {
       if (tempSuperadminUser) {
         sessionStorage.setItem(`tripbone_superadmin_otp_verified_${tempSuperadminUser.uid}`, 'true');
         setIsAuthorized(true);
         setIsOtpPending(false);
       }
     } else {
-      setOtpError('Invalid verification code. Please check the code and try again.');
+      // Check if it's an 8-character backup code (optional formatting with hyphen)
+      let checkCode = entered;
+      if (entered.length === 8 && !entered.includes('-')) {
+        checkCode = `${entered.slice(0, 4)}-${entered.slice(4)}`;
+      }
+
+      if (tempSuperadminUser) {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', tempSuperadminUser.uid));
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const codes: string[] = userData.backupCodes || [];
+
+            if (codes.includes(checkCode)) {
+              // Consume backup code
+              const updatedCodes = codes.filter(c => c !== checkCode);
+              await updateDoc(doc(db, 'users', tempSuperadminUser.uid), {
+                backupCodes: updatedCodes
+              });
+
+              setBackupCodes(updatedCodes);
+              sessionStorage.setItem(`tripbone_superadmin_otp_verified_${tempSuperadminUser.uid}`, 'true');
+              setIsAuthorized(true);
+              setIsOtpPending(false);
+              return;
+            }
+          }
+        } catch (backupErr: any) {
+          console.error("Error verifying backup code:", backupErr);
+        }
+      }
+      setOtpError('Invalid verification code or emergency backup code. Please check and try again.');
     }
   };
 
@@ -801,6 +853,38 @@ export default function SaaSSuperAdmin() {
     setGeneratedOtp('');
     setOtpCode('');
     setOtpError(null);
+  };
+
+  const handleGenerateBackupCodes = async () => {
+    if (!auth.currentUser) return;
+    setGeneratingBackupCodes(true);
+    setBackupCodeError(null);
+    setBackupCodeSuccess(null);
+    try {
+      const codes: string[] = [];
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Secure alphanumeric characters
+      for (let i = 0; i < 10; i++) {
+        let code = '';
+        for (let j = 0; j < 8; j++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const formatted = `${code.slice(0, 4)}-${code.slice(4)}`;
+        codes.push(formatted);
+      }
+
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        backupCodes: codes,
+        backupCodesCreatedAt: new Date().toISOString()
+      });
+
+      setBackupCodes(codes);
+      setBackupCodeSuccess('10 fresh backup codes generated successfully! Please write them down or save them securely. Each code can be used exactly once.');
+    } catch (err: any) {
+      console.error('Error generating backup codes:', err);
+      setBackupCodeError('Failed to generate backup codes: ' + err.message);
+    } finally {
+      setGeneratingBackupCodes(false);
+    }
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -1296,15 +1380,15 @@ export default function SaaSSuperAdmin() {
 
             <form onSubmit={handleVerifyOtp} className="space-y-5">
               <div>
-                <label className="block text-[11px] font-mono font-semibold text-gray-400 uppercase tracking-wider mb-2 text-center">6-Digit Secure Code</label>
+                <label className="block text-[11px] font-mono font-semibold text-gray-400 uppercase tracking-wider mb-2 text-center">6-Digit Code or Emergency Backup Code</label>
                 <input
                   type="text"
                   required
-                  maxLength={6}
-                  placeholder="••••••"
+                  maxLength={9}
+                  placeholder="•••••••••"
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full px-4 py-3 bg-[#0d1428] border border-gray-800/80 rounded-xl text-center text-xl font-mono tracking-[10px] focus:outline-none focus:border-indigo-500 text-white placeholder-gray-700 transition-colors"
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#0d1428] border border-gray-800/80 rounded-xl text-center text-xl font-mono tracking-[4px] focus:outline-none focus:border-indigo-500 text-white placeholder-gray-700 transition-colors"
                 />
               </div>
 
@@ -1339,18 +1423,6 @@ export default function SaaSSuperAdmin() {
                 Back to Login
               </button>
             </div>
-
-            {generatedOtp && (
-              <div className="mt-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-center">
-                <h4 className="text-[11px] font-bold text-indigo-400 mb-1">Sandbox Testing Fallback</h4>
-                <p className="text-[10px] text-gray-400 leading-normal mb-2">
-                  To ensure full testability in staging/preview, the dispatched verification OTP code is:
-                </p>
-                <span className="inline-block px-3 py-1.5 bg-[#0d1428] border border-gray-800 rounded-lg text-white font-mono text-base font-bold tracking-[4px]">
-                  {generatedOtp}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       );
@@ -4117,6 +4189,78 @@ export default function SaaSSuperAdmin() {
                 <p className="text-[11px] text-gray-400 leading-normal">
                   If your platform email integration is not yet active, our security gateway gracefully intercepts OTP payloads and logs them to the developer console, allowing you to bypass and verify without disruption during staging tests.
                 </p>
+              </div>
+            </div>
+
+            {/* Emergency Backup Codes */}
+            <div className={`border rounded-3xl p-8 ${isDarkMode ? 'border-white/10 bg-white/[0.02]' : 'border-gray-200 bg-white shadow-sm'}`}>
+              <h2 className={`text-lg font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <Key className="w-5 h-5 text-amber-500" />
+                <span>Emergency Backup Codes</span>
+              </h2>
+              <p className={`text-xs mb-6 max-w-2xl leading-relaxed ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Generate emergency backup codes to access your account in case you lose access to your email or are unable to receive the secure OTP. Save these codes in a safe, offline location. Each backup code can only be used <strong>once</strong>.
+              </p>
+
+              {backupCodeError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-4 py-3 rounded-xl mb-4 leading-relaxed max-w-2xl">
+                  {backupCodeError}
+                </div>
+              )}
+
+              {backupCodeSuccess && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-4 py-3 rounded-xl mb-4 leading-relaxed max-w-2xl">
+                  {backupCodeSuccess}
+                </div>
+              )}
+
+              <div className="space-y-4 max-w-2xl">
+                {backupCodes.length > 0 ? (
+                  <div>
+                    <p className={`text-xs font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Active Backup Codes ({backupCodes.length} remaining):
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+                      {backupCodes.map((code, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`font-mono text-xs font-bold px-3 py-2 text-center rounded-xl border ${
+                            isDarkMode 
+                              ? 'bg-slate-950 border-gray-800 text-gray-300' 
+                              : 'bg-gray-50 border-gray-200 text-gray-700'
+                          }`}
+                        >
+                          {code}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`p-4 rounded-xl border mb-4 text-xs ${
+                    isDarkMode ? 'bg-slate-950/50 border-yellow-500/10 text-yellow-500/80' : 'bg-yellow-50 border-yellow-250 text-yellow-800'
+                  }`}>
+                    No backup codes generated yet. Generate emergency codes now to prevent administrator lockout.
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleGenerateBackupCodes}
+                  disabled={generatingBackupCodes}
+                  className="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-semibold text-sm rounded-xl flex items-center space-x-2 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+                >
+                  {generatingBackupCodes ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating Codes...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Generate New Backup Codes</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

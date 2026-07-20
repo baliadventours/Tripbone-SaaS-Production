@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { db, collection, getDocs, addDoc, setDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
+import { db, collection, getDocs, addDoc, setDoc, updateDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useTenant } from '../lib/TenantContext';
@@ -99,6 +99,12 @@ export default function SaaSHome() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Backup Codes states
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [generatingBackupCodes, setGeneratingBackupCodes] = useState(false);
+  const [backupCodeSuccess, setBackupCodeSuccess] = useState<string | null>(null);
+  const [backupCodeError, setBackupCodeError] = useState<string | null>(null);
 
   // Dark & Light design switcher state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -526,15 +532,48 @@ export default function SaaSHome() {
     return err.message || 'An unexpected authentication error occurred.';
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError(null);
-    if (userEnteredOtp === generatedOtp) {
+    const entered = userEnteredOtp.trim().toUpperCase();
+
+    if (entered === generatedOtp) {
       sessionStorage.setItem('otp_verified', 'true');
       setOtpVerified(true);
       setSuccess("OTP Verified successfully! Welcome back.");
     } else {
-      setOtpError("Incorrect 6-digit verification code. Please check your email inbox and try again.");
+      // Check if it's an 8-character backup code (optional formatting with hyphen)
+      let checkCode = entered;
+      if (entered.length === 8 && !entered.includes('-')) {
+        checkCode = `${entered.slice(0, 4)}-${entered.slice(4)}`;
+      }
+
+      if (currentUser) {
+        try {
+          const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const codes: string[] = userData.backupCodes || [];
+
+            if (codes.includes(checkCode)) {
+              // Consume backup code
+              const updatedCodes = codes.filter(c => c !== checkCode);
+              await updateDoc(doc(db, 'users', currentUser.uid), {
+                backupCodes: updatedCodes
+              });
+
+              setBackupCodes(updatedCodes);
+              sessionStorage.setItem('otp_verified', 'true');
+              setOtpVerified(true);
+              setSuccess("Emergency backup code verified successfully! Welcome back.");
+              return;
+            }
+          }
+        } catch (backupErr: any) {
+          console.error("Error verifying backup code:", backupErr);
+        }
+      }
+      setOtpError("Incorrect 6-digit verification code or invalid backup code. Please verify and try again.");
     }
   };
 
@@ -1255,6 +1294,59 @@ export default function SaaSHome() {
     }
   };
 
+  useEffect(() => {
+    if (!currentUser) {
+      setBackupCodes([]);
+      return;
+    }
+
+    const loadUserBackupCodes = async () => {
+      try {
+        const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          setBackupCodes(userData.backupCodes || []);
+        }
+      } catch (err) {
+        console.warn("Failed to load user backup codes in SaaSHome:", err);
+      }
+    };
+
+    loadUserBackupCodes();
+  }, [currentUser]);
+
+  const handleGenerateBackupCodes = async () => {
+    if (!currentUser) return;
+    setGeneratingBackupCodes(true);
+    setBackupCodeError(null);
+    setBackupCodeSuccess(null);
+    try {
+      const codes: string[] = [];
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Secure alphanumeric characters
+      for (let i = 0; i < 10; i++) {
+        let code = '';
+        for (let j = 0; j < 8; j++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const formatted = `${code.slice(0, 4)}-${code.slice(4)}`;
+        codes.push(formatted);
+      }
+
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        backupCodes: codes,
+        backupCodesCreatedAt: new Date().toISOString()
+      });
+
+      setBackupCodes(codes);
+      setBackupCodeSuccess('10 fresh backup codes generated successfully! Please write them down or save them securely. Each code can be used exactly once.');
+    } catch (err: any) {
+      console.error('Error generating backup codes:', err);
+      setBackupCodeError('Failed to generate backup codes: ' + err.message);
+    } finally {
+      setGeneratingBackupCodes(false);
+    }
+  };
+
   // Helper redirect triggers for tenant website modules (Tours, Bookings, customers etc)
   const handleTenantModuleRedirect = (menuId: string) => {
     if (activeWorkspace) {
@@ -1324,14 +1416,14 @@ export default function SaaSHome() {
 
               <form onSubmit={handleOtpSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2">6-Digit Secure Code</label>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase mb-2">6-Digit Code or Emergency Backup Code</label>
                   <input
                     type="text"
                     required
-                    maxLength={6}
+                    maxLength={9}
                     placeholder="Enter code"
                     value={userEnteredOtp}
-                    onChange={(e) => setUserEnteredOtp(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => setUserEnteredOtp(e.target.value)}
                     className="w-full text-center tracking-widest font-mono text-lg font-bold px-4 py-3 bg-gray-55 border border-gray-200 focus:bg-white rounded-xl focus:outline-none focus:border-[#00b272] transition-colors"
                   />
                 </div>
@@ -3908,6 +4000,87 @@ export default function SaaSHome() {
                     )}
                   </button>
                 </form>
+              </div>
+
+              {/* Emergency Backup Codes Card */}
+              <div className={cn(
+                "border rounded-2xl p-6 shadow-sm max-w-3xl transition-colors mt-8",
+                isDarkMode ? "bg-[#111928] border-slate-800" : "bg-white border-gray-200"
+              )}>
+                <h2 className={cn(
+                  "text-sm font-bold mb-2 flex items-center space-x-2",
+                  isDarkMode ? "text-white" : "text-gray-900"
+                )}>
+                  <Key className="w-5 h-5 text-amber-500" />
+                  <span>Emergency Backup Codes</span>
+                </h2>
+                <p className="text-xs text-gray-400 mb-6">
+                  Generate emergency backup codes to access your account if you lose access to your email. Save these codes in a safe offline location. Each backup code can only be used <strong>once</strong>.
+                </p>
+
+                {backupCodeError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center space-x-2 mb-4">
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <span>{backupCodeError}</span>
+                  </div>
+                )}
+                {backupCodeSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-250 rounded-xl text-xs text-emerald-700 flex items-center space-x-2 mb-4">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>{backupCodeSuccess}</span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {backupCodes.length > 0 ? (
+                    <div>
+                      <p className={cn("text-xs font-semibold mb-3", isDarkMode ? "text-slate-300" : "text-gray-700")}>
+                        Active Backup Codes ({backupCodes.length} remaining):
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+                        {backupCodes.map((code, idx) => (
+                          <div 
+                            key={idx} 
+                            className={cn(
+                              "font-mono text-xs font-bold px-3 py-2 text-center rounded-xl border",
+                              isDarkMode 
+                                ? 'bg-slate-950 border-gray-800 text-gray-300' 
+                                : 'bg-gray-50 border-gray-200 text-gray-700'
+                            )}
+                          >
+                            {code}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      "p-4 rounded-xl border mb-4 text-xs",
+                      isDarkMode ? "bg-slate-950/50 border-yellow-500/10 text-yellow-500/80" : "bg-yellow-50 border-yellow-250 text-yellow-800"
+                    )}>
+                      No backup codes generated yet. Generate emergency codes now to prevent administrator lockout.
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateBackupCodes}
+                    disabled={generatingBackupCodes}
+                    className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-600/15 transition-all flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    {generatingBackupCodes ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>Generate Emergency Codes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
