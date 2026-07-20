@@ -26,6 +26,7 @@ import {
   Sparkles,
   Settings,
   CreditCard,
+  Wallet,
   Tag,
   Globe,
   Activity,
@@ -1784,6 +1785,7 @@ export default function SaaSSuperAdmin() {
                   {renderSidebarItem('packages', 'Subscriptions', CreditCard)}
                   {renderSidebarItem('transactions', 'Invoices', DollarSign)}
                   {renderSidebarItem('coupons', 'Promo Codes', Tag)}
+                  {renderSidebarItem('integrations', 'Payment Gateways', Wallet)}
                 </div>
               )}
             </div>
@@ -1903,6 +1905,7 @@ export default function SaaSSuperAdmin() {
                activeTab === 'packages' ? 'Subscriptions Manager' :
                activeTab === 'transactions' ? 'Invoices & Billing' :
                activeTab === 'coupons' ? 'Promo Codes & Coupons' :
+               activeTab === 'integrations' ? 'Payment Gateways & Integrations' :
                activeTab === 'tickets' ? 'Helpdesk Tickets' :
                activeTab === 'announcements' ? 'Global Announcements' :
                activeTab === 'branding' ? 'Platform Settings & Branding' :
