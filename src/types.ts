@@ -420,7 +420,6 @@ export interface SiteSettings {
   twitterUrl?: string;
   tiktokUrl?: string;
   // SEO & AI Crawler Settings
-  metaTitle?: string;
   homeTitleFormat?: string; // e.g. "{{siteName}} - Best Bali Tours"
   pageTitleFormat?: string; // e.g. "{{title}} | {{siteName}}"
   tourTitleFormat?: string; // e.g. "{{title}} | {{siteName}}"

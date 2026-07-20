@@ -159,7 +159,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   function applySettings(data: SiteSettings) {
     // Apply SEO metadata
-    document.title = data.metaTitle || data.siteTitle || data.siteName;
+    document.title = data.metaTitle || data.siteName;
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute('content', data.metaDescription || data.siteDescription);
     
