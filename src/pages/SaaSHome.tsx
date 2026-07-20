@@ -845,6 +845,81 @@ export default function SaaSHome() {
     return userWorkspaces[0] || null;
   }, [userWorkspaces, selectedWorkspaceId]);
 
+  const workspaceLimits = useMemo(() => {
+    if (!activeWorkspace) return { maxTours: 10, maxBookings: 25 };
+    
+    // Normalize plan slug
+    const planSlug = (activeWorkspace.plan || 'starter').split('-')[0].toLowerCase();
+    const interval = (activeWorkspace.billingInterval || 'monthly').toLowerCase();
+    
+    // Find matching plan in state 'plans'
+    let matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug && (p.interval || 'monthly').toLowerCase() === interval);
+    if (!matchedPlan) {
+      matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug);
+    }
+    
+    let maxTours: number | string = 10;
+    let maxBookings: number | string = 25;
+    
+    if (matchedPlan) {
+      if (typeof matchedPlan.maxTours === 'number') {
+        maxTours = matchedPlan.maxTours;
+      } else if (matchedPlan.features) {
+        const featureStr = matchedPlan.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('tours'));
+        const match = featureStr?.match(/\d+/);
+        if (match) maxTours = parseInt(match[0]);
+        else if (featureStr?.toLowerCase().includes('unlimited')) maxTours = 'Unlimited';
+        else {
+          if (planSlug === 'professional') maxTours = 50;
+          else if (planSlug === 'business') maxTours = 100;
+          else if (planSlug === 'enterprise') maxTours = 'Unlimited';
+          else maxTours = 10;
+        }
+      } else {
+        if (planSlug === 'professional') maxTours = 50;
+        else if (planSlug === 'business') maxTours = 100;
+        else if (planSlug === 'enterprise') maxTours = 'Unlimited';
+        else maxTours = 10;
+      }
+      
+      if (typeof matchedPlan.maxBookings === 'number') {
+        maxBookings = matchedPlan.maxBookings;
+      } else if (matchedPlan.features) {
+        const featureStr = matchedPlan.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('bookings'));
+        const match = featureStr?.match(/\d+/);
+        if (match) maxBookings = parseInt(match[0]);
+        else if (featureStr?.toLowerCase().includes('unlimited')) maxBookings = 'Unlimited';
+        else {
+          if (planSlug === 'professional') maxBookings = 500;
+          else if (planSlug === 'business') maxBookings = 2000;
+          else if (planSlug === 'enterprise') maxBookings = 'Unlimited';
+          else maxBookings = 25;
+        }
+      } else {
+        if (planSlug === 'professional') maxBookings = 500;
+        else if (planSlug === 'business') maxBookings = 2000;
+        else if (planSlug === 'enterprise') maxBookings = 'Unlimited';
+        else maxBookings = 25;
+      }
+    } else {
+      if (planSlug === 'professional') {
+        maxTours = 50;
+        maxBookings = 500;
+      } else if (planSlug === 'business') {
+        maxTours = 100;
+        maxBookings = 2000;
+      } else if (planSlug === 'enterprise') {
+        maxTours = 'Unlimited';
+        maxBookings = 'Unlimited';
+      } else {
+        maxTours = 10;
+        maxBookings = 25;
+      }
+    }
+    
+    return { maxTours, maxBookings };
+  }, [activeWorkspace, plans]);
+
   const dateActiveStr = useMemo(() => {
     if (!activeWorkspace) return 'N/A';
     const createdAtStr = activeWorkspace.createdAt;
@@ -2843,13 +2918,13 @@ export default function SaaSHome() {
                     "text-2xl font-extrabold mt-2",
                     isDarkMode ? "text-white" : "text-gray-900"
                   )}>
-                    {activeWorkspaceTours.length} <span className="text-xs font-semibold text-gray-400">/ {plans.find(p => p.slug.toLowerCase() === (activeWorkspace?.plan || 'starter').toLowerCase() && p.interval === (activeWorkspace?.billingInterval || 'monthly'))?.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('tours'))?.match(/\d+/) ? plans.find(p => p.slug.toLowerCase() === (activeWorkspace?.plan || 'starter').toLowerCase() && p.interval === (activeWorkspace?.billingInterval || 'monthly'))?.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('tours'))?.match(/\d+/)[0] : (activeWorkspace?.plan === 'professional' ? 50 : activeWorkspace?.plan === 'business' ? 100 : activeWorkspace?.plan === 'enterprise' ? 'Unlimited' : 10)}</span>
+                    {activeWorkspaceTours.length} <span className="text-xs font-semibold text-gray-400">/ {workspaceLimits.maxTours}</span>
                   </div>
                   <div className={cn("mt-3.5 h-1.5 rounded-full overflow-hidden", isDarkMode ? "bg-slate-800" : "bg-gray-100")}>
                     <div 
                       className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
                       style={{ 
-                        width: `${Math.min(100, (activeWorkspaceTours.length / parseInt(plans.find(p => p.slug.toLowerCase() === (activeWorkspace?.plan || 'starter').toLowerCase() && p.interval === (activeWorkspace?.billingInterval || 'monthly'))?.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('tours'))?.match(/\d+/)?.[0] || ((activeWorkspace?.plan === 'professional') ? '50' : (activeWorkspace?.plan === 'business') ? '100' : (activeWorkspace?.plan === 'enterprise') ? '9999' : '10'))) * 100)}%` 
+                        width: `${Math.min(100, (activeWorkspaceTours.length / (typeof workspaceLimits.maxTours === 'number' ? workspaceLimits.maxTours : 99999)) * 100)}%` 
                       }}
                     />
                   </div>
@@ -2867,13 +2942,13 @@ export default function SaaSHome() {
                     "text-2xl font-extrabold mt-2",
                     isDarkMode ? "text-white" : "text-gray-900"
                   )}>
-                    {activeWorkspaceBookings.length} <span className="text-xs font-semibold text-gray-400">/ {plans.find(p => p.slug.toLowerCase() === (activeWorkspace?.plan || 'starter').toLowerCase() && p.interval === (activeWorkspace?.billingInterval || 'monthly'))?.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('bookings'))?.match(/\d+/) ? plans.find(p => p.slug.toLowerCase() === (activeWorkspace?.plan || 'starter').toLowerCase() && p.interval === (activeWorkspace?.billingInterval || 'monthly'))?.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('bookings'))?.match(/\d+/)[0] : (activeWorkspace?.plan === 'professional' ? 100 : activeWorkspace?.plan === 'business' ? 500 : activeWorkspace?.plan === 'enterprise' ? 'Unlimited' : 25)}</span>
+                    {activeWorkspaceBookings.length} <span className="text-xs font-semibold text-gray-400">/ {workspaceLimits.maxBookings}</span>
                   </div>
                   <div className={cn("mt-3.5 h-1.5 rounded-full overflow-hidden", isDarkMode ? "bg-slate-800" : "bg-gray-100")}>
                     <div 
                       className="bg-blue-500 h-full rounded-full transition-all duration-500" 
                       style={{ 
-                        width: `${Math.min(100, (activeWorkspaceBookings.length / parseInt(plans.find(p => p.slug.toLowerCase() === (activeWorkspace?.plan || 'starter').toLowerCase() && p.interval === (activeWorkspace?.billingInterval || 'monthly'))?.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('bookings'))?.match(/\d+/)?.[0] || ((activeWorkspace?.plan === 'professional') ? '100' : (activeWorkspace?.plan === 'business') ? '500' : (activeWorkspace?.plan === 'enterprise') ? '9999' : '25'))) * 100)}%` 
+                        width: `${Math.min(100, (activeWorkspaceBookings.length / (typeof workspaceLimits.maxBookings === 'number' ? workspaceLimits.maxBookings : 99999)) * 100)}%` 
                       }}
                     />
                   </div>
