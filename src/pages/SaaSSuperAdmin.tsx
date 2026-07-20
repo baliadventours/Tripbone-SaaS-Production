@@ -362,7 +362,10 @@ export default function SaaSSuperAdmin() {
     tripayMode: 'sandbox',
     manualBankInstructions: 'Bank Central Asia (BCA)\nAccount Number: 123-456-7890\nAccount Name: PT Tripbone Indonesia\n\nAfter making the payment, please email your transaction receipt to baliadventours@gmail.com along with your workspace name.',
     creemApiKey: '',
-    creemMode: 'test'
+    creemMode: 'test',
+    creemEnabled: true,
+    tripayEnabled: true,
+    manualEnabled: true
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -379,6 +382,9 @@ export default function SaaSSuperAdmin() {
         manualBankInstructions: globalSettings.manualBankInstructions || '',
         creemApiKey: globalSettings.creemApiKey || '',
         creemMode: globalSettings.creemMode || 'test',
+        creemEnabled: globalSettings.creemEnabled !== false,
+        tripayEnabled: globalSettings.tripayEnabled !== false,
+        manualEnabled: globalSettings.manualEnabled !== false,
         updatedAt: new Date().toISOString()
       }, { merge: true });
       setSuccess('Global integration settings saved successfully!');
@@ -540,7 +546,10 @@ export default function SaaSSuperAdmin() {
               tripayMode: data.tripayMode || 'sandbox',
               manualBankInstructions: data.manualBankInstructions || 'Bank Central Asia (BCA)\nAccount Number: 123-456-7890\nAccount Name: PT Tripbone Indonesia\n\nAfter making the payment, please email your transaction receipt to baliadventours@gmail.com along with your workspace name.',
               creemApiKey: data.creemApiKey || '',
-              creemMode: data.creemMode || 'test'
+              creemMode: data.creemMode || 'test',
+              creemEnabled: data.creemEnabled !== false,
+              tripayEnabled: data.tripayEnabled !== false,
+              manualEnabled: data.manualEnabled !== false
             }));
           }
         } catch (err) {
@@ -2661,6 +2670,26 @@ export default function SaaSSuperAdmin() {
                 </div>
 
                 <div className="space-y-4 text-sm">
+                  <div className={`flex items-center justify-between p-3.5 rounded-xl border border-dashed ${isDarkMode ? 'border-slate-800 bg-slate-950/40' : 'border-gray-200 bg-gray-50/50'}`}>
+                    <div>
+                      <span className={`block text-xs font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Gateway Activation Status</span>
+                      <span className={`text-[10px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Enable or disable Tripay for tenant registrations and subscription renewals</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={globalSettings.tripayEnabled !== false}
+                        onChange={(e) => setGlobalSettings({ ...globalSettings, tripayEnabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className={`w-9 h-5 rounded-full peer transition-all duration-200 relative
+                        after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all
+                        ${isDarkMode ? 'bg-slate-800 peer-checked:bg-emerald-500 after:border-gray-600' : 'bg-gray-200 peer-checked:bg-emerald-500 after:border-gray-300'}
+                        peer-checked:after:translate-x-full`}
+                      ></div>
+                    </label>
+                  </div>
+
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Merchant Code</label>
                     <input
@@ -2731,6 +2760,26 @@ export default function SaaSSuperAdmin() {
                   </div>
 
                   <div className="space-y-4 text-sm">
+                    <div className={`flex items-center justify-between p-3.5 rounded-xl border border-dashed ${isDarkMode ? 'border-slate-800 bg-slate-950/40' : 'border-gray-200 bg-gray-50/50'}`}>
+                      <div>
+                        <span className={`block text-xs font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Gateway Activation Status</span>
+                        <span className={`text-[10px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Enable or disable Creem/Stripe for tenant credit cards & subscription renewals</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={globalSettings.creemEnabled !== false}
+                          onChange={(e) => setGlobalSettings({ ...globalSettings, creemEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className={`w-9 h-5 rounded-full peer transition-all duration-200 relative
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all
+                          ${isDarkMode ? 'bg-slate-800 peer-checked:bg-indigo-500 after:border-gray-600' : 'bg-gray-200 peer-checked:bg-indigo-500 after:border-gray-300'}
+                          peer-checked:after:translate-x-full`}
+                        ></div>
+                      </label>
+                    </div>
+
                     <div>
                       <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Creem API Key</label>
                       <input
@@ -2769,6 +2818,26 @@ export default function SaaSSuperAdmin() {
                   </div>
 
                   <div className="space-y-4 text-sm">
+                    <div className={`flex items-center justify-between p-3.5 rounded-xl border border-dashed ${isDarkMode ? 'border-slate-800 bg-slate-950/40' : 'border-gray-200 bg-gray-50/50'}`}>
+                      <div>
+                        <span className={`block text-xs font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Gateway Activation Status</span>
+                        <span className={`text-[10px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Enable or disable offline manual bank transfers for tenant upgrades</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={globalSettings.manualEnabled !== false}
+                          onChange={(e) => setGlobalSettings({ ...globalSettings, manualEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className={`w-9 h-5 rounded-full peer transition-all duration-200 relative
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all
+                          ${isDarkMode ? 'bg-slate-800 peer-checked:bg-amber-500 after:border-gray-600' : 'bg-gray-200 peer-checked:bg-amber-500 after:border-gray-300'}
+                          peer-checked:after:translate-x-full`}
+                        ></div>
+                      </label>
+                    </div>
+
                     <div>
                       <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Instructions text</label>
                       <textarea

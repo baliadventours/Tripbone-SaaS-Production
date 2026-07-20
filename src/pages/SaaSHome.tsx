@@ -68,6 +68,9 @@ export default function SaaSHome() {
   const [manualPending, setManualPending] = useState(false);
   const [trialActivated, setTrialActivated] = useState(false);
   const [manualInstructions, setManualInstructions] = useState('');
+  const [creemEnabled, setCreemEnabled] = useState<boolean>(true);
+  const [tripayEnabled, setTripayEnabled] = useState<boolean>(true);
+  const [manualEnabled, setManualEnabled] = useState<boolean>(true);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showDashboard, setShowDashboard] = useState(true);
@@ -217,6 +220,24 @@ export default function SaaSHome() {
           const data = globalSnap.data();
           if (data.manualBankInstructions) {
             setManualInstructions(data.manualBankInstructions);
+          }
+          const cE = data.creemEnabled !== false;
+          const tE = data.tripayEnabled !== false;
+          const mE = data.manualEnabled !== false;
+
+          setCreemEnabled(cE);
+          setTripayEnabled(tE);
+          setManualEnabled(mE);
+
+          // Adjust defaults if Creem is not active
+          if (!cE) {
+            if (tE) {
+              setPaymentMethod('tripay');
+              setPaymentModalMethod('tripay');
+            } else if (mE) {
+              setPaymentMethod('manual');
+              setPaymentModalMethod('manual');
+            }
           }
         }
       } catch (err) {
@@ -2078,67 +2099,79 @@ export default function SaaSHome() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Creem.io option */}
-                        <div
-                          onClick={() => setPaymentMethod('creem')}
-                          className={`p-4 border rounded-xl cursor-pointer flex flex-col justify-between transition-all ${paymentMethod === 'creem' ? 'border-indigo-600 bg-indigo-50/20 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
-                        >
-                          <div className="flex items-center space-x-2.5 mb-2">
-                            <input
-                              type="radio"
-                              name="payment_method_group"
-                              checked={paymentMethod === 'creem'}
-                              onChange={() => setPaymentMethod('creem')}
-                              className="text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-                            />
-                            <span className="text-xs font-bold text-gray-900">Credit Card</span>
+                        {creemEnabled && (
+                          <div
+                            onClick={() => setPaymentMethod('creem')}
+                            className={`p-4 border rounded-xl cursor-pointer flex flex-col justify-between transition-all ${paymentMethod === 'creem' ? 'border-indigo-600 bg-indigo-50/20 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+                          >
+                            <div className="flex items-center space-x-2.5 mb-2">
+                              <input
+                                type="radio"
+                                name="payment_method_group"
+                                checked={paymentMethod === 'creem'}
+                                onChange={() => setPaymentMethod('creem')}
+                                className="text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                              />
+                              <span className="text-xs font-bold text-gray-900">Credit Card</span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 leading-normal">
+                              Global Visa, Mastercard, and Apple Pay. Instant activation.
+                            </p>
+                            <div className="mt-3 text-[10px] font-semibold text-indigo-600 font-mono">by Creem.io</div>
                           </div>
-                          <p className="text-[10px] text-gray-500 leading-normal">
-                            Global Visa, Mastercard, and Apple Pay. Instant activation.
-                          </p>
-                          <div className="mt-3 text-[10px] font-semibold text-indigo-600 font-mono">by Creem.io</div>
-                        </div>
+                        )}
 
                         {/* Tripay option */}
-                        <div
-                          onClick={() => setPaymentMethod('tripay')}
-                          className={`p-4 border rounded-xl cursor-pointer flex flex-col justify-between transition-all ${paymentMethod === 'tripay' ? 'border-emerald-600 bg-emerald-50/20 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
-                        >
-                          <div className="flex items-center space-x-2.5 mb-2">
-                            <input
-                              type="radio"
-                              name="payment_method_group"
-                              checked={paymentMethod === 'tripay'}
-                              onChange={() => setPaymentMethod('tripay')}
-                              className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                            />
-                            <span className="text-xs font-bold text-gray-900">VA & QRIS</span>
+                        {tripayEnabled && (
+                          <div
+                            onClick={() => setPaymentMethod('tripay')}
+                            className={`p-4 border rounded-xl cursor-pointer flex flex-col justify-between transition-all ${paymentMethod === 'tripay' ? 'border-emerald-600 bg-emerald-50/20 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+                          >
+                            <div className="flex items-center space-x-2.5 mb-2">
+                              <input
+                                type="radio"
+                                name="payment_method_group"
+                                checked={paymentMethod === 'tripay'}
+                                onChange={() => setPaymentMethod('tripay')}
+                                className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                              />
+                              <span className="text-xs font-bold text-gray-900">VA & QRIS</span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 leading-normal">
+                              Indonesian local transfers, e-wallets, and QR codes. Instant activation.
+                            </p>
+                            <div className="mt-3 text-[10px] font-semibold text-emerald-600 font-mono">by Tripay</div>
                           </div>
-                          <p className="text-[10px] text-gray-500 leading-normal">
-                            Indonesian local transfers, e-wallets, and QR codes. Instant activation.
-                          </p>
-                          <div className="mt-3 text-[10px] font-semibold text-emerald-600 font-mono">by Tripay</div>
-                        </div>
+                        )}
 
                         {/* Manual option */}
-                        <div
-                          onClick={() => setPaymentMethod('manual')}
-                          className={`p-4 border rounded-xl cursor-pointer flex flex-col justify-between transition-all ${paymentMethod === 'manual' ? 'border-amber-600 bg-amber-50/20 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
-                        >
-                          <div className="flex items-center space-x-2.5 mb-2">
-                            <input
-                              type="radio"
-                              name="payment_method_group"
-                              checked={paymentMethod === 'manual'}
-                              onChange={() => setPaymentMethod('manual')}
-                              className="text-amber-600 focus:ring-amber-500 h-4 w-4"
-                            />
-                            <span className="text-xs font-bold text-gray-900">Manual Transfer</span>
+                        {manualEnabled && (
+                          <div
+                            onClick={() => setPaymentMethod('manual')}
+                            className={`p-4 border rounded-xl cursor-pointer flex flex-col justify-between transition-all ${paymentMethod === 'manual' ? 'border-amber-600 bg-amber-50/20 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+                          >
+                            <div className="flex items-center space-x-2.5 mb-2">
+                              <input
+                                type="radio"
+                                name="payment_method_group"
+                                checked={paymentMethod === 'manual'}
+                                onChange={() => setPaymentMethod('manual')}
+                                className="text-amber-600 focus:ring-amber-500 h-4 w-4"
+                              />
+                              <span className="text-xs font-bold text-gray-900">Manual Transfer</span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 leading-normal">
+                              Bank transfer with manual receipt confirmation. Activation pending verification.
+                            </p>
+                            <div className="mt-3 text-[10px] font-semibold text-amber-600 font-mono">Manual approval</div>
                           </div>
-                          <p className="text-[10px] text-gray-500 leading-normal">
-                            Bank transfer with manual receipt confirmation. Activation pending verification.
-                          </p>
-                          <div className="mt-3 text-[10px] font-semibold text-amber-600 font-mono">Manual approval</div>
-                        </div>
+                        )}
+
+                        {!creemEnabled && !tripayEnabled && !manualEnabled && (
+                          <div className="col-span-full p-4 border border-red-200 rounded-xl bg-red-50 text-red-750 text-xs text-center font-bold">
+                            ⚠️ No payment methods are currently active. Please contact support.
+                          </div>
+                        )}
                       </div>
 
                       {/* Tripay specific channel selection */}
@@ -4265,54 +4298,69 @@ export default function SaaSHome() {
                       <h4 className={cn("text-xs font-bold uppercase tracking-wider mb-3", isDarkMode ? "text-slate-400" : "text-gray-600")}>
                         Select Payment Method
                       </h4>
-                      <div className="grid grid-cols-3 gap-2.5">
+                      <div className={cn("grid gap-2.5", 
+                        [creemEnabled, tripayEnabled, manualEnabled].filter(Boolean).length === 3 ? "grid-cols-3" :
+                        [creemEnabled, tripayEnabled, manualEnabled].filter(Boolean).length === 2 ? "grid-cols-2" : "grid-cols-1"
+                      )}>
                         {/* Creem Card option */}
-                        <div
-                          onClick={() => setPaymentModalMethod('creem')}
-                          className={cn("p-3 border rounded-xl cursor-pointer flex flex-col justify-between items-center text-center transition-all", 
-                            paymentModalMethod === 'creem' 
-                              ? "border-emerald-500 bg-emerald-50/10 shadow-sm" 
-                              : (isDarkMode ? "border-slate-800 hover:border-slate-700 bg-slate-900" : "border-gray-200 hover:border-gray-300 bg-white")
-                          )}
-                        >
-                          <CreditCard className={cn("w-5 h-5 mb-2", paymentModalMethod === 'creem' ? "text-emerald-500" : "text-gray-400")} />
-                          <div>
-                            <div className="text-[10px] font-black leading-tight">Credit Card</div>
-                            <div className="text-[8px] text-gray-400 mt-0.5">Creem.io</div>
+                        {creemEnabled && (
+                          <div
+                            onClick={() => setPaymentModalMethod('creem')}
+                            className={cn("p-3 border rounded-xl cursor-pointer flex flex-col justify-between items-center text-center transition-all", 
+                              paymentModalMethod === 'creem' 
+                                ? "border-emerald-500 bg-emerald-50/10 shadow-sm" 
+                                : (isDarkMode ? "border-slate-800 hover:border-slate-700 bg-slate-900" : "border-gray-200 hover:border-gray-300 bg-white")
+                            )}
+                          >
+                            <CreditCard className={cn("w-5 h-5 mb-2", paymentModalMethod === 'creem' ? "text-emerald-500" : "text-gray-400")} />
+                            <div>
+                              <div className="text-[10px] font-black leading-tight">Credit Card</div>
+                              <div className="text-[8px] text-gray-400 mt-0.5">Creem.io</div>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Tripay option */}
-                        <div
-                          onClick={() => setPaymentModalMethod('tripay')}
-                          className={cn("p-3 border rounded-xl cursor-pointer flex flex-col justify-between items-center text-center transition-all", 
-                            paymentModalMethod === 'tripay' 
-                              ? "border-indigo-500 bg-indigo-50/10 shadow-sm" 
-                              : (isDarkMode ? "border-slate-800 hover:border-slate-700 bg-slate-900" : "border-gray-200 hover:border-gray-300 bg-white")
-                          )}
-                        >
-                          <Wallet className={cn("w-5 h-5 mb-2", paymentModalMethod === 'tripay' ? "text-indigo-500" : "text-gray-400")} />
-                          <div>
-                            <div className="text-[10px] font-black leading-tight">VA & QRIS</div>
-                            <div className="text-[8px] text-gray-400 mt-0.5">TriPay Indo</div>
+                        {tripayEnabled && (
+                          <div
+                            onClick={() => setPaymentModalMethod('tripay')}
+                            className={cn("p-3 border rounded-xl cursor-pointer flex flex-col justify-between items-center text-center transition-all", 
+                              paymentModalMethod === 'tripay' 
+                                ? "border-indigo-500 bg-indigo-50/10 shadow-sm" 
+                                : (isDarkMode ? "border-slate-800 hover:border-slate-700 bg-slate-900" : "border-gray-200 hover:border-gray-300 bg-white")
+                            )}
+                          >
+                            <Wallet className={cn("w-5 h-5 mb-2", paymentModalMethod === 'tripay' ? "text-indigo-500" : "text-gray-400")} />
+                            <div>
+                              <div className="text-[10px] font-black leading-tight">VA & QRIS</div>
+                              <div className="text-[8px] text-gray-400 mt-0.5">TriPay Indo</div>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Manual Transfer option */}
-                        <div
-                          onClick={() => setPaymentModalMethod('manual')}
-                          className={cn("p-3 border rounded-xl cursor-pointer flex flex-col justify-between items-center text-center transition-all", 
-                            paymentModalMethod === 'manual' 
-                              ? "border-amber-500 bg-amber-50/10 shadow-sm" 
-                              : (isDarkMode ? "border-slate-800 hover:border-slate-700 bg-slate-900" : "border-gray-200 hover:border-gray-300 bg-white")
-                          )}
-                        >
-                          <Building className={cn("w-5 h-5 mb-2", paymentModalMethod === 'manual' ? "text-amber-500" : "text-gray-400")} />
-                          <div>
-                            <div className="text-[10px] font-black leading-tight">Manual Transfer</div>
-                            <div className="text-[8px] text-gray-400 mt-0.5">Bank Receipt</div>
+                        {manualEnabled && (
+                          <div
+                            onClick={() => setPaymentModalMethod('manual')}
+                            className={cn("p-3 border rounded-xl cursor-pointer flex flex-col justify-between items-center text-center transition-all", 
+                              paymentModalMethod === 'manual' 
+                                ? "border-amber-500 bg-amber-50/10 shadow-sm" 
+                                : (isDarkMode ? "border-slate-800 hover:border-slate-700 bg-slate-900" : "border-gray-200 hover:border-gray-300 bg-white")
+                            )}
+                          >
+                            <Building className={cn("w-5 h-5 mb-2", paymentModalMethod === 'manual' ? "text-amber-500" : "text-gray-400")} />
+                            <div>
+                              <div className="text-[10px] font-black leading-tight">Manual Transfer</div>
+                              <div className="text-[8px] text-gray-400 mt-0.5">Bank Receipt</div>
+                            </div>
                           </div>
-                        </div>
+                        )}
+
+                        {!creemEnabled && !tripayEnabled && !manualEnabled && (
+                          <div className={cn("col-span-full p-4 border rounded-xl text-center text-xs font-bold", isDarkMode ? "bg-red-950/20 border-red-900/30 text-red-400" : "bg-red-50 border-red-200 text-red-700")}>
+                            ⚠️ No payment methods are currently active. Please contact support.
+                          </div>
+                        )}
                       </div>
                     </div>
 
