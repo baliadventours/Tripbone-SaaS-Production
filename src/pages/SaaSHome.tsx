@@ -1050,17 +1050,24 @@ export default function SaaSHome() {
     async function loadWorkspaceStats() {
       setLoadingStats(true);
       try {
+        const workspaceAny = activeWorkspace as any;
         const toursSnap = await getDocs(collection(db, 'tours'));
         const toursList: any[] = [];
         toursSnap.forEach((docSnap) => {
-          toursList.push({ id: docSnap.id, ...docSnap.data() });
+          const data = docSnap.data();
+          if (data.tenantId === activeWorkspace.id || (workspaceAny.uid && data.supplierId === workspaceAny.uid)) {
+            toursList.push({ id: docSnap.id, ...data });
+          }
         });
         setActiveWorkspaceTours(toursList);
 
         const bookingsSnap = await getDocs(collection(db, 'bookings'));
         const bookingsList: any[] = [];
         bookingsSnap.forEach((docSnap) => {
-          bookingsList.push({ id: docSnap.id, ...docSnap.data() });
+          const data = docSnap.data();
+          if (data.tenantId === activeWorkspace.id || (workspaceAny.uid && data.supplierId === workspaceAny.uid)) {
+            bookingsList.push({ id: docSnap.id, ...data });
+          }
         });
         setActiveWorkspaceBookings(bookingsList);
       } catch (err) {
@@ -2967,7 +2974,16 @@ export default function SaaSHome() {
                               </span>
                             </td>
                             <td className="px-6 py-4 font-medium">
-                              10 Aug 2026
+                              {(() => {
+                                const createdDate = w.createdAt ? new Date(w.createdAt) : new Date();
+                                const s = getWorkspaceStatus(w);
+                                if (s === 'trial' || w.trialEnds) {
+                                  const trialEndsDate = w.trialEnds ? new Date(w.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+                                  return trialEndsDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                }
+                                const renewalDate = w.trialEnds ? new Date(w.trialEnds) : new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                return renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                              })()}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end space-x-2.5">

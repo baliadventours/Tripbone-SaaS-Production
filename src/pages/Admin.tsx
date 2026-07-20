@@ -941,6 +941,7 @@ const BookingTimeManager = () => {
 
     useEffect(() => {
       const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
+      let unsubFallback: (() => void) | null = null;
       const unsubscribe = onSnapshot(q, 
         (snapshot) => {
           setReviews(snapshot.docs.map(doc => ({ 
@@ -952,10 +953,28 @@ const BookingTimeManager = () => {
         },
         (error) => {
           console.error("Reviews snapshot error:", error);
+          if (unsubFallback) unsubFallback();
+          unsubFallback = onSnapshot(collection(db, 'reviews'), (snap) => {
+            const list = snap.docs.map(doc => ({
+              id: doc.id,
+              refPath: doc.ref.path,
+              ...doc.data()
+            } as any));
+            // Sort in memory (desc)
+            list.sort((a, b) => {
+              const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return tB - tA;
+            });
+            setReviews(list);
+          });
           setLoading(false);
         }
       );
-      return unsubscribe;
+      return () => {
+        unsubscribe();
+        if (unsubFallback) unsubFallback();
+      };
     }, []);
 
     const handleCreateReview = async (e: React.FormEvent) => {
@@ -6083,18 +6102,25 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       if (error.code === 'permission-denied') {
         handleFirestoreError(error, OperationType.LIST, 'tours');
       }
-      // Fallback to simpler query if composite index is missing
-      if (isSupplier) {
-        if (unsubToursFallback) unsubToursFallback();
-        unsubToursFallback = onSnapshot(query(collection(db, 'tours'), where('supplierId', '==', currentUserProfile.uid)), (snap) => {
-          setTours(snap.docs.map(d => ({ id: d.id, ...d.data() } as Tour)));
-        }, (err) => handleFirestoreError(err, OperationType.LIST, 'tours-fallback'));
-      } else if (isAgent) {
-        if (unsubToursFallback) unsubToursFallback();
-        unsubToursFallback = onSnapshot(query(collection(db, 'tours'), where('status', 'in', ['published', 'active'])), (snap) => {
-          setTours(snap.docs.map(d => ({ id: d.id, ...d.data() } as Tour)));
-        }, (err) => handleFirestoreError(err, OperationType.LIST, 'tours-fallback'));
-      }
+      // Universal Fallback: query collection without order-by or complex filtering (zero indexes needed!)
+      if (unsubToursFallback) unsubToursFallback();
+      unsubToursFallback = onSnapshot(collection(db, 'tours'), (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Tour));
+        // Filter in memory for safety based on role if needed
+        let filtered = list;
+        if (isSupplier) {
+          filtered = list.filter(t => t.supplierId === currentUserProfile.uid);
+        } else if (isAgent) {
+          filtered = list.filter(t => t.status === 'published' || t.status === 'active');
+        }
+        // Sort in memory (desc)
+        filtered.sort((a, b) => {
+          const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tB - tA;
+        });
+        setTours(filtered);
+      }, (err) => handleFirestoreError(err, OperationType.LIST, 'tours-fallback'));
     });
 
     // Bookings Query
@@ -6132,23 +6158,31 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
        if (error.code === 'permission-denied') {
          handleFirestoreError(error, OperationType.LIST, 'bookings');
        }
-       if (isSupplier) {
-         if (unsubBookingsFallback) unsubBookingsFallback();
-         unsubBookingsFallback = onSnapshot(query(collection(db, 'bookings'), where('supplierId', '==', currentUserProfile.uid)), (snap) => {
-            setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking)));
-         }, (err) => handleFirestoreError(err, OperationType.LIST, 'bookings-fallback'));
-       } else if (isAgent) {
-         if (unsubBookingsFallback) unsubBookingsFallback();
-         unsubBookingsFallback = onSnapshot(query(collection(db, 'bookings'), where('userId', '==', currentUserProfile.uid)), (snap) => {
-            setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking)));
-         }, (err) => handleFirestoreError(err, OperationType.LIST, 'bookings-fallback'));
-       }
+       // Universal Fallback: query collection without order-by or complex filtering (zero indexes needed!)
+       if (unsubBookingsFallback) unsubBookingsFallback();
+       unsubBookingsFallback = onSnapshot(collection(db, 'bookings'), (snap) => {
+         const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
+         let filtered = list;
+         if (isSupplier) {
+           filtered = list.filter(b => b.supplierId === currentUserProfile.uid);
+         } else if (isAgent) {
+           filtered = list.filter(b => b.userId === currentUserProfile.uid);
+         }
+         // Sort in memory (asc)
+         filtered.sort((a, b) => {
+           const tA = a.date ? new Date(a.date).getTime() : 0;
+           const tB = b.date ? new Date(b.date).getTime() : 0;
+           return tA - tB;
+         });
+         setBookings(filtered);
+       }, (err) => handleFirestoreError(err, OperationType.LIST, 'bookings-fallback'));
     });
 
     const unsubscribeCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
       setCategories(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category)));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'categories'));
 
+    let unsubInquiriesFallback: (() => void) | null = null;
     const unsubscribeInquiries = onSnapshot(query(collection(db, 'inquiries'), orderBy('createdAt', 'desc')), (snapshot) => {
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Inquiry));
       setInquiries(data);
@@ -6169,7 +6203,20 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       } else {
         isInitialInquiriesLoaded.current = true;
       }
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'inquiries'));
+    }, (error) => {
+      console.warn("Inquiries snapshot error:", error);
+      if (unsubInquiriesFallback) unsubInquiriesFallback();
+      unsubInquiriesFallback = onSnapshot(collection(db, 'inquiries'), (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Inquiry));
+        // Sort in memory (desc)
+        list.sort((a, b) => {
+          const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tB - tA;
+        });
+        setInquiries(list);
+      }, (err) => handleFirestoreError(err, OperationType.LIST, 'inquiries-fallback'));
+    });
 
     const unsubscribeTypes = onSnapshot(collection(db, 'tourTypes'), (snapshot) => {
       setTourTypes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TourType)));
@@ -6235,13 +6282,18 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       (error) => {
         console.warn("Guides global snapshot error:", error);
         handleFirestoreError(error, OperationType.LIST, 'guides');
-        // Fallback for missing indices
-        if (isSupplier) {
-          if (unsubGuidesFallback) unsubGuidesFallback();
-          unsubGuidesFallback = onSnapshot(query(collection(db, 'guides'), where('supplierId', '==', currentUserProfile.uid)), (snap) => {
-             setAllGuides(snap.docs.map(d => ({ id: d.id, ...d.data() } as Guide)));
-          });
-        }
+        // Universal Fallback: query collection without order-by or complex filtering (zero indexes needed!)
+        if (unsubGuidesFallback) unsubGuidesFallback();
+        unsubGuidesFallback = onSnapshot(collection(db, 'guides'), (snap) => {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Guide));
+          let filtered = list;
+          if (isSupplier) {
+            filtered = list.filter(g => g.supplierId === currentUserProfile.uid);
+          }
+          // Sort in memory (asc)
+          filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          setAllGuides(filtered);
+        });
       }
     );
 
@@ -7845,14 +7897,29 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
 
     useEffect(() => {
       const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+      let unsubFallback: (() => void) | null = null;
       const unsubscribe = onSnapshot(q, (snapshot) => {
         setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost)));
         setLoading(false);
       }, (error) => {
         console.error("Posts fetch error:", error);
+        if (unsubFallback) unsubFallback();
+        unsubFallback = onSnapshot(collection(db, 'posts'), (snap) => {
+          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+          // Sort in memory (desc)
+          list.sort((a, b) => {
+            const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return tB - tA;
+          });
+          setPosts(list);
+        });
         setLoading(false);
       });
-      return unsubscribe;
+      return () => {
+        unsubscribe();
+        if (unsubFallback) unsubFallback();
+      };
     }, []);
 
     const handleSavePost = async (e: FormEvent) => {
