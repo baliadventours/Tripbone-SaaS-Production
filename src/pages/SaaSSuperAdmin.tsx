@@ -59,7 +59,7 @@ export default function SaaSSuperAdmin() {
   const [activeTab, setActiveTab] = useState<
     'overview' | 
     'workspaces' | 'resource_usage' | 
-    'operators' | 'end_users' | 
+    'operators' | 'end_users' | 'demo_leads' |
     'packages' | 'transactions' | 'coupons' |
     'tickets' | 'announcements' |
     'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase'
@@ -165,6 +165,9 @@ export default function SaaSSuperAdmin() {
   const [bookings, setBookings] = useState<any[]>([]);
   // Tours list
   const [tours, setTours] = useState<any[]>([]);
+  // Demo leads list
+  const [demoLeads, setDemoLeads] = useState<any[]>([]);
+  const [demoLeadsSearch, setDemoLeadsSearch] = useState('');
 
   // Transactions tracking states
   const [txSearch, setTxSearch] = useState('');
@@ -570,6 +573,18 @@ export default function SaaSSuperAdmin() {
           console.error("Error loading showcases:", showcaseErr);
         }
 
+        // Load Demo Leads
+        try {
+          const leadsSnapshot = await getDocs(collection(db, 'demoLeads'));
+          const leadsList: any[] = [];
+          leadsSnapshot.forEach((snap) => {
+            leadsList.push({ id: snap.id, ...snap.data() });
+          });
+          setDemoLeads(leadsList);
+        } catch (leadsErr) {
+          console.error("Error loading demo leads:", leadsErr);
+        }
+
         // Calculate Stats
         const total = tenantList.length;
         const active = tenantList.filter(t => t.status === 'active').length;
@@ -632,6 +647,38 @@ export default function SaaSSuperAdmin() {
     }
     loadData();
   }, [isAuthorized]);
+
+  const handleDeleteLead = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this demo lead permanently?")) return;
+    try {
+      await deleteDoc(doc(db, 'demoLeads', id));
+      setDemoLeads(prev => prev.filter(l => l.id !== id));
+    } catch (err: any) {
+      console.error("Error deleting lead:", err);
+      alert("Failed to delete lead: " + err.message);
+    }
+  };
+
+  const handleExportLeadsCSV = () => {
+    if (demoLeads.length === 0) return;
+    const headers = ['ID', 'Name', 'Email', 'Created At'];
+    const rows = demoLeads.map(lead => [
+      lead.id,
+      lead.name,
+      lead.email,
+      lead.createdAt ? new Date(lead.createdAt).toISOString() : ''
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `tripbone_demo_leads_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1456,6 +1503,14 @@ export default function SaaSSuperAdmin() {
                   >
                     <Globe className="w-4 h-4 shrink-0" />
                     {!isSidebarCollapsed && <span>Global End-Users</span>}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('demo_leads')}
+                    title="Demo Leads"
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-4'} py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'demo_leads' ? 'bg-indigo-600 text-white' : isDarkMode ? 'text-gray-400 hover:bg-slate-800 hover:text-white' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
+                  >
+                    <Megaphone className="w-4 h-4 shrink-0" />
+                    {!isSidebarCollapsed && <span>Demo Leads</span>}
                   </button>
                 </div>
               )}
@@ -3618,6 +3673,160 @@ export default function SaaSSuperAdmin() {
                   If your platform email integration is not yet active, our security gateway gracefully intercepts OTP payloads and logs them to the developer console, allowing you to bypass and verify without disruption during staging tests.
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'demo_leads' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Header section with actions */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Demo Lead Submissions</h2>
+                <p className="text-xs text-gray-500 mt-1">Organize and manage leads captured from the marketing website Watch Demo modal.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleExportLeadsCSV}
+                  disabled={demoLeads.length === 0}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl flex items-center space-x-2 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 shrink-0"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Export to CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Leads Search & Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`p-6 rounded-3xl md:col-span-1 ${isDarkMode ? 'bg-white/[0.02] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+                <span className={`text-[11px] font-mono uppercase tracking-wider block mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Total Leads Captured</span>
+                <div className="flex items-baseline space-x-2 text-indigo-500">
+                  <span className="text-3xl font-extrabold">{demoLeads.length}</span>
+                  <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>contacts</span>
+                </div>
+              </div>
+
+              <div className={`p-6 rounded-3xl md:col-span-2 flex items-center justify-between ${isDarkMode ? 'bg-white/[0.02] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+                <div className="w-full">
+                  <span className={`text-[11px] font-mono uppercase tracking-wider block mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Filter Lead List</span>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                      <Search className="w-4 h-4 text-gray-400" />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search leads by name or email..."
+                      value={demoLeadsSearch}
+                      onChange={(e) => setDemoLeadsSearch(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${
+                        isDarkMode 
+                          ? 'bg-slate-950 border-gray-800 text-white focus:border-indigo-500 placeholder-gray-600' 
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-indigo-500 placeholder-gray-400'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Leads List Table */}
+            <div className={`border rounded-3xl overflow-hidden ${isDarkMode ? 'bg-slate-900/50 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
+              <div className={`p-6 border-b flex justify-between items-center ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+                <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Leads Directory</h3>
+                <span className="text-xs font-mono font-bold text-indigo-400">Live Synchronization</span>
+              </div>
+
+              {(() => {
+                const filteredLeads = demoLeads.filter(lead => {
+                  const searchLower = demoLeadsSearch.toLowerCase();
+                  return (
+                    (lead.name || '').toLowerCase().includes(searchLower) ||
+                    (lead.email || '').toLowerCase().includes(searchLower)
+                  );
+                }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+                if (filteredLeads.length === 0) {
+                  return (
+                    <div className="p-12 text-center">
+                      <div className="max-w-sm mx-auto space-y-4">
+                        <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                          <Megaphone className="w-6 h-6 animate-pulse" />
+                        </div>
+                        <h4 className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No Leads Found</h4>
+                        <p className={`text-xs leading-relaxed ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {demoLeadsSearch 
+                            ? "No lead records match your search criteria. Try modifying your filter."
+                            : "Your watch demo capture modal is live on the marketing homepage. Once prospective operators fill it out, they will automatically appear here."}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800/80 bg-slate-950/40 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+                          <th className="py-4 px-6">Name</th>
+                          <th className="py-4 px-6">Email Address</th>
+                          <th className="py-4 px-6">Captured Date</th>
+                          <th className="py-4 px-6 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800/50' : 'divide-gray-100'}`}>
+                        {filteredLeads.map((lead) => {
+                          const dateStr = lead.createdAt 
+                            ? new Date(lead.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                            : 'Unknown';
+                          return (
+                            <tr key={lead.id} className={`text-sm transition-colors ${isDarkMode ? 'hover:bg-slate-900/20' : 'hover:bg-gray-50'}`}>
+                              <td className="py-4 px-6">
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                    {(lead.name || 'L').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{lead.name || 'Anonymous Lead'}</div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6 font-mono text-xs text-gray-500">
+                                <a href={`mailto:${lead.email}`} className="hover:text-indigo-500 transition-colors">{lead.email}</a>
+                              </td>
+                              <td className={`py-4 px-6 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{dateStr}</td>
+                              <td className="py-4 px-6 text-right space-x-2">
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(lead.email);
+                                    alert("Email address copied to clipboard!");
+                                  }}
+                                  className="px-2.5 py-1.5 border border-indigo-900/50 text-xs font-semibold text-indigo-400 rounded-lg hover:bg-indigo-900/20 transition-all inline-flex items-center gap-1"
+                                  title="Copy Email"
+                                >
+                                  Copy
+                                </button>
+                                <a
+                                  href={`mailto:${lead.email}?subject=Thank%20you%20for%20watching%20the%20Tripbone%20SaaS%20Demo&body=Hi%20${encodeURIComponent(lead.name || 'there')},%0A%0AThank%20you%20for%20requesting%20our%20product%20demo!%20We%20would%20love%20to%20learn%20more%20about%20your%20tour%20operator%20business.%0A%0ABest%20regards,%0ATripbone%20Indonesia`}
+                                  className="px-2.5 py-1.5 border border-gray-800 text-xs font-semibold text-gray-300 rounded-lg hover:bg-slate-800 transition-all inline-flex items-center gap-1 animate-none"
+                                >
+                                  Reach Out
+                                </a>
+                                <button
+                                  onClick={() => handleDeleteLead(lead.id)}
+                                  className="px-2.5 py-1.5 border border-rose-950 text-xs font-semibold text-rose-400 rounded-lg hover:bg-rose-950/20 transition-all inline-flex items-center gap-1"
+                                  title="Delete Lead"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

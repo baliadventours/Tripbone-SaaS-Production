@@ -409,9 +409,24 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["path", "sessionId", "timestamp"]
+    },
+    "DemoLead": {
+      "title": "Demo Lead",
+      "description": "Lead captured from the Watch Demo modal",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "createdAt"]
     }
   },
   "firestore": {
+    "demoLeads": {
+      "schema": "DemoLead",
+      "description": "Collection of captured demo leads from the landing page"
+    },
     "tenants": {
       "schema": "Tenant",
       "description": "Collection of SaaS tenant configurations"

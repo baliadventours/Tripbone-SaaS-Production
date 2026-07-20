@@ -412,6 +412,18 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // --- Demo Leads ---
+    match /demoLeads/{leadId} {
+      allow create: if isValidId(leadId) && isValidDemoLead(incoming());
+      allow read, update, delete: if isSuperAdmin();
+
+      function isValidDemoLead(lead) {
+        return lead.name is string && lead.name.size() > 0 && lead.name.size() <= 200 &&
+               lead.email is string && lead.email.size() > 0 && lead.email.size() <= 300 &&
+               lead.createdAt is string && lead.createdAt.size() <= 100;
+      }
+    }
+
     // --- Uploads (Stored files) ---
     match /uploads/{uploadId} {
       allow read: if true;
