@@ -150,7 +150,12 @@ export default function SaaSSuperAdmin() {
     supportEmail: 'support@tripbone.com',
     copyright: '© 2026 PT Tripbone Indonesia',
     logoUrl: '',
-    faviconUrl: ''
+    faviconUrl: '',
+    twitterUrl: '',
+    linkedinUrl: '',
+    facebookUrl: '',
+    instagramUrl: '',
+    brandColor: '#1db3cd'
   });
   const [savingBrand, setSavingBrand] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -2212,6 +2217,78 @@ export default function SaaSSuperAdmin() {
                       required
                       className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                     />
+                  </div>
+
+                  {/* Brand Color & Social Media Links */}
+                  <div className="border-t border-gray-150 dark:border-gray-800/60 pt-6">
+                    <h4 className={`text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Brand Color & Theme Alignments</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Brand Primary Color</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={globalBrand.brandColor || '#1db3cd'}
+                            onChange={(e) => setGlobalBrand({ ...globalBrand, brandColor: e.target.value })}
+                            className="w-11 h-11 p-1 rounded-xl border border-gray-200 cursor-pointer bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={globalBrand.brandColor || '#1db3cd'}
+                            onChange={(e) => setGlobalBrand({ ...globalBrand, brandColor: e.target.value })}
+                            placeholder="#1db3cd"
+                            className={`flex-1 px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                          />
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-1">This color will align branding components dynamically across the marketing site.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-150 dark:border-gray-800/60 pt-6">
+                    <h4 className={`text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Social Media Connections</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Twitter URL</label>
+                        <input
+                          type="url"
+                          value={globalBrand.twitterUrl || ''}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, twitterUrl: e.target.value })}
+                          placeholder="https://twitter.com/yourbrand"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>LinkedIn URL</label>
+                        <input
+                          type="url"
+                          value={globalBrand.linkedinUrl || ''}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, linkedinUrl: e.target.value })}
+                          placeholder="https://linkedin.com/company/yourbrand"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Facebook URL</label>
+                        <input
+                          type="url"
+                          value={globalBrand.facebookUrl || ''}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, facebookUrl: e.target.value })}
+                          placeholder="https://facebook.com/yourbrand"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Instagram URL</label>
+                        <input
+                          type="url"
+                          value={globalBrand.instagramUrl || ''}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, instagramUrl: e.target.value })}
+                          placeholder="https://instagram.com/yourbrand"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Logo & Favicon Assets */}

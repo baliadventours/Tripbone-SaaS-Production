@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { Compass, ChevronDown, Sparkles, Box, LayoutTemplate, BriefcaseBusiness, Globe, Bot, Navigation, ShieldCheck } from 'lucide-react';
+import { Compass, ChevronDown, Sparkles, Box, LayoutTemplate, BriefcaseBusiness, Globe, Bot, Navigation, ShieldCheck, X } from 'lucide-react';
 import { useSettings } from '../../lib/SettingsContext';
 
 export default function SaaSLayout() {
   const { settings, globalBrand } = useSettings();
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+
+  useEffect(() => {
+    const consent = localStorage.getItem('tripbone-cookie-consent');
+    if (!consent) {
+      const timer = setTimeout(() => {
+        setShowCookieBanner(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleAcceptCookies = () => {
+    localStorage.setItem('tripbone-cookie-consent', 'accepted');
+    setShowCookieBanner(false);
+  };
+
+  const handleDeclineCookies = () => {
+    localStorage.setItem('tripbone-cookie-consent', 'declined');
+    setShowCookieBanner(false);
+  };
+
+  const brandColor = globalBrand?.brandColor || '#1db3cd';
 
   const handleGetStarted = () => {
     const hostname = window.location.hostname;
@@ -20,7 +43,16 @@ export default function SaaSLayout() {
   };
 
   return (
-    <div className="min-h-screen font-sans selection:bg-[#1db3cd] selection:text-white bg-[#f8fafc] text-slate-900 overflow-x-hidden relative flex flex-col">
+    <div className="min-h-screen font-sans selection-brand-color bg-[#f8fafc] text-slate-900 overflow-x-hidden relative flex flex-col">
+      <style>{`
+        .text-brand { color: ${brandColor} !important; }
+        .bg-brand { background-color: ${brandColor} !important; }
+        .hover\\:text-brand:hover { color: ${brandColor} !important; }
+        .hover\\:bg-brand:hover { background-color: ${brandColor} !important; }
+        .border-brand { border-color: ${brandColor} !important; }
+        .group\\/item:hover .group-hover\\/item\\:text-brand { color: ${brandColor} !important; }
+        .selection-brand-color::selection { background-color: ${brandColor} !important; color: white !important; }
+      `}</style>
       
       {/* Header */}
       <header className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50 transition-all duration-300">
@@ -31,7 +63,7 @@ export default function SaaSLayout() {
                 <img src={globalBrand?.logoUrl || settings?.logoURL} alt={globalBrand?.platformName || settings?.siteName || "Tripbone"} className="h-9 max-w-[150px] object-contain" />
               ) : (
                 <>
-                  <Compass className="h-8 w-8 text-[#1db3cd]" />
+                  <Compass className="h-8 w-8 text-brand" />
                   <span className="text-2xl font-bold tracking-tight text-slate-900">
                     {globalBrand?.platformName || settings?.siteName || "Tripbone"}
                   </span>
@@ -47,7 +79,7 @@ export default function SaaSLayout() {
                 onMouseEnter={() => setIsFeaturesOpen(true)}
                 onMouseLeave={() => setIsFeaturesOpen(false)}
               >
-                <button className="flex items-center space-x-1 hover:text-[#1db3cd] transition-colors py-8">
+                <button className="flex items-center space-x-1 hover:text-brand transition-colors py-8">
                   <span>Features</span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isFeaturesOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -61,7 +93,7 @@ export default function SaaSLayout() {
                       <Sparkles className="w-5 h-5 text-blue-500" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-[#1db3cd] transition-colors">AI Superpowers</h4>
+                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-brand transition-colors">AI Superpowers</h4>
                       <p className="text-xs text-slate-500 leading-relaxed">Tour Gen, Travel Planner, Chatbot, Global Translation.</p>
                     </div>
                   </Link>
@@ -72,7 +104,7 @@ export default function SaaSLayout() {
                       <Navigation className="w-5 h-5 text-orange-500" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-[#1db3cd] transition-colors">Operations & Fleet</h4>
+                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-brand transition-colors">Operations & Fleet</h4>
                       <p className="text-xs text-slate-500 leading-relaxed">Dispatch Console, WhatsApp, Asset Tracker, OTA Sync.</p>
                     </div>
                   </Link>
@@ -83,7 +115,7 @@ export default function SaaSLayout() {
                       <BriefcaseBusiness className="w-5 h-5 text-green-500" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-[#1db3cd] transition-colors">Sales & Marketing</h4>
+                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-brand transition-colors">Sales & Marketing</h4>
                       <p className="text-xs text-slate-500 leading-relaxed">CRM, Booking Flows, Dynamic Pricing, Reviews.</p>
                     </div>
                   </Link>
@@ -94,7 +126,7 @@ export default function SaaSLayout() {
                       <LayoutTemplate className="w-5 h-5 text-purple-500" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-[#1db3cd] transition-colors">Web Design</h4>
+                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-brand transition-colors">Web Design</h4>
                       <p className="text-xs text-slate-500 leading-relaxed">Swiss UI, Mobile-First Checkout, Homepage Presets.</p>
                     </div>
                   </Link>
@@ -105,7 +137,7 @@ export default function SaaSLayout() {
                       <ShieldCheck className="w-5 h-5 text-slate-600" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-[#1db3cd] transition-colors">Infrastructure & Security</h4>
+                      <h4 className="font-bold text-slate-900 mb-1 group-hover/item:text-brand transition-colors">Infrastructure & Security</h4>
                       <p className="text-xs text-slate-500 leading-relaxed">Self-Hosted, Zero Commission, Multi-Supplier Engine, Role-Based Access.</p>
                     </div>
                   </Link>
@@ -113,18 +145,22 @@ export default function SaaSLayout() {
                 </div>
               </div>
 
-              <Link to="/pricing" className="hover:text-[#1db3cd] transition-colors py-8">Pricing</Link>
-              <Link to="/directory" className="hover:text-[#1db3cd] transition-colors py-8">Directory</Link>
-              <Link to="/about" className="hover:text-[#1db3cd] transition-colors py-8">Company</Link>
-              <Link to="/contact" className="hover:text-[#1db3cd] transition-colors py-8">Contact</Link>
+              <Link to="/pricing" className="hover:text-brand transition-colors py-8">Pricing</Link>
+              <Link to="/directory" className="hover:text-brand transition-colors py-8">Directory</Link>
+              <Link to="/about" className="hover:text-brand transition-colors py-8">Company</Link>
+              <Link to="/contact" className="hover:text-brand transition-colors py-8">Contact</Link>
             </nav>
           </div>
 
           <div className="flex items-center space-x-4">
-            <button onClick={handleGetStarted} className="text-sm font-semibold text-slate-600 hover:text-[#1db3cd] transition-colors px-4 py-2">
+            <button onClick={handleGetStarted} className="text-sm font-semibold text-slate-600 hover:text-brand transition-colors px-4 py-2">
               Log in
             </button>
-            <button onClick={handleGetStarted} className="hidden md:flex bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-sm">
+            <button 
+              onClick={handleGetStarted} 
+              className="hidden md:flex text-white text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-sm hover:brightness-110 cursor-pointer text-center"
+              style={{ backgroundColor: brandColor }}
+            >
               Get Started
             </button>
           </div>
@@ -146,7 +182,7 @@ export default function SaaSLayout() {
                   <img src={globalBrand?.logoUrl || settings?.logoURL} alt={globalBrand?.platformName || settings?.siteName || "Tripbone"} className="h-9 max-w-[150px] object-contain" />
                 ) : (
                   <>
-                    <Compass className="h-8 w-8 text-[#1db3cd]" />
+                    <Compass className="h-8 w-8 text-brand" />
                     <span className="text-2xl font-bold tracking-tight text-white">
                       {globalBrand?.platformName || settings?.siteName || "Tripbone"}
                     </span>
@@ -191,13 +227,63 @@ export default function SaaSLayout() {
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-sm">&copy; {new Date().getFullYear()} {globalBrand?.platformName || "Tripbone"}. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <span className="text-sm hover:text-white cursor-pointer transition-colors">Twitter</span>
-              <span className="text-sm hover:text-white cursor-pointer transition-colors">LinkedIn</span>
-              <span className="text-sm hover:text-white cursor-pointer transition-colors">Instagram</span>
+              {globalBrand?.twitterUrl ? (
+                <a href={globalBrand.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Twitter</a>
+              ) : (
+                <span className="text-sm hover:text-white cursor-pointer transition-colors">Twitter</span>
+              )}
+              {globalBrand?.linkedinUrl ? (
+                <a href={globalBrand.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">LinkedIn</a>
+              ) : (
+                <span className="text-sm hover:text-white cursor-pointer transition-colors">LinkedIn</span>
+              )}
+              {globalBrand?.facebookUrl ? (
+                <a href={globalBrand.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Facebook</a>
+              ) : null}
+              {globalBrand?.instagramUrl ? (
+                <a href={globalBrand.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Instagram</a>
+              ) : (
+                <span className="text-sm hover:text-white cursor-pointer transition-colors">Instagram</span>
+              )}
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Cookie Consent Banner */}
+      {showCookieBanner && (
+        <div className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-2xl z-[9999]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: brandColor }}></span>
+                Cookie Preference
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                We use cookies to optimize your platform experience, analyze traffic, and support personalized marketing for your tour business. Refer to our <Link to="/cookies" className="underline text-brand hover:brightness-115">Cookie Policy</Link>.
+              </p>
+            </div>
+            <button onClick={() => setShowCookieBanner(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2.5 mt-4 justify-end">
+            <button 
+              onClick={handleDeclineCookies}
+              className="px-3.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+            >
+              Decline
+            </button>
+            <button 
+              onClick={handleAcceptCookies}
+              className="px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm hover:opacity-90 transition-all cursor-pointer"
+              style={{ backgroundColor: brandColor }}
+            >
+              Accept Cookies
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

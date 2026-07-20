@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { Helmet } from 'react-helmet-async';
 import { useSettings } from '../lib/SettingsContext';
 import { 
@@ -16,10 +16,40 @@ import {
 } from 'lucide-react';
 
 export default function SaaSMarketing() {
-  const { settings } = useSettings();
+  const { settings, globalBrand } = useSettings();
+  const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showcases, setShowcases] = useState<any[]>([]);
   const [loadingShowcases, setLoadingShowcases] = useState(true);
+
+  // Watch Demo Modal state
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoLead, setDemoLead] = useState({ name: '', email: '' });
+  const [submittingLead, setSubmittingLead] = useState(false);
+
+  const handleWatchDemoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demoLead.name || !demoLead.email) return;
+    setSubmittingLead(true);
+    try {
+      await addDoc(collection(db, 'demoLeads'), {
+        name: demoLead.name,
+        email: demoLead.email,
+        createdAt: new Date().toISOString()
+      });
+      // Redirect to demo site
+      window.location.href = "https://demo.tripbone.com";
+    } catch (err) {
+      console.error("Error saving lead:", err);
+      // Fallback redirect anyway
+      window.location.href = "https://demo.tripbone.com";
+    } finally {
+      setSubmittingLead(false);
+      setShowDemoModal(false);
+    }
+  };
+
+  const brandColor = globalBrand?.brandColor || '#1db3cd';
 
   // Stats / Dashboard simulator states
   const [activeTab, setActiveTab] = useState<'overview' | 'bookings' | 'whatsapp' | 'seo'>('overview');
@@ -137,11 +167,20 @@ export default function SaaSMarketing() {
         <meta name="keywords" content={settings?.siteKeywords || 'tour operator software, travel saas, custom booking engine, ai website builder'} />
       </Helmet>
 
+      <style>{`
+        .text-brand { color: ${brandColor} !important; }
+        .bg-brand { background-color: ${brandColor} !important; }
+        .border-brand { border-color: ${brandColor} !important; }
+        .hover\\:text-brand:hover { color: ${brandColor} !important; }
+        .hover\\:bg-brand:hover { background-color: ${brandColor} !important; }
+        .bg-brand-fade { background-color: ${brandColor}15 !important; }
+      `}</style>
+
       <div className="bg-white min-h-screen">
         
         {/* --- 1. HERO SECTION --- */}
         <section id="hero" className="pt-36 pb-24 md:pt-44 md:pb-32 px-6 relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white">
-          <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-[#1db3cd]/5 to-transparent pointer-events-none"></div>
+          <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-transparent pointer-events-none" style={{ backgroundImage: `linear-gradient(to bottom, ${brandColor}08, transparent)` }}></div>
           
           <div className="max-w-7xl mx-auto text-center relative z-10">
             
@@ -152,7 +191,7 @@ export default function SaaSMarketing() {
               transition={{ duration: 0.5 }}
               className="inline-flex flex-wrap justify-center items-center gap-2 md:gap-3 px-5 py-2 rounded-full bg-slate-100 border border-slate-200/60 text-xs md:text-sm font-semibold text-slate-600 mb-8 shadow-sm"
             >
-              <span className="flex h-2 w-2 rounded-full bg-[#1db3cd] animate-pulse"></span>
+              <span className="flex h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: brandColor }}></span>
               <span>AI-Powered</span>
               <span className="text-slate-300">•</span>
               <span>Launch in 2 Minutes</span>
@@ -189,17 +228,18 @@ export default function SaaSMarketing() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
             >
               <button 
-                onClick={handleGetStarted} 
-                className="w-full sm:w-auto px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white text-lg font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 hover:-translate-y-0.5 cursor-pointer"
+                onClick={() => navigate('/pricing')} 
+                className="w-full sm:w-auto px-8 py-4 text-white text-lg font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 hover:-translate-y-0.5 cursor-pointer hover:brightness-110"
+                style={{ backgroundColor: brandColor }}
               >
                 <Rocket className="w-5 h-5 text-white" />
                 <span>Launch Your Site Free</span>
               </button>
               <button 
-                onClick={handleGetStarted} 
+                onClick={() => setShowDemoModal(true)} 
                 className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-lg font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 hover:-translate-y-0.5 cursor-pointer"
               >
-                <Play className="w-5 h-5 text-slate-500 fill-slate-500" />
+                <Play className="w-5 h-5 text-slate-500 fill-slate-500" style={{ color: brandColor, fill: brandColor }} />
                 <span>Watch Demo</span>
               </button>
             </motion.div>
@@ -1161,9 +1201,9 @@ export default function SaaSMarketing() {
 
         {/* --- 11. FINAL CTA BLOCK --- */}
         <section className="py-24 md:py-32 bg-slate-950 text-white relative overflow-hidden text-center px-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(29,179,205,0.15),transparent_70%)] pointer-events-none" />
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at center, ${brandColor}25, transparent 70%)` }} />
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#05c46b]/5 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#1db3cd]/5 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-[100px] pointer-events-none mix-blend-screen" style={{ backgroundColor: `${brandColor}05` }} />
           
           <div className="max-w-4xl mx-auto relative z-10 space-y-8">
             <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
@@ -1176,16 +1216,16 @@ export default function SaaSMarketing() {
             {/* CTA controls */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto pt-4">
               <button 
-                onClick={handleGetStarted} 
+                onClick={() => navigate('/pricing')} 
                 className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-slate-950 text-base font-extrabold rounded-xl shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer"
               >
                 Start Free Trial
               </button>
               <button 
-                onClick={handleGetStarted} 
+                onClick={() => setShowDemoModal(true)} 
                 className="w-full sm:w-auto px-8 py-4 bg-transparent border border-slate-750 hover:bg-slate-900 text-white text-base font-extrabold rounded-xl transition-all cursor-pointer"
               >
-                Talk to Sales
+                Watch Demo
               </button>
             </div>
 
@@ -1197,6 +1237,97 @@ export default function SaaSMarketing() {
         </section>
 
       </div>
+
+      {/* Lead Capture Modal for Watch Demo */}
+      <AnimatePresence>
+        {showDemoModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDemoModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+
+            {/* Modal Body */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-8 overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] pointer-events-none" style={{ backgroundColor: `${brandColor}20` }} />
+              
+              <button 
+                onClick={() => setShowDemoModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="relative text-center mb-6">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
+                  <Play className="w-6 h-6 fill-current" />
+                </div>
+                <h3 className="text-xl font-extrabold text-slate-900 leading-tight">
+                  Unlock Free Access to the Demo
+                </h3>
+                <p className="text-slate-500 text-sm mt-1.5">
+                  Enter your info to watch how Tripbone builds and manages websites in under 2 minutes.
+                </p>
+              </div>
+
+              <form onSubmit={handleWatchDemoSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Full Name</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. John Doe"
+                    value={demoLead.name}
+                    onChange={(e) => setDemoLead({ ...demoLead, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl text-sm transition-all outline-none text-slate-900 font-medium"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Work Email</label>
+                  <input 
+                    type="email" 
+                    required
+                    placeholder="john@example.com"
+                    value={demoLead.email}
+                    onChange={(e) => setDemoLead({ ...demoLead, email: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl text-sm transition-all outline-none text-slate-900 font-medium"
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={submittingLead}
+                  className="w-full mt-6 py-3.5 text-white font-extrabold rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-center"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  {submittingLead ? (
+                    <span>Saving and Redirecting...</span>
+                  ) : (
+                    <>
+                      <span>Watch Demo Now</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+              
+              <p className="text-center text-[10px] text-slate-400 mt-4 leading-relaxed">
+                By clicking "Watch Demo", you agree to receive platform trial notifications. We never share your data.
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
