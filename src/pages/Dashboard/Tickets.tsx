@@ -10,9 +10,13 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSettings } from '../../lib/SettingsContext';
 
 export default function Tickets() {
   const { user, profile } = useOutletContext<{ user: any; profile: any }>();
+  const { settings, globalBrand } = useSettings();
+  const brandColor = settings?.primaryColor || globalBrand?.brandColor || '#1db3cd';
+
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
@@ -152,7 +156,10 @@ export default function Tickets() {
         );
       case 'replied':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+            style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+          >
             <CheckCircle2 className="h-3 w-3" />
             Replied
           </span>
@@ -179,7 +186,10 @@ export default function Tickets() {
   if (loading) {
     return (
       <div className="flex h-[350px] items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+        <div 
+          className="animate-spin rounded-full h-8 w-8 border-b-2"
+          style={{ borderBottomColor: brandColor }}
+        ></div>
       </div>
     );
   }
@@ -189,13 +199,14 @@ export default function Tickets() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-            <LifeBuoy className="text-orange-500 h-7 w-7" /> Support Tickets
+            <LifeBuoy className="h-7 w-7" style={{ color: brandColor }} /> Support Tickets
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Need help? Create a support request or contact Bali Adventours team.</p>
+          <p className="text-sm text-gray-400 mt-1">Need help? Create a support request or contact support team.</p>
         </div>
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold text-white bg-orange-500 hover:bg-primary rounded-[12px] shadow-md shadow-orange-500/10 transition-all cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold text-white rounded-[12px] transition-all cursor-pointer shadow-md hover:brightness-110"
+          style={{ backgroundColor: brandColor, boxShadow: `0 4px 10px ${brandColor}25` }}
         >
           <PlusCircle className="h-4 w-4" />
           Create Support Ticket
@@ -223,13 +234,14 @@ export default function Tickets() {
                 <button
                   key={t.id}
                   onClick={() => setActiveTicketId(t.id)}
-                  className={cn(
-                    "w-full text-left p-5 hover:bg-gray-50/80 transition-colors flex flex-col gap-2.5 relative border-l-4",
-                    t.id === activeTicketId ? "border-l-orange-500 bg-orange-50/10" : "border-l-transparent"
-                  )}
+                  className="w-full text-left p-5 hover:bg-gray-50/80 transition-colors flex flex-col gap-2.5 relative border-l-4"
+                  style={t.id === activeTicketId ? { borderLeftColor: brandColor, backgroundColor: `${brandColor}08` } : { borderLeftColor: 'transparent' }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-semibold text-primary bg-orange-50 px-2.5 py-1 rounded-md">
+                    <span 
+                      className="text-xs font-semibold px-2.5 py-1 rounded-md"
+                      style={{ color: brandColor, backgroundColor: `${brandColor}15` }}
+                    >
                       {t.category}
                     </span>
                     {getStatusBadge(t.status)}
@@ -285,20 +297,21 @@ export default function Tickets() {
                       className={cn(
                         "flex flex-col max-w-[80%] rounded-[16px] p-4 shadow-sm",
                         isMe 
-                          ? "ml-auto bg-orange-500 text-white rounded-tr-none" 
+                          ? "ml-auto text-white rounded-tr-none" 
                           : "mr-auto bg-white text-gray-800 border border-gray-100 rounded-tl-none"
                       )}
+                      style={isMe ? { backgroundColor: brandColor } : {}}
                     >
                       <span className={cn(
                         "text-[10px] font-black uppercase tracking-wider mb-1",
-                        isMe ? "text-orange-100" : "text-gray-400"
+                        isMe ? "text-white/85" : "text-gray-400"
                       )}>
                         {isMe ? 'You' : m.senderName}
                       </span>
                       <p className="text-sm whitespace-pre-line leading-relaxed">{m.text}</p>
                       <span className={cn(
                         "text-[9px] text-right mt-1.5 self-end block opacity-80",
-                        isMe ? "text-orange-100" : "text-gray-400"
+                        isMe ? "text-white/75" : "text-gray-400"
                       )}>
                         {m.timestamp instanceof Date 
                           ? m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
@@ -323,12 +336,14 @@ export default function Tickets() {
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       placeholder="Type your message reply..."
-                      className="flex-1 py-3 px-4 bg-gray-50 focus:bg-white border border-orange-50 rounded-[12px] focus:outline-none focus:border-orange-500 text-sm font-medium transition-all"
+                      className="flex-1 py-3 px-4 bg-gray-50 focus:bg-white border rounded-[12px] focus:outline-none text-sm font-medium transition-all"
+                      style={{ borderColor: `${brandColor}25` }}
                     />
                     <button
                       type="submit"
                       disabled={!replyText.trim()}
-                      className="p-3 bg-orange-500 hover:bg-primary disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-[12px] transition-colors cursor-pointer shrink-0"
+                      className="p-3 text-white rounded-[12px] transition-all cursor-pointer shrink-0 disabled:bg-gray-100 disabled:text-gray-400 hover:brightness-110"
+                      style={replyText.trim() ? { backgroundColor: brandColor } : {}}
                     >
                       <Send className="h-5 w-5" />
                     </button>
@@ -338,7 +353,7 @@ export default function Tickets() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400 h-[600px]">
-              <LifeBuoy className="h-16 w-16 text-orange-100 mb-4 animate-pulse" />
+              <LifeBuoy className="h-16 w-16 mb-4 animate-pulse" style={{ color: `${brandColor}40` }} />
               <h3 className="font-extrabold text-gray-700 text-lg">Support Inbox</h3>
               <p className="text-sm text-gray-400 mt-2 max-w-sm">Select a ticket from the left panel to review or send messages, or create a new support ticket.</p>
             </div>
@@ -358,7 +373,7 @@ export default function Tickets() {
             >
               <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
                 <h2 className="text-md font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                  <LifeBuoy className="h-5 w-5 text-orange-500" /> Create New Support Ticket
+                  <LifeBuoy className="h-5 w-5" style={{ color: brandColor }} /> Create New Support Ticket
                 </h2>
                 <button
                   onClick={() => setIsCreateOpen(false)}
@@ -377,7 +392,8 @@ export default function Tickets() {
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. Cannot finalize booking checkout"
-                    className="w-full font-semibold text-sm border-2 border-orange-50 rounded-xl px-4 py-3 bg-orange-50/10 focus:bg-white focus:border-orange-500 focus:outline-none transition-all"
+                    className="w-full font-semibold text-sm border-2 rounded-xl px-4 py-3 focus:bg-white focus:outline-none transition-all"
+                    style={{ borderColor: `${brandColor}15`, backgroundColor: `${brandColor}05` }}
                   />
                 </div>
 
@@ -386,7 +402,8 @@ export default function Tickets() {
                   <select
                     value={category}
                     onChange={(e: any) => setCategory(e.target.value)}
-                    className="w-full font-bold text-sm border-2 border-orange-50 rounded-xl px-4 py-3 bg-orange-50/10 focus:bg-white focus:border-orange-500 focus:outline-none transition-all"
+                    className="w-full font-bold text-sm border-2 rounded-xl px-4 py-3 focus:bg-white focus:outline-none transition-all"
+                    style={{ borderColor: `${brandColor}15`, backgroundColor: `${brandColor}05` }}
                   >
                     <option value="Booking">Booking Issues</option>
                     <option value="Tour Details">Tour Package Information</option>
@@ -404,7 +421,8 @@ export default function Tickets() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Please provide full details of your problem or request..."
-                    className="w-full font-semibold text-sm border-2 border-orange-50 rounded-xl px-4 py-3 bg-orange-50/10 focus:bg-white focus:border-orange-500 focus:outline-none transition-all resize-none"
+                    className="w-full font-semibold text-sm border-2 rounded-xl px-4 py-3 focus:bg-white focus:outline-none transition-all resize-none"
+                    style={{ borderColor: `${brandColor}15`, backgroundColor: `${brandColor}05` }}
                   />
                 </div>
 
@@ -419,7 +437,8 @@ export default function Tickets() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 py-3 bg-orange-500 hover:bg-primary disabled:bg-gray-200 text-white rounded-xl text-sm font-black uppercase tracking-wider transition-colors cursor-pointer"
+                    className="flex-1 py-3 text-white rounded-xl text-sm font-black uppercase tracking-wider transition-all cursor-pointer hover:brightness-110"
+                    style={{ backgroundColor: brandColor }}
                   >
                     {submitting ? 'Sending...' : 'Send Request'}
                   </button>

@@ -11486,14 +11486,14 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Tours</span>
                     <span className="text-xs font-black text-primary bg-orange-50 px-2 py-1 rounded-md">
-                      {Math.min(100, Math.round((tours.length / (tenantData?.plan === 'starter' ? 10 : tenantData?.plan === 'professional' ? 50 : tenantData?.plan === 'business' ? 100 : 999999)) * 100)) || 0}% Used
+                      {Math.min(100, Math.round((tours.length / ((tenantData?.plan || '').toLowerCase().includes('starter') ? 10 : (tenantData?.plan || '').toLowerCase().includes('professional') ? 50 : (tenantData?.plan || '').toLowerCase().includes('business') ? 100 : 999999)) * 100)) || 0}% Used
                     </span>
                   </div>
                   <p className="text-3xl font-black text-gray-900">
-                    {tours.length} <span className="text-lg font-bold text-gray-400">/ {tenantData?.plan === 'starter' ? '10' : tenantData?.plan === 'professional' ? '50' : tenantData?.plan === 'business' ? '100' : 'Unlimited'} tours</span>
+                    {tours.length} <span className="text-lg font-bold text-gray-400">/ {(tenantData?.plan || '').toLowerCase().includes('starter') ? '10' : (tenantData?.plan || '').toLowerCase().includes('professional') ? '50' : (tenantData?.plan || '').toLowerCase().includes('business') ? '100' : 'Unlimited'} tours</span>
                   </p>
                   <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.round((tours.length / (tenantData?.plan === 'starter' ? 10 : tenantData?.plan === 'professional' ? 50 : tenantData?.plan === 'business' ? 100 : 999999)) * 100)) || 0}%` }} />
+                    <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.round((tours.length / ((tenantData?.plan || '').toLowerCase().includes('starter') ? 10 : (tenantData?.plan || '').toLowerCase().includes('professional') ? 50 : (tenantData?.plan || '').toLowerCase().includes('business') ? 100 : 999999)) * 100)) || 0}%` }} />
                   </div>
                 </div>
 
@@ -11501,14 +11501,14 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Monthly Bookings</span>
                     <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                      {Math.min(100, Math.round((bookings.length / (tenantData?.plan === 'starter' ? 100 : tenantData?.plan === 'professional' ? 500 : tenantData?.plan === 'business' ? 2000 : 999999)) * 100)) || 0}% Used
+                      {Math.min(100, Math.round((bookings.length / ((tenantData?.plan || '').toLowerCase().includes('starter') ? 100 : (tenantData?.plan || '').toLowerCase().includes('professional') ? 500 : (tenantData?.plan || '').toLowerCase().includes('business') ? 2000 : 999999)) * 100)) || 0}% Used
                     </span>
                   </div>
                   <p className="text-3xl font-black text-gray-900">
-                    {bookings.length} <span className="text-lg font-bold text-gray-400">/ {tenantData?.plan === 'starter' ? '100' : tenantData?.plan === 'professional' ? '500' : tenantData?.plan === 'business' ? '2,000' : 'Unlimited'} bookings</span>
+                    {bookings.length} <span className="text-lg font-bold text-gray-400">/ {(tenantData?.plan || '').toLowerCase().includes('starter') ? '100' : (tenantData?.plan || '').toLowerCase().includes('professional') ? '500' : (tenantData?.plan || '').toLowerCase().includes('business') ? '2,000' : 'Unlimited'} bookings</span>
                   </p>
                   <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.round((bookings.length / (tenantData?.plan === 'starter' ? 100 : tenantData?.plan === 'professional' ? 500 : tenantData?.plan === 'business' ? 2000 : 999999)) * 100)) || 0}%` }} />
+                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.round((bookings.length / ((tenantData?.plan || '').toLowerCase().includes('starter') ? 100 : (tenantData?.plan || '').toLowerCase().includes('professional') ? 500 : (tenantData?.plan || '').toLowerCase().includes('business') ? 2000 : 999999)) * 100)) || 0}%` }} />
                   </div>
                 </div>
 
@@ -11589,7 +11589,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     { id: 'business', name: 'Business Plan', price: '$199', desc: 'Up to 100 tours & custom payments' },
                     { id: 'enterprise', name: 'Enterprise Plan', price: '$499', desc: 'Unlimited tours, custom API & webhooks' }
                   ].map((pkg) => {
-                    const isCurrent = (tenantData?.plan || 'starter') === pkg.id;
+                    const isCurrent = (tenantData?.plan || 'starter').split('-')[0].toLowerCase() === pkg.id;
                     return (
                       <div 
                         key={pkg.id} 

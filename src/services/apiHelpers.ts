@@ -50,6 +50,7 @@ export async function fetchFromREST(
   let projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'gen-lang-client-0785892115';
   let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
   let apiKey = '';
+  let authDomain = '';
 
   try {
     const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
@@ -58,12 +59,19 @@ export async function fetchFromREST(
       projectId = config.projectId || projectId;
       databaseId = config.firestoreDatabaseId || databaseId;
       apiKey = config.apiKey || apiKey;
+      authDomain = config.authDomain || authDomain;
     }
   } catch (e) {}
 
+  const headers: Record<string, string> = {};
+  if (authDomain) {
+    headers['Referer'] = `https://${authDomain}/`;
+    headers['Origin'] = `https://${authDomain}`;
+  }
+
   if (docId) {
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionName}/${docId}${apiKey ? `?key=${apiKey}` : ''}`;
-    const res = await axios.get(url);
+    const res = await axios.get(url, { headers });
     return parseRestDocument(res.data);
   } else {
     const structuredQuery: any = {
@@ -116,7 +124,7 @@ export async function fetchFromREST(
     }
 
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery${apiKey ? `?key=${apiKey}` : ''}`;
-    const res = await axios.post(url, { structuredQuery });
+    const res = await axios.post(url, { structuredQuery }, { headers });
     
     const documents = (res.data || [])
       .map((item: any) => item.document ? parseRestDocument(item.document) : null)

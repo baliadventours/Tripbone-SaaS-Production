@@ -381,7 +381,7 @@ service cloud.firestore {
         isSignedIn() && existing().userId == request.auth.uid &&
         incoming().userId == existing().userId &&
         incoming().createdAt == existing().createdAt &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'status', 'updatedAt'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'status', 'updatedAt', 'tenantId'])
       )) && isValidSupportTicket(incoming());
       allow delete: if isAdmin();
 

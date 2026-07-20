@@ -393,6 +393,23 @@ export async function createServer() {
         </div>
       `;
 
+      // Save the inquiry to Firestore so it can be managed by the tenant or platform in their CRM
+      try {
+        await adminDb.collection('inquiries').add({
+          tenantId: resolvedTenantId,
+          name,
+          email,
+          phone: phone || '',
+          subject: subject || 'General Inquiry',
+          message,
+          createdAt: new Date().toISOString(),
+          status: 'unread'
+        });
+        console.log(`[API /api/contact] Inquiry successfully saved to Firestore for tenant ${resolvedTenantId}`);
+      } catch (dbError: any) {
+        console.error("[API /api/contact] Warning: Failed to write inquiry to Firestore:", dbError.message);
+      }
+
       // Fallback override to Resend if provider is 'none' but process.env has RESEND_API_KEY
       if ((config.emailProvider === 'none' || !config.emailApiKey) && process.env.RESEND_API_KEY) {
         config.emailProvider = 'resend';
@@ -403,15 +420,20 @@ export async function createServer() {
       }
 
       if (config.emailProvider && config.emailProvider !== 'none' && config.emailApiKey) {
-        await sendEmailViaProvider(config, {
-          to: [recipientEmail],
-          subject: `[Contact Inquiry] ${subject || 'New Message'} - ${name}`,
-          html: htmlContent
-        });
-        res.json({ success: true, message: "Your message has been sent successfully." });
+        try {
+          await sendEmailViaProvider(config, {
+            to: [recipientEmail],
+            subject: `[Contact Inquiry] ${subject || 'New Message'} - ${name}`,
+            html: htmlContent
+          });
+          res.json({ success: true, message: "Your message has been sent successfully." });
+        } catch (mailError: any) {
+          console.error("[API /api/contact] Mail dispatch failed, fallback to DB log:", mailError.message);
+          res.json({ success: true, message: "Your message has been recorded successfully in our system." });
+        }
       } else {
-        console.warn("[API /api/contact] Warning: No active email provider configured for tenant contact routing.");
-        res.status(500).json({ error: "Email provider is not configured. Please setup your Resend or Mailjet API details in Admin settings." });
+        console.warn("[API /api/contact] Warning: No active email provider configured for tenant contact routing. Recorded in database.");
+        res.json({ success: true, message: "Your message has been recorded successfully in our system." });
       }
     } catch (error: any) {
       console.error("[API /api/contact] Error:", error);

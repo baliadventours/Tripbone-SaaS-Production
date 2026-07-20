@@ -41,8 +41,8 @@ const getJidString = (val: any): string => {
 };
 
 export default function TicketManager({ isTenantPortal = false }: { isTenantPortal?: boolean }) {
-  const { globalBrand } = useSettings();
-  const brandColor = globalBrand?.brandColor || '#1db3cd';
+  const { settings, globalBrand } = useSettings();
+  const brandColor = settings?.primaryColor || globalBrand?.brandColor || '#1db3cd';
 
   const [activeTab, setActiveTab] = useState<'web' | 'whatsapp'>('web');
   
@@ -119,12 +119,10 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
     const q = isTenantPortal && auth.currentUser?.email
       ? query(
           baseQuery,
-          where('userEmail', '==', auth.currentUser.email),
-          orderBy('updatedAt', 'desc')
+          where('userEmail', '==', auth.currentUser.email)
         )
       : query(
-          baseQuery,
-          orderBy('updatedAt', 'desc')
+          baseQuery
         );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -142,6 +140,20 @@ export default function TicketManager({ isTenantPortal = false }: { isTenantPort
           }))
         } as SupportTicket);
       });
+
+      // Sort client-side by updatedAt desc to bypass index requirement errors
+      fetched.sort((a, b) => {
+        const getTimestampMillis = (val: any): number => {
+          if (!val) return 0;
+          if (val instanceof Date) return val.getTime();
+          if (typeof val.toMillis === 'function') return val.toMillis();
+          if (typeof val.seconds === 'number') return val.seconds * 1000;
+          if (typeof val === 'string' || typeof val === 'number') return new Date(val).getTime() || 0;
+          return 0;
+        };
+        return getTimestampMillis(b.updatedAt) - getTimestampMillis(a.updatedAt);
+      });
+
       setWebTickets(fetched);
       setWebLoading(false);
     }, (error) => {

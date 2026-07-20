@@ -849,11 +849,15 @@ export default function SaaSHome() {
     if (!activeWorkspace) return { maxTours: 10, maxBookings: 25 };
     
     // Normalize plan slug
-    const planSlug = (activeWorkspace.plan || 'starter').split('-')[0].toLowerCase();
+    const fullPlanSlug = (activeWorkspace.plan || 'starter').toLowerCase();
+    const planSlug = fullPlanSlug.split('-')[0];
     const interval = (activeWorkspace.billingInterval || 'monthly').toLowerCase();
     
     // Find matching plan in state 'plans'
-    let matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug && (p.interval || 'monthly').toLowerCase() === interval);
+    let matchedPlan = plans.find(p => p.slug.toLowerCase() === fullPlanSlug);
+    if (!matchedPlan) {
+      matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug && (p.interval || 'monthly').toLowerCase() === interval);
+    }
     if (!matchedPlan) {
       matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug);
     }
