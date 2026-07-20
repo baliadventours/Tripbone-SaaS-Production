@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc } from '../lib/firebase';
+import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc, serverTimestamp } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getDoc, setDoc } from 'firebase/firestore';
 import { useTenant } from '../lib/TenantContext';
@@ -1200,10 +1200,10 @@ export default function SaaSSuperAdmin() {
   const handleResolveTicket = async (ticketId: string) => {
     try {
       await updateDoc(doc(db, 'supportTickets', ticketId), {
-        status: 'resolved',
-        updatedAt: new Date()
+        status: 'closed',
+        updatedAt: serverTimestamp()
       });
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'closed', updatedAt: new Date() } : t));
     } catch (err) {
       console.error('Error resolving ticket:', err);
     }
@@ -1211,11 +1211,12 @@ export default function SaaSSuperAdmin() {
 
   const handleUpdateTicketStatus = async (ticketId: string, status: string) => {
     try {
+      const dbStatus = status === 'resolved' ? 'closed' : status;
       await updateDoc(doc(db, 'supportTickets', ticketId), {
-        status,
-        updatedAt: new Date()
+        status: dbStatus,
+        updatedAt: serverTimestamp()
       });
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status, updatedAt: new Date() } : t));
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: dbStatus, updatedAt: new Date() } : t));
     } catch (err) {
       console.error('Error updating ticket status:', err);
     }
@@ -1231,7 +1232,7 @@ export default function SaaSSuperAdmin() {
       if (!activeTicket) return;
 
       const replyMessage = {
-        id: crypto.randomUUID(),
+        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
         senderId: 'superadmin',
         senderName: 'Staff Support',
         senderRole: 'admin',
@@ -1245,7 +1246,7 @@ export default function SaaSSuperAdmin() {
       await updateDoc(doc(db, 'supportTickets', selectedTicketId), {
         messages: revisedMessages,
         status: 'replied',
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       });
 
       // Update local state
@@ -4338,7 +4339,7 @@ export default function SaaSSuperAdmin() {
                       {/* Status and Resolution Controls */}
                       <div className="flex items-center gap-3 self-start md:self-auto">
                         <select
-                          value={activeTicket.status}
+                          value={activeTicket.status === 'closed' ? 'resolved' : activeTicket.status}
                           onChange={(e) => handleUpdateTicketStatus(activeTicket.id, e.target.value)}
                           className={`text-xs font-bold rounded-xl px-3 py-2 focus:outline-none transition-all border ${
                             isDarkMode 
@@ -4352,7 +4353,7 @@ export default function SaaSSuperAdmin() {
                           <option value="resolved">Resolved / Closed</option>
                         </select>
 
-                        {activeTicket.status !== 'resolved' && (
+                        {activeTicket.status !== 'resolved' && activeTicket.status !== 'closed' && (
                           <button
                             onClick={() => handleUpdateTicketStatus(activeTicket.id, 'resolved')}
                             className={`p-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1 border ${
