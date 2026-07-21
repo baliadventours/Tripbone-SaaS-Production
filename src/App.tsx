@@ -71,12 +71,18 @@ const SaaSPrivacy = lazy(() => import('./pages/SaaSPrivacy'));
 const SaasCookies = lazy(() => import('./pages/SaasCookies'));
 
 // Lazy load non-critical components
+import { useTenantSEO } from './hooks/useTenantSEO';
+
 const Chatbot = lazy(() => import('./components/Chatbot'));
 
 function AppContent() {
   const { isMaster, isAppGate, tenant, loading: tenantLoading, setPreviewTenant } = useTenant();
   const { settings, loading: settingsLoading } = useSettings();
   const location = useLocation();
+
+  // Dynamically update document metadata based on tenant data
+  useTenantSEO();
+
   const isAdmin = location.pathname.startsWith('/admin');
   const isSupplier = location.pathname.startsWith('/supplier');
   const isAgent = location.pathname.startsWith('/agent');
@@ -84,33 +90,6 @@ function AppContent() {
   const isDashboard = location.pathname.startsWith('/customer');
   const isCheckout = location.pathname.startsWith('/checkout');
   const isTourDetail = location.pathname.startsWith('/tour/');
-
-  // Determine dynamic metadata based on current page
-  const pageTitle = useMemo(() => {
-    if (isMaster) return 'Tripbone - Enterprise Multi Tenant SaaS Platform';
-    const baseTitle = settings?.siteName || tenant?.companyName || 'Tripbone';
-    
-    if (location.pathname === '/') {
-       let title = settings?.metaTitle || '';
-       if (!title && settings?.homeTitleFormat) {
-         title = settings.homeTitleFormat.replace(/\{\{siteName\}\}/gi, baseTitle);
-       }
-       return title || `Book Tour and Adventours in Bali - ${baseTitle}`;
-    }
-    
-    // Page specific titles could be expanded here
-    const pathParts = location.pathname.split('/').filter(Boolean);
-    if (pathParts.length > 0 && !isTourDetail) {
-      const pageName = pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1);
-      return `${pageName} | ${baseTitle}`;
-    }
-    return baseTitle;
-  }, [location.pathname, settings, tenant, isMaster, isTourDetail]);
-
-  const pageDescription = useMemo(() => {
-    if (isMaster) return 'Tripbone is an enterprise multi-tenant SaaS platform for tour operators and agencies.';
-    return settings?.metaDescription || settings?.siteDescription || (tenant?.companyName ? `Premium Tours & Experiences with ${tenant.companyName}` : '');
-  }, [settings, tenant, isMaster]);
 
   // Dynamic Tenant Branding Styles Override
   useEffect(() => {
@@ -211,12 +190,6 @@ function AppContent() {
   if (isMaster) {
     return (
       <div className="flex min-h-screen flex-col font-sans antialiased text-gray-100 bg-[#070b13] w-full max-w-full overflow-x-hidden">
-        <Helmet>
-          <title>{pageTitle}</title>
-          <meta name="description" content={pageDescription} />
-          {settings?.siteKeywords && <meta name="keywords" content={settings.siteKeywords} />}
-          <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
-        </Helmet>
         <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/admin/*" element={<SaaSSuperAdmin />} />
@@ -323,16 +296,6 @@ function AppContent() {
       !isTourDetail && "overflow-x-hidden",
       !hideMobileNav && "pb-[72px] md:pb-0"
     )}>
-      {(!tenantLoading && !settingsLoading) && (
-        <Helmet>
-          <title>{pageTitle}</title>
-          <meta name="description" content={pageDescription} />
-          {settings?.siteKeywords && <meta name="keywords" content={settings.siteKeywords} />}
-          <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
-          {settings?.ogImage && <meta property="og:image" content={settings.ogImage} />}
-          {!isMaster && tenant?.companyName && <meta property="og:site_name" content={tenant.companyName} />}
-        </Helmet>
-      )}
       {isInactive && (
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-center py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 z-[9999] relative shadow-md">
           <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] uppercase font-black">Notice</span>

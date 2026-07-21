@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, query, where, getDocs, limit } from '@/src/lib/firebase';
+import { collection, query, where, getDocs, limit, doc, getDoc, onSnapshot } from '@/src/lib/firebase';
 import { db, setActiveTenantId as setFirebaseTenantId } from './firebase';
 import { Tenant } from '../types';
 
@@ -10,6 +10,7 @@ interface TenantContextType {
   isAppGate: boolean; // True if on the app.tripbone.com app onboarding/billing portal
   loading: boolean;
   error: string | null;
+  globalSEO: any | null; // Added
   setPreviewTenant: (slug: string | null) => void;
 }
 
@@ -20,6 +21,7 @@ const TenantContext = createContext<TenantContextType>({
   isAppGate: false,
   loading: true,
   error: null,
+  globalSEO: null,
   setPreviewTenant: () => {}
 });
 
@@ -36,7 +38,6 @@ export const setActiveTenantId = (id: string | null) => {
 
 export const getActiveTenantId = () => activeTenantId;
 
-
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantId, setTenantIdInternal] = useState<string | null>(null);
@@ -44,6 +45,35 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [isAppGate, setIsAppGate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [globalSEO, setGlobalSEO] = useState<any | null>(null);
+
+  // Fetch global SEO settings
+  useEffect(() => {
+    const seoRef = doc(db, 'settings', 'globalSEO');
+    const unsubscribe = onSnapshot(seoRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setGlobalSEO(docSnap.data());
+      } else {
+        setGlobalSEO({
+          title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+          description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
+          image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+          siteName: 'Tripbone SaaS'
+        });
+      }
+    }, (err) => {
+      console.error('Error fetching global SEO:', err);
+      // Fallback
+      setGlobalSEO({
+          title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+          description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
+          image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+          siteName: 'Tripbone SaaS'
+      });
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Parse hostname and query parameter to resolve tenant
   const resolveTenantSlug = (): { slug: string | null; customDomain: string | null; isAppGateHost: boolean } => {
@@ -191,7 +221,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <TenantContext.Provider value={{ tenant, tenantId, isMaster, isAppGate, loading, error, setPreviewTenant }}>
+    <TenantContext.Provider value={{ tenant, tenantId, isMaster, isAppGate, loading, error, globalSEO, setPreviewTenant }}>
       {children}
     </TenantContext.Provider>
   );
