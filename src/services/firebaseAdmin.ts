@@ -110,7 +110,7 @@ export function createFirestoreRestProxy(): any {
     }
   ) => {
     let projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'gen-lang-client-0785892115';
-    let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
+    let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || 'ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420';
     let apiKey = '';
 
     try {
@@ -401,7 +401,7 @@ export function getAdminDb() {
     return adminDb;
   }
   
-  let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
+  let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || 'ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420';
   let configSource = 'env';
 
   try {
@@ -481,7 +481,7 @@ export async function getDocViaRest(collectionName: string, docId: string, idTok
     }
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     const projectId = config.projectId;
-    const databaseId = config.firestoreDatabaseId || "(default)";
+    const databaseId = config.firestoreDatabaseId || "ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420";
     const apiKey = config.apiKey;
 
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionName}/${docId}?key=${apiKey}`;
@@ -566,7 +566,7 @@ export async function createDocViaRest(collectionName: string, data: any, req?: 
     }
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     const projectId = config.projectId;
-    const databaseId = config.firestoreDatabaseId || "(default)";
+    const databaseId = config.firestoreDatabaseId || "ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420";
     const apiKey = config.apiKey;
 
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionName}?key=${apiKey}`;
@@ -600,7 +600,7 @@ export async function writeDocViaRest(collectionName: string, docId: string, dat
     }
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     const projectId = config.projectId;
-    const databaseId = config.firestoreDatabaseId || "(default)";
+    const databaseId = config.firestoreDatabaseId || "ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420";
     const apiKey = config.apiKey;
 
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionName}/${docId}?key=${apiKey}`;
@@ -764,7 +764,7 @@ export async function verifyUser(idToken?: string, userId?: string) {
 
 export async function deleteDocViaRest(collection: string, id: string, req?: any) {
   let projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'gen-lang-client-0785892115';
-  let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
+  let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || 'ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420';
   let apiKey = '';
 
   try {

@@ -1539,7 +1539,7 @@ export async function createServer() {
           firestoreConfigFound = true;
           const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
           const projectId = config.projectId;
-          const databaseId = config.firestoreDatabaseId || "(default)";
+          const databaseId = config.firestoreDatabaseId || "ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420";
           const apiKey = config.apiKey;
           const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/email_logs?key=${apiKey}&pageSize=30`;
           
@@ -1679,7 +1679,7 @@ export async function createServer() {
         source: "Bali Adventours CMS",
         totalCollections: collectionsToBackup.length,
         totalDocumentsFound: totalDocs,
-        databaseId: db.databaseId || '(default)',
+        databaseId: db.databaseId || 'ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420',
         userId: authResult.decodedToken?.uid || 'unknown',
         isPartial: !!collectionsParam
       };

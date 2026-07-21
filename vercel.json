@@ -2,7 +2,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/ssr.ts": {
-      "includeFiles": "dist/**, firebase-applet-config.json, firebase.json"
+      "includeFiles": "{dist/**,firebase-applet-config.json,firebase.json}"
     }
   },
   "rewrites": [

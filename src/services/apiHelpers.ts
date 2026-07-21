@@ -48,7 +48,7 @@ export async function fetchFromREST(
   }
 ) {
   let projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'gen-lang-client-0785892115';
-  let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
+  let databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || 'ai-studio-tripbonesaas-bc73f611-b9f1-4175-a949-14e52d815420';
   let apiKey = '';
   let authDomain = '';
 
