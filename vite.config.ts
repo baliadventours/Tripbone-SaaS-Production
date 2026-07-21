@@ -12,7 +12,7 @@ function renameHtmlPlugin() {
       const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.dirname(new URL(import.meta.url).pathname);
       const distDir = path.resolve(currentDir, 'dist');
       const htmlPath = path.join(distDir, 'app.html');
-      const templatePath = path.join(distDir, 'index.template.html');
+      const templatePath = path.join(distDir, 'app.template.html');
       const fallbackPath = path.resolve(currentDir, 'src/indexHtmlFallback.ts');
 
       try {
@@ -24,14 +24,19 @@ function renameHtmlPlugin() {
           fs.writeFileSync(fallbackPath, fallbackContent);
           console.log('[Vite Plugin] Successfully updated src/indexHtmlFallback.ts');
 
-          // 2. Write to index.template.html
+          // 2. Write to app.template.html
           fs.writeFileSync(templatePath, htmlContent);
-          console.log('[Vite Plugin] Successfully wrote dist/index.template.html');
+          console.log('[Vite Plugin] Successfully wrote dist/app.template.html');
 
           // 3. Delete dist/app.html so Vercel/CDNs cannot serve it statically,
           // forcing all page loads to pass through our dynamic express-ssr/SEO engine!
           fs.unlinkSync(htmlPath);
           console.log('[Vite Plugin] Successfully deleted dist/app.html to bypass static cache');
+
+          if (fs.existsSync(path.join(distDir, 'index.html'))) {
+            fs.unlinkSync(path.join(distDir, 'index.html'));
+            console.log('[Vite Plugin] Successfully deleted dist/index.html to bypass static cache');
+          }
         } else {
           console.log('[Vite Plugin] dist/app.html not found, skipping rename');
         }

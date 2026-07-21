@@ -4838,7 +4838,7 @@ export async function createServer() {
     let distPath = path.join(process.cwd(), 'dist');
     
     // Auto-detect correct dist folder in serverless or standard container environments
-    const hasIndexFile = (dir: string) => fs.existsSync(path.join(dir, 'app.html')) || fs.existsSync(path.join(dir, 'index.template.html'));
+    const hasIndexFile = (dir: string) => fs.existsSync(path.join(dir, 'app.html')) || fs.existsSync(path.join(dir, 'app.template.html'));
     
     if (!fs.existsSync(distPath) || !hasIndexFile(distPath)) {
       const currentFilename = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== 'undefined' ? __filename : '');
@@ -4907,8 +4907,8 @@ export async function createServer() {
 
         const seo = await getSEOContent(req, type);
         
-        // Find correct index.template.html or index.html path resolving dynamically
-        let htmlPath = path.join(distPath, 'index.template.html');
+        // Find correct app.template.html or index.html path resolving dynamically
+        let htmlPath = path.join(distPath, 'app.template.html');
         if (!fs.existsSync(htmlPath)) {
           htmlPath = path.join(distPath, 'app.html');
         }
@@ -4917,17 +4917,17 @@ export async function createServer() {
           const currentFilename = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== 'undefined' ? __filename : '');
           const currentDirname = currentFilename ? path.dirname(currentFilename) : (typeof __dirname !== 'undefined' ? __dirname : '');
           const htmlCandidates = [
-            path.resolve(process.cwd(), 'dist', 'index.template.html'),
+            path.resolve(process.cwd(), 'dist', 'app.template.html'),
             path.resolve(process.cwd(), 'dist', 'app.html'),
-            path.resolve(currentDirname, 'dist', 'index.template.html'),
+            path.resolve(currentDirname, 'dist', 'app.template.html'),
             path.resolve(currentDirname, 'dist', 'app.html'),
-            path.resolve(currentDirname, '..', 'dist', 'index.template.html'),
+            path.resolve(currentDirname, '..', 'dist', 'app.template.html'),
             path.resolve(currentDirname, '..', 'dist', 'app.html'),
-            path.resolve(currentDirname, '..', '..', 'dist', 'index.template.html'),
+            path.resolve(currentDirname, '..', '..', 'dist', 'app.template.html'),
             path.resolve(currentDirname, '..', '..', 'dist', 'app.html'),
-            '/var/task/dist/index.template.html',
+            '/var/task/dist/app.template.html',
             '/var/task/dist/app.html',
-            '/var/task/app/dist/index.template.html',
+            '/var/task/app/dist/app.template.html',
             '/var/task/app/dist/app.html'
           ];
           for (const cand of htmlCandidates) {
@@ -4978,8 +4978,8 @@ export async function createServer() {
           };
           
           let rawHtml = fallbackHtmlTemplate;
-          const fallbackPath = fs.existsSync(path.join(distPath, 'index.template.html'))
-            ? path.join(distPath, 'index.template.html')
+          const fallbackPath = fs.existsSync(path.join(distPath, 'app.template.html'))
+            ? path.join(distPath, 'app.template.html')
             : path.join(distPath, 'app.html');
           
           if (fs.existsSync(fallbackPath)) {
