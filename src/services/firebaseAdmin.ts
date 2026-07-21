@@ -115,7 +115,7 @@ export function createFirestoreRestProxy(): any {
 
     try {
       const rootPath = process.cwd();
-      const configPath = path.resolve(rootPath, "firebase-applet-config.json");
+      const possiblePaths = [path.resolve(rootPath, "firebase-applet-config.json"), path.resolve(rootPath, "..", "firebase-applet-config.json"), path.resolve(rootPath, "public", "firebase-applet-config.json"), "/var/task/firebase-applet-config.json", "/var/task/app/firebase-applet-config.json"]; let configPath = possiblePaths[0]; for (const p of possiblePaths) { if (fs.existsSync(p)) { configPath = p; break; } }
       if (fs.existsSync(configPath)) {
         const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
         projectId = config.projectId || projectId;
@@ -475,7 +475,7 @@ export function mapRestFields(fields: any): Record<string, any> {
 export async function getDocViaRest(collectionName: string, docId: string, idToken?: string, req?: any): Promise<any> {
   try {
     const rootPath = process.cwd();
-    const configPath = path.resolve(rootPath, "firebase-applet-config.json");
+    const possiblePaths = [path.resolve(rootPath, "firebase-applet-config.json"), path.resolve(rootPath, "..", "firebase-applet-config.json"), path.resolve(rootPath, "public", "firebase-applet-config.json"), "/var/task/firebase-applet-config.json", "/var/task/app/firebase-applet-config.json"]; let configPath = possiblePaths[0]; for (const p of possiblePaths) { if (fs.existsSync(p)) { configPath = p; break; } }
     if (!fs.existsSync(configPath)) {
       return null;
     }
@@ -560,7 +560,7 @@ export function convertToRestFields(obj: any): any {
 export async function createDocViaRest(collectionName: string, data: any, req?: any): Promise<any> {
   try {
     const rootPath = process.cwd();
-    const configPath = path.resolve(rootPath, "firebase-applet-config.json");
+    const possiblePaths = [path.resolve(rootPath, "firebase-applet-config.json"), path.resolve(rootPath, "..", "firebase-applet-config.json"), path.resolve(rootPath, "public", "firebase-applet-config.json"), "/var/task/firebase-applet-config.json", "/var/task/app/firebase-applet-config.json"]; let configPath = possiblePaths[0]; for (const p of possiblePaths) { if (fs.existsSync(p)) { configPath = p; break; } }
     if (!fs.existsSync(configPath)) {
       return null;
     }
@@ -594,7 +594,7 @@ export async function createDocViaRest(collectionName: string, data: any, req?: 
 export async function writeDocViaRest(collectionName: string, docId: string, data: any, req?: any): Promise<any> {
   try {
     const rootPath = process.cwd();
-    const configPath = path.resolve(rootPath, "firebase-applet-config.json");
+    const possiblePaths = [path.resolve(rootPath, "firebase-applet-config.json"), path.resolve(rootPath, "..", "firebase-applet-config.json"), path.resolve(rootPath, "public", "firebase-applet-config.json"), "/var/task/firebase-applet-config.json", "/var/task/app/firebase-applet-config.json"]; let configPath = possiblePaths[0]; for (const p of possiblePaths) { if (fs.existsSync(p)) { configPath = p; break; } }
     if (!fs.existsSync(configPath)) {
       return null;
     }

@@ -109,7 +109,7 @@ export async function createServer() {
         let bucketName = process.env.VITE_FIREBASE_STORAGE_BUCKET;
         if (!bucketName) {
           try {
-            const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+            const possiblePaths = [path.resolve(process.cwd(), "firebase-applet-config.json"), path.resolve(process.cwd(), "..", "firebase-applet-config.json"), path.resolve(process.cwd(), "public", "firebase-applet-config.json"), "/var/task/firebase-applet-config.json", "/var/task/app/firebase-applet-config.json"]; let configPath = possiblePaths[0]; for (const p of possiblePaths) { if (fs.existsSync(p)) { configPath = p; break; } }
             if (fs.existsSync(configPath)) {
               const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
               bucketName = config.storageBucket;
@@ -1533,7 +1533,7 @@ export async function createServer() {
         
         // Fetch email_logs via REST API as fallback
         const rootPath = process.cwd();
-        const configPath = path.resolve(rootPath, "firebase-applet-config.json");
+        const possiblePaths = [path.resolve(rootPath, "firebase-applet-config.json"), path.resolve(rootPath, "..", "firebase-applet-config.json"), path.resolve(rootPath, "public", "firebase-applet-config.json"), "/var/task/firebase-applet-config.json", "/var/task/app/firebase-applet-config.json"]; let configPath = possiblePaths[0]; for (const p of possiblePaths) { if (fs.existsSync(p)) { configPath = p; break; } }
 
         if (fs.existsSync(configPath)) {
           firestoreConfigFound = true;

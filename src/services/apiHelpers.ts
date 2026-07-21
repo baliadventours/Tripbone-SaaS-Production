@@ -53,7 +53,22 @@ export async function fetchFromREST(
   let authDomain = '';
 
   try {
-    const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+    const rootPath = process.cwd();
+    const possiblePaths = [
+      path.resolve(rootPath, "firebase-applet-config.json"),
+      path.resolve(rootPath, "..", "firebase-applet-config.json"),
+      path.resolve(rootPath, "public", "firebase-applet-config.json"),
+      "/var/task/firebase-applet-config.json",
+      "/var/task/app/firebase-applet-config.json"
+    ];
+    let configPath = possiblePaths[0];
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        configPath = p;
+        break;
+      }
+    }
+    
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
       projectId = config.projectId || projectId;
