@@ -323,12 +323,16 @@ function AppContent() {
       !isTourDetail && "overflow-x-hidden",
       !hideMobileNav && "pb-[72px] md:pb-0"
     )}>
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        {settings?.siteKeywords && <meta name="keywords" content={settings.siteKeywords} />}
-        <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
-      </Helmet>
+      {(!tenantLoading && !settingsLoading) && (
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          {settings?.siteKeywords && <meta name="keywords" content={settings.siteKeywords} />}
+          <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
+          {settings?.ogImage && <meta property="og:image" content={settings.ogImage} />}
+          {!isMaster && tenant?.companyName && <meta property="og:site_name" content={tenant.companyName} />}
+        </Helmet>
+      )}
       {isInactive && (
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-center py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 z-[9999] relative shadow-md">
           <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] uppercase font-black">Notice</span>
