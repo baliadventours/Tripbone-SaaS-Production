@@ -11682,9 +11682,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                 return;
                               }
                               // Hit the Vercel API
+                              const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
                               const res = await fetch('/api/tenant/add-domain', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({ domain: tenantData?.customDomain || '' })
                               });
                               if (!res.ok) {
@@ -11769,7 +11770,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                             return;
                           }
                           try {
-                            const res = await fetch(`/api/tenant/verify-domain?domain=${encodeURIComponent(tenantData.customDomain)}`);
+                            const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+                            const res = await fetch(`/api/tenant/verify-domain?domain=${encodeURIComponent(tenantData.customDomain)}`, {
+                              headers: { 'Authorization': `Bearer ${token}` }
+                            });
                             const data = await res.json();
                             if (data.verified) {
                               alert(`Pinging Custom Domain DNS Records...\nDiagnostic Status: 100% OK! DNS successfully propagated.`);

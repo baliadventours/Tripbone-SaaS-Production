@@ -1341,6 +1341,14 @@ export async function createServer() {
   // API Route: Delete SaaS Workspace and cascade delete all data securely
   app.post("/api/delete-workspace", async (req: any, res: any) => {
     try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : undefined;
+      const authResult = await verifyAdmin(idToken);
+      
+      if (!authResult.isAdmin) {
+        return res.status(403).json({ error: "Forbidden: Super Admin access required to delete workspaces." });
+      }
+
       const { tenantId } = req.body;
       
       if (!tenantId) {
@@ -1442,7 +1450,17 @@ export async function createServer() {
   // API Route: Delete User Account Securely
   app.post("/api/delete-user", async (req: any, res: any) => {
     try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : undefined;
+      const authResult = await verifyAdmin(idToken);
+      
       const { uid } = req.body;
+      
+      // Allow if admin, or if user is deleting their own account
+      if (!authResult.isAdmin && (!authResult.uid || authResult.uid !== uid)) {
+        return res.status(403).json({ error: "Forbidden: Not authorized to delete this user." });
+      }
+
       if (!uid) {
         return res.status(400).json({ error: "Missing required parameter (uid)" });
       }
@@ -1482,6 +1500,13 @@ export async function createServer() {
   // API Route: Email Diagnostic
   app.get("/api/admin/email-diagnostic", async (req, res) => {
     try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : undefined;
+      const authResult = await verifyAdmin(idToken);
+      if (!authResult.isAdmin) {
+        return res.status(403).json({ error: "Forbidden: Super Admin access required." });
+      }
+
       // Use the safe resolver which handles Admin SDK and REST fallbacks
       const resolvedConfig = await resolveEmailConfig();
 
@@ -1950,6 +1975,11 @@ export async function createServer() {
   // API Route: Verify custom domain DNS configuration
   app.get("/api/tenant/verify-domain", async (req: any, res: any) => {
     try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : undefined;
+      const authResult = await verifyAdmin(idToken);
+      if (!authResult.isAdmin && !authResult.uid) return res.status(403).json({ error: "Forbidden: Login required." });
+      
       const { domain } = req.query;
       if (!domain) return res.status(400).json({ error: "Missing required query parameter 'domain'" });
 
@@ -2000,6 +2030,11 @@ export async function createServer() {
 
   // API Route: Add Custom Domain to Vercel
   app.post("/api/tenant/add-domain", async (req: any, res: any) => {
+    const authHeader = req.headers.authorization;
+    const idToken = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : undefined;
+    const authResult = await verifyAdmin(idToken);
+    if (!authResult.isAdmin && !authResult.uid) return res.status(403).json({ error: "Forbidden: Login required." });
+
     const { domain } = req.body;
     if (!domain) return res.status(400).json({ error: 'Domain is required' });
 
@@ -2027,6 +2062,11 @@ export async function createServer() {
 
   // API Route: Remove Custom Domain from Vercel
   app.delete("/api/tenant/remove-domain", async (req: any, res: any) => {
+    const authHeader = req.headers.authorization;
+    const idToken = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : undefined;
+    const authResult = await verifyAdmin(idToken);
+    if (!authResult.isAdmin && !authResult.uid) return res.status(403).json({ error: "Forbidden: Login required." });
+
     const domain = req.query.domain;
     if (!domain) return res.status(400).json({ error: 'Domain is required' });
 

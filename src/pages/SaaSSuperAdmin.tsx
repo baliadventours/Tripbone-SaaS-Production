@@ -1354,9 +1354,10 @@ export default function SaaSSuperAdmin() {
     setIsDeletingCustomer(true);
     setError(null);
     try {
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch('/api/delete-workspace', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ tenantId: tenantToDelete.id })
       });
       const data = await response.json();
@@ -1377,9 +1378,10 @@ export default function SaaSSuperAdmin() {
   const handleDeleteUser = async (userId: string) => {
     if (!window.confirm('Are you sure you want to delete this user? This action is irreversible.')) return;
     try {
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch('/api/delete-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ uid: userId })
       });
       const data = await response.json();

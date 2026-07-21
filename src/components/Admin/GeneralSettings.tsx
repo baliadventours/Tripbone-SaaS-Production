@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, getDocs, limit, query } from '@/src/lib/firebase';
-import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { SiteSettings, Booking, Payout } from '../../types';
 import { uploadImage } from '../../lib/imgbb';
 import { useTenant } from '../../lib/TenantContext';
@@ -105,7 +105,10 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
     setVerifyingDomain(true);
     setVerificationResult(null);
     try {
-      const res = await fetch(`/api/tenant/verify-domain?domain=${encodeURIComponent(settings.customDomain)}`);
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const res = await fetch(`/api/tenant/verify-domain?domain=${encodeURIComponent(settings.customDomain)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       setVerificationResult(data);
     } catch (err: any) {
@@ -172,7 +175,11 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
         // If there was an old domain, remove it first
         if (initialCustomDomain) {
           try {
-            await fetch(`/api/tenant/remove-domain?domain=${encodeURIComponent(initialCustomDomain)}`, { method: 'DELETE' });
+            const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+            await fetch(`/api/tenant/remove-domain?domain=${encodeURIComponent(initialCustomDomain)}`, { 
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
           } catch (e) {
             console.error("Failed to remove old domain", e);
           }
@@ -181,9 +188,10 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
         // If a new domain was added
         if (settings.customDomain) {
           try {
+            const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
             await fetch(`/api/tenant/add-domain`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ domain: settings.customDomain })
             });
           } catch (e) {
