@@ -4568,7 +4568,7 @@ export async function createServer() {
 
     if (settings) {
       seo.siteName = settings.siteName || tenantDoc?.companyName || seo.siteName;
-      seo.image = settings.ogImage || tenantDoc?.logo || seo.image;
+      seo.image = settings.ogImage || settings.heroImage || settings.logoURL || tenantDoc?.logo || seo.image;
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
@@ -4757,12 +4757,15 @@ export async function createServer() {
     modified = modified.replace(/<meta\s+[^>]*property=["']og:[^"']*["'][^>]*\/?>/gi, '');
     // Strip existing twitter:* tags
     modified = modified.replace(/<meta\s+[^>]*name=["']twitter:[^"']*["'][^>]*\/?>/gi, '');
+    // Strip apple-mobile-web-app-title
+    modified = modified.replace(/<meta\s+[^>]*name=["']apple-mobile-web-app-title["'][^>]*\/?>/gi, '');
 
     // 3. Inject fully compiled fresh tags right before </head>
     const ogTags = `
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDesc}" />
     <meta name="keywords" content="${safeKeywords}" />
+    <meta name="apple-mobile-web-app-title" content="${safeSiteName}" />
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:description" content="${safeDesc}" />
     <meta property="og:image" content="${safeImage}" />

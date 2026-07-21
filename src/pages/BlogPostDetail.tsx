@@ -277,13 +277,13 @@ export default function BlogPostDetail() {
         <link rel="canonical" href={window.location.href} />
         <meta property="og:title" content={blogTitle} />
         <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={post.featuredImage || settings?.ogImage || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
+        <meta property="og:image" content={post.featuredImage || settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
         <meta property="og:url" content={window.location.href} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={blogTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={post.featuredImage || settings?.ogImage || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
+        <meta name="twitter:image" content={post.featuredImage || settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
         {blogSchema && <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>}
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
       </Helmet>

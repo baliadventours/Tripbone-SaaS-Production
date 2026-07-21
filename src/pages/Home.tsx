@@ -1612,7 +1612,7 @@ export default function Home() {
         />
         <meta
           property="og:image"
-          content={settings?.ogImage || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
+          content={settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
         />
 
         {/* Twitter */}
@@ -1631,7 +1631,7 @@ export default function Home() {
         />
         <meta
           property="twitter:image"
-          content={settings?.ogImage || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
+          content={settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
         />
 
         <script type="application/ld+json">

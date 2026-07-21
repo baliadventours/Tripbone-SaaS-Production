@@ -16,7 +16,7 @@ export function useTenantSEO() {
     const siteDescription = settings?.metaDescription || settings?.siteDescription || 
         (tenant?.companyName ? `Premium Tours & Experiences with ${tenant.companyName}` : globalSEO?.description);
     const siteKeywords = settings?.siteKeywords || globalSEO?.keywords || '';
-    const siteImage = settings?.ogImage || tenant?.logo || globalSEO?.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
+    const siteImage = settings?.ogImage || settings?.heroImage || settings?.logoURL || tenant?.logo || globalSEO?.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
 
     let title = siteName;
     if (isMaster) {

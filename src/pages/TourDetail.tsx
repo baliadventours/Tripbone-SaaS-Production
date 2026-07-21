@@ -239,13 +239,13 @@ export default function TourDetail() {
         <link rel="canonical" href={window.location.href} />
         <meta property="og:title" content={tourTitle} />
         <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={tour.featuredImage || tour.gallery?.[0] || settings?.ogImage || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
+        <meta property="og:image" content={tour.featuredImage || tour.gallery?.[0] || settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
         <meta property="og:url" content={window.location.href} />
         <meta property="og:type" content="product" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={tourTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={tour.featuredImage || tour.gallery?.[0] || settings?.ogImage || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
+        <meta name="twitter:image" content={tour.featuredImage || tour.gallery?.[0] || settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
         {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
       </Helmet>
