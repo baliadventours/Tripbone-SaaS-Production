@@ -192,13 +192,12 @@ service cloud.firestore {
       allow get: if isValidId(bookingId); 
       allow list: if 
         isAdmin() || 
-        (resource.data.customerData.email != null) ||
         (isSignedIn() && (
           resource.data.userId == request.auth.uid || 
           resource.data.supplierId == request.auth.uid
         ));
       
-      allow create: if true; // Temporarily open for debugging
+      allow create: if isValidBooking(incoming());
       
       allow update: if (isAdmin() || (
         (isSignedIn() || existing().userId == 'anonymous') && (
@@ -244,7 +243,7 @@ service cloud.firestore {
       
       // Regular signup creation
       allow create: if isOwner(userId) && 
-                      (incoming().role == 'customer' || incoming().role == 'admin' || incoming().role == 'supplier' || incoming().role == 'agent') && 
+                      incoming().role == 'customer' && 
                       (incoming().createdAt == request.time || incoming().createdAt != null);
       
       // Identity maintenance
@@ -287,8 +286,8 @@ service cloud.firestore {
                guide.whatsapp is string && guide.whatsapp.size() > 0 && guide.whatsapp.size() <= 32;
       }
     }
-    match /communicationSettings/{id} { allow read: if true; allow write: if true; }
-    match /email_logs/{id} { allow read: if isAdmin(); allow write: if true; }
+    match /communicationSettings/{id} { allow read: if isAdmin(); allow write: if isAdmin(); }
+    match /email_logs/{id} { allow read: if isAdmin(); allow write: if false; }
 
     // --- Coupons ---
     match /coupons/{id} {
@@ -367,8 +366,8 @@ service cloud.firestore {
     // --- Inventory ---
     match /inventory/{inventoryId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow create: if isAdmin() || isSupplier();
+      allow update: if isAdmin() || isSupplier();
       allow delete: if isAdmin();
     }
 
@@ -432,7 +431,8 @@ service cloud.firestore {
 
     // --- Notifications ---
     match /notifications/{notificationId} {
-      allow read, write: if true;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if isAdmin();
     }
   }
 }

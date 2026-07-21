@@ -158,14 +158,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
 
   function applySettings(data: SiteSettings) {
-    // Apply SEO metadata
-    document.title = data.metaTitle || data.siteName;
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute('content', data.metaDescription || data.siteDescription);
-    
-    const metaKeywords = document.querySelector('meta[name="keywords"]');
-    if (metaKeywords) metaKeywords.setAttribute('content', data.siteKeywords);
-
     // Apply colors to CSS variables
     document.documentElement.style.setProperty('--primary-color', data.primaryColor);
 
