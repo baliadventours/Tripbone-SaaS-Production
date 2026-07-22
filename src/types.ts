@@ -1,3 +1,41 @@
+export interface MultiDayItineraryItem {
+  id?: string;
+  time: string; // e.g. "08:00"
+  title: string; // e.g. "Pick up at airport"
+  image?: string; // Image URL
+  description?: string; // Activity description
+}
+
+export interface MultiDayItineraryDay {
+  dayNumber: number; // 1, 2, 3...
+  title: string; // e.g. "Day I: Arrival & Airport Pick Up"
+  description?: string; // Day one overview description
+  itineraryItems: MultiDayItineraryItem[];
+}
+
+export interface RoomTypeOption {
+  id: string;
+  name: string; // e.g. "Single", "Double", "Private", "Suite"
+  price: number; // Room type price rate
+  description?: string;
+}
+
+export interface AccommodationOption {
+  id: string;
+  category: 'Resort' | 'Villa' | 'Airbnb' | 'Hotel' | string; // Accommodation type category
+  name: string; // Hotel / Resort Name e.g. "Hilton Bali"
+  image?: string;
+  description?: string;
+  roomTypes: RoomTypeOption[];
+}
+
+export interface MultiDayGuideOption {
+  id: string;
+  language: string; // e.g. "English", "Spanish"
+  price: number; // Guide price rate
+  description?: string;
+}
+
 export interface PricingTier {
   minParticipants: number;
   maxParticipants: number;
@@ -106,6 +144,10 @@ export interface Tour {
   addOnIds?: string[]; // Selection from global add-ons
   addOns?: AddOn[]; // Kept for backward compatibility or snapshots
   transportIds?: string[]; // Selection from global transports
+  tourDurationType?: 'single_day' | 'multi_day'; // Toggle single vs multi day tour
+  multiDayItinerary?: MultiDayItineraryDay[]; // Detailed multi-day itinerary with time slots
+  accommodations?: AccommodationOption[]; // Accommodations / Hotels with room types & prices
+  multiDayGuides?: MultiDayGuideOption[]; // Multi-day guide options with prices
   meetingPoint?: string; // Tour level meeting point
   faqs: {
     question: string;
@@ -237,6 +279,19 @@ export interface Booking {
   tenantId?: string; // Multi-tenancy reference
   bookingSource: 'Direct' | 'Klook' | 'Viator' | 'GetYourGuide' | 'Manual' | 'Agent' | string; // Source of the booking
   selectedTransport?: TransportOption | null; // Transport selection for booking
+  selectedAccommodation?: {
+    accommodationId: string;
+    accommodationName: string;
+    category: string;
+    roomTypeId: string;
+    roomTypeName: string;
+    price: number;
+  } | null;
+  selectedGuideOption?: {
+    guideId: string;
+    language: string;
+    price: number;
+  } | null;
   transportTotal?: number; // Total price calculated for transport option
   internalNotes?: string; // New field for admin notes
   logs?: BookingLog[]; // New: activity logs

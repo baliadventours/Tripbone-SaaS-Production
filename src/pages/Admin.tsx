@@ -31,7 +31,7 @@ import {
   User, CheckCircle2, AlertCircle, FileCode, Terminal, ChevronLeft,
   Share2, Printer, XCircle, ExternalLink, UserCheck, ArrowRight,
   ArrowLeft, Clock4, Ban, Bot,
-  Zap, Send, Mail, Search
+  Zap, Send, Mail, Search, Hotel, Bed, Home, Building
 } from 'lucide-react';
 
 import { cn, formatPrice } from '../lib/utils';
@@ -171,7 +171,7 @@ import GoogleAnalytics from './Dashboard/GoogleAnalytics';
 import AIHubManager from '../components/Admin/AIHubManager';
 
 type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
-type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
+type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
 
 const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'locations' | 'labels', items: (Category | TourType | LocationMeta | TourLabel)[] }) => {
   const [newValue, setNewValue] = useState('');
@@ -7379,7 +7379,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       faqs: [], locationMapUrl: '',
       infoSections: [], importantInfo: '',
       maxCapacity: 0, slotCapacity: 0,
-      supplierId: '', supplierName: '', status: 'draft'
+      supplierId: '', supplierName: '', status: 'draft',
+      tourDurationType: 'single_day',
+      multiDayItinerary: [],
+      accommodations: [],
+      multiDayGuides: []
     });
   };
 
@@ -7394,6 +7398,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     setFormData({
       ...formData, // default values
       ...tour,
+      tourDurationType: tour.tourDurationType || 'single_day',
+      multiDayItinerary: tour.multiDayItinerary || [],
+      accommodations: tour.accommodations || [],
+      multiDayGuides: tour.multiDayGuides || [],
       gallery: tour.gallery || [],
       highlights: tour.highlights || [],
       inclusions: tour.inclusions || [],
@@ -7520,6 +7528,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     { id: 'inclusions', label: 'Incl/Excl', icon: CheckCircle },
     { id: 'pricing', label: 'Pricing & Pkgs', icon: DollarSign },
     { id: 'itinerary', label: 'Itinerary', icon: MapIcon },
+    ...(formData.tourDurationType === 'multi_day' ? [
+      { id: 'accommodations' as Tab, label: 'Hotel & Accommodations', icon: Hotel },
+      { id: 'guides' as Tab, label: 'Guide Options', icon: UserCheck },
+    ] : []),
     { id: 'addOns', label: 'Add-ons', icon: PlusCircle },
     { id: 'transports', label: 'Transports', icon: Car },
     { id: 'info', label: 'Important Info', icon: ShieldAlert },
@@ -12399,6 +12411,50 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
               {/* Basic Info Tab */}
               {activeTab === 'basic' && (
                 <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+                  {/* Single Day vs Multi Days Selector */}
+                  <div className="p-5 bg-gradient-to-r from-orange-50/50 to-amber-50/50 rounded-2xl border-2 border-orange-100/70 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" /> Tour Duration Type
+                      </label>
+                      <span className="text-[10px] font-bold text-gray-400">Select if this tour is a 1-day trip or multi-day journey</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, tourDurationType: 'single_day' })}
+                        className={cn(
+                          "p-4 rounded-xl border-2 text-xs font-black transition-all flex items-center justify-center gap-3 cursor-pointer",
+                          (formData.tourDurationType === 'single_day' || !formData.tourDurationType)
+                            ? "bg-white border-primary text-primary shadow-md scale-[1.01]"
+                            : "bg-white/60 border-gray-100 text-gray-500 hover:bg-white hover:border-gray-200"
+                        )}
+                      >
+                        <Sun className="h-5 w-5 text-amber-500" />
+                        <div className="text-left">
+                          <div className="font-black text-sm">Single Day Tour</div>
+                          <div className="text-[10px] text-gray-400 font-normal">Day trip with single itinerary timeline</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, tourDurationType: 'multi_day' })}
+                        className={cn(
+                          "p-4 rounded-xl border-2 text-xs font-black transition-all flex items-center justify-center gap-3 cursor-pointer",
+                          formData.tourDurationType === 'multi_day'
+                            ? "bg-white border-primary text-primary shadow-md scale-[1.01]"
+                            : "bg-white/60 border-gray-100 text-gray-500 hover:bg-white hover:border-gray-200"
+                        )}
+                      >
+                        <CalendarIcon className="h-5 w-5 text-blue-500" />
+                        <div className="text-left">
+                          <div className="font-black text-sm">Multi Days Tour</div>
+                          <div className="text-[10px] text-gray-400 font-normal">Multi-day itinerary with hotels & guides</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-gray-700">Tour Title</label>
@@ -13216,8 +13272,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 </div>
               )}
 
-              {/* Itinerary Tab */}
-              {activeTab === 'itinerary' && (
+              {/* Single Day Itinerary Tab */}
+              {activeTab === 'itinerary' && formData.tourDurationType !== 'multi_day' && (
                 <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-gray-900 border-l-4 border-blue-600 pl-3 uppercase tracking-wider text-sm">Day-by-Day Journey</h3>
@@ -13437,6 +13493,568 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Multi-Day Itinerary Tab */}
+              {activeTab === 'itinerary' && formData.tourDurationType === 'multi_day' && (
+                <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-black text-gray-900 border-l-4 border-blue-600 pl-3 uppercase tracking-wider text-sm">Multi-Day Tour Itinerary</h3>
+                      <p className="text-xs text-gray-400 pl-4 mt-0.5">Organize day-by-day title, description, and time-stamped schedule with photos</p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const days = formData.multiDayItinerary || [];
+                        const nextDayNum = days.length + 1;
+                        const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+                        const label = romanNumerals[nextDayNum - 1] || `${nextDayNum}`;
+                        setFormData({
+                          ...formData,
+                          multiDayItinerary: [
+                            ...days,
+                            {
+                              dayNumber: nextDayNum,
+                              title: `Day ${label}: Title`,
+                              description: '',
+                              itineraryItems: [
+                                { time: '08:00', title: 'Pick up at airport', image: '', description: '' }
+                              ]
+                            }
+                          ]
+                        });
+                      }} 
+                      className="font-bold bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+                    >
+                      <PlusCircle className="h-4 w-4" /> Add Day
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    {(formData.multiDayItinerary || []).map((day, dayIdx) => (
+                      <div key={dayIdx} className="border-2 border-gray-100 rounded-2xl bg-white shadow-sm overflow-hidden space-y-4 p-6">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                          <div className="flex items-center gap-3 flex-1">
+                            <span className="h-8 w-8 bg-blue-600 text-white font-black rounded-xl text-xs flex items-center justify-center shrink-0">
+                              {day.dayNumber}
+                            </span>
+                            <input
+                              type="text"
+                              placeholder="Day Title (e.g. Day I: Pick up & Arrival)"
+                              value={day.title}
+                              onChange={e => {
+                                const updated = [...(formData.multiDayItinerary || [])];
+                                updated[dayIdx] = { ...updated[dayIdx], title: e.target.value };
+                                setFormData({ ...formData, multiDayItinerary: updated });
+                              }}
+                              className="font-black text-lg text-gray-900 border-b border-dashed border-gray-200 focus:border-blue-600 focus:outline-none w-full max-w-lg pb-1"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (formData.multiDayItinerary || []).filter((_, idx) => idx !== dayIdx);
+                              setFormData({ ...formData, multiDayItinerary: updated });
+                            }}
+                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete Day"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Day Description</label>
+                          <textarea
+                            placeholder="Overview description for this day..."
+                            rows={2}
+                            value={day.description}
+                            onChange={e => {
+                              const updated = [...(formData.multiDayItinerary || [])];
+                              updated[dayIdx] = { ...updated[dayIdx], description: e.target.value };
+                              setFormData({ ...formData, multiDayItinerary: updated });
+                            }}
+                            className="w-full text-xs font-medium text-gray-700 bg-gray-50 border border-gray-100 rounded-xl p-3 focus:outline-none focus:border-blue-300"
+                          />
+                        </div>
+
+                        {/* Time Schedule Items */}
+                        <div className="space-y-4 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-gray-800 uppercase tracking-wider">Schedule Items</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...(formData.multiDayItinerary || [])];
+                                const currentItems = updated[dayIdx].itineraryItems || [];
+                                updated[dayIdx] = {
+                                  ...updated[dayIdx],
+                                  itineraryItems: [...currentItems, { time: '09:00', title: '', image: '', description: '' }]
+                                };
+                                setFormData({ ...formData, multiDayItinerary: updated });
+                              }}
+                              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add Schedule Event
+                            </button>
+                          </div>
+
+                          <div className="space-y-3 pl-2 border-l-2 border-blue-100">
+                            {(day.itineraryItems || []).map((item, itemIdx) => (
+                              <div key={itemIdx} className="bg-gray-50/70 p-4 rounded-xl border border-gray-100 space-y-3 relative group">
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="08:00"
+                                    value={item.time}
+                                    onChange={e => {
+                                      const updated = [...(formData.multiDayItinerary || [])];
+                                      const items = [...updated[dayIdx].itineraryItems];
+                                      items[itemIdx] = { ...items[itemIdx], time: e.target.value };
+                                      updated[dayIdx] = { ...updated[dayIdx], itineraryItems: items };
+                                      setFormData({ ...formData, multiDayItinerary: updated });
+                                    }}
+                                    className="w-24 text-xs font-black bg-white border border-gray-200 rounded-lg p-2 text-blue-700 text-center"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Event Title (e.g. Pick up at airport)"
+                                    value={item.title}
+                                    onChange={e => {
+                                      const updated = [...(formData.multiDayItinerary || [])];
+                                      const items = [...updated[dayIdx].itineraryItems];
+                                      items[itemIdx] = { ...items[itemIdx], title: e.target.value };
+                                      updated[dayIdx] = { ...updated[dayIdx], itineraryItems: items };
+                                      setFormData({ ...formData, multiDayItinerary: updated });
+                                    }}
+                                    className="flex-1 text-xs font-bold bg-white border border-gray-200 rounded-lg p-2 text-gray-900"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.multiDayItinerary || [])];
+                                      const items = updated[dayIdx].itineraryItems.filter((_, idx) => idx !== itemIdx);
+                                      updated[dayIdx] = { ...updated[dayIdx], itineraryItems: items };
+                                      setFormData({ ...formData, multiDayItinerary: updated });
+                                    }}
+                                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                    title="Remove event"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-3">
+                                  <div className="md:col-span-2">
+                                    <textarea
+                                      placeholder="Event description..."
+                                      rows={2}
+                                      value={item.description}
+                                      onChange={e => {
+                                        const updated = [...(formData.multiDayItinerary || [])];
+                                        const items = [...updated[dayIdx].itineraryItems];
+                                        items[itemIdx] = { ...items[itemIdx], description: e.target.value };
+                                        updated[dayIdx] = { ...updated[dayIdx], itineraryItems: items };
+                                        setFormData({ ...formData, multiDayItinerary: updated });
+                                      }}
+                                      className="w-full text-xs bg-white border border-gray-200 rounded-lg p-2 text-gray-700"
+                                    />
+                                  </div>
+                                  <div>
+                                    {item.image ? (
+                                      <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-200 group/img">
+                                        <img src={item.image} className="w-full h-full object-cover" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = [...(formData.multiDayItinerary || [])];
+                                            const items = [...updated[dayIdx].itineraryItems];
+                                            items[itemIdx] = { ...items[itemIdx], image: '' };
+                                            updated[dayIdx] = { ...updated[dayIdx], itineraryItems: items };
+                                            setFormData({ ...formData, multiDayItinerary: updated });
+                                          }}
+                                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-md opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            openMediaGallery((urls) => {
+                                              if (urls[0]) {
+                                                const updated = [...(formData.multiDayItinerary || [])];
+                                                const items = [...updated[dayIdx].itineraryItems];
+                                                items[itemIdx] = { ...items[itemIdx], image: urls[0] };
+                                                updated[dayIdx] = { ...updated[dayIdx], itineraryItems: items };
+                                                setFormData({ ...formData, multiDayItinerary: updated });
+                                              }
+                                            }, false);
+                                          }}
+                                          className="flex-1 py-2 px-3 bg-white border border-gray-200 hover:border-blue-300 text-gray-700 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-2xs"
+                                        >
+                                          <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
+                                          Image
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {(formData.multiDayItinerary || []).length === 0 && (
+                      <div className="text-center py-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl">
+                        <CalendarIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-gray-500">No multi-day itinerary added yet.</p>
+                        <p className="text-[10px] text-gray-400 mt-1">Click "Add Day" above to start building Day 1, Day 2 schedule.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Accommodations Tab */}
+              {activeTab === 'accommodations' && (
+                <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-black text-gray-900 border-l-4 border-emerald-600 pl-3 uppercase tracking-wider text-sm">Hotel & Accommodation Options</h3>
+                      <p className="text-xs text-gray-400 pl-4 mt-0.5">Admin can create unlimited accommodation types (Resorts, Villas, Hotels, Airbnb) with room options and pricing</p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const accs = formData.accommodations || [];
+                        setFormData({
+                          ...formData,
+                          accommodations: [
+                            ...accs,
+                            {
+                              id: `acc_${Date.now()}`,
+                              category: 'Resorts',
+                              name: '',
+                              image: '',
+                              description: '',
+                              roomTypes: [
+                                { id: `rt_${Date.now()}_1`, name: 'Single Room', price: 50, description: '' },
+                                { id: `rt_${Date.now()}_2`, name: 'Double Room', price: 90, description: '' }
+                              ]
+                            }
+                          ]
+                        });
+                      }} 
+                      className="font-bold bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+                    >
+                      <PlusCircle className="h-4 w-4" /> Add Accommodation Option
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    {(formData.accommodations || []).map((acc, accIdx) => (
+                      <div key={acc.id || accIdx} className="border-2 border-gray-100 rounded-2xl bg-white shadow-sm p-6 space-y-4">
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Accommodation Type / Category</label>
+                            <select
+                              value={acc.category}
+                              onChange={e => {
+                                const updated = [...(formData.accommodations || [])];
+                                updated[accIdx] = { ...updated[accIdx], category: e.target.value as any };
+                                setFormData({ ...formData, accommodations: updated });
+                              }}
+                              className="w-full text-xs font-bold border-2 border-gray-100 rounded-xl p-3 focus:border-emerald-600 focus:outline-none"
+                            >
+                              <option value="Resorts">Resorts</option>
+                              <option value="Hotel">Hotel</option>
+                              <option value="Villa">Villa</option>
+                              <option value="Airbnb">Airbnb</option>
+                              <option value="Guest House">Guest House</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-2 flex items-center gap-3">
+                            <div className="flex-1">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Accommodation Name</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Grand Bali Resort"
+                                value={acc.name}
+                                onChange={e => {
+                                  const updated = [...(formData.accommodations || [])];
+                                  updated[accIdx] = { ...updated[accIdx], name: e.target.value };
+                                  setFormData({ ...formData, accommodations: updated });
+                                }}
+                                className="w-full text-xs font-bold border-2 border-gray-100 rounded-xl p-3 focus:border-emerald-600 focus:outline-none"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = (formData.accommodations || []).filter((_, idx) => idx !== accIdx);
+                                setFormData({ ...formData, accommodations: updated });
+                              }}
+                              className="p-3 mt-4 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                              title="Delete Accommodation"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Description</label>
+                            <textarea
+                              placeholder="Description of the hotel, location, highlights..."
+                              rows={3}
+                              value={acc.description}
+                              onChange={e => {
+                                const updated = [...(formData.accommodations || [])];
+                                updated[accIdx] = { ...updated[accIdx], description: e.target.value };
+                                setFormData({ ...formData, accommodations: updated });
+                              }}
+                              className="w-full text-xs font-medium border-2 border-gray-100 rounded-xl p-3 focus:border-emerald-600 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Photo</label>
+                            {acc.image ? (
+                              <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 group">
+                                <img src={acc.image} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...(formData.accommodations || [])];
+                                    updated[accIdx] = { ...updated[accIdx], image: '' };
+                                    setFormData({ ...formData, accommodations: updated });
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  openMediaGallery((urls) => {
+                                    if (urls[0]) {
+                                      const updated = [...(formData.accommodations || [])];
+                                      updated[accIdx] = { ...updated[accIdx], image: urls[0] };
+                                      setFormData({ ...formData, accommodations: updated });
+                                    }
+                                  }, false);
+                                }}
+                                className="w-full aspect-video rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1 hover:border-emerald-500 hover:bg-emerald-50/20 text-gray-500 font-bold text-xs"
+                              >
+                                <ImageIcon className="h-5 w-5 text-emerald-600" />
+                                Select Image
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Room Types */}
+                        <div className="pt-4 border-t border-gray-100 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                              <Bed className="h-4 w-4 text-emerald-600" /> Room Types & Pricing
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...(formData.accommodations || [])];
+                                const roomTypes = updated[accIdx].roomTypes || [];
+                                updated[accIdx] = {
+                                  ...updated[accIdx],
+                                  roomTypes: [
+                                    ...roomTypes,
+                                    { id: `rt_${Date.now()}`, name: 'Private Room', price: 100, description: '' }
+                                  ]
+                                };
+                                setFormData({ ...formData, accommodations: updated });
+                              }}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add Room Option
+                            </button>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-3">
+                            {(acc.roomTypes || []).map((room, roomIdx) => (
+                              <div key={room.id || roomIdx} className="bg-emerald-50/30 border border-emerald-100 p-3 rounded-xl space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Room Name (e.g. Single / Double / Private)"
+                                    value={room.name}
+                                    onChange={e => {
+                                      const updated = [...(formData.accommodations || [])];
+                                      const roomTypes = [...updated[accIdx].roomTypes];
+                                      roomTypes[roomIdx] = { ...roomTypes[roomIdx], name: e.target.value };
+                                      updated[accIdx] = { ...updated[accIdx], roomTypes };
+                                      setFormData({ ...formData, accommodations: updated });
+                                    }}
+                                    className="flex-1 text-xs font-bold bg-white border border-gray-200 rounded-lg p-2 text-gray-900"
+                                  />
+                                  <div className="relative w-28">
+                                    <span className="absolute left-2.5 top-2 text-xs font-bold text-gray-400">$</span>
+                                    <input
+                                      type="number"
+                                      placeholder="0"
+                                      value={room.price}
+                                      onChange={e => {
+                                        const updated = [...(formData.accommodations || [])];
+                                        const roomTypes = [...updated[accIdx].roomTypes];
+                                        roomTypes[roomIdx] = { ...roomTypes[roomIdx], price: parseFloat(e.target.value) || 0 };
+                                        updated[accIdx] = { ...updated[accIdx], roomTypes };
+                                        setFormData({ ...formData, accommodations: updated });
+                                      }}
+                                      className="w-full text-xs font-bold bg-white border border-gray-200 rounded-lg p-2 pl-6 text-emerald-700"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.accommodations || [])];
+                                      const roomTypes = updated[accIdx].roomTypes.filter((_, idx) => idx !== roomIdx);
+                                      updated[accIdx] = { ...updated[accIdx], roomTypes };
+                                      setFormData({ ...formData, accommodations: updated });
+                                    }}
+                                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {(formData.accommodations || []).length === 0 && (
+                      <div className="text-center py-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl">
+                        <Hotel className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-gray-500">No accommodation options created yet.</p>
+                        <p className="text-[10px] text-gray-400 mt-1">Click "Add Accommodation Option" above to create hotels, resorts, villas, or airbnbs.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Guides Tab */}
+              {activeTab === 'guides' && (
+                <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-black text-gray-900 border-l-4 border-indigo-600 pl-3 uppercase tracking-wider text-sm">Tour Guide Language Options</h3>
+                      <p className="text-xs text-gray-400 pl-4 mt-0.5">Define multi-language guide choices and associated pricing for multi-day trips</p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const guides = formData.multiDayGuides || [];
+                        setFormData({
+                          ...formData,
+                          multiDayGuides: [
+                            ...guides,
+                            {
+                              id: `guide_${Date.now()}`,
+                              language: 'English',
+                              price: 0,
+                              description: 'Professional Licensed English Speaking Guide'
+                            }
+                          ]
+                        });
+                      }} 
+                      className="font-bold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+                    >
+                      <PlusCircle className="h-4 w-4" /> Add Guide Option
+                    </button>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {(formData.multiDayGuides || []).map((guide, guideIdx) => (
+                      <div key={guide.id || guideIdx} className="border-2 border-gray-100 rounded-2xl bg-white shadow-sm p-5 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Language Name</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. English, Spanish, German, Japanese"
+                              value={guide.language}
+                              onChange={e => {
+                                const updated = [...(formData.multiDayGuides || [])];
+                                updated[guideIdx] = { ...updated[guideIdx], language: e.target.value };
+                                setFormData({ ...formData, multiDayGuides: updated });
+                              }}
+                              className="w-full text-xs font-bold border-2 border-gray-100 rounded-xl p-3 focus:border-indigo-600 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="w-32">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Extra Price ($)</label>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={guide.price}
+                              onChange={e => {
+                                const updated = [...(formData.multiDayGuides || [])];
+                                updated[guideIdx] = { ...updated[guideIdx], price: parseFloat(e.target.value) || 0 };
+                                setFormData({ ...formData, multiDayGuides: updated });
+                              }}
+                              className="w-full text-xs font-bold border-2 border-gray-100 rounded-xl p-3 text-indigo-700 focus:border-indigo-600 focus:outline-none"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (formData.multiDayGuides || []).filter((_, idx) => idx !== guideIdx);
+                              setFormData({ ...formData, multiDayGuides: updated });
+                            }}
+                            className="p-3 mt-4 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Guide Note / Description</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Fluent local guide included throughout the multi-day tour"
+                            value={guide.description || ''}
+                            onChange={e => {
+                              const updated = [...(formData.multiDayGuides || [])];
+                              updated[guideIdx] = { ...updated[guideIdx], description: e.target.value };
+                              setFormData({ ...formData, multiDayGuides: updated });
+                            }}
+                            className="w-full text-xs font-medium border border-gray-100 bg-gray-50 rounded-lg p-2 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {(formData.multiDayGuides || []).length === 0 && (
+                    <div className="text-center py-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl">
+                      <UserCheck className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-gray-500">No guide language options added yet.</p>
+                      <p className="text-[10px] text-gray-400 mt-1">Click "Add Guide Option" above to offer multi-language guides.</p>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -1,4 +1,4 @@
-import { Check, X, MapPin, Clock, Globe, HelpCircle, MessageSquare, Info, ShieldCheck } from 'lucide-react';
+import { Check, X, MapPin, Clock, Globe, HelpCircle, MessageSquare, Info, ShieldCheck, Calendar, Bed, Hotel, UserCheck } from 'lucide-react';
 import { Tour } from '../../types';
 import { motion } from 'motion/react';
 import { useSettings } from '../../lib/SettingsContext';
@@ -84,50 +84,138 @@ export default function TourInfo({ tour }: TourInfoProps) {
       {/* Itinerary */}
       <section id="itinerary" className="scroll-mt-[116px]">
         <h2 className="mb-8 text-2xl font-black text-gray-900 tracking-tight">Tour Itinerary</h2>
-        <div className="space-y-12">
-          {(tour.itinerary || []).map((item, idx) => (
-            <div key={idx} className="relative group">
-              {idx !== (tour.itinerary || []).length - 1 && (
-                <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-orange-100/50 group-hover:bg-orange-200 transition-colors" />
-              )}
-              <div className="flex gap-6">
-                <div className="relative z-10">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-xs shadow-lg shadow-orange-100 ring-4 ring-white">
-                    {idx + 1}
+        
+        {tour.tourDurationType === 'multi_day' && tour.multiDayItinerary && tour.multiDayItinerary.length > 0 ? (
+          <div className="space-y-12">
+            {tour.multiDayItinerary.map((day, dIdx) => (
+              <div key={dIdx} className="border-2 border-orange-100/60 rounded-2xl bg-white p-6 md:p-8 shadow-sm space-y-6">
+                <div className="border-b border-gray-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="px-3 py-1 bg-primary text-white font-black rounded-lg text-xs tracking-wider">
+                      DAY {day.dayNumber}
+                    </span>
+                    <h3 className="text-xl font-extrabold text-gray-900">{day.title}</h3>
+                  </div>
+                  {day.description && (
+                    <p className="mt-3 text-sm text-gray-600 leading-relaxed">{day.description}</p>
+                  )}
+                </div>
+
+                {/* Day Schedule Items */}
+                <div className="space-y-6 pt-2">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-primary">Schedule</h4>
+                  <div className="space-y-6 pl-2 border-l-2 border-orange-100">
+                    {(day.itineraryItems || []).map((item, itemIdx) => (
+                      <div key={itemIdx} className="relative pl-6 space-y-3">
+                        <div className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-white border-4 border-primary" />
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black text-primary bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100">
+                            {item.time}
+                          </span>
+                          <h5 className="font-extrabold text-gray-900 text-base">{item.title}</h5>
+                        </div>
+
+                        {item.image && (
+                          <div className="max-w-md aspect-video rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                            <SmartImage src={item.image} alt={item.title} className="hover:scale-105 transition-transform" />
+                          </div>
+                        )}
+
+                        {item.description && (
+                          <p className="text-xs md:text-sm text-gray-600 font-medium leading-relaxed">{item.description}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="flex-1 space-y-4">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors">{item.title}</h3>
-                    {item.pickup && (
-                      <div className="flex items-center gap-2 text-primary font-bold text-[10px] bg-orange-50 w-fit px-2 py-0.5 rounded-full border border-orange-100">
-                        <MapPin className="h-3 w-3" />
-                        {typeof item.pickup === 'object' ? item.pickup.description : item.pickup}
-                      </div>
-                    )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {(tour.itinerary || []).map((item, idx) => (
+              <div key={idx} className="relative group">
+                {idx !== (tour.itinerary || []).length - 1 && (
+                  <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-orange-100/50 group-hover:bg-orange-200 transition-colors" />
+                )}
+                <div className="flex gap-6">
+                  <div className="relative z-10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-xs shadow-lg shadow-orange-100 ring-4 ring-white">
+                      {idx + 1}
+                    </div>
                   </div>
-                  
-                  <div className="flex flex-col gap-4">
-                    {(item.image || (typeof item.pickup === 'object' && item.pickup?.image)) && (
-                      <div className="w-full aspect-[3/2] bg-gray-50 overflow-hidden rounded-xl">
-                        <SmartImage 
-                          src={item.image || (typeof item.pickup === 'object' ? item.pickup?.image : '')} 
-                          alt={item.title} 
-                          className="group-hover:scale-105" 
-                          aspectRatio="auto"
-                        />
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors">{item.title}</h3>
+                      {item.pickup && (
+                        <div className="flex items-center gap-2 text-primary font-bold text-[10px] bg-orange-50 w-fit px-2 py-0.5 rounded-full border border-orange-100">
+                          <MapPin className="h-3 w-3" />
+                          {typeof item.pickup === 'object' ? item.pickup.description : item.pickup}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-4">
+                      {(item.image || (typeof item.pickup === 'object' && item.pickup?.image)) && (
+                        <div className="w-full aspect-[3/2] bg-gray-50 overflow-hidden rounded-xl">
+                          <SmartImage 
+                            src={item.image || (typeof item.pickup === 'object' ? item.pickup?.image : '')} 
+                            alt={item.title} 
+                            className="group-hover:scale-105" 
+                            aspectRatio="auto"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm leading-relaxed text-gray-500 font-medium text-justify">{item.description}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-sm leading-relaxed text-gray-500 font-medium text-justify">{item.description}</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
+
+      {/* Accommodations Preview if Multi-Day */}
+      {tour.tourDurationType === 'multi_day' && tour.accommodations && tour.accommodations.length > 0 && (
+        <section id="accommodations" className="scroll-mt-[116px]">
+          <h2 className="mb-6 text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+            <Hotel className="h-6 w-6 text-primary" /> Accommodation Options
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-6">
+            {tour.accommodations.map((acc, idx) => (
+              <div key={idx} className="border border-gray-100 rounded-2xl bg-white p-5 shadow-xs space-y-3">
+                {acc.image && (
+                  <div className="aspect-video rounded-xl overflow-hidden bg-gray-100">
+                    <SmartImage src={acc.image} alt={acc.name} className="hover:scale-105 transition-transform" />
+                  </div>
+                )}
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-orange-50 px-2 py-0.5 rounded">
+                    {acc.category}
+                  </span>
+                  <h3 className="font-extrabold text-gray-900 text-lg mt-1">{acc.name}</h3>
+                  {acc.description && <p className="text-xs text-gray-500 mt-1">{acc.description}</p>}
+                </div>
+                {acc.roomTypes && acc.roomTypes.length > 0 && (
+                  <div className="pt-2 border-t border-gray-50 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Available Rooms</span>
+                    <div className="flex flex-wrap gap-2">
+                      {acc.roomTypes.map((rt, rtIdx) => (
+                        <span key={rtIdx} className="text-xs bg-gray-50 font-bold text-gray-700 px-2.5 py-1 rounded-lg border border-gray-100">
+                          {rt.name} (${rt.price})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Important Information */}
       <section id="info" className="scroll-mt-[116px]">
