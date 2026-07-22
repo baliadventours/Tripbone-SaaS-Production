@@ -50,6 +50,7 @@ import {
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { cn, parseMeetingPoint } from "../lib/utils";
 import FormattedPrice from "../components/FormattedPrice";
+import SmartImage from "../components/SmartImage";
 import { useCurrency } from "../lib/CurrencyContext";
 import { motion, AnimatePresence } from "motion/react";
 import { sendBookingEmail } from "../lib/emailService";
@@ -753,7 +754,7 @@ export default function Checkout() {
 
   const summary = useMemo(() => {
     if (!selectedPackage)
-      return { packageTotal: 0, accommodationTotal: 0, guideTotal: 0, transportTotal: 0, addonsTotal: 0, discount: 0, grandTotal: 0, amountToPay: 0 };
+      return { packageTotal: 0, accommodationTotal: 0, guideTotal: 0, transportTotal: 0, addonsTotal: 0, discount: 0, agentDiscount: 0, grandTotal: 0, amountToPay: 0, amountPaid: 0 };
     const packageTotal = calculatePackagePrice(selectedPackage);
     const addonsTotal = selectedAddOns.reduce(
       (sum, addon) => sum + addon.price * addon.quantity,

@@ -705,7 +705,7 @@ export async function safeVerifyIdToken(idToken: string): Promise<any> {
   }
 }
 
-export async function verifyAdmin(idToken?: string) {
+export async function verifyAdmin(idToken?: string): Promise<{ isAdmin: boolean; error?: string; decodedToken?: any; uid?: string }> {
   if (!idToken) {
     return { isAdmin: false, error: "No authentication token provided." };
   }
@@ -714,16 +714,17 @@ export async function verifyAdmin(idToken?: string) {
     const rawAdminEmail = (process.env.ADMIN_EMAIL || 'baliadventours@gmail.com').trim().toLowerCase();
     const userEmail = (decodedToken.email || '').trim().toLowerCase();
     const isRoleAdmin = decodedToken.role === 'admin' || decodedToken.admin === true;
+    const uid = decodedToken.uid || decodedToken.sub;
     
     let isAdmin = userEmail === rawAdminEmail || userEmail === 'admin@tripbone.com' || userEmail === 'kuotabox@gmail.com' || isRoleAdmin;
     
     // In case there is no role claim in token, check users collection as a fallback
-    if (!isAdmin && decodedToken.uid) {
+    if (!isAdmin && uid) {
       try {
-        const userDoc = await getDocViaRest('users', decodedToken.uid, idToken);
+        const userDoc = await getDocViaRest('users', uid, idToken);
         if (userDoc && userDoc.role === 'admin') {
           isAdmin = true;
-          console.log(`[verifyAdmin] Verified admin role from Firestore REST fallback for UID: ${decodedToken.uid}`);
+          console.log(`[verifyAdmin] Verified admin role from Firestore REST fallback for UID: ${uid}`);
         }
       } catch (e) {
         console.warn("[verifyAdmin] Firestore REST role check failed:", e);
@@ -739,10 +740,10 @@ export async function verifyAdmin(idToken?: string) {
     
     if (!isAdmin) {
       console.warn(`[verifyAdmin] Access DENIED for ${userEmail}. Expected: ${rawAdminEmail}`);
-      return { isAdmin: false, error: `Access denied. ${decodedToken.email} is not in the admin list.` };
+      return { isAdmin: false, uid, error: `Access denied. ${decodedToken.email} is not in the admin list.` };
     }
     
-    return { isAdmin: true, decodedToken };
+    return { isAdmin: true, decodedToken, uid };
   } catch (e: any) {
     console.error("[verifyAdmin] Token verification failed:", e.message);
     return { isAdmin: false, error: `Token verification failed: ${e.message}` };
