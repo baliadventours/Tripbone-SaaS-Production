@@ -42,6 +42,10 @@ import {
   ChevronLeft,
   Car,
   Bus,
+  Hotel,
+  Bed,
+  UserCheck,
+  Building2,
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { cn, parseMeetingPoint } from "../lib/utils";
@@ -359,6 +363,19 @@ export default function Checkout() {
   const [selectedTransport, setSelectedTransport] = useState<TransportOption | null>(null);
   const [selectedTransportType, setSelectedTransportType] = useState<'meet' | 'shared' | 'private' | null>(null);
   const [globalTransports, setGlobalTransports] = useState<TransportOption[]>([]);
+  const [selectedAccommodation, setSelectedAccommodation] = useState<{
+    accommodationId: string;
+    accommodationName: string;
+    category: string;
+    roomTypeId: string;
+    roomTypeName: string;
+    price: number;
+  } | null>(null);
+  const [selectedGuideOption, setSelectedGuideOption] = useState<{
+    guideId: string;
+    language: string;
+    price: number;
+  } | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<
     { id: string; name: string; price: number; quantity: number }[]
   >([]);
@@ -499,6 +516,12 @@ export default function Checkout() {
             setSelectedTime(bData.time || "");
             setCustomerDataFromBooking(bData.customerData);
             setSelectedAddOns(bData.selectedAddOns || []);
+            if (bData.selectedAccommodation) {
+              setSelectedAccommodation(bData.selectedAccommodation);
+            }
+            if (bData.selectedGuideOption) {
+              setSelectedGuideOption(bData.selectedGuideOption);
+            }
             
             // If it's an upgrade, we might want to jump directly to payment or customer details
             if (searchParams.get("upgrade") === "true") {
@@ -516,12 +539,42 @@ export default function Checkout() {
            if (!selectedTime && tourData.timeSlots && tourData.timeSlots.length > 0) {
              setSelectedTime(tourData.timeSlots[0]);
            }
+
+           // Auto select multi day default options if not already set
+           if (tourData.tourDurationType === 'multi_day') {
+             if (tourData.accommodations && tourData.accommodations.length > 0) {
+               const firstAcc = tourData.accommodations[0];
+               const firstRoom = firstAcc.roomTypes && firstAcc.roomTypes.length > 0 ? firstAcc.roomTypes[0] : null;
+               setSelectedAccommodation(prev => prev || {
+                 accommodationId: firstAcc.id,
+                 accommodationName: firstAcc.name,
+                 category: firstAcc.category,
+                 roomTypeId: firstRoom?.id || '',
+                 roomTypeName: firstRoom?.name || 'Standard',
+                 price: firstRoom?.price || 0
+               });
+             }
+             if (tourData.multiDayGuides && tourData.multiDayGuides.length > 0) {
+               const firstGuide = tourData.multiDayGuides[0];
+               setSelectedGuideOption(prev => prev || {
+                 guideId: firstGuide.id,
+                 language: firstGuide.language,
+                 price: firstGuide.price || 0
+               });
+             }
+           }
           
           if (existingBooking) {
             const pkg = tourData.packages.find(p => p.name === existingBooking.packageName);
             if (pkg) {
               setSelectedPackage(pkg);
               setExpandedPackage(pkg.name);
+            }
+            if (existingBooking.selectedAccommodation) {
+              setSelectedAccommodation(existingBooking.selectedAccommodation);
+            }
+            if (existingBooking.selectedGuideOption) {
+              setSelectedGuideOption(existingBooking.selectedGuideOption);
             }
           }
         }
@@ -700,12 +753,15 @@ export default function Checkout() {
 
   const summary = useMemo(() => {
     if (!selectedPackage)
-      return { packageTotal: 0, transportTotal: 0, addonsTotal: 0, discount: 0, grandTotal: 0, amountToPay: 0 };
+      return { packageTotal: 0, accommodationTotal: 0, guideTotal: 0, transportTotal: 0, addonsTotal: 0, discount: 0, grandTotal: 0, amountToPay: 0 };
     const packageTotal = calculatePackagePrice(selectedPackage);
     const addonsTotal = selectedAddOns.reduce(
       (sum, addon) => sum + addon.price * addon.quantity,
       0,
     );
+
+    const accommodationTotal = selectedAccommodation ? selectedAccommodation.price : 0;
+    const guideTotal = selectedGuideOption ? selectedGuideOption.price : 0;
 
     let transportTotal = 0;
     if (selectedTransport && selectedTransport.type !== "meet") {
@@ -719,12 +775,14 @@ export default function Checkout() {
     let discount = 0;
     let agentDiscount = 0;
 
+    const baseForDiscount = packageTotal + accommodationTotal + guideTotal;
+
     if (userProfile?.role === "agent" && userProfile.discountRate) {
-      agentDiscount = (packageTotal * userProfile.discountRate) / 100;
+      agentDiscount = (baseForDiscount * userProfile.discountRate) / 100;
       discount = agentDiscount;
     } else if (appliedCoupon) {
       if (appliedCoupon.discountType === "percentage") {
-        discount = (packageTotal * appliedCoupon.discountValue) / 100;
+        discount = (baseForDiscount * appliedCoupon.discountValue) / 100;
       } else {
         discount = appliedCoupon.discountValue;
       }
@@ -733,7 +791,7 @@ export default function Checkout() {
       discount = existingBooking.discountAmount;
     }
 
-    const grandTotal = Math.max(0, packageTotal + addonsTotal + transportTotal - discount);
+    const grandTotal = Math.max(0, packageTotal + accommodationTotal + guideTotal + addonsTotal + transportTotal - discount);
     const amountPaid = (existingBooking?.proposedUpdate?.oldTotal !== undefined) 
       ? existingBooking.proposedUpdate.oldTotal 
       : (existingBooking?.totalAmount || 0);
@@ -742,6 +800,8 @@ export default function Checkout() {
 
     return {
       packageTotal,
+      accommodationTotal,
+      guideTotal,
       transportTotal,
       addonsTotal,
       discount,
@@ -750,7 +810,7 @@ export default function Checkout() {
       amountToPay,
       amountPaid
     };
-  }, [selectedPackage, selectedAddOns, selectedTransport, adults, children, appliedCoupon, existingBooking, userProfile]);
+  }, [selectedPackage, selectedAccommodation, selectedGuideOption, selectedAddOns, selectedTransport, adults, children, appliedCoupon, existingBooking, userProfile]);
 
 const days = useMemo(() => {
   const arr = [];
@@ -946,6 +1006,19 @@ const toggleAddOn = (addon: AddOn) => {
           price: selectedTransport.price,
           priceType: selectedTransport.priceType,
           carType: selectedTransport.carType || ""
+        } : null,
+        selectedAccommodation: selectedAccommodation ? {
+          accommodationId: selectedAccommodation.accommodationId,
+          accommodationName: selectedAccommodation.accommodationName,
+          category: selectedAccommodation.category,
+          roomTypeId: selectedAccommodation.roomTypeId,
+          roomTypeName: selectedAccommodation.roomTypeName,
+          price: selectedAccommodation.price
+        } : null,
+        selectedGuideOption: selectedGuideOption ? {
+          guideId: selectedGuideOption.guideId,
+          language: selectedGuideOption.language,
+          price: selectedGuideOption.price
         } : null,
         transportTotal: summary.transportTotal,
         selectedAddOns,
@@ -1634,6 +1707,156 @@ const toggleAddOn = (addon: AddOn) => {
                     })}
                   </div>
                 </section>
+
+                {/* Multi-day Accommodations Selection */}
+                {tour?.tourDurationType === 'multi_day' && tour.accommodations && tour.accommodations.length > 0 && (
+                  <section id="accommodation-selection" className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                        <Hotel className="h-6 w-6 text-primary" /> Select Hotel & Accommodation
+                      </h2>
+                      <p className="text-sm text-gray-500 font-medium">
+                        Choose your preferred hotel category and room arrangement for this multi-day journey.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {tour.accommodations.map((acc) => {
+                        const isAccSelected = selectedAccommodation?.accommodationId === acc.id;
+                        return (
+                          <div
+                            key={acc.id}
+                            className={cn(
+                              "border-2 rounded-2xl p-5 bg-white space-y-4 transition-all relative flex flex-col justify-between",
+                              isAccSelected ? "border-primary ring-2 ring-primary/10 shadow-md" : "border-gray-200 hover:border-gray-300"
+                            )}
+                          >
+                            <div className="space-y-3">
+                              {acc.image && (
+                                <div className="aspect-video w-full rounded-xl overflow-hidden bg-gray-100">
+                                  <SmartImage src={acc.image} alt={acc.name} aspectRatio="auto" />
+                                </div>
+                              )}
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100 inline-block">
+                                  {acc.category}
+                                </span>
+                                <h3 className="font-extrabold text-gray-900 text-lg leading-tight">{acc.name}</h3>
+                                {acc.description && (
+                                  <p className="text-xs text-gray-500 font-medium leading-relaxed">{acc.description}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Room Options */}
+                            {acc.roomTypes && acc.roomTypes.length > 0 && (
+                              <div className="pt-3 border-t border-gray-100 space-y-2 mt-2">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Select Room Type</span>
+                                <div className="space-y-2">
+                                  {acc.roomTypes.map((rt) => {
+                                    const isRoomSelected = isAccSelected && selectedAccommodation?.roomTypeId === rt.id;
+                                    return (
+                                      <button
+                                        key={rt.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedAccommodation({
+                                            accommodationId: acc.id,
+                                            accommodationName: acc.name,
+                                            category: acc.category,
+                                            roomTypeId: rt.id,
+                                            roomTypeName: rt.name,
+                                            price: rt.price
+                                          });
+                                        }}
+                                        className={cn(
+                                          "w-full text-left p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer",
+                                          isRoomSelected ? "bg-primary text-white border-primary font-bold shadow-xs" : "bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-800"
+                                        )}
+                                      >
+                                        <div>
+                                          <p className="text-xs font-bold leading-tight">{rt.name}</p>
+                                          {rt.description && (
+                                            <p className={cn("text-[10px] mt-0.5 font-medium", isRoomSelected ? "text-orange-100" : "text-gray-400")}>
+                                              {rt.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className={cn("text-xs font-black", isRoomSelected ? "text-white" : "text-primary")}>
+                                            +<FormattedPrice amount={rt.price} />
+                                          </span>
+                                          {isRoomSelected && <Check className="h-4 w-4 text-white shrink-0" />}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                {/* Multi-day Guide Language Selection */}
+                {tour?.tourDurationType === 'multi_day' && tour.multiDayGuides && tour.multiDayGuides.length > 0 && (
+                  <section id="guide-selection" className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                        <UserCheck className="h-6 w-6 text-primary" /> Select Tour Guide Language
+                      </h2>
+                      <p className="text-sm text-gray-500 font-medium">
+                        Choose the language spoken by your dedicated tour guide throughout the trip.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {tour.multiDayGuides.map((guide) => {
+                        const isSelected = selectedGuideOption?.guideId === guide.id;
+                        return (
+                          <button
+                            key={guide.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedGuideOption({
+                                guideId: guide.id,
+                                language: guide.language,
+                                price: guide.price || 0
+                              });
+                            }}
+                            className={cn(
+                              "p-4 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-3 relative",
+                              isSelected ? "border-primary bg-orange-50/20 ring-2 ring-primary/10 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300"
+                            )}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <span className="text-xs font-black text-gray-900 block">{guide.language} Guide</span>
+                                {guide.description && (
+                                  <p className="text-[11px] text-gray-500 font-medium mt-1 leading-snug">{guide.description}</p>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <div className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                                  <Check className="h-3 w-3" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs font-black">
+                              <span className="text-gray-400 uppercase text-[9px] tracking-wider">Language Fee</span>
+                              <span className="text-primary">
+                                {guide.price === 0 ? "Included (Free)" : <span>+<FormattedPrice amount={guide.price} /></span>}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
 
                  {/* Transport / Pick Up Option Selection */}
                 {availableTransports.length > 0 && (
@@ -2663,6 +2886,41 @@ const toggleAddOn = (addon: AddOn) => {
                       </div>
                     </div>
 
+                    {selectedAccommodation && (
+                      <div className="space-y-2 pt-4 border-t border-gray-50">
+                        <p className="text-xs font-bold text-primary tracking-tight flex items-center gap-1">
+                          <Hotel className="h-3.5 w-3.5" /> Selected Hotel
+                        </p>
+                        <div className="flex justify-between items-start animate-in fade-in slide-in-from-right-2">
+                          <div className="text-left">
+                            <p className="text-xs text-gray-700 font-bold">{selectedAccommodation.accommodationName}</p>
+                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider block mt-0.5">
+                              {selectedAccommodation.category} • {selectedAccommodation.roomTypeName}
+                            </p>
+                          </div>
+                          <span className="text-xs font-black text-gray-700">
+                            <FormattedPrice amount={summary.accommodationTotal} />
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedGuideOption && (
+                      <div className="space-y-2 pt-4 border-t border-gray-50">
+                        <p className="text-xs font-bold text-primary tracking-tight flex items-center gap-1">
+                          <UserCheck className="h-3.5 w-3.5" /> Tour Guide
+                        </p>
+                        <div className="flex justify-between items-start animate-in fade-in slide-in-from-right-2">
+                          <div className="text-left">
+                            <p className="text-xs text-gray-700 font-bold">{selectedGuideOption.language} Guide</p>
+                          </div>
+                          <span className="text-xs font-black text-gray-700">
+                            {summary.guideTotal === 0 ? "Included" : <FormattedPrice amount={summary.guideTotal} />}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {selectedTransport && (
                       <div className="space-y-3 pt-4 border-t border-gray-50">
                         <p className="text-xs font-bold text-primary tracking-tight flex items-center gap-1">
@@ -2893,6 +3151,26 @@ const toggleAddOn = (addon: AddOn) => {
                       </div>
                     )}
                   </div>
+
+                  {/* Accommodation breakdown */}
+                  {selectedAccommodation && (
+                    <div className="space-y-1 pt-2 border-t border-gray-50 flex justify-between items-center text-sm">
+                      <span className="text-gray-500 font-bold flex items-center gap-1">
+                        <Hotel className="h-4 w-4 text-primary" /> {selectedAccommodation.accommodationName} ({selectedAccommodation.roomTypeName})
+                      </span>
+                      <span className="font-black text-gray-900"><FormattedPrice amount={summary.accommodationTotal} /></span>
+                    </div>
+                  )}
+
+                  {/* Guide breakdown */}
+                  {selectedGuideOption && (
+                    <div className="space-y-1 pt-2 border-t border-gray-50 flex justify-between items-center text-sm">
+                      <span className="text-gray-500 font-bold flex items-center gap-1">
+                        <UserCheck className="h-4 w-4 text-primary" /> {selectedGuideOption.language} Guide
+                      </span>
+                      <span className="font-black text-gray-900">{summary.guideTotal === 0 ? 'Included' : <FormattedPrice amount={summary.guideTotal} />}</span>
+                    </div>
+                  )}
 
                   {/* Transport selection breakdown */}
                   {selectedTransport && (
