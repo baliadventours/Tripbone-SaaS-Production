@@ -460,10 +460,16 @@ export default function TourDetail() {
                               <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
                                 <Clock className="h-3 w-3" /> Schedule Timeline
                               </h4>
-                              <div className="space-y-4 pl-2 border-l-2 border-orange-200 relative">
+                              <div className="space-y-0 relative">
                                 {(day.itineraryItems || []).map((item, itemIdx) => (
-                                  <div key={itemIdx} className="relative pl-5 space-y-2">
-                                    <div className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-white border-4 border-primary shadow-2xs" />
+                                  <div key={itemIdx} className="relative pl-7 space-y-2 group pb-6 last:pb-1">
+                                    {/* Vertical Line */}
+                                    {itemIdx !== (day.itineraryItems || []).length - 1 && (
+                                      <div className="absolute left-[7px] top-4 bottom-0 w-0.5 bg-orange-200 group-hover:bg-primary transition-colors z-0" />
+                                    )}
+                                    {/* Timeline Dot */}
+                                    <div className="absolute left-0 top-1 h-4 w-4 rounded-full bg-white border-4 border-primary shadow-2xs group-hover:scale-125 transition-transform z-10" />
+                                    
                                     <div className="flex flex-wrap items-center gap-2">
                                       <span className="text-[10px] font-black text-primary bg-orange-50 px-2 py-0.5 rounded border border-orange-100 flex items-center gap-1">
                                         <Clock className="h-2.5 w-2.5" /> {item.time}
@@ -472,7 +478,7 @@ export default function TourDetail() {
                                     </div>
 
                                     {item.image && (
-                                      <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                                      <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shadow-2xs group-hover:shadow-sm transition-shadow">
                                         <SmartImage src={item.image} alt={item.title} aspectRatio="auto" />
                                       </div>
                                     )}

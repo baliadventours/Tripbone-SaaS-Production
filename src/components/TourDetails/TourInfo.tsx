@@ -234,11 +234,15 @@ export default function TourInfo({ tour }: TourInfoProps) {
                           <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5" /> Day Schedule Timeline
                           </h4>
-                          <div className="space-y-6 pl-3 border-l-2 border-orange-200 relative">
+                          <div className="space-y-0 relative">
                             {(day.itineraryItems || []).map((item, itemIdx) => (
-                              <div key={itemIdx} className="relative pl-6 space-y-3 group">
+                              <div key={itemIdx} className="relative pl-8 space-y-3 group pb-8 last:pb-2">
+                                {/* Vertical Line */}
+                                {itemIdx !== (day.itineraryItems || []).length - 1 && (
+                                  <div className="absolute left-[9px] top-5 bottom-0 w-0.5 bg-orange-200 group-hover:bg-primary transition-colors z-0" />
+                                )}
                                 {/* Timeline Dot */}
-                                <div className="absolute -left-[11px] top-1 h-5 w-5 rounded-full bg-white border-4 border-primary shadow-xs group-hover:scale-125 transition-transform" />
+                                <div className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white border-4 border-primary shadow-xs group-hover:scale-125 transition-transform z-10" />
                                 
                                 <div className="flex flex-wrap items-center gap-2.5">
                                   <span className="text-xs font-black text-primary bg-orange-50 px-3 py-1 rounded-lg border border-orange-100 flex items-center gap-1">
