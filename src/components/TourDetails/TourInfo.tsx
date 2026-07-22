@@ -1,6 +1,7 @@
-import { Check, X, MapPin, Clock, Globe, HelpCircle, MessageSquare, Info, ShieldCheck, Calendar, Bed, Hotel, UserCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Check, X, MapPin, Clock, Globe, HelpCircle, MessageSquare, Info, ShieldCheck, Calendar, Bed, Hotel, UserCheck, ChevronDown, ChevronUp, Layers, Compass, Sparkles, Navigation } from 'lucide-react';
 import { Tour } from '../../types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from '../../lib/SettingsContext';
 import SmartImage from '../SmartImage';
 
@@ -10,6 +11,28 @@ interface TourInfoProps {
 
 export default function TourInfo({ tour }: TourInfoProps) {
   const { settings } = useSettings();
+  const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({ 0: true });
+  const [activeDayFilter, setActiveDayFilter] = useState<number | 'all'>('all');
+
+  const toggleDay = (index: number) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const expandAllDays = () => {
+    if (!tour.multiDayItinerary) return;
+    const allExpanded: Record<number, boolean> = {};
+    tour.multiDayItinerary.forEach((_, idx) => {
+      allExpanded[idx] = true;
+    });
+    setExpandedDays(allExpanded);
+  };
+
+  const collapseAllDays = () => {
+    setExpandedDays({});
+  };
 
   const handleWhatsAppContact = () => {
     if (!settings?.whatsappNumber) return;
@@ -82,94 +105,212 @@ export default function TourInfo({ tour }: TourInfoProps) {
       </section>
 
       {/* Itinerary */}
-      <section id="itinerary" className="scroll-mt-[116px]">
-        <h2 className="mb-8 text-2xl font-black text-gray-900 tracking-tight">Tour Itinerary</h2>
-        
+      <section id="itinerary" className="scroll-mt-[116px] space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-orange-100/80 text-primary">
+                <Navigation className="h-5 w-5" />
+              </span>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Tour Itinerary</h2>
+            </div>
+            <p className="text-xs text-gray-500 font-medium mt-1">
+              {tour.tourDurationType === 'multi_day' 
+                ? `${tour.multiDayItinerary?.length || 0}-Day Journey Breakdown & Activities` 
+                : 'Step-by-Step Schedule & Experience Timeline'}
+            </p>
+          </div>
+
+          {tour.tourDurationType === 'multi_day' && tour.multiDayItinerary && tour.multiDayItinerary.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={expandAllDays}
+                className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-primary font-bold text-xs rounded-lg transition-colors border border-orange-100 cursor-pointer"
+              >
+                Expand All
+              </button>
+              <button
+                type="button"
+                onClick={collapseAllDays}
+                className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold text-xs rounded-lg transition-colors border border-gray-200 cursor-pointer"
+              >
+                Collapse All
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Day Quick Navigation Filter for Multi-day */}
+        {tour.tourDurationType === 'multi_day' && tour.multiDayItinerary && tour.multiDayItinerary.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setActiveDayFilter('all')}
+              className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs transition-all whitespace-nowrap cursor-pointer ${
+                activeDayFilter === 'all'
+                  ? 'bg-primary text-white shadow-md shadow-orange-200/50 scale-105'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All Days ({tour.multiDayItinerary.length})
+            </button>
+            {tour.multiDayItinerary.map((day, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setActiveDayFilter(idx);
+                  setExpandedDays(prev => ({ ...prev, [idx]: true }));
+                }}
+                className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs transition-all whitespace-nowrap cursor-pointer ${
+                  activeDayFilter === idx
+                    ? 'bg-primary text-white shadow-md shadow-orange-200/50 scale-105'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Day {day.dayNumber}: {day.title.split(' ')[0]}
+              </button>
+            ))}
+          </div>
+        )}
+
         {tour.tourDurationType === 'multi_day' && tour.multiDayItinerary && tour.multiDayItinerary.length > 0 ? (
-          <div className="space-y-12">
-            {tour.multiDayItinerary.map((day, dIdx) => (
-              <div key={dIdx} className="border-2 border-orange-100/60 rounded-2xl bg-white p-6 md:p-8 shadow-sm space-y-6">
-                <div className="border-b border-gray-100 pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 bg-primary text-white font-black rounded-lg text-xs tracking-wider">
-                      DAY {day.dayNumber}
-                    </span>
-                    <h3 className="text-xl font-extrabold text-gray-900">{day.title}</h3>
-                  </div>
-                  {day.description && (
-                    <p className="mt-3 text-sm text-gray-600 leading-relaxed">{day.description}</p>
-                  )}
-                </div>
+          <div className="space-y-6">
+            {tour.multiDayItinerary.map((day, dIdx) => {
+              if (activeDayFilter !== 'all' && activeDayFilter !== dIdx) return null;
+              const isExpanded = expandedDays[dIdx] ?? true;
 
-                {/* Day Schedule Items */}
-                <div className="space-y-6 pt-2">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-primary">Schedule</h4>
-                  <div className="space-y-6 pl-2 border-l-2 border-orange-100">
-                    {(day.itineraryItems || []).map((item, itemIdx) => (
-                      <div key={itemIdx} className="relative pl-6 space-y-3">
-                        <div className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-white border-4 border-primary" />
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-black text-primary bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100">
-                            {item.time}
-                          </span>
-                          <h5 className="font-extrabold text-gray-900 text-base">{item.title}</h5>
-                        </div>
+              return (
+                <div 
+                  key={dIdx} 
+                  className="border-2 border-orange-100/80 rounded-2xl bg-white shadow-xs overflow-hidden transition-all hover:border-orange-200"
+                >
+                  {/* Day Header Bar */}
+                  <button
+                    type="button"
+                    onClick={() => toggleDay(dIdx)}
+                    className="w-full text-left p-5 md:p-6 bg-gradient-to-r from-orange-50/60 via-white to-white flex items-center justify-between gap-4 cursor-pointer hover:bg-orange-50/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <span className="px-3 py-1.5 bg-primary text-white font-black rounded-xl text-xs tracking-wider shadow-sm shrink-0">
+                        DAY {day.dayNumber}
+                      </span>
+                      <div>
+                        <h3 className="text-lg md:text-xl font-extrabold text-gray-900 leading-tight">{day.title}</h3>
+                        <span className="text-[11px] text-gray-500 font-medium">
+                          {day.itineraryItems?.length || 0} Scheduled Activities
+                        </span>
+                      </div>
+                    </div>
 
-                        {item.image && (
-                          <div className="max-w-md aspect-video rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
-                            <SmartImage src={item.image} alt={item.title} className="hover:scale-105 transition-transform" />
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-2xs">
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Day Content Body */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="px-5 pb-6 md:px-8 md:pb-8 space-y-6 border-t border-orange-100/50"
+                      >
+                        {day.description && (
+                          <div className="pt-4">
+                            <p className="text-sm text-gray-600 font-medium leading-relaxed bg-gray-50/80 p-4 rounded-xl border border-gray-100">
+                              {day.description}
+                            </p>
                           </div>
                         )}
 
-                        {item.description && (
-                          <p className="text-xs md:text-sm text-gray-600 font-medium leading-relaxed">{item.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                        {/* Day Schedule Items */}
+                        <div className="space-y-4 pt-2">
+                          <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5" /> Day Schedule Timeline
+                          </h4>
+                          <div className="space-y-6 pl-3 border-l-2 border-orange-200 relative">
+                            {(day.itineraryItems || []).map((item, itemIdx) => (
+                              <div key={itemIdx} className="relative pl-6 space-y-3 group">
+                                {/* Timeline Dot */}
+                                <div className="absolute -left-[11px] top-1 h-5 w-5 rounded-full bg-white border-4 border-primary shadow-xs group-hover:scale-125 transition-transform" />
+                                
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                  <span className="text-xs font-black text-primary bg-orange-50 px-3 py-1 rounded-lg border border-orange-100 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" /> {item.time}
+                                  </span>
+                                  <h5 className="font-extrabold text-gray-900 text-base">{item.title}</h5>
+                                </div>
+
+                                {item.image && (
+                                  <div className="max-w-lg aspect-video rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shadow-2xs group-hover:shadow-sm transition-shadow">
+                                    <SmartImage src={item.image} alt={item.title} className="group-hover:scale-105 transition-transform duration-300" aspectRatio="auto" />
+                                  </div>
+                                )}
+
+                                {item.description && (
+                                  <p className="text-xs md:text-sm text-gray-600 font-medium leading-relaxed max-w-2xl">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-8 pl-2">
             {(tour.itinerary || []).map((item, idx) => (
               <div key={idx} className="relative group">
                 {idx !== (tour.itinerary || []).length - 1 && (
-                  <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-orange-100/50 group-hover:bg-orange-200 transition-colors" />
+                  <div className="absolute left-[19px] top-10 bottom-[-32px] w-0.5 bg-orange-200 group-hover:bg-primary transition-colors" />
                 )}
-                <div className="flex gap-6">
+                <div className="flex gap-5">
                   <div className="relative z-10">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-xs shadow-lg shadow-orange-100 ring-4 ring-white">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-sm shadow-md shadow-orange-200 ring-4 ring-white group-hover:scale-110 transition-transform">
                       {idx + 1}
                     </div>
                   </div>
-                  <div className="flex-1 space-y-4">
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors">{item.title}</h3>
+                  <div className="flex-1 space-y-3 bg-white p-5 rounded-2xl border border-gray-100 shadow-2xs hover:shadow-sm transition-all">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h3 className="text-base md:text-lg font-black text-gray-900 group-hover:text-primary transition-colors leading-snug">
+                        {item.title}
+                      </h3>
                       {item.pickup && (
-                        <div className="flex items-center gap-2 text-primary font-bold text-[10px] bg-orange-50 w-fit px-2 py-0.5 rounded-full border border-orange-100">
-                          <MapPin className="h-3 w-3" />
-                          {typeof item.pickup === 'object' ? item.pickup.description : item.pickup}
+                        <div className="flex items-center gap-1.5 text-primary font-bold text-xs bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100 shrink-0 w-fit">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {typeof item.pickup === 'object' ? (item.pickup as any).description : item.pickup}
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex flex-col gap-4">
-                      {(item.image || (typeof item.pickup === 'object' && item.pickup?.image)) && (
-                        <div className="w-full aspect-[3/2] bg-gray-50 overflow-hidden rounded-xl">
-                          <SmartImage 
-                            src={item.image || (typeof item.pickup === 'object' ? item.pickup?.image : '')} 
-                            alt={item.title} 
-                            className="group-hover:scale-105" 
-                            aspectRatio="auto"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm leading-relaxed text-gray-500 font-medium text-justify">{item.description}</p>
+                    {(item.image || (typeof item.pickup === 'object' && (item.pickup as any)?.image)) && (
+                      <div className="w-full max-w-lg aspect-video bg-gray-50 overflow-hidden rounded-xl border border-gray-100">
+                        <SmartImage 
+                          src={item.image || (typeof item.pickup === 'object' ? (item.pickup as any)?.image : '')} 
+                          alt={item.title} 
+                          className="group-hover:scale-105 transition-transform duration-300" 
+                          aspectRatio="auto"
+                        />
                       </div>
-                    </div>
+                    )}
+                    
+                    {item.description && (
+                      <p className="text-xs md:text-sm leading-relaxed text-gray-600 font-medium">
+                        {item.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

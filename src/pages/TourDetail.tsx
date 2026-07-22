@@ -51,6 +51,7 @@ export default function TourDetail() {
   const [urgencyPoints, setUrgencyPoints] = useState<UrgencyPoint[]>([]);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [expandedMobileDays, setExpandedMobileDays] = useState<Record<number, boolean>>({ 0: true });
   const navigate = useNavigate();
 
   const [isMobile, setIsMobile] = useState(false);
@@ -394,73 +395,121 @@ export default function TourDetail() {
           </section>
 
           {/* Itinerary Timeline */}
-          <section className="space-y-8">
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">Your Itinerary</h2>
+          <section className="space-y-6">
+            <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-3">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 tracking-tight">Your Tour Itinerary</h2>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  {tour.tourDurationType === 'multi_day' 
+                    ? `${tour.multiDayItinerary?.length || 0}-Day Journey Breakdown` 
+                    : 'Step-by-step experience timeline'}
+                </p>
+              </div>
+            </div>
+
             {tour.tourDurationType === 'multi_day' && tour.multiDayItinerary && tour.multiDayItinerary.length > 0 ? (
-              <div className="space-y-8">
-                {tour.multiDayItinerary.map((day, dIdx) => (
-                  <div key={dIdx} className="border-2 border-orange-100/70 rounded-2xl bg-white p-5 shadow-xs space-y-4">
-                    <div className="border-b border-gray-100 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="px-2.5 py-1 bg-primary text-white font-black rounded-lg text-[10px] tracking-wider">
-                          DAY {day.dayNumber}
-                        </span>
-                        <h3 className="text-base font-extrabold text-gray-900 leading-tight">{day.title}</h3>
-                      </div>
-                      {day.description && (
-                        <p className="mt-2 text-xs text-gray-600 font-medium leading-relaxed">{day.description}</p>
-                      )}
-                    </div>
-
-                    {/* Day Schedule Items */}
-                    <div className="space-y-4 pt-1">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Schedule</h4>
-                      <div className="space-y-4 pl-2 border-l-2 border-orange-100">
-                        {(day.itineraryItems || []).map((item, itemIdx) => (
-                          <div key={itemIdx} className="relative pl-5 space-y-2">
-                            <div className="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-white border-2 border-primary" />
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black text-primary bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
-                                {item.time}
-                              </span>
-                              <h5 className="font-extrabold text-gray-900 text-xs">{item.title}</h5>
-                            </div>
-
-                            {item.image && (
-                              <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-50 border border-gray-100">
-                                <SmartImage src={item.image} alt={item.title} aspectRatio="auto" />
-                              </div>
-                            )}
-
-                            {item.description && (
-                              <p className="text-xs text-gray-500 font-medium leading-relaxed">{item.description}</p>
-                            )}
+              <div className="space-y-4">
+                {tour.multiDayItinerary.map((day, dIdx) => {
+                  const isExpanded = expandedMobileDays[dIdx] ?? true;
+                  return (
+                    <div 
+                      key={dIdx} 
+                      className="border-2 border-orange-100/80 rounded-2xl bg-white shadow-2xs overflow-hidden transition-all"
+                    >
+                      {/* Day Accordion Header */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedMobileDays(prev => ({ ...prev, [dIdx]: !prev[dIdx] }))}
+                        className="w-full text-left p-4 bg-gradient-to-r from-orange-50/70 via-white to-white flex items-center justify-between gap-3 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="px-2.5 py-1 bg-primary text-white font-black rounded-lg text-[10px] tracking-wider shrink-0 shadow-xs">
+                            DAY {day.dayNumber}
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-extrabold text-gray-900 leading-tight">{day.title}</h3>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              {day.itineraryItems?.length || 0} Scheduled Activities
+                            </span>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+
+                        <div className="h-7 w-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 shrink-0">
+                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
+                        </div>
+                      </button>
+
+                      {/* Day Accordion Content */}
+                      <AnimatePresence initial={false}>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="p-4 space-y-4 border-t border-orange-100/50"
+                          >
+                            {day.description && (
+                              <p className="text-xs text-gray-600 font-medium leading-relaxed bg-gray-50/80 p-3 rounded-xl border border-gray-100">
+                                {day.description}
+                              </p>
+                            )}
+
+                            {/* Day Schedule Items */}
+                            <div className="space-y-3 pt-1">
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
+                                <Clock className="h-3 w-3" /> Schedule Timeline
+                              </h4>
+                              <div className="space-y-4 pl-2 border-l-2 border-orange-200 relative">
+                                {(day.itineraryItems || []).map((item, itemIdx) => (
+                                  <div key={itemIdx} className="relative pl-5 space-y-2">
+                                    <div className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-white border-4 border-primary shadow-2xs" />
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-[10px] font-black text-primary bg-orange-50 px-2 py-0.5 rounded border border-orange-100 flex items-center gap-1">
+                                        <Clock className="h-2.5 w-2.5" /> {item.time}
+                                      </span>
+                                      <h5 className="font-extrabold text-gray-900 text-xs">{item.title}</h5>
+                                    </div>
+
+                                    {item.image && (
+                                      <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                                        <SmartImage src={item.image} alt={item.title} aspectRatio="auto" />
+                                      </div>
+                                    )}
+
+                                    {item.description && (
+                                      <p className="text-xs text-gray-500 font-medium leading-relaxed">{item.description}</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="space-y-12">
+              <div className="space-y-8 pl-1">
                 {(tour.itinerary || []).map((step, i) => (
                   <div key={i} className="relative group">
                     {i !== (tour.itinerary || []).length - 1 && (
-                      <div className="absolute left-[15px] top-8 bottom-[-40px] w-0.5 bg-orange-100/50" />
+                      <div className="absolute left-[15px] top-8 bottom-[-32px] w-0.5 bg-orange-200" />
                     )}
                     <div className="flex gap-4">
                       <div className="relative z-10">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-[10px] shadow-lg ring-4 ring-white">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-[10px] shadow-md shadow-orange-200 ring-4 ring-white">
                           {i + 1}
                         </div>
                       </div>
-                      <div className="flex-1 space-y-3">
+                      <div className="flex-1 space-y-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs">
                         <div className="flex flex-col gap-1">
                           <h3 className="text-base font-black text-gray-900 leading-tight">{step.title}</h3>
                           {step.pickup && (
-                            <div className="flex items-center gap-1.5 text-primary font-bold text-[9px] bg-orange-50 w-fit px-2 py-0.5 rounded-full border border-orange-100">
-                              <MapPin className="h-2.5 w-2.5" />
+                            <div className="flex items-center gap-1.5 text-primary font-bold text-[10px] bg-orange-50 w-fit px-2.5 py-0.5 rounded-full border border-orange-100">
+                              <MapPin className="h-3 w-3" />
                               {typeof step.pickup === 'object' ? (step.pickup as any).description : step.pickup}
                             </div>
                           )}
@@ -468,7 +517,7 @@ export default function TourDetail() {
                         
                         <div className="space-y-3">
                           {(step.image || (typeof step.pickup === 'object' && (step.pickup as any)?.image)) && (
-                            <div className="w-full aspect-[4/3] bg-gray-50 overflow-hidden rounded-xl">
+                            <div className="w-full aspect-[4/3] bg-gray-50 overflow-hidden rounded-xl border border-gray-100">
                               <SmartImage 
                                 src={step.image || (typeof step.pickup === 'object' ? (step.pickup as any)?.image : '')} 
                                 alt={step.title} 
@@ -476,7 +525,9 @@ export default function TourDetail() {
                               />
                             </div>
                           )}
-                          <p className="text-xs leading-relaxed text-gray-500 font-medium">{step.description}</p>
+                          {step.description && (
+                            <p className="text-xs leading-relaxed text-gray-600 font-medium">{step.description}</p>
+                          )}
                         </div>
                       </div>
                     </div>
