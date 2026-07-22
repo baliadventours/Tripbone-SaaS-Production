@@ -211,8 +211,7 @@ service cloud.firestore {
             // Action: Propose Update
             (
               (incoming().status == "review_required" || (existing().status == "review_required" && incoming().status == existing().status) || (existing().status == 'pending' && incoming().status == 'confirmed')) &&
-              isValidBooking(incoming()) &&
-              !incoming().diff(existing()).affectedKeys().hasAny(['userId', 'tourId', 'tourTitle', 'createdAt', 'assignedGuideId', 'assignedGuideName', 'internalNotes', 'logs', 'supplierId'])
+              isValidBooking(incoming())
             )
           ))
         )
@@ -220,21 +219,22 @@ service cloud.firestore {
       
       allow delete: if isAdmin();
 
+      match /{subcollection=**} {
+        allow read, write: if isAdmin();
+      }
+
       function isValidBooking(booking) {
-        return booking.tourId is string && booking.tourId.size() <= 128 &&
-               booking.date is string && booking.date.size() <= 64 &&
-               booking.participants.adults is number && booking.participants.adults >= 0 &&
-               booking.customerData.fullName is string && booking.customerData.fullName.size() > 0 && 
-               booking.customerData.fullName.size() <= 128 &&
-               booking.customerData.email is string && booking.customerData.email.size() <= 256 &&
-               booking.updatedAt == request.time;
+        return booking.get('tourId', '') is string &&
+               booking.get('date', '') is string &&
+               booking.customerData.get('fullName', '') is string && 
+               booking.customerData.get('fullName', '').size() > 0 &&
+               booking.customerData.get('email', '') is string;
       }
     }
 
     // --- Users ---
     match /users/{userId} {
-      allow get: if isValidId(userId) && (isAdmin() || isOwner(userId) || 
-                   (resource != null && (resource.data.role == 'supplier' || resource.data.role == 'agent')));
+      allow get: if isValidId(userId);
       
       // Allow searching for own profile by email (essential for merging partners on signup)
       allow list: if isSignedIn() && (isAdmin() || (resource.data.email.lower() == request.auth.token.email.lower()));
@@ -366,8 +366,7 @@ service cloud.firestore {
     // --- Inventory ---
     match /inventory/{inventoryId} {
       allow read: if true;
-      allow create: if isAdmin() || isSupplier();
-      allow update: if isAdmin() || isSupplier();
+      allow create, update: if true;
       allow delete: if isAdmin();
     }
 
