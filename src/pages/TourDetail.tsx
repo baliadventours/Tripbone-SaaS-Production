@@ -6,7 +6,8 @@ import { Tour, UrgencyPoint } from '../types';
 import { 
   Share2, MapPin, Clock, Star, 
   ChevronRight, Calendar, Users, 
-  Info, Languages, MessageCircle, ShieldCheck, LucideIcon, ArrowLeft, Globe, CheckCircle2, ChevronDown, Check, X
+  Info, Languages, MessageCircle, ShieldCheck, LucideIcon, ArrowLeft, Globe, CheckCircle2, ChevronDown, Check, X,
+  Hotel, Bed, UserCheck
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import TourGallery from '../components/TourDetails/TourGallery';
@@ -395,47 +396,134 @@ export default function TourDetail() {
           {/* Itinerary Timeline */}
           <section className="space-y-8">
             <h2 className="text-xl font-black text-gray-900 tracking-tight">Your Itinerary</h2>
-            <div className="space-y-12">
-              {(tour.itinerary || []).map((step, i) => (
-                <div key={i} className="relative group">
-                  {i !== (tour.itinerary || []).length - 1 && (
-                    <div className="absolute left-[15px] top-8 bottom-[-40px] w-0.5 bg-orange-100/50" />
-                  )}
-                  <div className="flex gap-4">
-                    <div className="relative z-10">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-[10px] shadow-lg ring-4 ring-white">
-                        {i + 1}
+            {tour.tourDurationType === 'multi_day' && tour.multiDayItinerary && tour.multiDayItinerary.length > 0 ? (
+              <div className="space-y-8">
+                {tour.multiDayItinerary.map((day, dIdx) => (
+                  <div key={dIdx} className="border-2 border-orange-100/70 rounded-2xl bg-white p-5 shadow-xs space-y-4">
+                    <div className="border-b border-gray-100 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2.5 py-1 bg-primary text-white font-black rounded-lg text-[10px] tracking-wider">
+                          DAY {day.dayNumber}
+                        </span>
+                        <h3 className="text-base font-extrabold text-gray-900 leading-tight">{day.title}</h3>
                       </div>
+                      {day.description && (
+                        <p className="mt-2 text-xs text-gray-600 font-medium leading-relaxed">{day.description}</p>
+                      )}
                     </div>
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-col gap-1">
-                        <h3 className="text-base font-black text-gray-900 leading-tight">{step.title}</h3>
-                        {step.pickup && (
-                          <div className="flex items-center gap-1.5 text-primary font-bold text-[9px] bg-orange-50 w-fit px-2 py-0.5 rounded-full border border-orange-100">
-                            <MapPin className="h-2.5 w-2.5" />
-                            {typeof step.pickup === 'object' ? (step.pickup as any).description : step.pickup}
+
+                    {/* Day Schedule Items */}
+                    <div className="space-y-4 pt-1">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Schedule</h4>
+                      <div className="space-y-4 pl-2 border-l-2 border-orange-100">
+                        {(day.itineraryItems || []).map((item, itemIdx) => (
+                          <div key={itemIdx} className="relative pl-5 space-y-2">
+                            <div className="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-white border-2 border-primary" />
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-primary bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
+                                {item.time}
+                              </span>
+                              <h5 className="font-extrabold text-gray-900 text-xs">{item.title}</h5>
+                            </div>
+
+                            {item.image && (
+                              <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-50 border border-gray-100">
+                                <SmartImage src={item.image} alt={item.title} aspectRatio="auto" />
+                              </div>
+                            )}
+
+                            {item.description && (
+                              <p className="text-xs text-gray-500 font-medium leading-relaxed">{item.description}</p>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {(step.image || (typeof step.pickup === 'object' && (step.pickup as any)?.image)) && (
-                          <div className="w-full aspect-[4/3] bg-gray-50 overflow-hidden rounded-xl">
-                            <SmartImage 
-                              src={step.image || (typeof step.pickup === 'object' ? (step.pickup as any)?.image : '')} 
-                              alt={step.title} 
-                              aspectRatio="auto"
-                            />
-                          </div>
-                        )}
-                        <p className="text-xs leading-relaxed text-gray-500 font-medium">{step.description}</p>
+                        ))}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {(tour.itinerary || []).map((step, i) => (
+                  <div key={i} className="relative group">
+                    {i !== (tour.itinerary || []).length - 1 && (
+                      <div className="absolute left-[15px] top-8 bottom-[-40px] w-0.5 bg-orange-100/50" />
+                    )}
+                    <div className="flex gap-4">
+                      <div className="relative z-10">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-black text-white text-[10px] shadow-lg ring-4 ring-white">
+                          {i + 1}
+                        </div>
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-base font-black text-gray-900 leading-tight">{step.title}</h3>
+                          {step.pickup && (
+                            <div className="flex items-center gap-1.5 text-primary font-bold text-[9px] bg-orange-50 w-fit px-2 py-0.5 rounded-full border border-orange-100">
+                              <MapPin className="h-2.5 w-2.5" />
+                              {typeof step.pickup === 'object' ? (step.pickup as any).description : step.pickup}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {(step.image || (typeof step.pickup === 'object' && (step.pickup as any)?.image)) && (
+                            <div className="w-full aspect-[4/3] bg-gray-50 overflow-hidden rounded-xl">
+                              <SmartImage 
+                                src={step.image || (typeof step.pickup === 'object' ? (step.pickup as any)?.image : '')} 
+                                alt={step.title} 
+                                aspectRatio="auto"
+                              />
+                            </div>
+                          )}
+                          <p className="text-xs leading-relaxed text-gray-500 font-medium">{step.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
+
+          {/* Accommodations section for Mobile Multi-day */}
+          {tour.tourDurationType === 'multi_day' && tour.accommodations && tour.accommodations.length > 0 && (
+            <section className="space-y-4">
+              <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <Hotel className="h-5 w-5 text-primary" /> Accommodations
+              </h2>
+              <div className="grid grid-cols-1 gap-4">
+                {tour.accommodations.map((acc, idx) => (
+                  <div key={idx} className="border border-gray-100 rounded-xl bg-white p-4 shadow-2xs space-y-3">
+                    {acc.image && (
+                      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                        <SmartImage src={acc.image} alt={acc.name} aspectRatio="auto" />
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-orange-50 px-2 py-0.5 rounded">
+                        {acc.category}
+                      </span>
+                      <h3 className="font-extrabold text-gray-900 text-sm mt-1">{acc.name}</h3>
+                      {acc.description && <p className="text-xs text-gray-500 mt-1">{acc.description}</p>}
+                    </div>
+                    {acc.roomTypes && acc.roomTypes.length > 0 && (
+                      <div className="pt-2 border-t border-gray-50 space-y-1">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase">Available Rooms</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {acc.roomTypes.map((rt, rtIdx) => (
+                            <span key={rtIdx} className="text-[11px] bg-gray-50 font-bold text-gray-700 px-2 py-0.5 rounded border border-gray-100">
+                              {rt.name} (${rt.price})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Booking Widget (Inline for mobile screens, replacing the fixed footer) */}
           <section className="md:hidden space-y-4 pt-6 border-t border-gray-100/60">
