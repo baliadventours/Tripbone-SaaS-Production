@@ -7993,29 +7993,23 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     };
 
     useEffect(() => {
-      const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-      let unsubFallback: (() => void) | null = null;
+      const q = query(collection(db, 'posts'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost)));
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+        list.sort((a, b) => {
+          const tA = a.createdAt?.seconds ? a.createdAt.seconds : 0;
+          const tB = b.createdAt?.seconds ? b.createdAt.seconds : 0;
+          return tB - tA;
+        });
+        setPosts(list);
         setLoading(false);
       }, (error) => {
         console.error("Posts fetch error:", error);
-        if (unsubFallback) unsubFallback();
-        unsubFallback = onSnapshot(collection(db, 'posts'), (snap) => {
-          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
-          // Sort in memory (desc)
-          list.sort((a, b) => {
-            const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return tB - tA;
-          });
-          setPosts(list);
-        });
+        alert(`Posts fetch error: ${error.message}`);
         setLoading(false);
       });
       return () => {
         unsubscribe();
-        if (unsubFallback) unsubFallback();
       };
     }, []);
 

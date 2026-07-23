@@ -303,8 +303,8 @@ service cloud.firestore {
 
     // --- Posts (Blog) ---
     match /posts/{postId} {
-      allow get: if (existing().status == 'published' || existing().status == 'active') || isAdmin();
-      allow list: if isAdmin() || (resource.data.status == 'published' || resource.data.status == 'active');
+      allow get: if (resource.data.status in ['published', 'active']) || isAdmin();
+      allow list: if isAdmin() || (resource.data.status in ['published', 'active']);
       allow write: if isAdmin();
     }
 
