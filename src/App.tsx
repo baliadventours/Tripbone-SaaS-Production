@@ -289,6 +289,7 @@ function AppContent() {
   }
 
   const isInactive = !isMaster && tenant && dynamicStatus === 'inactive';
+  const isImpersonating = Boolean(!isMaster && tenant && localStorage.getItem('tripbone_preview_tenant'));
 
   return (
     <div className={cn(
@@ -296,6 +297,52 @@ function AppContent() {
       !isTourDetail && "overflow-x-hidden",
       !hideMobileNav && "pb-[72px] md:pb-0"
     )}>
+      {isImpersonating && (
+        <div className="bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white px-4 py-2.5 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 z-[99999] relative border-b border-indigo-500/30 shadow-xl no-print">
+          <div className="flex items-center space-x-2.5">
+            <span className="bg-indigo-500/30 text-indigo-200 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-black tracking-wider border border-indigo-400/30">
+              🎭 Impersonating Operator
+            </span>
+            <span className="font-extrabold text-white text-sm">{tenant?.companyName || tenant?.slug}</span>
+            <span className="text-gray-400 text-[11px] font-mono hidden sm:inline">({tenant?.slug})</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <a 
+              href={`/admin?tenant=${tenant?.slug}`} 
+              className={cn(
+                "px-3 py-1 rounded text-[11px] font-black transition-all",
+                location.pathname.startsWith('/admin') ? "bg-indigo-600 text-white shadow" : "bg-white/10 hover:bg-white/20 text-gray-200"
+              )}
+            >
+              Website Admin
+            </a>
+            <a 
+              href={`/app?tenant=${tenant?.slug}&impersonate=${tenant?.id}`} 
+              className={cn(
+                "px-3 py-1 rounded text-[11px] font-black transition-all",
+                location.pathname.startsWith('/app') ? "bg-indigo-600 text-white shadow" : "bg-white/10 hover:bg-white/20 text-gray-200"
+              )}
+            >
+              SaaS Console
+            </a>
+            <a 
+              href={`/?tenant=${tenant?.slug}`} 
+              className={cn(
+                "px-3 py-1 rounded text-[11px] font-black transition-all",
+                location.pathname === '/' ? "bg-indigo-600 text-white shadow" : "bg-white/10 hover:bg-white/20 text-gray-200"
+              )}
+            >
+              Live Site
+            </a>
+            <button
+              onClick={() => setPreviewTenant(null)}
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-black transition-all shadow-sm flex items-center space-x-1"
+            >
+              <span>Exit Impersonation</span>
+            </button>
+          </div>
+        </div>
+      )}
       {isInactive && (
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-center py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 z-[9999] relative shadow-md">
           <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] uppercase font-black">Notice</span>
@@ -315,6 +362,8 @@ function AppContent() {
           <Routes>
             <Route path="/login" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/app/*" element={<SaaSHome />} />
+            <Route path="/console/*" element={<SaaSHome />} />
             <Route path="/customer" element={<DashboardLayout />}>
               <Route path="dashboard" element={<Overview />} />
               <Route path="bookings" element={<Bookings />} />

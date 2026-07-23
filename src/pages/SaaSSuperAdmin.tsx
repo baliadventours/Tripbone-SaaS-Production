@@ -52,7 +52,8 @@ import {
   Zap,
   Download,
   Send,
-  Clock
+  Clock,
+  LayoutDashboard
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -3284,14 +3285,10 @@ export default function SaaSSuperAdmin() {
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end space-x-2">
                           <button
-                            title="Impersonate Operator"
+                            title="Impersonate Operator (Website Admin)"
                             onClick={() => {
-                              if (tenant.customDomain) {
-                                const protocol = window.location.hostname === 'localhost' ? 'http://' : 'https://';
-                                window.location.href = `${protocol}${tenant.customDomain}/?impersonate=${tenant.id}`;
-                              } else {
-                                window.location.href = `/?impersonate=${tenant.id}`;
-                              }
+                              const target = tenant.slug || tenant.id;
+                              setPreviewTenant(target, `/admin?tenant=${target}&impersonate=${tenant.id}`);
                             }}
                             className={`p-1.5 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-indigo-900/50 text-indigo-400' : 'hover:bg-indigo-50 text-indigo-600'}`}
                           >
@@ -5124,20 +5121,39 @@ export default function SaaSSuperAdmin() {
                 <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedTenant.companyName}</h3>
                 <p className={`text-sm font-mono mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{selectedTenant.slug}</p>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
                 <button
                   onClick={() => {
-                    if (selectedTenant.customDomain) {
-                      const protocol = window.location.hostname === 'localhost' ? 'http://' : 'https://';
-                      window.location.href = `${protocol}${selectedTenant.customDomain}/?impersonate=${selectedTenant.id}`;
-                    } else {
-                      window.location.href = `/?impersonate=${selectedTenant.id}`;
-                    }
+                    const target = selectedTenant.slug || selectedTenant.id;
+                    setPreviewTenant(target, `/admin?tenant=${target}&impersonate=${selectedTenant.id}`);
                   }}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center space-x-2"
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 shadow-sm"
+                  title="Open Website Admin Dashboard for this tenant"
                 >
                   <Eye className="w-4 h-4" />
-                  <span>Impersonate</span>
+                  <span>Website Admin</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const target = selectedTenant.slug || selectedTenant.id;
+                    setPreviewTenant(target, `/app?tenant=${target}&impersonate=${selectedTenant.id}`);
+                  }}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 shadow-sm border border-slate-700"
+                  title="Open SaaS Workspace Console for this tenant"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>SaaS Console</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const target = selectedTenant.slug || selectedTenant.id;
+                    setPreviewTenant(target, `/?tenant=${target}`);
+                  }}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 shadow-sm"
+                  title="View Live Website for this tenant"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Live Site</span>
                 </button>
                 <button onClick={() => setIsTenantModalOpen(false)} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-gray-800 hover:text-white' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'}`}>
                   <X className="w-5 h-5" />

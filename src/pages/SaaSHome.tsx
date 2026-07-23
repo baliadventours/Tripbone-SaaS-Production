@@ -840,10 +840,10 @@ export default function SaaSHome() {
 
   const activeWorkspace = useMemo(() => {
     if (selectedWorkspaceId) {
-      return userWorkspaces.find(w => w.id === selectedWorkspaceId) || userWorkspaces[0] || null;
+      return tenants.find(w => w.id === selectedWorkspaceId) || userWorkspaces.find(w => w.id === selectedWorkspaceId) || userWorkspaces[0] || null;
     }
-    return userWorkspaces[0] || null;
-  }, [userWorkspaces, selectedWorkspaceId]);
+    return userWorkspaces[0] || tenants[0] || null;
+  }, [tenants, userWorkspaces, selectedWorkspaceId]);
 
   const workspaceLimits = useMemo(() => {
     if (!activeWorkspace) return { maxTours: 10, maxBookings: 25 };
