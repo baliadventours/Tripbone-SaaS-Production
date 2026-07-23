@@ -37,6 +37,7 @@ import {
 import { cn, formatPrice } from '../lib/utils';
 import { uploadImage } from '../lib/imgbb';
 import SimpleAnalyticsDashboard from '../components/Admin/SimpleAnalyticsDashboard';
+import { useTenant } from '../lib/TenantContext';
 
 interface NominatimResult {
   place_id: number;
@@ -5275,6 +5276,7 @@ interface AdminProps {
 
 export default function Admin({ overrideMenu, overrideTab, isCentralPortal = false }: AdminProps = {}) {
   const navigate = useNavigate();
+  const { tenant, isImpersonating, loading: tenantLoading, stopImpersonation } = useTenant();
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
@@ -5312,6 +5314,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
   }, []);
   const handleLogout = async () => {
     try {
+      if (isImpersonating) {
+        stopImpersonation();
+        return;
+      }
       await signOut(auth);
       navigate('/login');
     } catch (error) {
@@ -6028,6 +6034,23 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
   }, [formData.title, editingId]);
 
   useEffect(() => {
+    if (tenantLoading) return;
+
+    if (isImpersonating) {
+      setCurrentUserProfile({
+        uid: 'superadmin-impersonator',
+        email: 'superadmin@tripbone.com',
+        role: 'admin',
+        displayName: `Super Admin (Impersonating ${tenant?.companyName || tenant?.slug || 'Tenant'})`,
+        companyName: tenant?.companyName || tenant?.slug || 'Tenant',
+        photoURL: '',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+      setIsAuthorized(true);
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
         setIsAuthorized(false);
@@ -6073,7 +6096,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       }
     });
     return unsubscribe;
-  }, [navigate]);
+  }, [navigate, isImpersonating, tenantLoading, tenant]);
 
   useEffect(() => {
     if (isAuthorized !== true || !currentUserProfile) return;

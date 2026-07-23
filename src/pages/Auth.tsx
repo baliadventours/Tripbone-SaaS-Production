@@ -20,7 +20,7 @@ type AuthMode = 'signin' | 'signup' | 'forgot';
 
 export default function Auth() {
   const { settings } = useSettings();
-  const { tenantId, isAppGate } = useTenant();
+  const { tenantId, isAppGate, isImpersonating } = useTenant();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +35,12 @@ export default function Auth() {
   const from = (location.state as any)?.from?.pathname || '/';
 
   const [ssoLoading, setSsoLoading] = useState(false);
+
+  useEffect(() => {
+    if (isImpersonating) {
+      navigate('/admin', { replace: true });
+    }
+  }, [isImpersonating, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
