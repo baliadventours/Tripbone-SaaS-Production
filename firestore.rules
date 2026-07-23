@@ -34,13 +34,13 @@ service cloud.firestore {
       return isSignedIn() && (
         isSuperAdmin() || (
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-          getUserData().role == 'admin' &&
+          getUserData().get('role', '') == 'admin' &&
           (
-            (request.resource != null && request.resource.data.tenantId != null && getUserData().tenantId == request.resource.data.tenantId) ||
-            (resource != null && resource.data.tenantId != null && getUserData().tenantId == resource.data.tenantId) ||
+            (request.resource != null && request.resource.data.get('tenantId', null) != null && getUserData().get('tenantId', null) == request.resource.data.get('tenantId', null)) ||
+            (resource != null && resource.data.get('tenantId', null) != null && getUserData().get('tenantId', null) == resource.data.get('tenantId', null)) ||
             (
-              (request.resource == null || request.resource.data.tenantId == null) &&
-              (resource == null || resource.data.tenantId == null)
+              (request.resource == null || request.resource.data.get('tenantId', null) == null) &&
+              (resource == null || resource.data.get('tenantId', null) == null)
             )
           )
         )
@@ -50,7 +50,7 @@ service cloud.firestore {
     function isSupplier() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        getUserData().role == 'supplier' &&
+        getUserData().get('role', '') == 'supplier' &&
         (
           (request.resource != null && request.resource.data.tenantId != null && getUserData().tenantId == request.resource.data.tenantId) ||
           (resource != null && resource.data.tenantId != null && getUserData().tenantId == resource.data.tenantId) ||
