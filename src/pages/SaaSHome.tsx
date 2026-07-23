@@ -356,7 +356,6 @@ export default function SaaSHome() {
       setSelectedWorkspaceId(impersonateId);
       setTenantActiveMenu('dashboard');
       setActiveLeftMenu('tenant-console');
-      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 

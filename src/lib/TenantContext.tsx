@@ -182,8 +182,22 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         }
 
         let tenantData: Tenant | null = null;
+        const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+        const impersonateId = urlParams.get('impersonate');
 
-        if (slug) {
+        // 0. High priority: Check direct document ID from impersonate parameter
+        if (impersonateId) {
+          try {
+            const impersonateSnap = await getDoc(doc(db, 'tenants', impersonateId));
+            if (impersonateSnap.exists()) {
+              tenantData = { id: impersonateSnap.id, ...(impersonateSnap.data() as any) } as Tenant;
+            }
+          } catch (err) {
+            console.warn("Could not find tenant by impersonate ID:", err);
+          }
+        }
+
+        if (!tenantData && slug) {
           // 1. First attempt: Query Firestore by slug
           const lowerSlug = slug.toLowerCase();
           const slugQuery = query(collection(db, 'tenants'), where('slug', '==', lowerSlug), limit(1));
@@ -203,7 +217,23 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               console.warn("Could not find tenant by doc ID:", err);
             }
           }
-        } else if (customDomain) {
+
+          // 3. Third attempt: Scan all tenants as fallback for case mismatch or legacy records
+          if (!tenantData) {
+            try {
+              const allTenantsSnap = await getDocs(collection(db, 'tenants'));
+              const match = allTenantsSnap.docs.find(d => {
+                const data = d.data();
+                return d.id === slug || (data.slug && data.slug.toLowerCase() === lowerSlug);
+              });
+              if (match) {
+                tenantData = { id: match.id, ...(match.data() as any) } as Tenant;
+              }
+            } catch (err) {
+              console.warn("Fallback all-tenants lookup failed:", err);
+            }
+          }
+        } else if (!tenantData && customDomain) {
           // Robust custom domain lookup: match both with and without 'www.' prefix
           const cleanDomain = customDomain.replace(/^www\./i, '');
           const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
@@ -227,6 +257,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           setError(null);
           if (tenantData.slug) {
             localStorage.setItem('tripbone_preview_tenant', tenantData.slug);
+          } else {
+            localStorage.setItem('tripbone_preview_tenant', tenantData.id);
           }
         } else {
           // Tenant not found in DB
