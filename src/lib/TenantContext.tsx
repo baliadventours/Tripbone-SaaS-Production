@@ -87,12 +87,39 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('tripbone_preview_tenant');
     setIsImpersonating(false);
 
-    // Clean URL query params
-    const url = new URL(window.location.href);
-    url.searchParams.delete('impersonate');
-    url.searchParams.delete('tenant');
+    const hostname = window.location.hostname;
+    const protocol = hostname === 'localhost' || hostname === '127.0.0.1' ? 'http://' : 'https://';
+    const isAiStudio = hostname.includes('run.app');
 
-    window.location.href = '/superadmin';
+    if (isAiStudio) {
+      window.location.href = '/superadmin';
+    } else {
+      let baseDomain = hostname;
+      const parts = hostname.split('.');
+      
+      // If we are on a tenant subdomain or custom domain, we need to go back to main domain
+      // We assume main domains are either tripbone.com or localhost
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        window.location.href = `${protocol}localhost:3000/superadmin`;
+      } else if (hostname.endsWith('localhost')) {
+        window.location.href = `${protocol}localhost:3000/superadmin`;
+      } else {
+        // Production: go back to app.tripbone.com/superadmin or tripbone.com/superadmin
+        if (parts.length > 2 && parts[parts.length - 1] !== 'localhost') {
+           // We are likely on something.tripbone.com or a custom domain
+           // Find the base domain (tripbone.com)
+           const isTripbone = hostname.includes('tripbone.com');
+           if (isTripbone) {
+              window.location.href = `${protocol}tripbone.com/superadmin`;
+           } else {
+              // Custom domain - we don't know the master domain, fallback to tripbone.com or relative
+              window.location.href = `${protocol}tripbone.com/superadmin`;
+           }
+        } else {
+           window.location.href = '/superadmin';
+        }
+      }
+    }
   };
 
   const impersonateTenant = (targetTenant: Tenant) => {
@@ -102,11 +129,32 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('tripbone_preview_tenant', targetTenant.slug.toLowerCase());
     }
 
-    const protocol = window.location.hostname === 'localhost' ? 'http://' : 'https://';
+    const hostname = window.location.hostname;
+    const protocol = hostname === 'localhost' || hostname === '127.0.0.1' ? 'http://' : 'https://';
+    
     if (targetTenant.customDomain) {
-      window.location.href = `${protocol}${targetTenant.customDomain}/?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
+      window.location.href = `${protocol}${targetTenant.customDomain}/?impersonate=${targetTenant.id}`;
     } else {
-      window.location.href = `/?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
+      const isAiStudio = hostname.includes('run.app');
+      if (isAiStudio) {
+        window.location.href = `/?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
+      } else {
+        const parts = hostname.split('.');
+        let baseDomain = hostname;
+        
+        if (parts.length > 2 && parts[parts.length - 1] !== 'localhost') {
+          // e.g. app.tripbone.com -> tripbone.com, or www.tripbone.com -> tripbone.com
+          if (parts[0] === 'www' || parts[0] === 'app') {
+            baseDomain = parts.slice(1).join('.');
+          }
+        }
+        
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+           window.location.href = `${protocol}${targetTenant.slug}.localhost:3000/?impersonate=${targetTenant.id}`;
+        } else {
+           window.location.href = `${protocol}${targetTenant.slug}.${baseDomain}/?impersonate=${targetTenant.id}`;
+        }
+      }
     }
   };
 
