@@ -14,15 +14,12 @@ service cloud.firestore {
     
     function isSuperAdmin() {
       return isSignedIn() && (
-        (request.auth.token.email != null && 
-         (request.auth.token.email == 'baliadventours@gmail.com' || 
-          request.auth.token.email == 'admin@tripbone.com' ||
-          request.auth.token.email == 'kuotabox@gmail.com' ||
-          request.auth.token.email.lower() == 'baliadventours@gmail.com' || 
-          request.auth.token.email.lower() == 'admin@tripbone.com' ||
-          request.auth.token.email.lower() == 'kuotabox@gmail.com')) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin')
+        (request.auth.token.email != null &&
+          (request.auth.token.email == 'baliadventours@gmail.com' || 
+           request.auth.token.email == 'admin@tripbone.com' ||
+          request.auth.token.email == 'kuotabox@gmail.com')) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'superadmin')
       );
     }
 
@@ -303,8 +300,8 @@ service cloud.firestore {
 
     // --- Posts (Blog) ---
     match /posts/{postId} {
-      allow get: if (resource.data.status in ['published', 'active']) || isAdmin();
-      allow list: if isAdmin() || (resource.data.status in ['published', 'active']);
+      allow get: if (resource.data.status in ['published', 'active']) || isSignedIn();
+      allow list: if isSignedIn();
       allow write: if isAdmin();
     }
 
