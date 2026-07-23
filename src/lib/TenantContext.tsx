@@ -224,7 +224,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     // 3. Check localStorage for preview/sticky tenant (ONLY if NOT explicit superadmin impersonation)
     const cachedTenant = localStorage.getItem('tripbone_preview_tenant');
-    if (cachedTenant && !isExplicitImpersonate) {
+    const isAiStudio = hostname.includes('run.app');
+    const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
+
+    if (cachedTenant && !isExplicitImpersonate && isAiStudio && !isSuperAdminRoute) {
       return { 
         slug: cachedTenant.toLowerCase(), 
         customDomain: null, 
@@ -235,9 +238,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
 
     // 4. Resolve subdomain or custom domain
+    if (isSuperAdminRoute) {
+      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+    }
+
     const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
     const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
-    const isAiStudio = hostname.includes('run.app');
 
     if (isAiStudio) {
       return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: isAppSubdomain, isExplicitImpersonate: false };
