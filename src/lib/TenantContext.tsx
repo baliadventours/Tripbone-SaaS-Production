@@ -11,7 +11,7 @@ interface TenantContextType {
   loading: boolean;
   error: string | null;
   globalSEO: any | null; // Added
-  setPreviewTenant: (slugOrId: string | null, targetPath?: string) => void;
+  setPreviewTenant: (slug: string | null) => void;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -90,19 +90,20 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       return { slug: null, customDomain: null, isAppGateHost: true };
     }
     
-    // 1. Check for query parameter override (highest priority for development, impersonation & AI Studio preview)
-    const paramTenant = urlParams.get('tenant') || urlParams.get('impersonate');
+    // 1. Check for query parameter override (highest priority for development & AI Studio preview)
+    const paramTenant = urlParams.get('tenant');
     if (paramTenant) {
-      if (localStorage.getItem('tripbone_preview_tenant') !== paramTenant) {
-        localStorage.setItem('tripbone_preview_tenant', paramTenant);
+      const lowerSlug = paramTenant.toLowerCase();
+      if (localStorage.getItem('tripbone_preview_tenant') !== lowerSlug) {
+        localStorage.setItem('tripbone_preview_tenant', lowerSlug);
       }
-      return { slug: paramTenant, customDomain: null, isAppGateHost: false };
+      return { slug: lowerSlug, customDomain: null, isAppGateHost: false };
     }
 
     // 2. Check localStorage for preview/sticky tenant
     const cachedTenant = localStorage.getItem('tripbone_preview_tenant');
     if (cachedTenant) {
-      return { slug: cachedTenant, customDomain: null, isAppGateHost: false };
+      return { slug: cachedTenant.toLowerCase(), customDomain: null, isAppGateHost: false };
     }
 
     // 3. Resolve subdomain or custom domain
@@ -145,21 +146,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const setPreviewTenant = (slugOrId: string | null, targetPath?: string) => {
-    if (slugOrId) {
-      localStorage.setItem('tripbone_preview_tenant', slugOrId);
-      if (targetPath) {
-        window.location.href = targetPath;
-        return;
-      }
+  const setPreviewTenant = (slug: string | null) => {
+    if (slug) {
+      localStorage.setItem('tripbone_preview_tenant', slug);
     } else {
       localStorage.removeItem('tripbone_preview_tenant');
-      const url = new URL(window.location.href);
-      url.searchParams.delete('tenant');
-      url.searchParams.delete('impersonate');
-      window.location.href = url.pathname.startsWith('/admin') ? '/admin' : '/';
-      return;
     }
+    // Reload page to apply tenant configuration clean and fresh
     window.location.reload();
   };
 
@@ -181,88 +174,35 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        let tenantData: Tenant | null = null;
-        const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
-        const impersonateId = urlParams.get('impersonate');
-
-        // 0. High priority: Check direct document ID from impersonate parameter
-        if (impersonateId) {
-          try {
-            const impersonateSnap = await getDoc(doc(db, 'tenants', impersonateId));
-            if (impersonateSnap.exists()) {
-              tenantData = { id: impersonateSnap.id, ...(impersonateSnap.data() as any) } as Tenant;
-            }
-          } catch (err) {
-            console.warn("Could not find tenant by impersonate ID:", err);
-          }
-        }
-
-        if (!tenantData && slug) {
-          // 1. First attempt: Query Firestore by slug
-          const lowerSlug = slug.toLowerCase();
-          const slugQuery = query(collection(db, 'tenants'), where('slug', '==', lowerSlug), limit(1));
-          const slugSnap = await getDocs(slugQuery);
-          
-          if (!slugSnap.empty) {
-            const docSnap = slugSnap.docs[0];
-            tenantData = { id: docSnap.id, ...(docSnap.data() as any) } as Tenant;
-          } else {
-            // 2. Second attempt: Check if slug is actually a document ID in 'tenants' collection
-            try {
-              const docSnap = await getDoc(doc(db, 'tenants', slug));
-              if (docSnap.exists()) {
-                tenantData = { id: docSnap.id, ...(docSnap.data() as any) } as Tenant;
-              }
-            } catch (err) {
-              console.warn("Could not find tenant by doc ID:", err);
-            }
-          }
-
-          // 3. Third attempt: Scan all tenants as fallback for case mismatch or legacy records
-          if (!tenantData) {
-            try {
-              const allTenantsSnap = await getDocs(collection(db, 'tenants'));
-              const match = allTenantsSnap.docs.find(d => {
-                const data = d.data();
-                return d.id === slug || (data.slug && data.slug.toLowerCase() === lowerSlug);
-              });
-              if (match) {
-                tenantData = { id: match.id, ...(match.data() as any) } as Tenant;
-              }
-            } catch (err) {
-              console.warn("Fallback all-tenants lookup failed:", err);
-            }
-          }
-        } else if (!tenantData && customDomain) {
+        // Query Firestore for matching tenant
+        let tenantQuery;
+        if (slug) {
+          tenantQuery = query(collection(db, 'tenants'), where('slug', '==', slug), limit(1));
+        } else {
           // Robust custom domain lookup: match both with and without 'www.' prefix
           const cleanDomain = customDomain.replace(/^www\./i, '');
           const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
-          const domainQuery = query(
+          tenantQuery = query(
             collection(db, 'tenants'), 
             where('customDomain', 'in', domainsToSearch), 
             limit(1)
           );
-          const domainSnap = await getDocs(domainQuery);
-          if (!domainSnap.empty) {
-            const docSnap = domainSnap.docs[0];
-            tenantData = { id: docSnap.id, ...(docSnap.data() as any) } as Tenant;
-          }
         }
 
-        if (tenantData) {
+        const querySnapshot = await getDocs(tenantQuery);
+        
+        if (!querySnapshot.empty) {
+          const tenantDoc = querySnapshot.docs[0];
+          const tenantData = { id: tenantDoc.id, ...(tenantDoc.data() as any) } as Tenant;
+          
           setTenant(tenantData);
-          setTenantIdInternal(tenantData.id);
-          setActiveTenantId(tenantData.id);
+          setTenantIdInternal(tenantDoc.id);
+          setActiveTenantId(tenantDoc.id);
           setIsMaster(false);
           setError(null);
-          if (tenantData.slug) {
-            localStorage.setItem('tripbone_preview_tenant', tenantData.slug);
-          } else {
-            localStorage.setItem('tripbone_preview_tenant', tenantData.id);
-          }
         } else {
           // Tenant not found in DB
-          console.warn(`Tenant not found for slug/id: ${slug} or customDomain: ${customDomain}`);
+          console.warn(`Tenant not found for slug: ${slug} or customDomain: ${customDomain}`);
           setError(`We couldn't find the tenant space for "${slug || customDomain}".`);
           setTenant(null);
           setTenantIdInternal(null);
