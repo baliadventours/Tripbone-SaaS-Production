@@ -20,7 +20,7 @@ import { sendEmailViaProvider } from "./src/services/email/transporter.js";
 import { emailBaseTemplate } from "./src/services/emailTemplates.js";
 import { handleChatbotRequest } from "./src/services/chatbotHandler.js";
 import { fallbackHtmlTemplate } from "./src/indexHtmlFallback.js";
-import { createCreemCheckoutSession } from "./src/services/creemService.js";
+import { createCreemCheckoutSession, moderateCreemContent } from "./src/services/creemService.js";
 import { sendWelcomeEmail, sendVerificationEmail, sendPaymentSuccessEmail, sendPaymentDueEmail, sendEmail } from "./src/services/mailjetService.js";
 import crypto from "crypto";
 
@@ -1759,6 +1759,14 @@ export async function createServer() {
         return res.status(400).json({ error: "Missing required fields: type, prompt, category." });
       }
 
+      // Call Creem Moderation API to comply with AI Wrapper policies
+      try {
+        await moderateCreemContent(prompt);
+      } catch (modErr: any) {
+        console.warn("[Moderation blocked prompt]:", modErr.message);
+        return res.status(400).json({ error: "Prompt blocked by moderation policy." });
+      }
+
       const apiKey = process.env.GEMINI_API_KEY?.trim();
       if (!apiKey) {
         return res.status(400).json({ error: "Gemini API Key is not configured on the server." });
@@ -2087,6 +2095,24 @@ export async function createServer() {
       res.status(200).json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // API Route: Creem.io Moderation
+  app.post("/api/billing/moderate", async (req: any, res: any) => {
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "Missing text to moderate" });
+      }
+
+      console.log(`[Billing API] Moderating content via Creem`);
+      const data = await moderateCreemContent(text);
+
+      res.json(data);
+    } catch (error: any) {
+      console.error("[Billing Moderation Error]:", error);
+      res.status(500).json({ error: error.message || "Failed to moderate content" });
     }
   });
 

@@ -436,11 +436,29 @@ export default function Checkout() {
   const isSoldOut = spotsLeft !== null && spotsLeft <= 0;
   const isLowCapacity = spotsLeft !== null && spotsLeft > 0 && spotsLeft <= 5;
 
+  const minRequired = useMemo(() => {
+    if (selectedPackage && selectedPackage.tiers && selectedPackage.tiers.length > 0) {
+      return Math.min(...selectedPackage.tiers.map(t => t.minParticipants));
+    }
+    if (tour?.packages && tour.packages.length > 0) {
+      return Math.min(...tour.packages.map(pkg => 
+        pkg.tiers && pkg.tiers.length > 0 ? Math.min(...pkg.tiers.map(t => t.minParticipants)) : 1
+      ));
+    }
+    return 1;
+  }, [selectedPackage, tour]);
+
+  useEffect(() => {
+    if ((adults + children) < minRequired) {
+      if (adults < minRequired) {
+        setAdults(Math.max(adults, minRequired - children));
+      }
+    }
+  }, [minRequired, adults, children]);
+
   const isUnderMinParticipants = useMemo(() => {
-    if (!selectedPackage || !selectedPackage.tiers || selectedPackage.tiers.length === 0) return false;
-    const minRequired = Math.min(...selectedPackage.tiers.map(t => t.minParticipants));
     return (adults + children) < minRequired;
-  }, [selectedPackage, adults, children]);
+  }, [adults, children, minRequired]);
 
   // Coupon State
   const [couponInput, setCouponInput] = useState("");
@@ -1327,7 +1345,7 @@ const toggleAddOn = (addon: AddOn) => {
                             <p className="text-sm font-black text-slate-900 leading-none">Age 12+</p>
                           </div>
                           <div className="flex items-center gap-3">
-                            <button onClick={() => setAdults(Math.max(1, adults - 1))} className="h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer"><Minus className="h-3.5 w-3.5" /></button>
+                            <button disabled={adults <= 1 || (adults + children) <= minRequired} onClick={() => setAdults(Math.max(1, adults - 1))} className={cn("h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer", (adults <= 1 || (adults + children) <= minRequired) && "opacity-50 cursor-not-allowed hover:bg-slate-950")}><Minus className="h-3.5 w-3.5" /></button>
                             <span className="text-sm font-black text-slate-950 w-5 text-center">{adults}</span>
                             <button 
                               onClick={() => {
@@ -1348,7 +1366,7 @@ const toggleAddOn = (addon: AddOn) => {
                             <p className="text-sm font-black text-slate-900 leading-none">Age 3-11</p>
                           </div>
                           <div className="flex items-center gap-3">
-                            <button onClick={() => setChildren(Math.max(0, children - 1))} className="h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer"><Minus className="h-3.5 w-3.5" /></button>
+                            <button disabled={children <= 0 || (adults + children) <= minRequired} onClick={() => setChildren(Math.max(0, children - 1))} className={cn("h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer", (children <= 0 || (adults + children) <= minRequired) && "opacity-50 cursor-not-allowed hover:bg-slate-950")}><Minus className="h-3.5 w-3.5" /></button>
                             <span className="text-sm font-black text-slate-950 w-5 text-center">{children}</span>
                             <button 
                               onClick={() => {

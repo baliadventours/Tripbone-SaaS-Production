@@ -7454,6 +7454,68 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     }
   };
 
+  const handleImportTours = async (importedTours: Partial<Tour>[]): Promise<number> => {
+    if (!importedTours || importedTours.length === 0) return 0;
+
+    if (currentUserProfile?.role === 'supplier' && tenantData) {
+      const quota = await checkQuota(tenantData, 'tours', tours.length + importedTours.length);
+      if (!quota.allowed) {
+        alert(`Tour Quota Exceeded! Importing ${importedTours.length} tour(s) would exceed your ${tenantData.plan || 'Starter'} plan limit of ${quota.maxLimit === 999999 ? 'Unlimited' : quota.maxLimit}. Current tours: ${tours.length}.`);
+        return 0;
+      }
+    }
+
+    const activeTenantId = getActiveTenantId() || (currentUserProfile as any)?.tenantId || '';
+    let count = 0;
+
+    for (const rawTour of importedTours) {
+      if (!rawTour.title || typeof rawTour.title !== 'string') continue;
+
+      const { id, createdAt, updatedAt, ...cleanTour } = rawTour as any;
+
+      const baseTitle = cleanTour.title.trim();
+      const baseSlug = cleanTour.slug ? String(cleanTour.slug).trim() : baseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const uniqueSlug = `${baseSlug}-${randomSuffix}`;
+
+      const tourDataToSave = {
+        ...cleanTour,
+        title: baseTitle,
+        slug: uniqueSlug,
+        description: cleanTour.description || '',
+        regularPrice: Number(cleanTour.regularPrice) || 0,
+        discountPrice: cleanTour.discountPrice ? Number(cleanTour.discountPrice) : undefined,
+        duration: cleanTour.duration || 'Full Day',
+        status: cleanTour.status || 'published',
+        featuredImage: cleanTour.featuredImage || (cleanTour.gallery && cleanTour.gallery[0]) || '',
+        gallery: Array.isArray(cleanTour.gallery) ? cleanTour.gallery : [],
+        highlights: Array.isArray(cleanTour.highlights) ? cleanTour.highlights : [],
+        inclusions: Array.isArray(cleanTour.inclusions) ? cleanTour.inclusions : [],
+        exclusions: Array.isArray(cleanTour.exclusions) ? cleanTour.exclusions : [],
+        packages: Array.isArray(cleanTour.packages) ? cleanTour.packages : [],
+        itinerary: Array.isArray(cleanTour.itinerary) ? cleanTour.itinerary : [],
+        categoryId: cleanTour.categoryId || '',
+        locationId: cleanTour.locationId || '',
+        tourTypeId: cleanTour.tourTypeId || '',
+        supplierId: currentUserProfile?.role === 'supplier' ? currentUserProfile.uid : (cleanTour.supplierId || ''),
+        supplierName: currentUserProfile?.role === 'supplier' ? currentUserProfile.displayName : (cleanTour.supplierName || ''),
+        tenantId: activeTenantId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      try {
+        await addDoc(collection(db, 'tours'), tourDataToSave);
+        count++;
+      } catch (error) {
+        console.error("Error importing tour:", error);
+        handleFirestoreError(error, OperationType.WRITE, 'tours');
+      }
+    }
+
+    return count;
+  };
+
   // Helper for adding/removing items in arrays
   const addArrayItem = (field: keyof Tour, defaultValue: any) => {
     const current = Array.isArray(formData[field]) ? (formData[field] as any[]) : [];
@@ -11408,6 +11470,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 handleEdit={handleEdit}
                 handleDelete={handleDelete}
                 handleCloneTour={handleCloneTour}
+                handleImportTours={handleImportTours}
                 resetForm={resetForm}
                 setActiveMenu={setActiveMenu}
               />

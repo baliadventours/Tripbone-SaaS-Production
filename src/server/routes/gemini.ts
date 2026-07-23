@@ -6,6 +6,7 @@ import {
   resolveTenantGeminiKey, 
   fetchFromREST 
 } from "../../services/apiHelpers.js";
+import { moderateCreemContent } from "../../services/creemService.js";
 
 const router = express.Router();
 
@@ -127,6 +128,14 @@ router.post("/generate-tour", async (req, res) => {
       return res.status(400).json({ error: "Missing required field: prompt" });
     }
 
+    // Call Creem Moderation API to comply with AI Wrapper policies
+    try {
+      await moderateCreemContent(prompt);
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked prompt]:", modErr.message);
+      return res.status(400).json({ error: "Prompt blocked by moderation policy." });
+    }
+
     const tenantApiKey = await resolveTenantGeminiKey(tenantId);
     const finalKey = tenantApiKey || apiKey?.trim() || process.env.GEMINI_API_KEY?.trim();
     if (!finalKey) {
@@ -226,6 +235,14 @@ router.post("/generate-blog", async (req, res) => {
       return res.status(400).json({ error: "Missing required field: prompt" });
     }
 
+    // Call Creem Moderation API to comply with AI Wrapper policies
+    try {
+      await moderateCreemContent(prompt);
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked prompt]:", modErr.message);
+      return res.status(400).json({ error: "Prompt blocked by moderation policy." });
+    }
+
     const tenantApiKey = await resolveTenantGeminiKey(tenantId);
     const finalKey = tenantApiKey || apiKey?.trim() || process.env.GEMINI_API_KEY?.trim();
     if (!finalKey) {
@@ -296,6 +313,14 @@ router.post("/generate-itinerary", async (req, res) => {
     const { userData, apiKey, tenantId } = req.body;
     if (!userData) {
       return res.status(400).json({ error: "Missing required field: userData" });
+    }
+
+    // Call Creem Moderation API to comply with AI Wrapper policies
+    try {
+      await moderateCreemContent(JSON.stringify(userData));
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked prompt]:", modErr.message);
+      return res.status(400).json({ error: "Prompt blocked by moderation policy." });
     }
 
     const tenantApiKey = await resolveTenantGeminiKey(tenantId);

@@ -19,7 +19,15 @@ export default function BookingForm({ tour }: BookingFormProps) {
   const [date, setDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [adults, setAdults] = useState(1);
+
+  const minRequired = useMemo(() => {
+    if (!tour || !tour.packages || tour.packages.length === 0) return 1;
+    return Math.min(...tour.packages.map(pkg => 
+      pkg.tiers && pkg.tiers.length > 0 ? Math.min(...pkg.tiers.map(t => t.minParticipants)) : 1
+    ));
+  }, [tour]);
+
+  const [adults, setAdults] = useState(Math.max(1, minRequired));
   const [children, setChildren] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [step, setStep] = useState<BookingStep>('package');
@@ -280,7 +288,7 @@ export default function BookingForm({ tour }: BookingFormProps) {
                 <span className="text-xs text-gray-400 font-bold">Age 12+</span>
               </div>
               <div className="flex items-center gap-4">
-                <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))} className="h-8 w-8 rounded-full border-2 border-primary/20 flex items-center justify-center text-primary" disabled={adults <= 1}>
+                <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))} className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all", (adults <= 1 || (adults + children) <= minRequired) ? "border-gray-200 text-gray-300 opacity-50 cursor-not-allowed" : "border-primary/20 text-primary hover:bg-primary/5")} disabled={adults <= 1 || (adults + children) <= minRequired}>
                   <Minus className="h-4 w-4" />
                 </button>
                 <span className="w-4 text-center font-black text-lg text-primary">{adults}</span>
@@ -301,7 +309,7 @@ export default function BookingForm({ tour }: BookingFormProps) {
                 <span className="text-xs text-gray-400 font-bold">Age 3-11</span>
               </div>
               <div className="flex items-center gap-4">
-                <button type="button" onClick={() => setChildren(Math.max(0, children - 1))} className="h-8 w-8 rounded-full border-2 border-primary/20 flex items-center justify-center text-primary" disabled={children <= 0}>
+                <button type="button" onClick={() => setChildren(Math.max(0, children - 1))} className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all", (children <= 0 || (adults + children) <= minRequired) ? "border-gray-200 text-gray-300 opacity-50 cursor-not-allowed" : "border-primary/20 text-primary hover:bg-primary/5")} disabled={children <= 0 || (adults + children) <= minRequired}>
                   <Minus className="h-4 w-4" />
                 </button>
                 <span className="w-4 text-center font-black text-lg text-primary">{children}</span>

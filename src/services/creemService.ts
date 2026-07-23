@@ -65,3 +65,47 @@ export async function createCreemCheckoutSession(params: {
     throw new Error(`Creem.io Checkout Error: ${errorDetails}`);
   }
 }
+
+export async function moderateCreemContent(text: string) {
+  // If running in browser, proxy through the backend
+  if (typeof window !== 'undefined') {
+    const res = await fetch('/api/billing/moderate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to moderate content');
+    return data;
+  }
+
+  const rawApiKey = typeof process !== 'undefined' ? (process as any).env?.CREEM_API_KEY || (process as any).env?.VITE_CREEM_API_KEY : '';
+  const apiKey = typeof rawApiKey === 'string' ? rawApiKey.trim() : '';
+
+  if (!apiKey || apiKey.toLowerCase().includes('placeholder')) {
+    // If no API key, assume valid to prevent blocking dev
+    return { status: 'approved' };
+  }
+
+  const rawMode = typeof process !== 'undefined' ? (process as any).env?.CREEM_MODE || (process as any).env?.VITE_CREEM_MODE : '';
+  const isLive = rawMode === 'live';
+  const url = isLive ? 'https://api.creem.io/v1/moderations' : 'https://test-api.creem.io/v1/moderations';
+
+  try {
+    const response = await axios.post(url, { text }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      }
+    });
+    // Check if the content is flagged
+    if (response.data && response.data.status === 'rejected') {
+       throw new Error('Content violates safety guidelines.');
+    }
+    return response.data;
+  } catch (error: any) {
+    const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    throw new Error(`Creem.io Moderation Error: ${errorDetails}`);
+  }
+}
+
