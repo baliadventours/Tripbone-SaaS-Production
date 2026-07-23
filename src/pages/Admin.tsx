@@ -8023,9 +8023,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       e.preventDefault();
       if (!editingPost?.title || !editingPost?.slug) return;
 
+      const { id, ...restData } = editingPost as any;
       const postData = {
-        ...editingPost,
-        seo: editingPost.seo || { title: '', description: '' },
+        ...restData,
+        seo: restData.seo || { title: '', description: '' },
         updatedAt: serverTimestamp(),
       };
 
@@ -8147,15 +8148,18 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       <input 
                         required
                         value={editingPost?.title || ''}
-                        onChange={e => setEditingPost({ 
-                          ...editingPost, 
-                          title: e.target.value, 
-                          slug: e.target.value
-                            .toLowerCase()
-                            .replace(/[^\w\s-]/g, '')
-                            .replace(/\s+/g, '-')
-                            .replace(/-+/g, '-') 
-                        })}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setEditingPost(prev => prev ? { 
+                            ...prev, 
+                            title: val, 
+                            slug: val
+                              .toLowerCase()
+                              .replace(/[^\w\s-]/g, '')
+                              .replace(/\s+/g, '-')
+                              .replace(/-+/g, '-') 
+                          } : prev);
+                        }}
                         placeholder="Article Title"
                         className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
                       />
@@ -8165,7 +8169,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       <input 
                         required
                         value={editingPost?.slug || ''}
-                        onChange={e => setEditingPost({ ...editingPost, slug: e.target.value })}
+                        onChange={e => setEditingPost(prev => prev ? { ...prev, slug: e.target.value } : prev)}
                         placeholder="url-slug"
                         className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
                       />
@@ -8177,7 +8181,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Category</label>
                       <input 
                         value={editingPost?.category || ''}
-                        onChange={e => setEditingPost({ ...editingPost, category: e.target.value })}
+                        onChange={e => setEditingPost(prev => prev ? { ...prev, category: e.target.value } : prev)}
                         placeholder="e.g. Travel Tips"
                         className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
                       />
@@ -8186,7 +8190,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Author</label>
                       <input 
                         value={editingPost?.author || ''}
-                        onChange={e => setEditingPost({ ...editingPost, author: e.target.value })}
+                        onChange={e => setEditingPost(prev => prev ? { ...prev, author: e.target.value } : prev)}
                         placeholder="Author Name"
                         className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
                       />
@@ -8195,7 +8199,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Status</label>
                       <select 
                         value={editingPost?.status || 'draft'}
-                        onChange={e => setEditingPost({ ...editingPost, status: e.target.value as any, publishedAt: e.target.value === 'published' ? (editingPost?.publishedAt || serverTimestamp()) : null })}
+                        onChange={e => {
+                          const val = e.target.value as any;
+                          setEditingPost(prev => prev ? { ...prev, status: val, publishedAt: val === 'published' ? (prev.publishedAt || serverTimestamp()) : null } : prev);
+                        }}
                         className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all appearance-none"
                       >
                         <option value="draft">Draft</option>
@@ -8223,7 +8230,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                               if (file) {
                                 try {
                                   const url = await uploadImage(file);
-                                  setEditingPost({ ...editingPost, featuredImage: url });
+                                  setEditingPost(prev => prev ? { ...prev, featuredImage: url } : prev);
                                 } catch (err) {
                                   alert("Upload failed.");
                                 }
@@ -8241,7 +8248,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                             onClick={() => {
                               openMediaGallery((urls) => {
                                 if (urls[0]) {
-                                  setEditingPost({ ...editingPost, featuredImage: urls[0] });
+                                  setEditingPost(prev => prev ? { ...prev, featuredImage: urls[0] } : prev);
                                 }
                               }, false);
                             }}
@@ -8253,7 +8260,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                         </div>
                         <input 
                           value={editingPost?.featuredImage || ''}
-                          onChange={e => setEditingPost({ ...editingPost, featuredImage: e.target.value })}
+                          onChange={e => setEditingPost(prev => prev ? { ...prev, featuredImage: e.target.value } : prev)}
                           placeholder="https://..."
                           className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
                         />
@@ -8265,7 +8272,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Tags (Comma separated)</label>
                     <input 
                       value={editingPost?.tags?.join(', ') || ''}
-                      onChange={e => setEditingPost({ ...editingPost, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                      onChange={e => setEditingPost(prev => prev ? { ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) } : prev)}
                       placeholder="e.g. Travel, Bali, Adventure"
                       className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
                     />
@@ -8276,7 +8283,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     <textarea 
                       rows={2}
                       value={editingPost?.excerpt || ''}
-                      onChange={e => setEditingPost({ ...editingPost, excerpt: e.target.value })}
+                      onChange={e => setEditingPost(prev => prev ? { ...prev, excerpt: e.target.value } : prev)}
                       placeholder="Brief summary for archive page..."
                       className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-medium text-sm focus:border-primary focus:bg-white outline-none transition-all"
                     />
@@ -8286,7 +8293,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Full Content</label>
                     <RichTextEditor 
                       content={editingPost?.content || ''}
-                      onChange={(html) => setEditingPost({ ...editingPost, content: html })}
+                      onChange={(html) => setEditingPost(prev => prev ? { ...prev, content: html } : prev)}
                       placeholder="Start writing your article..."
                     />
                   </div>
@@ -8301,7 +8308,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Meta Title</label>
                             <input 
                                 value={editingPost?.seo?.title || ''}
-                                onChange={e => setEditingPost({ ...editingPost, seo: { ...editingPost.seo, title: e.target.value } })}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setEditingPost(prev => prev ? { ...prev, seo: { ...prev.seo, title: val } } : prev);
+                                }}
                                 className="w-full rounded-[8px] border border-gray-100 p-3 text-sm focus:border-primary outline-none"
                                 placeholder="SEO Browser Title"
                             />
@@ -8310,7 +8320,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Meta Description</label>
                             <textarea 
                                 value={editingPost?.seo?.description || ''}
-                                onChange={e => setEditingPost({ ...editingPost, seo: { ...editingPost.seo, description: e.target.value } })}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setEditingPost(prev => prev ? { ...prev, seo: { ...prev.seo, description: val } } : prev);
+                                }}
                                 className="w-full rounded-[8px] border border-gray-100 p-3 text-sm focus:border-primary outline-none"
                                 rows={2}
                                 placeholder="Short SEO description..."
