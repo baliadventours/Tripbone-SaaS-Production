@@ -10,8 +10,11 @@ interface TenantContextType {
   isAppGate: boolean; // True if on the app.tripbone.com app onboarding/billing portal
   loading: boolean;
   error: string | null;
-  globalSEO: any | null; // Added
+  globalSEO: any | null;
   setPreviewTenant: (slug: string | null) => void;
+  isImpersonating: boolean; // True ONLY when a superadmin has explicitly taken over
+  stopImpersonation: () => void;
+  impersonateTenant: (tenant: Tenant) => void;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -22,7 +25,10 @@ const TenantContext = createContext<TenantContextType>({
   loading: true,
   error: null,
   globalSEO: null,
-  setPreviewTenant: () => {}
+  setPreviewTenant: () => {},
+  isImpersonating: false,
+  stopImpersonation: () => {},
+  impersonateTenant: () => {}
 });
 
 export const useTenant = () => useContext(TenantContext);
@@ -46,6 +52,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globalSEO, setGlobalSEO] = useState<any | null>(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
   // Fetch global SEO settings
   useEffect(() => {
@@ -63,86 +70,43 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       }
     }, (err) => {
       console.error('Error fetching global SEO:', err);
-      // Fallback
       setGlobalSEO({
-          title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
-          description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
-          image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
-          siteName: 'Tripbone SaaS'
+        title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+        description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
+        image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+        siteName: 'Tripbone SaaS'
       });
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Parse hostname and query parameter to resolve tenant
-  const resolveTenantSlug = (): { slug: string | null; customDomain: string | null; isAppGateHost: boolean } => {
-    if (typeof window === 'undefined') return { slug: null, customDomain: null, isAppGateHost: false };
+  const stopImpersonation = () => {
+    sessionStorage.removeItem('tripbone_is_impersonating');
+    sessionStorage.removeItem('tripbone_impersonated_tenant_id');
+    localStorage.removeItem('tripbone_preview_tenant');
+    setIsImpersonating(false);
 
-    const hostname = window.location.hostname;
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Check if the current subdomain is 'app'
-    const isAppSubdomain = hostname.startsWith('app.') || hostname.startsWith('app-');
-    
-    // Dedicated app portal subdomain should never resolve a tenant, even with query params
-    if (isAppSubdomain) {
-      return { slug: null, customDomain: null, isAppGateHost: true };
-    }
-    
-    // 1. Check for query parameter override (highest priority for development & AI Studio preview)
-    const paramTenant = urlParams.get('tenant');
-    if (paramTenant) {
-      const lowerSlug = paramTenant.toLowerCase();
-      if (localStorage.getItem('tripbone_preview_tenant') !== lowerSlug) {
-        localStorage.setItem('tripbone_preview_tenant', lowerSlug);
-      }
-      return { slug: lowerSlug, customDomain: null, isAppGateHost: false };
+    // Clean URL query params
+    const url = new URL(window.location.href);
+    url.searchParams.delete('impersonate');
+    url.searchParams.delete('tenant');
+
+    window.location.href = '/superadmin';
+  };
+
+  const impersonateTenant = (targetTenant: Tenant) => {
+    sessionStorage.setItem('tripbone_is_impersonating', 'true');
+    sessionStorage.setItem('tripbone_impersonated_tenant_id', targetTenant.id);
+    if (targetTenant.slug) {
+      localStorage.setItem('tripbone_preview_tenant', targetTenant.slug.toLowerCase());
     }
 
-    // 2. Check localStorage for preview/sticky tenant
-    const cachedTenant = localStorage.getItem('tripbone_preview_tenant');
-    if (cachedTenant) {
-      return { slug: cachedTenant.toLowerCase(), customDomain: null, isAppGateHost: false };
-    }
-
-    // 3. Resolve subdomain or custom domain
-    // Main domain examples: tripbone.com, localhost, or AI Studio preview (ais-dev-...)
-    const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
-    
-    // Check if hostname is an IP or localhost or belongs to main domains
-    const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
-    
-    // Check if this is an AI Studio running container URL (contains "run.app")
-    const isAiStudio = hostname.includes('run.app');
-
-    if (isAiStudio) {
-      // In AI Studio frame, the hostname is a full container URL (no simple tenant subdomains).
-      // We rely on query params or localStorage.
-      return { slug: null, customDomain: null, isAppGateHost: isAppSubdomain };
-    }
-
-    const parts = hostname.split('.');
-    
-    if (isMainDomain) {
-      // For local development e.g., company.localhost:3000
-      if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
-        // parts: ['company', 'localhost'] -> subdomain is parts[0]
-        if (parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== 'app') {
-          return { slug: parts[0].toLowerCase(), customDomain: null, isAppGateHost: false };
-        }
-      } else if (parts.length > 2) {
-        // e.g. company.tripbone.com -> subdomain is company
-        const subdomain = parts[0];
-        if (subdomain !== 'www' && subdomain !== 'app') {
-          return { slug: subdomain.toLowerCase(), customDomain: null, isAppGateHost: false };
-        }
-      }
-      return { slug: null, customDomain: null, isAppGateHost: isAppSubdomain };
+    const protocol = window.location.hostname === 'localhost' ? 'http://' : 'https://';
+    if (targetTenant.customDomain) {
+      window.location.href = `${protocol}${targetTenant.customDomain}/?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
     } else {
-      // This is a custom domain! e.g., booking.mycompany.com or tours.baliadventours.com
-      // We look up by customDomain field in the database.
-      return { slug: null, customDomain: hostname.toLowerCase(), isAppGateHost: false };
+      window.location.href = `/?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
     }
   };
 
@@ -152,62 +116,188 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     } else {
       localStorage.removeItem('tripbone_preview_tenant');
     }
-    // Reload page to apply tenant configuration clean and fresh
     window.location.reload();
+  };
+
+  // Resolve tenant parameters from hostname and URL search params
+  const resolveTenantInfo = (): { 
+    slug: string | null; 
+    customDomain: string | null; 
+    impersonateId: string | null;
+    isAppGateHost: boolean;
+    isExplicitImpersonate: boolean;
+  } => {
+    if (typeof window === 'undefined') {
+      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+    }
+
+    const hostname = window.location.hostname;
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    const isAppSubdomain = hostname.startsWith('app.') || hostname.startsWith('app-');
+    
+    const urlImpersonate = urlParams.get('impersonate');
+    const sessionImpersonate = sessionStorage.getItem('tripbone_is_impersonating') === 'true';
+    const sessionImpersonateId = sessionStorage.getItem('tripbone_impersonated_tenant_id');
+
+    const isExplicitImpersonate = Boolean(urlImpersonate || (sessionImpersonate && sessionImpersonateId));
+    const impersonateId = urlImpersonate || sessionImpersonateId;
+
+    if (isAppSubdomain && !isExplicitImpersonate) {
+      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: true, isExplicitImpersonate: false };
+    }
+    
+    // 1. Check for query parameter override
+    const paramTenant = urlParams.get('tenant') || urlParams.get('preview_tenant');
+    if (paramTenant) {
+      const lowerSlug = paramTenant.toLowerCase();
+      if (localStorage.getItem('tripbone_preview_tenant') !== lowerSlug) {
+        localStorage.setItem('tripbone_preview_tenant', lowerSlug);
+      }
+      return { 
+        slug: lowerSlug, 
+        customDomain: null, 
+        impersonateId, 
+        isAppGateHost: false, 
+        isExplicitImpersonate 
+      };
+    }
+
+    // 2. If impersonateId is present
+    if (impersonateId) {
+      return { 
+        slug: null, 
+        customDomain: null, 
+        impersonateId, 
+        isAppGateHost: false, 
+        isExplicitImpersonate 
+      };
+    }
+
+    // 3. Check localStorage for preview/sticky tenant (ONLY if NOT explicit superadmin impersonation)
+    const cachedTenant = localStorage.getItem('tripbone_preview_tenant');
+    if (cachedTenant && !isExplicitImpersonate) {
+      return { 
+        slug: cachedTenant.toLowerCase(), 
+        customDomain: null, 
+        impersonateId: null, 
+        isAppGateHost: false, 
+        isExplicitImpersonate: false 
+      };
+    }
+
+    // 4. Resolve subdomain or custom domain
+    const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
+    const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+    const isAiStudio = hostname.includes('run.app');
+
+    if (isAiStudio) {
+      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: isAppSubdomain, isExplicitImpersonate: false };
+    }
+
+    const parts = hostname.split('.');
+    
+    if (isMainDomain) {
+      if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
+        if (parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== 'app') {
+          return { slug: parts[0].toLowerCase(), customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+        }
+      } else if (parts.length > 2) {
+        const subdomain = parts[0];
+        if (subdomain !== 'www' && subdomain !== 'app') {
+          return { slug: subdomain.toLowerCase(), customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+        }
+      }
+      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: isAppSubdomain, isExplicitImpersonate: false };
+    } else {
+      return { slug: null, customDomain: hostname.toLowerCase(), impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+    }
   };
 
   useEffect(() => {
     async function fetchTenant() {
       try {
-        const { slug, customDomain, isAppGateHost } = resolveTenantSlug();
+        const { slug, customDomain, impersonateId, isAppGateHost, isExplicitImpersonate } = resolveTenantInfo();
         
         activeTenantSlug = slug;
         setIsAppGate(isAppGateHost);
 
-        if (!slug && !customDomain) {
-          // No tenant resolved -> we are on the main Master SaaS landing page
+        if (!slug && !customDomain && !impersonateId) {
           setTenant(null);
           setTenantIdInternal(null);
           setActiveTenantId(null);
           setIsMaster(true);
+          setIsImpersonating(false);
           setLoading(false);
           return;
         }
 
-        // Query Firestore for matching tenant
-        let tenantQuery;
-        if (slug) {
-          tenantQuery = query(collection(db, 'tenants'), where('slug', '==', slug), limit(1));
-        } else {
-          // Robust custom domain lookup: match both with and without 'www.' prefix
-          const cleanDomain = customDomain.replace(/^www\./i, '');
-          const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
-          tenantQuery = query(
-            collection(db, 'tenants'), 
-            where('customDomain', 'in', domainsToSearch), 
-            limit(1)
-          );
+        let tenantData: Tenant | null = null;
+        let tenantDocId: string | null = null;
+
+        // 1. Try resolving by impersonateId if present
+        if (impersonateId) {
+          const directDocRef = doc(db, 'tenants', impersonateId);
+          const directSnap = await getDoc(directDocRef);
+          if (directSnap.exists()) {
+            tenantDocId = directSnap.id;
+            tenantData = { id: directSnap.id, ...(directSnap.data() as any) } as Tenant;
+          } else {
+            const slugQuery = query(collection(db, 'tenants'), where('slug', '==', impersonateId.toLowerCase()), limit(1));
+            const slugSnap = await getDocs(slugQuery);
+            if (!slugSnap.empty) {
+              const d = slugSnap.docs[0];
+              tenantDocId = d.id;
+              tenantData = { id: d.id, ...(d.data() as any) } as Tenant;
+            }
+          }
         }
 
-        const querySnapshot = await getDocs(tenantQuery);
-        
-        if (!querySnapshot.empty) {
-          const tenantDoc = querySnapshot.docs[0];
-          const tenantData = { id: tenantDoc.id, ...(tenantDoc.data() as any) } as Tenant;
-          
+        // 2. If not resolved via impersonateId, query by slug or customDomain
+        if (!tenantData) {
+          let tenantQuery;
+          if (slug) {
+            tenantQuery = query(collection(db, 'tenants'), where('slug', '==', slug), limit(1));
+          } else if (customDomain) {
+            const cleanDomain = customDomain.replace(/^www\./i, '');
+            const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
+            tenantQuery = query(collection(db, 'tenants'), where('customDomain', 'in', domainsToSearch), limit(1));
+          }
+
+          if (tenantQuery) {
+            const querySnapshot = await getDocs(tenantQuery);
+            if (!querySnapshot.empty) {
+              const tenantDoc = querySnapshot.docs[0];
+              tenantDocId = tenantDoc.id;
+              tenantData = { id: tenantDoc.id, ...(tenantDoc.data() as any) } as Tenant;
+            }
+          }
+        }
+
+        if (tenantData && tenantDocId) {
           setTenant(tenantData);
-          setTenantIdInternal(tenantDoc.id);
-          setActiveTenantId(tenantDoc.id);
+          setTenantIdInternal(tenantDocId);
+          setActiveTenantId(tenantDocId);
           setIsMaster(false);
           setError(null);
+
+          if (isExplicitImpersonate) {
+            setIsImpersonating(true);
+            sessionStorage.setItem('tripbone_is_impersonating', 'true');
+            sessionStorage.setItem('tripbone_impersonated_tenant_id', tenantDocId);
+          } else {
+            setIsImpersonating(false);
+            sessionStorage.removeItem('tripbone_is_impersonating');
+            sessionStorage.removeItem('tripbone_impersonated_tenant_id');
+          }
         } else {
-          // Tenant not found in DB
-          console.warn(`Tenant not found for slug: ${slug} or customDomain: ${customDomain}`);
-          setError(`We couldn't find the tenant space for "${slug || customDomain}".`);
+          console.warn(`Tenant not found for slug: ${slug}, domain: ${customDomain}, impersonateId: ${impersonateId}`);
+          setError(`We couldn't find the tenant space for "${slug || customDomain || impersonateId}".`);
           setTenant(null);
           setTenantIdInternal(null);
           setActiveTenantId(null);
-          setIsMaster(true); // Fallback to master view
+          setIsMaster(true);
+          setIsImpersonating(false);
         }
       } catch (err: any) {
         console.error('Error resolving tenant:', err);
@@ -221,7 +311,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <TenantContext.Provider value={{ tenant, tenantId, isMaster, isAppGate, loading, error, globalSEO, setPreviewTenant }}>
+    <TenantContext.Provider value={{ 
+      tenant, 
+      tenantId, 
+      isMaster, 
+      isAppGate, 
+      loading, 
+      error, 
+      globalSEO, 
+      setPreviewTenant,
+      isImpersonating,
+      stopImpersonation,
+      impersonateTenant
+    }}>
       {children}
     </TenantContext.Provider>
   );

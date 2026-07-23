@@ -24,6 +24,8 @@ import { logSimplePageView } from './lib/simpleAnalytics';
 // Critical pages imported directly for instant load
 import Home from './pages/Home';
 
+import ImpersonateBar from './components/ImpersonateBar';
+
 // Lazy load non-critical pages for performance
 const Tours = lazy(() => import('./pages/Tours'));
 const TourDetail = lazy(() => import('./pages/TourDetail'));
@@ -76,7 +78,7 @@ import { useTenantSEO } from './hooks/useTenantSEO';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 
 function AppContent() {
-  const { isMaster, isAppGate, tenant, loading: tenantLoading, setPreviewTenant } = useTenant();
+  const { isMaster, isAppGate, tenant, loading: tenantLoading, setPreviewTenant, isImpersonating } = useTenant();
   const { settings, loading: settingsLoading } = useSettings();
   const location = useLocation();
 
@@ -190,6 +192,7 @@ function AppContent() {
   if (isMaster) {
     return (
       <div className="flex min-h-screen flex-col font-sans antialiased text-gray-100 bg-[#070b13] w-full max-w-full overflow-x-hidden">
+        {isImpersonating && <ImpersonateBar />}
         <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/admin/*" element={<SaaSSuperAdmin />} />
@@ -296,6 +299,7 @@ function AppContent() {
       !isTourDetail && "overflow-x-hidden",
       !hideMobileNav && "pb-[72px] md:pb-0"
     )}>
+      {isImpersonating && <ImpersonateBar />}
       {isInactive && (
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-center py-2.5 px-4 text-xs font-bold flex items-center justify-center space-x-2 z-[9999] relative shadow-md">
           <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] uppercase font-black">Notice</span>

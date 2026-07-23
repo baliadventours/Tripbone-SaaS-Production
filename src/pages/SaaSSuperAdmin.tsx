@@ -3286,11 +3286,14 @@ export default function SaaSSuperAdmin() {
                           <button
                             title="Impersonate Operator"
                             onClick={() => {
+                              sessionStorage.setItem('tripbone_is_impersonating', 'true');
+                              sessionStorage.setItem('tripbone_impersonated_tenant_id', tenant.id);
+                              if (tenant.slug) localStorage.setItem('tripbone_preview_tenant', tenant.slug.toLowerCase());
                               if (tenant.customDomain) {
                                 const protocol = window.location.hostname === 'localhost' ? 'http://' : 'https://';
-                                window.location.href = `${protocol}${tenant.customDomain}/?impersonate=${tenant.id}`;
+                                window.location.href = `${protocol}${tenant.customDomain}/?tenant=${tenant.slug}&impersonate=${tenant.id}`;
                               } else {
-                                window.location.href = `/?impersonate=${tenant.id}`;
+                                window.location.href = `/?tenant=${tenant.slug}&impersonate=${tenant.id}`;
                               }
                             }}
                             className={`p-1.5 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-indigo-900/50 text-indigo-400' : 'hover:bg-indigo-50 text-indigo-600'}`}
@@ -5127,11 +5130,14 @@ export default function SaaSSuperAdmin() {
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => {
+                    sessionStorage.setItem('tripbone_is_impersonating', 'true');
+                    sessionStorage.setItem('tripbone_impersonated_tenant_id', selectedTenant.id);
+                    if (selectedTenant.slug) localStorage.setItem('tripbone_preview_tenant', selectedTenant.slug.toLowerCase());
                     if (selectedTenant.customDomain) {
                       const protocol = window.location.hostname === 'localhost' ? 'http://' : 'https://';
-                      window.location.href = `${protocol}${selectedTenant.customDomain}/?impersonate=${selectedTenant.id}`;
+                      window.location.href = `${protocol}${selectedTenant.customDomain}/?tenant=${selectedTenant.slug}&impersonate=${selectedTenant.id}`;
                     } else {
-                      window.location.href = `/?impersonate=${selectedTenant.id}`;
+                      window.location.href = `/?tenant=${selectedTenant.slug}&impersonate=${selectedTenant.id}`;
                     }
                   }}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center space-x-2"
