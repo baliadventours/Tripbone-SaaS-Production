@@ -123,8 +123,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const impersonateTenant = (targetTenant: Tenant) => {
-    sessionStorage.setItem('tripbone_is_impersonating', 'true');
-    sessionStorage.setItem('tripbone_impersonated_tenant_id', targetTenant.id);
+    // When impersonating, we just open a new tab with the target URL and impersonate parameters.
+    // The new tab will initialize its own sessionStorage.
     if (targetTenant.slug) {
       localStorage.setItem('tripbone_preview_tenant', targetTenant.slug.toLowerCase());
     }
@@ -132,12 +132,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const hostname = window.location.hostname;
     const protocol = hostname === 'localhost' || hostname === '127.0.0.1' ? 'http://' : 'https://';
     
+    let targetUrl = '';
+
     if (targetTenant.customDomain) {
-      window.location.href = `${protocol}${targetTenant.customDomain}/?impersonate=${targetTenant.id}`;
+      targetUrl = `${protocol}${targetTenant.customDomain}/admin?impersonate=${targetTenant.id}`;
     } else {
       const isAiStudio = hostname.includes('run.app');
+
       if (isAiStudio) {
-        window.location.href = `/?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
+        targetUrl = `/admin?tenant=${targetTenant.slug}&impersonate=${targetTenant.id}`;
       } else {
         const parts = hostname.split('.');
         let baseDomain = hostname;
@@ -150,12 +153,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-           window.location.href = `${protocol}${targetTenant.slug}.localhost:3000/?impersonate=${targetTenant.id}`;
+           targetUrl = `${protocol}${targetTenant.slug}.localhost:3000/admin?impersonate=${targetTenant.id}`;
         } else {
-           window.location.href = `${protocol}${targetTenant.slug}.${baseDomain}/?impersonate=${targetTenant.id}`;
+           targetUrl = `${protocol}${targetTenant.slug}.${baseDomain}/admin?impersonate=${targetTenant.id}`;
         }
       }
     }
+    
+    // Open in a new tab instead of changing current window
+    window.open(targetUrl, '_blank');
   };
 
   const setPreviewTenant = (slug: string | null) => {

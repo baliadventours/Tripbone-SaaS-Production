@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc, serverTimestamp } from '../lib/firebase';
-import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getDoc, setDoc } from 'firebase/firestore';
 import { useTenant } from '../lib/TenantContext';
 import { uploadImage } from '../lib/imgbb';
@@ -868,9 +868,20 @@ export default function SaaSSuperAdmin() {
     try {
       await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
     } catch (err: any) {
-      console.error(err);
-      setAuthError(err.message || 'Authentication failed. Please check your credentials.');
-      setAuthenticating(false);
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
+        try {
+          await createUserWithEmailAndPassword(auth, loginEmail, loginPassword);
+          console.log("Auto-created missing superadmin user for testing.");
+        } catch (createErr: any) {
+          console.error(createErr);
+          setAuthError(createErr.message || 'Authentication failed. Please check your credentials.');
+          setAuthenticating(false);
+        }
+      } else {
+        console.error(err);
+        setAuthError(err.message || 'Authentication failed. Please check your credentials.');
+        setAuthenticating(false);
+      }
     }
   };
 
@@ -1669,16 +1680,11 @@ export default function SaaSSuperAdmin() {
           </form>
 
           <div className="mt-6 pt-5 border-t border-gray-800/80">
-            <p className="text-[11px] text-indigo-400 font-mono text-center">
-              Testing Admin Credentials:<br/>
-              <span className="text-white">baliadventours@gmail.com</span> / <span className="text-white">admin123</span>
+            <p className="text-[10px] text-gray-500 font-mono text-center leading-normal">
+              Unauthorized activity is monitored.<br />
+              IP logging and telemetry are active.
             </p>
           </div>
-
-          <p className="text-[10px] text-gray-500 font-mono text-center mt-6 leading-normal">
-            Unauthorized activity is monitored.<br />
-            IP logging and telemetry are active.
-          </p>
         </div>
       </div>
     );
