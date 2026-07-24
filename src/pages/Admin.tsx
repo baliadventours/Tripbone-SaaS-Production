@@ -5241,16 +5241,18 @@ const PartnerListing = ({
                   <div className="flex justify-end gap-2">
                     <button 
                       onClick={() => onSelect(u)}
-                      className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                      className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                      title="View Details"
                     >
-                      View Details
+                      <Icons.Eye className="h-4 w-4" />
                     </button>
                     {type === 'supplier' && onViewTours && (
                       <button 
                         onClick={() => onViewTours(u)}
-                        className="bg-orange-50 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                        className="p-2 text-primary hover:bg-orange-50 rounded-lg transition-all"
+                        title="View Tours"
                       >
-                        Tours
+                        <Icons.Compass className="h-4 w-4" />
                       </button>
                     )}
                     <button 
@@ -9550,10 +9552,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                 setOriginalBooking(booking);
                                 setIsBookingDetailOpen(true);
                               }}
-                              className="px-2.5 py-1.5 hover:bg-gray-100 text-gray-700 hover:text-black border border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                              className="p-1.5 hover:bg-gray-100 text-gray-700 hover:text-black border border-gray-200 rounded-lg transition-all"
                               title="Full Details"
                             >
-                              Open
+                              <Icons.Eye className="h-4 w-4" />
                             </button>
                             
                             {/* Interactive, premium actions dropdown menu */}

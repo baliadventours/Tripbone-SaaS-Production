@@ -828,25 +828,32 @@ export default function SaaSHome() {
   const workspaceLimits = useMemo(() => {
     if (!activeWorkspace) return { maxTours: 10, maxBookings: 25 };
     
+    // Check if custom limits exist on activeWorkspace
+    const customTours = (activeWorkspace as any).maxTours ?? (activeWorkspace as any).tourQuota;
+    const customBookings = (activeWorkspace as any).maxBookings ?? (activeWorkspace as any).bookingQuota;
+    if (customTours !== undefined && customBookings !== undefined) {
+      return { maxTours: customTours, maxBookings: customBookings };
+    }
+
     // Normalize plan slug
     const fullPlanSlug = (activeWorkspace.plan || 'starter').toLowerCase();
     const planSlug = fullPlanSlug.split('-')[0];
     const interval = (activeWorkspace.billingInterval || 'monthly').toLowerCase();
     
     // Find matching plan in state 'plans'
-    let matchedPlan = plans.find(p => p.slug.toLowerCase() === fullPlanSlug);
+    let matchedPlan = plans.find(p => p.slug?.toLowerCase() === fullPlanSlug);
     if (!matchedPlan) {
-      matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug && (p.interval || 'monthly').toLowerCase() === interval);
+      matchedPlan = plans.find(p => p.slug?.toLowerCase() === planSlug && (p.interval || 'monthly').toLowerCase() === interval);
     }
     if (!matchedPlan) {
-      matchedPlan = plans.find(p => p.slug.toLowerCase() === planSlug);
+      matchedPlan = plans.find(p => p.slug?.toLowerCase() === planSlug);
     }
     
-    let maxTours: number | string = 10;
-    let maxBookings: number | string = 25;
+    let maxTours: number | string = customTours ?? 10;
+    let maxBookings: number | string = customBookings ?? 25;
     
     if (matchedPlan) {
-      if (typeof matchedPlan.maxTours === 'number') {
+      if (typeof matchedPlan.maxTours === 'number' || matchedPlan.maxTours === 'Unlimited') {
         maxTours = matchedPlan.maxTours;
       } else if (matchedPlan.features) {
         const featureStr = matchedPlan.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('tours'));
@@ -866,7 +873,7 @@ export default function SaaSHome() {
         else maxTours = 10;
       }
       
-      if (typeof matchedPlan.maxBookings === 'number') {
+      if (typeof matchedPlan.maxBookings === 'number' || matchedPlan.maxBookings === 'Unlimited') {
         maxBookings = matchedPlan.maxBookings;
       } else if (matchedPlan.features) {
         const featureStr = matchedPlan.features?.find((f: any) => typeof f === 'string' && f.toLowerCase().includes('bookings'));
@@ -901,7 +908,10 @@ export default function SaaSHome() {
       }
     }
     
-    return { maxTours, maxBookings };
+    return { 
+      maxTours: customTours !== undefined ? customTours : maxTours, 
+      maxBookings: customBookings !== undefined ? customBookings : maxBookings 
+    };
   }, [activeWorkspace, plans]);
 
   const dateActiveStr = useMemo(() => {
@@ -916,28 +926,33 @@ export default function SaaSHome() {
   const dueDateStr = useMemo(() => {
     if (!activeWorkspace) return 'N/A';
     
+    const billingInterval = (activeWorkspace.billingInterval || '').toLowerCase();
+    const planName = (activeWorkspace.plan || '').toLowerCase();
+    const isLifetime = billingInterval === 'lifetime' || planName.includes('lifetime');
+
+    if (isLifetime) return 'Lifetime Access';
+
     const s = getWorkspaceStatus(activeWorkspace);
     let createdAtStr = activeWorkspace.createdAt;
     const d = createdAtStr ? new Date(createdAtStr) : new Date();
     
-    if (s === 'trial' || activeWorkspace.trialEnds) {
-      const trialEndsDate = activeWorkspace.trialEnds 
-        ? new Date(activeWorkspace.trialEnds) 
-        : new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (s === 'trial') {
+      let trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : null;
+      if (!trialEndsDate || isNaN(trialEndsDate.getTime())) {
+        trialEndsDate = new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
       return trialEndsDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' (Trial Ends)';
     }
     
     if (s === 'inactive') {
-      const trialEndsDate = activeWorkspace.trialEnds 
-        ? new Date(activeWorkspace.trialEnds) 
-        : new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000);
+      let trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : null;
+      if (!trialEndsDate || isNaN(trialEndsDate.getTime())) {
+        trialEndsDate = new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
       return trialEndsDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' (Payment Overdue)';
     }
 
-    if (isNaN(d.getTime())) return 'N/A';
-    
-    const billingInterval = activeWorkspace.billingInterval || 'monthly';
-    if (billingInterval === 'lifetime') return 'Never (Lifetime)';
+    if (isNaN(d.getTime())) return 'Active';
     
     const now = new Date();
     let nextBilling = new Date(d);
@@ -1005,38 +1020,60 @@ export default function SaaSHome() {
       return;
     }
 
-    async function loadWorkspaceStats() {
-      setLoadingStats(true);
-      try {
-        const workspaceAny = activeWorkspace as any;
-        const toursSnap = await getDocs(collection(db, 'tours'));
-        const toursList: any[] = [];
-        toursSnap.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data.tenantId === activeWorkspace.id || (workspaceAny.uid && data.supplierId === workspaceAny.uid)) {
-            toursList.push({ id: docSnap.id, ...data });
-          }
-        });
-        setActiveWorkspaceTours(toursList);
+    const workspaceAny = activeWorkspace as any;
+    const idsToMatch = new Set([
+      activeWorkspace.id,
+      activeWorkspace.slug,
+      activeWorkspace.customDomain,
+      workspaceAny.uid,
+      workspaceAny.email
+    ].filter(Boolean));
 
-        const bookingsSnap = await getDocs(collection(db, 'bookings'));
-        const bookingsList: any[] = [];
-        bookingsSnap.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data.tenantId === activeWorkspace.id || (workspaceAny.uid && data.supplierId === workspaceAny.uid)) {
-            bookingsList.push({ id: docSnap.id, ...data });
-          }
-        });
-        setActiveWorkspaceBookings(bookingsList);
-      } catch (err) {
-        console.error('Error loading active workspace stats:', err);
-      } finally {
-        setLoadingStats(false);
-      }
-    }
+    setLoadingStats(true);
 
-    loadWorkspaceStats();
-  }, [activeWorkspace?.id]);
+    const unsubTours = onSnapshot(collection(db, 'tours'), (snapshot) => {
+      const toursList: any[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (
+          idsToMatch.has(data.tenantId) || 
+          idsToMatch.has(data.supplierId) || 
+          idsToMatch.has(data.ownerId) ||
+          (data.adminEmail && workspaceAny.email && data.adminEmail.toLowerCase() === workspaceAny.email.toLowerCase())
+        ) {
+          toursList.push({ id: docSnap.id, ...data });
+        }
+      });
+      setActiveWorkspaceTours(toursList);
+      setLoadingStats(false);
+    }, (err) => {
+      console.warn('Error listening to tours:', err);
+      setLoadingStats(false);
+    });
+
+    const unsubBookings = onSnapshot(collection(db, 'bookings'), (snapshot) => {
+      const bookingsList: any[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (
+          idsToMatch.has(data.tenantId) || 
+          idsToMatch.has(data.supplierId) || 
+          idsToMatch.has(data.ownerId) ||
+          (data.adminEmail && workspaceAny.email && data.adminEmail.toLowerCase() === workspaceAny.email.toLowerCase())
+        ) {
+          bookingsList.push({ id: docSnap.id, ...data });
+        }
+      });
+      setActiveWorkspaceBookings(bookingsList);
+    }, (err) => {
+      console.warn('Error listening to bookings:', err);
+    });
+
+    return () => {
+      unsubTours();
+      unsubBookings();
+    };
+  }, [activeWorkspace?.id, activeWorkspace?.slug, activeWorkspace?.customDomain]);
 
   const handleSaveCustomDomain = async () => {
     if (!activeWorkspace) return;
@@ -2745,7 +2782,11 @@ export default function SaaSHome() {
                     )}>
                       <div className="flex items-center space-x-2.5">
                         <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span>Your active SaaS plan is running optimally. Next automatic renewal is scheduled for {dueDateStr}.</span>
+                        <span>
+                          {activeWorkspace?.billingInterval === 'lifetime' || activeWorkspace?.plan?.toLowerCase().includes('lifetime')
+                            ? 'Your active SaaS plan is running optimally with Lifetime Access.'
+                            : `Your active SaaS plan is running optimally. Next automatic renewal is scheduled for ${dueDateStr}.`}
+                        </span>
                       </div>
                       <button 
                         onClick={() => setActiveLeftMenu('billing')}
@@ -2879,6 +2920,9 @@ export default function SaaSHome() {
                   <p className="text-[10px] text-gray-400 mt-3.5 flex items-center font-medium">
                     <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
                     {(() => {
+                      if (activeWorkspace?.billingInterval === 'lifetime' || activeWorkspace?.plan?.toLowerCase().includes('lifetime')) {
+                        return 'No Renewal Required';
+                      }
                       const wsStatus = getWorkspaceStatus(activeWorkspace);
                       if (wsStatus === 'trial') return 'Trial Period Active';
                       if (wsStatus === 'inactive') return 'Payment Required';
@@ -2958,38 +3002,50 @@ export default function SaaSHome() {
                             </td>
                             <td className="px-6 py-4 font-medium">
                               {(() => {
+                                if (w.billingInterval === 'lifetime' || w.plan?.toLowerCase().includes('lifetime')) {
+                                  return 'Never (Lifetime)';
+                                }
                                 const createdDate = w.createdAt ? new Date(w.createdAt) : new Date();
                                 const s = getWorkspaceStatus(w);
-                                if (s === 'trial' || w.trialEnds) {
-                                  const trialEndsDate = w.trialEnds ? new Date(w.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                                  return trialEndsDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                if (s === 'trial' && w.trialEnds) {
+                                  const trialEndsDate = new Date(w.trialEnds);
+                                  if (!isNaN(trialEndsDate.getTime())) {
+                                    return trialEndsDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                  }
                                 }
-                                const renewalDate = w.trialEnds ? new Date(w.trialEnds) : new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                const interval = w.billingInterval || 'monthly';
+                                const renewalDate = new Date(createdDate);
+                                if (interval === 'annual') {
+                                  renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+                                } else {
+                                  renewalDate.setMonth(renewalDate.getMonth() + 1);
+                                }
+                                if (isNaN(renewalDate.getTime())) return 'Active';
                                 return renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                               })()}
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end space-x-2.5">
+                              <div className="flex items-center justify-end space-x-2">
                                 <button
                                   onClick={() => handleLaunchSSO(w.slug, w.customDomain)}
-                                  className="px-3 py-1.5 bg-[#005ea6] hover:bg-[#004e8a] text-white text-[11px] font-bold rounded-lg transition-colors flex items-center space-x-1 shadow-xs cursor-pointer"
+                                  className="p-2 bg-[#005ea6] hover:bg-[#004e8a] text-white rounded-lg transition-colors flex items-center justify-center shadow-xs cursor-pointer"
+                                  title="Login to Dashboard"
                                 >
-                                  <Lock className="w-3 h-3 text-indigo-250" />
-                                  <span>Login to Dashboard</span>
+                                  <Lock className="w-4 h-4 text-white" />
                                 </button>
                                 <a
                                   href={getStorefrontUrl(w.slug, w.customDomain)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className={cn(
-                                    "px-3 py-1.5 border text-[11px] font-bold rounded-lg transition-colors flex items-center space-x-1 cursor-pointer",
+                                    "p-2 border rounded-lg transition-colors flex items-center justify-center cursor-pointer",
                                     isDarkMode 
                                       ? "bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200" 
                                       : "bg-white border-gray-200 hover:bg-gray-50 text-gray-600"
                                   )}
+                                  title="View Site"
                                 >
-                                  <Globe className="w-3 h-3 text-gray-400" />
-                                  <span>View Site</span>
+                                  <Globe className="w-4 h-4 text-gray-500" />
                                 </a>
                               </div>
                             </td>
