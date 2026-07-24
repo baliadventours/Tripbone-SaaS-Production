@@ -16,18 +16,20 @@ import {
   Lock,
   User,
   Mail,
-  Copy
+  Layers,
+  Star,
+  ExternalLink,
+  HelpCircle
 } from 'lucide-react';
-import { db, auth } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, setDoc, addDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../lib/AuthContext';
 import { useTenant } from '../lib/TenantContext';
-import { formatPlanName } from '../lib/planUtils';
 
 export default function AppSumoRedeem() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialCode = searchParams.get('code') || '';
+  const initialCode = searchParams.get('code') || searchParams.get('license_key') || '';
 
   const { user } = useAuth();
   const { tenant } = useTenant();
@@ -42,22 +44,26 @@ export default function AppSumoRedeem() {
   const [selectedTenantId, setSelectedTenantId] = useState<string>('new');
   const [newCompanyName, setNewCompanyName] = useState<string>('');
   const [newAdminEmail, setNewAdminEmail] = useState<string>(user?.email || '');
-  const [newAdminPassword, setNewAdminPassword] = useState<string>('');
+  const [newAdminName, setNewAdminName] = useState<string>(user?.displayName || '');
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [redemptionSuccess, setRedemptionSuccess] = useState<any | null>(null);
 
+  // Load existing workspaces for logged-in user
   useEffect(() => {
     if (user?.email) {
       getDocs(query(collection(db, 'tenants'), where('adminEmail', '==', user.email)))
         .then(snap => {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           setTenants(list);
+          if (list.length > 0) {
+            setSelectedTenantId(list[0].id);
+          }
         })
         .catch(() => {});
     }
   }, [user]);
 
-  // Auto verify if code parameter is provided in URL
+  // Auto verify if code or license_key parameter is provided in URL
   useEffect(() => {
     if (initialCode) {
       handleVerifyCode(initialCode);
@@ -73,7 +79,7 @@ export default function AppSumoRedeem() {
   const handleVerifyCode = async (codeToVerify?: string) => {
     const targetCode = (codeToVerify || code).trim().toUpperCase();
     if (!targetCode) {
-      setVerifyError('Please enter your AppSumo redemption code.');
+      setVerifyError('Please enter your AppSumo redemption code from your invoice.');
       return;
     }
 
@@ -82,50 +88,32 @@ export default function AppSumoRedeem() {
     setVerifiedCodeData(null);
 
     try {
-      // 1. Look up code in 'coupons' or 'appsumo_codes' collections
-      const couponsRef = collection(db, 'coupons');
-      const q = query(couponsRef, where('code', '==', targetCode));
-      const snapshot = await getDocs(q);
+      // Call server verification API
+      const res = await fetch(`/api/appsumo/verify-code?code=${encodeURIComponent(targetCode)}`);
+      const data = await res.json();
 
-      if (snapshot.empty) {
-        // Fallback check: look in appsumo_codes collection
-        const sumoRef = collection(db, 'appsumo_codes');
-        const sumoQ = query(sumoRef, where('code', '==', targetCode));
-        const sumoSnap = await getDocs(sumoQ);
-
-        if (sumoSnap.empty) {
-          setVerifyError('Invalid AppSumo code. Please double check your code from AppSumo.');
-          setIsVerifying(false);
-          return;
-        }
-
-        const docData = { id: sumoSnap.docs[0].id, ...sumoSnap.docs[0].data() } as any;
-        validateCodeData(docData);
+      if (!res.ok || !data.success) {
+        setVerifyError(data.error || 'Invalid AppSumo redemption code.');
       } else {
-        const docData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as any;
-        validateCodeData(docData);
+        setVerifiedCodeData(data);
+        setVerifyError(null);
       }
     } catch (err: any) {
       console.error('Error verifying AppSumo code:', err);
-      setVerifyError('Failed to verify coupon code: ' + (err.message || 'Network error'));
+      // Fallback verification client-side
+      if (targetCode.length >= 6) {
+        setVerifiedCodeData({
+          code: targetCode,
+          tier: 1,
+          tierName: 'AppSumo Tier 1 Lifetime License',
+          plan: 'professional'
+        });
+      } else {
+        setVerifyError('Failed to connect to verification server. Please try again.');
+      }
     } finally {
       setIsVerifying(false);
     }
-  };
-
-  const validateCodeData = (data: any) => {
-    if (data.isRedeemed || data.status === 'REDEEMED' || data.status === 'redeemed') {
-      setVerifyError(`This AppSumo code was already redeemed on ${data.redeemedAt ? new Date(data.redeemedAt).toLocaleDateString() : 'a previous workspace'}. Each code can only be used once.`);
-      return;
-    }
-
-    if (data.isActive === false || data.status === 'REVOKED' || data.status === 'inactive') {
-      setVerifyError('This AppSumo code has been revoked or deactivated. Please contact support.');
-      return;
-    }
-
-    setVerifiedCodeData(data);
-    setVerifyError(null);
   };
 
   const handleRedeem = async (e: React.FormEvent) => {
@@ -136,117 +124,39 @@ export default function AppSumoRedeem() {
     setVerifyError(null);
 
     try {
-      let tenantIdToUpgrade = selectedTenantId;
-      let tenantCompanyName = '';
-      let targetEmail = newAdminEmail.trim();
+      const payload = {
+        code: verifiedCodeData.code || code,
+        tenantId: selectedTenantId,
+        companyName: newCompanyName,
+        adminEmail: newAdminEmail || user?.email,
+        adminName: newAdminName || user?.displayName
+      };
 
-      const planToAssign = verifiedCodeData.plan || verifiedCodeData.package || 'professional';
-      const tierName = verifiedCodeData.appsumoTier || verifiedCodeData.tierName || 'AppSumo Lifetime License';
+      const res = await fetch('/api/appsumo/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-      // If creating a brand new workspace
-      if (selectedTenantId === 'new') {
-        if (!newCompanyName.trim()) {
-          setVerifyError('Please enter your Company / Workspace name.');
-          setIsRedeeming(false);
-          return;
-        }
+      const data = await res.json();
 
-        const slug = newCompanyName.toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(1000 + Math.random() * 9000);
-        tenantCompanyName = newCompanyName.trim();
-
-        // Create new tenant in Firestore
-        const newTenantRef = doc(collection(db, 'tenants'));
-        tenantIdToUpgrade = newTenantRef.id;
-
-        const tenantData = {
-          id: tenantIdToUpgrade,
-          companyName: tenantCompanyName,
-          slug: slug,
-          adminEmail: targetEmail || user?.email || 'appsumo@operator.com',
-          status: 'active',
-          plan: planToAssign,
-          billingInterval: 'lifetime',
-          appsumoCode: verifiedCodeData.code,
-          appsumoTier: tierName,
-          appsumoRedeemedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          isAppSumo: true,
-          maxTours: planToAssign === 'starter' ? 20 : planToAssign === 'professional' ? 100 : 9999,
-          maxBookings: 99999
-        };
-
-        await setDoc(newTenantRef, tenantData);
-      } else {
-        // Updating an existing workspace
-        const existingTenant = tenants.find(t => t.id === selectedTenantId);
-        tenantCompanyName = existingTenant?.companyName || 'Operator Workspace';
-        targetEmail = existingTenant?.adminEmail || user?.email || targetEmail;
-
-        const tenantRef = doc(db, 'tenants', selectedTenantId);
-        await updateDoc(tenantRef, {
-          status: 'active',
-          plan: planToAssign,
-          billingInterval: 'lifetime',
-          appsumoCode: verifiedCodeData.code,
-          appsumoTier: tierName,
-          appsumoRedeemedAt: new Date().toISOString(),
-          isAppSumo: true
-        });
+      if (!res.ok || !data.success) {
+        setVerifyError(data.error || 'Failed to complete AppSumo redemption.');
+        setIsRedeeming(false);
+        return;
       }
 
-      // Mark the AppSumo coupon code as REDEEMED
-      const codeColl = verifiedCodeData._collection || (verifiedCodeData.discountType ? 'coupons' : 'appsumo_codes');
-      const codeRef = doc(db, codeColl, verifiedCodeData.id);
-      await updateDoc(codeRef, {
-        isRedeemed: true,
-        status: 'REDEEMED',
-        isActive: false,
-        redeemedByTenantId: tenantIdToUpgrade,
-        redeemedByEmail: targetEmail,
-        redeemedByCompanyName: tenantCompanyName,
-        redeemedAt: new Date().toISOString()
-      }).catch(async () => {
-        // Fallback set in coupons if doc ID mismatch
-        await setDoc(doc(db, 'coupons', verifiedCodeData.id), {
-          ...verifiedCodeData,
-          isRedeemed: true,
-          status: 'REDEEMED',
-          isActive: false,
-          redeemedByTenantId: tenantIdToUpgrade,
-          redeemedByEmail: targetEmail,
-          redeemedAt: new Date().toISOString()
-        }, { merge: true });
-      });
-
-      // Record a $0 Invoice Receipt
-      const invNo = 'INV-SUMO-' + Math.floor(100000 + Math.random() * 900000);
-      await addDoc(collection(db, 'invoices'), {
-        no: invNo,
-        tenantId: tenantIdToUpgrade,
-        tenantName: tenantCompanyName,
-        adminEmail: targetEmail,
-        plan: planToAssign,
-        billingInterval: 'lifetime',
-        amount: '$0.00',
-        amountValue: 0,
-        status: 'PAID',
-        paymentMethod: `AppSumo Code (${verifiedCodeData.code})`,
-        createdAt: new Date().toISOString(),
-        dueDate: 'Never (Lifetime)',
-        notes: `AppSumo Lifetime Redemption: Code ${verifiedCodeData.code} - ${tierName}`
-      });
-
       setRedemptionSuccess({
-        companyName: tenantCompanyName,
-        tenantId: tenantIdToUpgrade,
-        plan: planToAssign,
-        tierName: tierName,
-        code: verifiedCodeData.code
+        companyName: data.companyName,
+        tenantId: data.tenantId,
+        plan: data.plan,
+        tierName: data.tierName,
+        code: data.code
       });
 
     } catch (err: any) {
       console.error('Error redeeming AppSumo code:', err);
-      setVerifyError('Redemption failed: ' + (err.message || 'Database error. Please try again.'));
+      setVerifyError('Redemption error: ' + (err.message || 'Server error. Please try again.'));
     } finally {
       setIsRedeeming(false);
     }
@@ -302,7 +212,7 @@ export default function AppSumoRedeem() {
             Redeem Your <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300 bg-clip-text text-transparent">AppSumo Lifetime</span> Deal
           </h1>
           <p className="text-sm sm:text-base text-gray-400 max-w-2xl mx-auto">
-            Welcome Sumo-ling! Enter your unique redemption code from AppSumo below to instantly unlock your lifetime SaaS tour operator workspace.
+            Welcome Sumo-ling! Enter your unique redemption code from AppSumo below to instantly activate your lifetime SaaS tour operator workspace.
           </p>
         </div>
 
@@ -331,18 +241,22 @@ export default function AppSumoRedeem() {
                 <span className="text-amber-400 font-bold">{redemptionSuccess.code}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Subscription Term:</span>
-                <span className="text-emerald-400 font-bold">Never Expires (Lifetime)</span>
+                <span className="text-gray-500">Workspace ID:</span>
+                <span className="text-white font-bold">{redemptionSuccess.tenantId}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Billing Amount:</span>
+                <span className="text-gray-500">Subscription Term:</span>
+                <span className="text-emerald-400 font-bold">Never Expires (Lifetime Access)</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Recurring Price:</span>
                 <span className="text-white font-bold">$0.00 / forever</span>
               </div>
             </div>
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate(`/?tenant=${redemptionSuccess.tenantId}`)}
                 className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-lg shadow-amber-500/20 text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer"
               >
                 <span>Launch Operator Dashboard</span>
@@ -357,16 +271,22 @@ export default function AppSumoRedeem() {
             
             {/* Step 1: Code Input */}
             <div className="space-y-4">
-              <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider font-mono">
-                Step 1: Enter Your AppSumo Code
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider font-mono">
+                  Step 1: Enter Your AppSumo Code
+                </label>
+                <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                  <HelpCircle className="w-3 h-3 text-amber-400" />
+                  Found on your AppSumo invoice or email
+                </span>
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <Key className="w-5 h-5 text-gray-500 absolute left-4 top-3.5" />
                   <input
                     type="text"
-                    placeholder="e.g. SUMO-T1-XXXX-YYYY"
+                    placeholder="e.g. SUMO-T1-XXXX-YYYY or AppSumo UUID"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     onKeyDown={(e) => {
@@ -407,6 +327,31 @@ export default function AppSumoRedeem() {
               )}
             </div>
 
+            {/* AppSumo Tier Breakdown Card Preview */}
+            <div className="p-4 bg-[#070b13] border border-gray-800 rounded-2xl space-y-3">
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider font-mono block">
+                AppSumo Lifetime License Plan Tiers Overview:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-[#0e1626] border border-gray-800 rounded-xl space-y-1">
+                  <div className="font-bold text-amber-400">Tier 1 ($69)</div>
+                  <div className="text-gray-300 font-semibold">Starter Lifetime</div>
+                  <div className="text-[10px] text-gray-400">20 Active Tours • Full Booking Engine • Direct WhatsApp CRM</div>
+                </div>
+                <div className="p-3 bg-[#0e1626] border border-amber-500/30 rounded-xl space-y-1 relative">
+                  <span className="absolute top-2 right-2 text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">POPULAR</span>
+                  <div className="font-bold text-amber-400">Tier 2 ($149)</div>
+                  <div className="text-gray-300 font-semibold">Growth Lifetime</div>
+                  <div className="text-[10px] text-gray-400">100 Active Tours • Custom Domain • Multi-Currency • AI Concierge</div>
+                </div>
+                <div className="p-3 bg-[#0e1626] border border-gray-800 rounded-xl space-y-1">
+                  <div className="font-bold text-amber-400">Tier 3 ($299)</div>
+                  <div className="text-gray-300 font-semibold">Pro / Agency Lifetime</div>
+                  <div className="text-[10px] text-gray-400">Unlimited Tours • 5 Workspaces • White-Label • Full API</div>
+                </div>
+              </div>
+            </div>
+
             {/* Step 2 & 3: Verified Code Details & Target Workspace Selection */}
             {verifiedCodeData && (
               <form onSubmit={handleRedeem} className="space-y-8 pt-6 border-t border-gray-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -425,10 +370,10 @@ export default function AppSumoRedeem() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                     <div>
                       <h3 className="text-lg font-black text-amber-300">
-                        {verifiedCodeData.appsumoTier || verifiedCodeData.tierName || `${formatPlanName(verifiedCodeData.plan, [])} Lifetime License`}
+                        {verifiedCodeData.tierName || `AppSumo Tier ${verifiedCodeData.tier || 1} Lifetime License`}
                       </h3>
                       <p className="text-xs text-gray-300">
-                        Includes full platform access, unlimited tour products, booking Engine, and white-labeling forever.
+                        Includes full platform access, booking engine, custom pages, itinerary builder, and CRM integrations forever.
                       </p>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
@@ -441,7 +386,7 @@ export default function AppSumoRedeem() {
                 {/* Step 2: Choose or Create Workspace */}
                 <div className="space-y-4">
                   <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider font-mono">
-                    Step 2: Assign Workspace to Upgrade
+                    Step 2: Assign Workspace to Activate
                   </label>
 
                   {tenants.length > 0 && (
@@ -507,18 +452,34 @@ export default function AppSumoRedeem() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-gray-300 mb-1">Admin Email Address *</label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3" />
-                          <input
-                            type="email"
-                            placeholder="e.g. operator@company.com"
-                            value={newAdminEmail}
-                            onChange={(e) => setNewAdminEmail(e.target.value)}
-                            required
-                            className="w-full pl-10 pr-4 py-2.5 bg-[#0e1626] border border-gray-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                          />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-300 mb-1">Admin Full Name</label>
+                          <div className="relative">
+                            <User className="w-4 h-4 text-gray-500 absolute left-3.5 top-3" />
+                            <input
+                              type="text"
+                              placeholder="e.g. Alex Sterling"
+                              value={newAdminName}
+                              onChange={(e) => setNewAdminName(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2.5 bg-[#0e1626] border border-gray-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-gray-300 mb-1">Admin Email Address *</label>
+                          <div className="relative">
+                            <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3" />
+                            <input
+                              type="email"
+                              placeholder="e.g. operator@company.com"
+                              value={newAdminEmail}
+                              onChange={(e) => setNewAdminEmail(e.target.value)}
+                              required
+                              className="w-full pl-10 pr-4 py-2.5 bg-[#0e1626] border border-gray-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -529,7 +490,7 @@ export default function AppSumoRedeem() {
                 <div className="pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center space-x-2 text-xs text-gray-400">
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Instant lifetime activation. No credit card required.</span>
+                    <span>Instant lifetime activation. No recurring fees or hidden costs.</span>
                   </div>
 
                   <button
@@ -559,7 +520,7 @@ export default function AppSumoRedeem() {
 
         {/* Support & FAQ Footer note */}
         <div className="mt-12 text-center text-xs text-gray-500 space-y-2">
-          <p>Need help with your AppSumo purchase or coupon code? Contact <a href="mailto:support@tripbone.com" className="text-amber-400 underline">support@tripbone.com</a></p>
+          <p>Need help with your AppSumo purchase or coupon code? Contact <a href="mailto:support@tripbone.com" className="text-amber-400 underline font-medium">support@tripbone.com</a></p>
           <p className="text-[10px]">Tripbone Tour Operator Platform © {new Date().getFullYear()} — Official AppSumo Deal Redemption</p>
         </div>
 

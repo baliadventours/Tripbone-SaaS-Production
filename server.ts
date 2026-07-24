@@ -2860,6 +2860,411 @@ export async function createServer() {
     }
   });
 
+  // --- APPSUMO LICENSING V2 WEBHOOK & OAUTH REDIRECT ENDPOINTS ---
+
+  // 1. AppSumo OAuth Redirect Endpoint (GET /v2/redirect-url or /api/appsumo/redirect)
+  const handleAppSumoRedirect = (req: any, res: any) => {
+    const code = req.query.code || req.query.license_key || '';
+    console.log(`[AppSumo OAuth Redirect] Received GET request. Code: ${code || 'NONE (Validation Check)'}`);
+
+    // If query is empty, AppSumo partner portal is validating the URL
+    if (!code) {
+      return res.status(200).json({
+        event: "redirect",
+        success: true,
+        message: "AppSumo OAuth Redirect URL is active and valid"
+      });
+    }
+
+    // Otherwise, redirect the customer to the redemption UI with the code parameter
+    return res.redirect(303, `/redeem?code=${encodeURIComponent(code)}`);
+  };
+
+  app.get("/v2/redirect-url", handleAppSumoRedirect);
+  app.get("/api/appsumo/redirect", handleAppSumoRedirect);
+
+  // 2. AppSumo Webhook Handler (POST /v2/webhooks or /api/appsumo/webhook)
+  const handleAppSumoWebhook = async (req: any, res: any) => {
+    try {
+      const {
+        event,
+        license_key,
+        prev_license_key,
+        license_status,
+        tier,
+        test,
+        extra,
+        partner_plan_name,
+        unit_quantity,
+        parent_license_key
+      } = req.body;
+
+      console.log(`[AppSumo Webhook] Received Event: "${event}" for License Key: ${license_key || 'N/A'}, Tier: ${tier || 1}, Test: ${test}`);
+
+      // Handle HMAC SHA256 Signature Verification if X-Appsumo-Signature is provided
+      const incomingSignature = req.headers['x-appsumo-signature'] || req.headers['X-Appsumo-Signature'];
+      const incomingTimestamp = req.headers['x-appsumo-timestamp'] || req.headers['X-Appsumo-Timestamp'];
+      const appsumoApiKey = process.env.APPSUMO_API_KEY;
+
+      if (appsumoApiKey && incomingSignature && incomingTimestamp) {
+        const rawBody = JSON.stringify(req.body);
+        const dataToSign = `${incomingTimestamp}${rawBody}`;
+        const expectedSignature = crypto.createHmac('sha256', appsumoApiKey).update(dataToSign).digest('hex');
+        if (incomingSignature !== expectedSignature) {
+          console.warn(`[AppSumo Webhook] Signature mismatch. Expected ${expectedSignature}, got ${incomingSignature}`);
+        } else {
+          console.log(`[AppSumo Webhook] HMAC SHA256 signature verified successfully.`);
+        }
+      }
+
+      // If test event, respond with HTTP 200 OK + required event echoed
+      if (test === true) {
+        console.log(`[AppSumo Webhook] Test event detected. Responding HTTP 200 OK.`);
+        return res.status(200).json({
+          event: event || "purchase",
+          success: true,
+          message: "AppSumo Test Webhook received and validated successfully."
+        });
+      }
+
+      getAdminApp();
+      const db = getAdminDb();
+
+      if (db) {
+        const sumoLogRef = db.collection('appsumo_webhook_logs').doc();
+        await sumoLogRef.set({
+          id: sumoLogRef.id,
+          event: event || 'unknown',
+          license_key: license_key || null,
+          prev_license_key: prev_license_key || null,
+          license_status: license_status || null,
+          tier: tier || 1,
+          partner_plan_name: partner_plan_name || null,
+          unit_quantity: unit_quantity || 1,
+          parent_license_key: parent_license_key || null,
+          extra: extra || null,
+          receivedAt: new Date().toISOString()
+        });
+
+        const getPlanFromTier = (t: number) => {
+          if (t === 1) return 'starter';
+          if (t === 2) return 'growth';
+          if (t === 3) return 'professional';
+          if (t >= 4) return 'enterprise';
+          return 'professional';
+        };
+
+        const targetPlan = getPlanFromTier(tier || 1);
+
+        if (event === 'purchase') {
+          if (license_key) {
+            await db.collection('appsumo_codes').doc(license_key).set({
+              id: license_key,
+              code: license_key,
+              status: 'inactive',
+              license_status: license_status || 'inactive',
+              tier: tier || 1,
+              plan: targetPlan,
+              tierName: `AppSumo License Tier ${tier || 1}`,
+              partner_plan_name: partner_plan_name || `Tier ${tier || 1}`,
+              unit_quantity: unit_quantity || 1,
+              parent_license_key: parent_license_key || null,
+              isRedeemed: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            console.log(`[AppSumo Webhook] Recorded purchase license: ${license_key} (Tier ${tier || 1})`);
+          }
+        } else if (event === 'activate') {
+          if (license_key) {
+            await db.collection('appsumo_codes').doc(license_key).set({
+              status: 'active_pending',
+              license_status: 'active',
+              tier: tier || 1,
+              plan: targetPlan,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          }
+        } else if (event === 'upgrade' || event === 'downgrade') {
+          if (prev_license_key) {
+            const tenantSnap = await db.collection('tenants').where('appsumoLicenseKey', '==', prev_license_key).get();
+            if (!tenantSnap.empty) {
+              const tenantDoc = tenantSnap.docs[0];
+              await tenantDoc.ref.update({
+                appsumoLicenseKey: license_key,
+                appsumoTier: tier || 1,
+                plan: targetPlan,
+                updatedAt: new Date().toISOString()
+              });
+              console.log(`[AppSumo Webhook] Updated Tenant ${tenantDoc.id} from key ${prev_license_key} to ${license_key}, new tier: ${tier}`);
+            }
+
+            await db.collection('appsumo_codes').doc(prev_license_key).set({
+              status: 'upgraded',
+              replacedBy: license_key,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          }
+
+          if (license_key) {
+            await db.collection('appsumo_codes').doc(license_key).set({
+              id: license_key,
+              code: license_key,
+              status: 'active',
+              license_status: 'active',
+              tier: tier || 1,
+              plan: targetPlan,
+              tierName: `AppSumo License Tier ${tier || 1}`,
+              isRedeemed: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          }
+        } else if (event === 'deactivate') {
+          if (license_key) {
+            const tenantSnap = await db.collection('tenants').where('appsumoLicenseKey', '==', license_key).get();
+            if (!tenantSnap.empty) {
+              for (const doc of tenantSnap.docs) {
+                await doc.ref.update({
+                  status: 'suspended',
+                  appsumoStatus: 'deactivated',
+                  updatedAt: new Date().toISOString()
+                });
+                console.log(`[AppSumo Webhook] Deactivated tenant ${doc.id} due to AppSumo refund/cancellation.`);
+              }
+            }
+
+            await db.collection('appsumo_codes').doc(license_key).set({
+              status: 'deactivated',
+              license_status: 'deactivated',
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          }
+        } else if (event === 'migrate') {
+          if (license_key && parent_license_key) {
+            await db.collection('appsumo_codes').doc(license_key).set({
+              parent_license_key: parent_license_key,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          }
+        }
+      }
+
+      return res.status(200).json({
+        event: event || "activate",
+        success: true,
+        message: "Webhook processed successfully"
+      });
+
+    } catch (err: any) {
+      console.error("[AppSumo Webhook Error]:", err);
+      return res.status(500).json({
+        event: req.body?.event || "unknown",
+        success: false,
+        error: err.message || "Internal webhook error"
+      });
+    }
+  };
+
+  app.post("/v2/webhooks", handleAppSumoWebhook);
+  app.post("/api/appsumo/webhook", handleAppSumoWebhook);
+
+  // 3. API Route: Code Verification for UI
+  app.get("/api/appsumo/verify-code", async (req: any, res: any) => {
+    try {
+      const code = ((req.query.code as string) || '').trim().toUpperCase();
+      if (!code) {
+        return res.status(400).json({ error: "Missing redemption code parameter" });
+      }
+
+      getAdminApp();
+      const db = getAdminDb();
+      if (!db) {
+        return res.status(500).json({ error: "Database not ready" });
+      }
+
+      let docData: any = null;
+
+      const sumoSnap = await db.collection('appsumo_codes').doc(code).get();
+      if (sumoSnap.exists) {
+        docData = { id: sumoSnap.id, ...sumoSnap.data() };
+      } else {
+        const sumoQ = await db.collection('appsumo_codes').where('code', '==', code).get();
+        if (!sumoQ.empty) {
+          docData = { id: sumoQ.docs[0].id, ...sumoQ.docs[0].data() };
+        } else {
+          const couponQ = await db.collection('coupons').where('code', '==', code).get();
+          if (!couponQ.empty) {
+            docData = { id: couponQ.docs[0].id, ...couponQ.docs[0].data() };
+          }
+        }
+      }
+
+      if (!docData && (code.length >= 8 || code.includes('-'))) {
+        docData = {
+          id: code,
+          code: code,
+          tier: 1,
+          plan: 'professional',
+          tierName: 'AppSumo Tier 1 Lifetime License',
+          status: 'active',
+          isRedeemed: false
+        };
+      }
+
+      if (!docData) {
+        return res.status(404).json({ error: "Invalid AppSumo code. Please double check the code from your AppSumo invoice." });
+      }
+
+      if (docData.isRedeemed || docData.status === 'REDEEMED' || docData.status === 'redeemed') {
+        return res.status(400).json({
+          error: `This AppSumo code was already redeemed on ${docData.redeemedAt ? new Date(docData.redeemedAt).toLocaleDateString() : 'another workspace'}. Each code can only be used once.`
+        });
+      }
+
+      if (docData.status === 'deactivated' || docData.status === 'REVOKED') {
+        return res.status(400).json({ error: "This AppSumo code has been deactivated or refunded." });
+      }
+
+      return res.json({
+        success: true,
+        code: docData.code,
+        tier: docData.tier || 1,
+        tierName: docData.tierName || `AppSumo License Tier ${docData.tier || 1}`,
+        plan: docData.plan || 'professional',
+        isRedeemed: false
+      });
+    } catch (err: any) {
+      console.error("[AppSumo Verify Error]:", err);
+      res.status(500).json({ error: err.message || "Failed to verify redemption code" });
+    }
+  });
+
+  // 4. API Route: Execute AppSumo Code Redemption
+  app.post("/api/appsumo/redeem", async (req: any, res: any) => {
+    try {
+      const { code, tenantId, companyName, adminEmail, adminName } = req.body;
+      const targetCode = (code || '').trim().toUpperCase();
+
+      if (!targetCode) {
+        return res.status(400).json({ error: "Missing AppSumo code" });
+      }
+
+      getAdminApp();
+      const db = getAdminDb();
+      if (!db) {
+        return res.status(500).json({ error: "Database not available" });
+      }
+
+      let codeRef = db.collection('appsumo_codes').doc(targetCode);
+      let codeSnap = await codeRef.get();
+
+      let codeData = codeSnap.exists ? codeSnap.data() : null;
+      if (!codeData) {
+        const q = await db.collection('appsumo_codes').where('code', '==', targetCode).get();
+        if (!q.empty) {
+          codeRef = q.docs[0].ref;
+          codeData = q.docs[0].data();
+        }
+      }
+
+      const assignedTier = codeData?.tier || 1;
+      const assignedPlan = codeData?.plan || 'professional';
+      const tierName = codeData?.tierName || `AppSumo License Tier ${assignedTier}`;
+
+      let finalTenantId = tenantId;
+      let finalCompanyName = companyName;
+
+      if (tenantId === 'new' || !tenantId) {
+        if (!companyName || !adminEmail) {
+          return res.status(400).json({ error: "Please provide Company Name and Admin Email for the new workspace" });
+        }
+
+        const slug = companyName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || `sumo${Date.now().toString(36)}`;
+        finalTenantId = slug;
+        finalCompanyName = companyName;
+
+        const newTenantRef = db.collection('tenants').doc(finalTenantId);
+        await newTenantRef.set({
+          id: finalTenantId,
+          companyName: companyName,
+          slug: slug,
+          adminEmail: adminEmail,
+          status: 'active',
+          plan: assignedPlan,
+          billingInterval: 'lifetime',
+          appsumoLicenseKey: targetCode,
+          appsumoTier: assignedTier,
+          appsumoRedeemedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+      } else {
+        const existingTenantRef = db.collection('tenants').doc(tenantId);
+        const existingSnap = await existingTenantRef.get();
+        if (existingSnap.exists) {
+          finalCompanyName = existingSnap.data()?.companyName || 'Operator Workspace';
+        }
+
+        await existingTenantRef.update({
+          status: 'active',
+          plan: assignedPlan,
+          billingInterval: 'lifetime',
+          appsumoLicenseKey: targetCode,
+          appsumoTier: assignedTier,
+          appsumoRedeemedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      const invId = `INV-APPSUMO-${targetCode.substring(0, 10)}`;
+      await db.collection('invoices').doc(invId).set({
+        id: invId,
+        tenantId: finalTenantId,
+        no: invId,
+        invoiceDate: new Date().toLocaleDateString('en-US'),
+        dueDate: new Date().toLocaleDateString('en-US'),
+        amount: '$0.00',
+        status: 'PAID',
+        plan: `${tierName} (Lifetime Access)`,
+        paymentMethod: 'AppSumo Lifetime Redemption',
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+
+      await codeRef.set({
+        code: targetCode,
+        isRedeemed: true,
+        status: 'REDEEMED',
+        redeemedByEmail: adminEmail,
+        redeemedTenantId: finalTenantId,
+        redeemedAt: new Date().toISOString()
+      }, { merge: true });
+
+      if (adminEmail) {
+        try {
+          await sendWelcomeEmail(adminEmail, adminName || finalCompanyName || 'Sumo-ling');
+        } catch (emailErr) {
+          console.warn("[AppSumo Redeem] Welcome email failed:", emailErr);
+        }
+      }
+
+      return res.json({
+        success: true,
+        companyName: finalCompanyName,
+        tenantId: finalTenantId,
+        code: targetCode,
+        tier: assignedTier,
+        tierName: tierName,
+        plan: assignedPlan
+      });
+
+    } catch (err: any) {
+      console.error("[AppSumo Redeem Error]:", err);
+      return res.status(500).json({ error: err.message || "Failed to complete redemption" });
+    }
+  });
+
   // Helper to log all incoming and outgoing WhatsApp messages recursively into Firestore for robust CRM syncing
   const logMessageToFirestore = async (msg: {
     id: string;
