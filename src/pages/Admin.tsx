@@ -5857,6 +5857,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
   const [copyHighlights, setCopyHighlights] = useState(false);
   const [copyItinerary, setCopyItinerary] = useState(false);
   const [aiGenMode, setAiGenMode] = useState<'complete' | 'partial'>('complete');
+  const [tenantInvoices, setTenantInvoices] = useState<any[]>([]);
   const [commSettings, setCommSettings] = useState<CommunicationSettings | null>(null);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [tenantData, setTenantData] = useState<any>(null);
@@ -6324,6 +6325,15 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       setLabels(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TourLabel)));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'tourLabels'));
 
+    const tenantIdForInvoices = getActiveTenantId();
+    let unsubscribeInvoices = () => {};
+    if (tenantIdForInvoices) {
+      const q = query(collection(db, 'invoices'), where('tenantId', '==', tenantIdForInvoices));
+      unsubscribeInvoices = onSnapshot(q, (snapshot) => {
+        setTenantInvoices(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+    }
+
     const unsubscribeComm = onSnapshot(doc(db, 'communicationSettings', getActiveTenantId() || 'global'), (snap) => {
       if (snap.exists()) {
         setCommSettings(snap.data() as CommunicationSettings);
@@ -6361,6 +6371,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       unsubscribeBookings();
       unsubscribeGuides();
       unsubscribeLabels();
+      unsubscribeInvoices();
       unsubscribeComm();
       unsubscribeSiteSettings();
       unsubscribeTenant();
@@ -7993,7 +8004,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     };
 
     useEffect(() => {
-      const q = query(collection(db, 'posts'));
+      const tenantId = getActiveTenantId();
+      const q = tenantId 
+        ? query(collection(db, 'posts'), where('tenantId', '==', tenantId))
+        : query(collection(db, 'posts'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
         list.sort((a, b) => {
@@ -8047,7 +8061,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         if (editingPost.id) {
           await updateDoc(doc(db, 'posts', editingPost.id), cleanPostData);
         } else {
-          await addDoc(collection(db, 'posts'), cleanPostData);
+          await addDoc(collection(db, 'posts'), { ...cleanPostData, tenantId: getActiveTenantId() });
         }
         setIsModalOpen(false);
         setEditingPost(null);
@@ -11673,17 +11687,15 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                          {[
-                            { id: 'INV-2026-003', date: 'Jul 10, 2026', amt: '$149.00', status: 'Paid' },
-                            { id: 'INV-2026-002', date: 'Jun 10, 2026', amt: '$149.00', status: 'Paid' },
-                            { id: 'INV-2026-001', date: 'May 10, 2026', amt: '$149.00', status: 'Paid' }
-                          ].map((inv) => (
+                          {tenantInvoices.length === 0 ? (
+                            <tr><td colSpan={5} className="py-4 text-center text-gray-400">No invoices found.</td></tr>
+                          ) : tenantInvoices.map((inv) => (
                             <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="py-4 px-4 font-black text-gray-900">{inv.id}</td>
-                              <td className="py-4 px-4 font-bold">{inv.date}</td>
-                              <td className="py-4 px-4 font-black text-gray-700">{inv.amt}</td>
+                              <td className="py-4 px-4 font-black text-gray-900">{inv.no || inv.id}</td>
+                              <td className="py-4 px-4 font-bold">{inv.invoiceDate || inv.date}</td>
+                              <td className="py-4 px-4 font-black text-gray-700">{inv.amount || inv.amt}</td>
                               <td className="py-4 px-4">
-                                <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md">
+                                <span className={inv.status === 'PENDING' ? "bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md" : inv.status === 'UNPAID' ? "bg-red-50 text-red-700 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md" : "bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md"}>
                                   {inv.status}
                                 </span>
                               </td>

@@ -31,7 +31,7 @@ service cloud.firestore {
       return isSignedIn() && (
         isSuperAdmin() || (
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-          getUserData().get('role', '') == 'admin' &&
+          getUserData().role == 'admin' &&
           (
             (request.resource != null && request.resource.data.get('tenantId', null) != null && getUserData().get('tenantId', null) == request.resource.data.get('tenantId', null)) ||
             (resource != null && resource.data.get('tenantId', null) != null && getUserData().get('tenantId', null) == resource.data.get('tenantId', null)) ||
@@ -47,7 +47,7 @@ service cloud.firestore {
     function isSupplier() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        getUserData().get('role', '') == 'supplier' &&
+        getUserData().role == 'supplier' &&
         (
           (request.resource != null && request.resource.data.tenantId != null && getUserData().tenantId == request.resource.data.tenantId) ||
           (resource != null && resource.data.tenantId != null && getUserData().tenantId == resource.data.tenantId) ||
@@ -87,6 +87,13 @@ service cloud.firestore {
     }
 
     // --- Settings ---
+    
+    // --- Invoices ---
+    match /invoices/{invoiceId} {
+      allow read: if isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().get('role', '') == 'admin' && resource.data.tenantId == getUserData().get('tenantId', ''));
+      allow write: if isSuperAdmin();
+    }
+
     match /settings/{id} {
       allow read: if true;
       allow write: if isSuperAdmin() || (
