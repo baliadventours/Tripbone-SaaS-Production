@@ -225,7 +225,7 @@ export default function SaaSSuperAdmin() {
   // Transactions tracking states
   const [txSearch, setTxSearch] = useState('');
   const [txStatusFilter, setTxStatusFilter] = useState('all');
-  const [txSubTab, setTxSubTab] = useState<'bookings' | 'invoices'>('bookings');
+  const [txSubTab, setTxSubTab] = useState<'bookings' | 'invoices'>('invoices');
 
   // Showcases list & states
   const [showcases, setShowcases] = useState<any[]>([]);
@@ -721,17 +721,7 @@ export default function SaaSSuperAdmin() {
         let mrr = 0;
         tenantList.forEach(t => {
           if (t.status === 'active') {
-            const matchPlans = pkgList.filter(p => p.slug === t.plan);
-            const matchPlan = matchPlans.find(p => p.interval === 'monthly') || matchPlans[0];
-            if (matchPlan) {
-              mrr += Number(matchPlan.monthlyPrice !== undefined ? matchPlan.monthlyPrice : (matchPlan.price || 0));
-            } else {
-              if (t.plan === 'starter') mrr += 49;
-              else if (t.plan === 'professional') mrr += 99;
-              else if (t.plan === 'business') mrr += 199;
-              else if (t.plan === 'agency') mrr += 399;
-              else if (t.plan === 'enterprise') mrr += 999;
-            }
+            mrr += getPlanPrice(t.plan, t.billingInterval || 'monthly', pkgList);
           }
         });
 
@@ -739,17 +729,7 @@ export default function SaaSSuperAdmin() {
         const tenantsCreatedToday = tenantList.filter(t => t.createdAt && t.createdAt.startsWith(todayStr) && t.status === 'active');
         let todayRevSum = 0;
         tenantsCreatedToday.forEach(t => {
-          const matchPlans = pkgList.filter(p => p.slug === t.plan);
-          const matchPlan = matchPlans.find(p => p.interval === 'monthly') || matchPlans[0];
-          if (matchPlan) {
-            todayRevSum += Number(matchPlan.monthlyPrice !== undefined ? matchPlan.monthlyPrice : (matchPlan.price || 0));
-          } else {
-            if (t.plan === 'starter') todayRevSum += 49;
-            else if (t.plan === 'professional') todayRevSum += 99;
-            else if (t.plan === 'business') todayRevSum += 199;
-            else if (t.plan === 'agency') todayRevSum += 399;
-            else if (t.plan === 'enterprise') todayRevSum += 999;
-          }
+          todayRevSum += getPlanPrice(t.plan, t.billingInterval || 'monthly', pkgList);
         });
 
         // calculate pending tickets
@@ -3085,41 +3065,37 @@ export default function SaaSSuperAdmin() {
                                   {inv.status !== 'PAID' && (
                                     <button
                                       onClick={() => handleProcessPayment(inv)}
-                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
-                                      title="Process payment & activate subscription"
+                                      className="p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                      title="Process Payment & Activate Subscription"
                                     >
-                                      <Check className="w-3 h-3" />
-                                      <span>Process Payment</span>
+                                      <Check className="w-3.5 h-3.5" />
                                     </button>
                                   )}
 
                                   <button
                                     onClick={() => handleOpenRenewModal(inv)}
-                                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
-                                    title="Renew subscription"
+                                    className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                    title="Renew Subscription"
                                   >
-                                    <RefreshCw className="w-3 h-3" />
-                                    <span>Renew</span>
+                                    <RefreshCw className="w-3.5 h-3.5" />
                                   </button>
 
                                   {inv.status !== 'CANCELLED' && (
                                     <button
                                       onClick={() => handleCancelInvoice(inv)}
-                                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
-                                      title="Cancel invoice"
+                                      className="p-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                      title="Cancel Invoice"
                                     >
-                                      <XCircle className="w-3 h-3" />
-                                      <span>Cancel</span>
+                                      <XCircle className="w-3.5 h-3.5" />
                                     </button>
                                   )}
 
                                   <button
                                     onClick={() => handleDeleteInvoice(inv)}
-                                    className="px-2 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
-                                    title="Delete invoice permanently"
+                                    className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                    title="Delete Invoice"
                                   >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>Delete</span>
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </td>
@@ -3757,47 +3733,75 @@ export default function SaaSSuperAdmin() {
               <p className={`text-xs mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Aggregated Monthly Recurring Revenue (MRR) based on active customer licensing plans.</p>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
-                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Starter Tier</span>
-                  <div className={`text-lg font-extrabold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    ${tenants.filter(t => t.plan === 'starter' && t.status === 'active').length * 49}
-                  </div>
-                  <span className="text-[10px] text-gray-500 block mt-0.5">
-                    {tenants.filter(t => t.plan === 'starter' && t.status === 'active').length} accounts
-                  </span>
-                </div>
+                {(() => {
+                  const getTierData = (tier: 'starter' | 'professional' | 'business' | 'agency_enterprise') => {
+                    const activeTenants = tenants.filter(t => t.status === 'active');
+                    const matched = activeTenants.filter(t => {
+                      const formatted = formatPlanName(t.plan, packages).toLowerCase();
+                      const raw = (t.plan || '').toLowerCase();
+                      if (tier === 'starter') return formatted.includes('starter') || raw.includes('starter');
+                      if (tier === 'professional') return formatted.includes('professional') || formatted.includes('pro') || raw.includes('pro');
+                      if (tier === 'business') return formatted.includes('business') || raw.includes('business');
+                      if (tier === 'agency_enterprise') return formatted.includes('agency') || formatted.includes('enterprise') || raw.includes('agency') || raw.includes('enterprise');
+                      return false;
+                    });
 
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
-                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Professional Tier</span>
-                  <div className="text-lg font-extrabold text-indigo-500 mt-1">
-                    ${tenants.filter(t => t.plan === 'professional' && t.status === 'active').length * 99}
-                  </div>
-                  <span className="text-[10px] text-gray-500 block mt-0.5">
-                    {tenants.filter(t => t.plan === 'professional' && t.status === 'active').length} accounts
-                  </span>
-                </div>
+                    const totalRev = matched.reduce((acc, t) => {
+                      return acc + getPlanPrice(t.plan, t.billingInterval || 'monthly', packages);
+                    }, 0);
 
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
-                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Business Tier</span>
-                  <div className="text-lg font-extrabold text-emerald-500 mt-1">
-                    ${tenants.filter(t => t.plan === 'business' && t.status === 'active').length * 199}
-                  </div>
-                  <span className="text-[10px] text-gray-500 block mt-0.5">
-                    {tenants.filter(t => t.plan === 'business' && t.status === 'active').length} accounts
-                  </span>
-                </div>
+                    return { count: matched.length, rev: totalRev };
+                  };
 
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
-                  <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Agency/Enterprise</span>
-                  <div className="text-lg font-extrabold text-amber-500 mt-1">
-                    ${tenants.filter(t => (t.plan === 'agency' || t.plan === 'enterprise') && t.status === 'active').reduce((acc, current) => {
-                      return acc + (current.plan === 'agency' ? 399 : 999);
-                    }, 0)}
-                  </div>
-                  <span className="text-[10px] text-gray-500 block mt-0.5">
-                    {tenants.filter(t => (t.plan === 'agency' || t.plan === 'enterprise') && t.status === 'active').length} accounts
-                  </span>
-                </div>
+                  const starter = getTierData('starter');
+                  const pro = getTierData('professional');
+                  const biz = getTierData('business');
+                  const ent = getTierData('agency_enterprise');
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Starter Tier</span>
+                        <div className={`text-lg font-extrabold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          ${starter.rev.toLocaleString()}
+                        </div>
+                        <span className="text-[10px] text-gray-500 block mt-0.5">
+                          {starter.count} {starter.count === 1 ? 'account' : 'accounts'}
+                        </span>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Professional Tier</span>
+                        <div className="text-lg font-extrabold text-indigo-500 mt-1">
+                          ${pro.rev.toLocaleString()}
+                        </div>
+                        <span className="text-[10px] text-gray-500 block mt-0.5">
+                          {pro.count} {pro.count === 1 ? 'account' : 'accounts'}
+                        </span>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Business Tier</span>
+                        <div className="text-lg font-extrabold text-emerald-500 mt-1">
+                          ${biz.rev.toLocaleString()}
+                        </div>
+                        <span className="text-[10px] text-gray-500 block mt-0.5">
+                          {biz.count} {biz.count === 1 ? 'account' : 'accounts'}
+                        </span>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className={`text-[10px] font-mono uppercase ${isDarkMode ? 'text-gray-500' : 'text-gray-400 font-bold'}`}>Agency / Enterprise</span>
+                        <div className="text-lg font-extrabold text-amber-500 mt-1">
+                          ${ent.rev.toLocaleString()}
+                        </div>
+                        <span className="text-[10px] text-gray-500 block mt-0.5">
+                          {ent.count} {ent.count === 1 ? 'account' : 'accounts'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -3805,8 +3809,8 @@ export default function SaaSSuperAdmin() {
             <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                  <h3 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-Time Transaction Registry</h3>
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Monitor customer invoices and bookings generated by all tenant websites.</p>
+                  <h3 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Operator Subscription Invoices</h3>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Monitor and manage operator subscription billing, invoice receipts, and plan payments.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -3839,133 +3843,22 @@ export default function SaaSSuperAdmin() {
                 </div>
               </div>
 
-              {/* Tab Selector for bookings vs invoices */}
-              <div className="flex space-x-2 border-b border-gray-200/50 dark:border-gray-800/50 pb-4 mb-6">
-                <button
-                  onClick={() => { setTxSubTab('bookings'); setTxStatusFilter('all'); }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    txSubTab === 'bookings'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
-                      : isDarkMode
-                        ? 'bg-slate-900 text-slate-400 hover:text-white'
-                        : 'bg-slate-100 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Tenant End-Customer Bookings
-                </button>
-                <button
-                  onClick={() => { setTxSubTab('invoices'); setTxStatusFilter('all'); }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                    txSubTab === 'invoices'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
-                      : isDarkMode
-                        ? 'bg-slate-900 text-slate-400 hover:text-white'
-                        : 'bg-slate-100 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>Operator Subscription Invoices</span>
-                  {invoices.filter(inv => inv.status === 'PENDING').length > 0 && (
-                    <span className="bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-full animate-pulse">
-                      {invoices.filter(inv => inv.status === 'PENDING').length} REQ
-                    </span>
-                  )}
-                </button>
-              </div>
-
               {/* Transactions Table */}
               <div className={`border rounded-xl overflow-hidden ${isDarkMode ? 'border-gray-800' : 'border-gray-150'}`}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800 bg-slate-900/50 text-gray-400' : 'border-gray-150 bg-gray-50 text-gray-500'}`}>
-                        {txSubTab === 'bookings' ? (
-                          <>
-                            <th className="py-3 px-4">Booking Ref</th>
-                            <th className="py-3 px-4">Tenant Site</th>
-                            <th className="py-3 px-4">Tour Name</th>
-                            <th className="py-3 px-4">Customer Details</th>
-                            <th className="py-3 px-4">Booking Date</th>
-                            <th className="py-3 px-4 text-right">Amount</th>
-                            <th className="py-3 px-4 text-center">Status</th>
-                          </>
-                        ) : (
-                          <>
-                            <th className="py-3 px-4">Invoice ID</th>
-                            <th className="py-3 px-4">Tenant</th>
-                            <th className="py-3 px-4">Active Package</th>
-                            <th className="py-3 px-4">Due Date</th>
-                            <th className="py-3 px-4 text-right">Amount</th>
-                            <th className="py-3 px-4 text-center">Action</th>
-                          </>
-                        )}
+                        <th className="py-3 px-4">Invoice ID</th>
+                        <th className="py-3 px-4">Tenant</th>
+                        <th className="py-3 px-4">Active Package</th>
+                        <th className="py-3 px-4">Due Date</th>
+                        <th className="py-3 px-4 text-right">Amount</th>
+                        <th className="py-3 px-4 text-center">Action</th>
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-150'}`}>
-                      {txSubTab === 'bookings' ? (() => {
-                        const filtered = bookings.filter(b => {
-                          const matchesStatus = txStatusFilter === 'all' || b.status?.toLowerCase() === txStatusFilter;
-                          const guestName = (b.customerName || b.guestName || '').toLowerCase();
-                          const guestEmail = (b.guestEmail || b.contactEmail || b.email || '').toLowerCase();
-                          const tourName = (b.tourName || '').toLowerCase();
-                          const refId = (b.id || '').toLowerCase();
-                          const searchStr = txSearch.toLowerCase();
-                          const matchesSearch = !txSearch || guestName.includes(searchStr) || guestEmail.includes(searchStr) || tourName.includes(searchStr) || refId.includes(searchStr);
-                          return matchesStatus && matchesSearch;
-                        });
-
-                        if (filtered.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={7} className="py-8 text-center text-xs text-gray-500">
-                                No records found matching the criteria.
-                              </td>
-                            </tr>
-                          );
-                        }
-
-                        return filtered.map((b) => {
-                          const matchedTenant = tenants.find(t => t.id === b.tenantId);
-                          return (
-                            <tr key={b.id} className={`text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors`}>
-                              <td className="py-3.5 px-4 font-mono font-bold text-indigo-500">
-                                #{b.id?.substring(0, 8).toUpperCase() || 'N/A'}
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                  {matchedTenant?.companyName || b.tenantId || 'Primary Platform'}
-                                </span>
-                                <span className="block text-[10px] text-gray-500">
-                                  {matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : 'Central System'}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 font-medium max-w-[200px] truncate">
-                                {b.tourName || 'General Excursion Booking'}
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-955'}`}>{b.customerName || b.guestName || 'Anonymous Customer'}</p>
-                                <p className="text-[10px] text-gray-500">{b.guestEmail || b.contactEmail || b.email || '-'}</p>
-                              </td>
-                              <td className="py-3.5 px-4 text-gray-500">
-                                {b.date || (b.createdAt ? new Date(b.createdAt).toLocaleDateString() : '-')}
-                              </td>
-                              <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                ${b.totalAmount !== undefined ? b.totalAmount.toLocaleString() : '0'}
-                              </td>
-                              <td className="py-3.5 px-4 text-center">
-                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  b.status === 'confirmed' || b.status === 'completed'
-                                    ? 'bg-emerald-500/10 text-emerald-500'
-                                    : b.status === 'cancelled'
-                                      ? 'bg-rose-500/10 text-rose-500'
-                                      : 'bg-amber-500/10 text-amber-500'
-                                }`}>
-                                  {b.status || 'pending'}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })() : (() => {
+                      {(() => {
                         const filtered = allInvoices.filter(inv => {
                           const matchedTenant = tenants.find(t => t.id === inv.tenantId);
                           const matchesStatus = txStatusFilter === 'all' || inv.status?.toLowerCase() === txStatusFilter || (txStatusFilter === 'pending' && inv.status === 'PENDING');
@@ -4023,7 +3916,7 @@ export default function SaaSSuperAdmin() {
                                 {inv.amount || '$0.00'}
                               </td>
                               <td className="py-3.5 px-4 text-center">
-                                <div className="flex items-center justify-end space-x-1.5 flex-wrap gap-1">
+                                <div className="flex items-center justify-end space-x-1 flex-wrap gap-1">
                                   <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase mr-1 ${
                                     inv.status === 'PAID'
                                       ? 'bg-emerald-500/10 text-emerald-500'
@@ -4032,48 +3925,46 @@ export default function SaaSSuperAdmin() {
                                         : inv.status === 'CANCELLED'
                                           ? 'bg-gray-500/10 text-gray-400'
                                           : 'bg-rose-500/10 text-rose-500'
-                                  }`}>
+                                  }`}
+                                  title={`Status: ${inv.status || 'UNPAID'}`}
+                                  >
                                     {inv.status || 'UNPAID'}
                                   </span>
 
                                   {inv.status !== 'PAID' && (
                                     <button
                                       onClick={() => handleProcessPayment(inv)}
-                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
-                                      title="Process payment & activate subscription"
+                                      className="p-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                      title="Process Payment & Activate Subscription"
                                     >
-                                      <Check className="w-3 h-3" />
-                                      <span>Process Payment</span>
+                                      <Check className="w-3.5 h-3.5" />
                                     </button>
                                   )}
 
                                   <button
                                     onClick={() => handleOpenRenewModal(inv)}
-                                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
-                                    title="Renew subscription"
+                                    className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                    title="Renew Subscription"
                                   >
-                                    <RefreshCw className="w-3 h-3" />
-                                    <span>Renew</span>
+                                    <RefreshCw className="w-3.5 h-3.5" />
                                   </button>
 
                                   {inv.status !== 'CANCELLED' && (
                                     <button
                                       onClick={() => handleCancelInvoice(inv)}
-                                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
-                                      title="Cancel invoice"
+                                      className="p-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                      title="Cancel Invoice"
                                     >
-                                      <XCircle className="w-3 h-3" />
-                                      <span>Cancel</span>
+                                      <XCircle className="w-3.5 h-3.5" />
                                     </button>
                                   )}
 
                                   <button
                                     onClick={() => handleDeleteInvoice(inv)}
-                                    className="px-2 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
-                                    title="Delete invoice permanently"
+                                    className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                    title="Delete Invoice"
                                   >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>Delete</span>
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </td>

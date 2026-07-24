@@ -398,38 +398,22 @@ export default function SaaSHome() {
     }
   }, [db]);
 
-  // Fetch registered tenants on load
+  // Fetch and subscribe to registered tenants and metadata in real time
   useEffect(() => {
-    async function loadTenants() {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'tenants'));
-        const tenantList: Tenant[] = [];
-        querySnapshot.forEach((docSnap) => {
-          tenantList.push({ id: docSnap.id, ...(docSnap.data() as any) });
-        });
-        setTenants(tenantList);
-        
-        // Fetch billing plans dynamically
-        const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
-        const invList: any[] = [];
-        invoicesSnapshot.forEach(snap => invList.push({ id: snap.id, ...snap.data() }));
-        setInvoices(invList);
-        
-        const plansSnapshot = await getDocs(collection(db, 'billingPlans'));
-        const plansList: any[] = [];
-        plansSnapshot.forEach((snap) => {
-          const data = snap.data();
-          plansList.push({ id: snap.id, ...data, interval: data.interval || 'monthly' });
-        });
+    setLoadingTenants(true);
 
-        setPlans(plansList);
-      } catch (err) {
-        console.error('Error fetching initial database metadata:', err);
-      } finally {
-        setLoadingTenants(false);
-      }
-    }
-    loadTenants();
+    // Subscribe to real-time tenants updates
+    const unsubTenants = onSnapshot(collection(db, 'tenants'), (snapshot) => {
+      const tenantList: Tenant[] = [];
+      snapshot.forEach((docSnap) => {
+        tenantList.push({ id: docSnap.id, ...(docSnap.data() as any) });
+      });
+      setTenants(tenantList);
+      setLoadingTenants(false);
+    }, (err) => {
+      console.warn("Realtime tenants listener warning:", err);
+      setLoadingTenants(false);
+    });
 
     // Subscribe to real-time invoices updates
     const unsubInvoices = onSnapshot(collection(db, 'invoices'), (snapshot) => {
@@ -439,7 +423,42 @@ export default function SaaSHome() {
     }, (err) => {
       console.warn("Realtime invoices listener warning:", err);
     });
-    return () => unsubInvoices();
+
+    // Subscribe to real-time billing plans & saas packages
+    const unsubPlans = onSnapshot(collection(db, 'billingPlans'), (snapshot) => {
+      const plansList: any[] = [];
+      snapshot.forEach((snap) => {
+        const data = snap.data();
+        plansList.push({ id: snap.id, ...data, interval: data.interval || 'monthly' });
+      });
+      if (plansList.length > 0) {
+        setPlans(plansList);
+      }
+    }, (err) => {
+      console.warn("Realtime billing plans listener warning:", err);
+    });
+
+    const unsubPackages = onSnapshot(collection(db, 'saas_packages'), (snapshot) => {
+      if (!snapshot.empty) {
+        const pkgList: any[] = [];
+        snapshot.forEach((snap) => {
+          const data = snap.data();
+          pkgList.push({ id: snap.id, ...data, interval: data.interval || 'monthly' });
+        });
+        if (pkgList.length > 0) {
+          setPlans(pkgList);
+        }
+      }
+    }, (err) => {
+      console.warn("Realtime saas_packages listener warning:", err);
+    });
+
+    return () => {
+      unsubTenants();
+      unsubInvoices();
+      unsubPlans();
+      unsubPackages();
+    };
   }, []);
 
   const handleLaunchSSO = async (tenantSlug: string, customDomain?: string, redirectPath?: string) => {
