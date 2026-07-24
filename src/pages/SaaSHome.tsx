@@ -968,13 +968,16 @@ export default function SaaSHome() {
       const planName = formatPlanName(activeWorkspace.plan, plans);
       const planPrice = getPlanPrice(activeWorkspace.plan, activeWorkspace.billingInterval, plans);
 
+      const isLifetime = activeWorkspace.billingInterval === 'lifetime' || String(activeWorkspace.plan || '').toLowerCase().includes('lifetime');
+      const dueDateVal = isLifetime ? 'Lifetime Access' : trialEndsDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+
       const initialInvoice = {
         id: invId,
         tenantId: activeWsId,
         tenantName: activeWorkspace.companyName || 'Operator Workspace',
         no: 'INV-101',
         invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        dueDate: trialEndsDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+        dueDate: dueDateVal,
         amount: activeWorkspace.status === 'trial' ? '$0.00' : `$${planPrice}.00`,
         status: activeWorkspace.status === 'active' ? 'PAID' : activeWorkspace.manualPaymentPending ? 'PENDING' : 'UNPAID',
         plan: planName,
@@ -1138,6 +1141,31 @@ export default function SaaSHome() {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       setPaymentModalProofFile(e.target.files[0]);
+    }
+  };
+
+  const handleTenantCancelInvoice = async (invoice: any) => {
+    if (!window.confirm(`Are you sure you want to cancel invoice #${invoice.no || invoice.id}?`)) return;
+    try {
+      const invId = invoice.id || `${activeWorkspace?.id}_${invoice.no || 'INV-101'}`;
+      await setDoc(doc(db, 'invoices', invId), {
+        status: 'CANCELLED',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      if (activeWorkspace) {
+        await setDoc(doc(db, 'tenants', activeWorkspace.id), {
+          manualPaymentPending: false,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        setTenants(prev => prev.map(t => t.id === activeWorkspace.id ? { ...t, manualPaymentPending: false } : t));
+      }
+
+      setInvoices(prev => prev.map(inv => (inv.id === invId || inv.no === invoice.no) ? { ...inv, status: 'CANCELLED' } : inv));
+      alert("Invoice successfully cancelled.");
+    } catch (err: any) {
+      console.error("Error cancelling invoice:", err);
+      alert("Failed to cancel invoice: " + (err.message || err));
     }
   };
 
@@ -3081,11 +3109,10 @@ export default function SaaSHome() {
                             "border-b uppercase tracking-wider text-[10px] pb-3",
                             isDarkMode ? "border-slate-800 text-slate-400" : "border-gray-200 text-gray-400"
                           )}>
-                            <th className="pb-3 font-semibold">No.</th>
-                            <th className="pb-3 font-semibold">Invoice Date</th>
+                            <th className="pb-3 font-semibold">Invoice ID</th>
+                            <th className="pb-3 font-semibold">Active Package</th>
                             <th className="pb-3 font-semibold">Due Date</th>
                             <th className="pb-3 font-semibold">Amount</th>
-                            <th className="pb-3 font-semibold text-center">Status</th>
                             <th className="pb-3 font-semibold text-right">Action</th>
                           </tr>
                         </thead>
@@ -3095,44 +3122,76 @@ export default function SaaSHome() {
                         )}>
                           {getDynamicInvoices.length === 0 ? (
                             <tr>
-                              <td colSpan={6} className="py-8 text-center text-gray-500 font-sans">
+                              <td colSpan={5} className="py-8 text-center text-gray-500 font-sans">
                                 No invoice history found for this workspace.
                               </td>
                             </tr>
                           ) : (
-                            getDynamicInvoices.map((invoice) => (
-                              <tr key={invoice.no}>
-                                <td className="py-4">{invoice.no}</td>
-                                <td className="py-4">{invoice.invoiceDate}</td>
-                                <td className="py-4">{invoice.dueDate}</td>
-                                <td className="py-4 font-bold">{invoice.amount}</td>
-                                <td className="py-4 text-center">
-                                  <span className={cn(
-                                    "px-2 py-0.5 rounded border text-[10px] font-bold uppercase",
-                                    invoice.status === 'PAID'
-                                      ? isDarkMode ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/60" : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                      : isDarkMode ? "bg-orange-950/40 text-orange-400 border-orange-900/60" : "bg-orange-50 text-orange-700 border-orange-100"
-                                  )}>
-                                    {invoice.status}
-                                  </span>
-                                </td>
-                                <td className="py-4 text-right">
-                                  {invoice.status === 'UNPAID' ? (
-                                    <button
-                                      onClick={() => {
-                                        setPaymentModalInvoice(invoice);
-                                        setPaymentModalMethod('creem');
-                                        setPaymentModalTripayChannel('QRISC');
-                                        setPaymentModalProofFile(null);
-                                        setPaymentModalProofNotes('');
-                                        setPaymentModalSuccess(false);
-                                        setPaymentModalOpen(true);
-                                      }}
-                                      className="px-3 py-1.5 bg-[#005ea6] hover:bg-[#004e8a] text-white rounded text-[10px] font-bold transition-colors shadow-sm"
-                                    >
-                                      Pay
-                                    </button>
-                                  ) : (
+                            getDynamicInvoices.map((invoice) => {
+                              const isLifetime = invoice.billingInterval === 'lifetime' || 
+                                                 activeWorkspace?.billingInterval === 'lifetime' || 
+                                                 String(invoice.dueDate || '').toLowerCase().includes('lifetime') ||
+                                                 String(invoice.plan || '').toLowerCase().includes('lifetime');
+
+                              return (
+                                <tr key={invoice.no || invoice.id}>
+                                  <td className="py-4 font-bold text-indigo-500">#{invoice.no || invoice.id}</td>
+                                  <td className="py-4 font-medium">
+                                    <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 font-mono text-[10px] uppercase font-bold">
+                                      {formatPlanName(invoice.plan || activeWorkspace?.plan, plans)} ({invoice.billingInterval || activeWorkspace?.billingInterval || 'monthly'})
+                                    </span>
+                                  </td>
+                                  <td className="py-4 font-medium">
+                                    {isLifetime ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
+                                        ✨ Lifetime Access
+                                      </span>
+                                    ) : (
+                                      <span>{invoice.dueDate || '-'}</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 font-bold text-gray-900 dark:text-white">{invoice.amount || '$0.00'}</td>
+                                  <td className="py-4 text-right">
+                                    <div className="flex items-center justify-end space-x-2">
+                                      <span className={cn(
+                                        "px-2 py-0.5 rounded border text-[10px] font-bold uppercase mr-1",
+                                        invoice.status === 'PAID'
+                                          ? isDarkMode ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/60" : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                          : invoice.status === 'PENDING'
+                                            ? isDarkMode ? "bg-amber-950/40 text-amber-400 border-amber-900/60" : "bg-amber-50 text-amber-700 border-amber-100"
+                                            : invoice.status === 'CANCELLED'
+                                              ? isDarkMode ? "bg-gray-800 text-gray-400 border-gray-700" : "bg-gray-100 text-gray-500 border-gray-200"
+                                              : isDarkMode ? "bg-orange-950/40 text-orange-400 border-orange-900/60" : "bg-orange-50 text-orange-700 border-orange-100"
+                                      )}>
+                                        {invoice.status || 'UNPAID'}
+                                      </span>
+
+                                      {(invoice.status === 'UNPAID' || invoice.status === 'PENDING') && (
+                                        <>
+                                          <button
+                                            onClick={() => {
+                                              setPaymentModalInvoice(invoice);
+                                              setPaymentModalMethod('creem');
+                                              setPaymentModalTripayChannel('QRISC');
+                                              setPaymentModalProofFile(null);
+                                              setPaymentModalProofNotes('');
+                                              setPaymentModalSuccess(false);
+                                              setPaymentModalOpen(true);
+                                            }}
+                                            className="px-3 py-1 bg-[#005ea6] hover:bg-[#004e8a] text-white rounded text-[10px] font-bold transition-colors shadow-sm"
+                                          >
+                                            Pay
+                                          </button>
+                                          <button
+                                            onClick={() => handleTenantCancelInvoice(invoice)}
+                                            className="px-2.5 py-1 bg-gray-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 text-gray-600 dark:text-gray-300 rounded text-[10px] font-bold transition-colors border border-gray-200 dark:border-slate-700"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </>
+                                      )}
+
+                                      {invoice.status === 'PAID' && (
                                     <button
                                       onClick={() => {
                                         const pdfTemplate = `
@@ -3205,9 +3264,11 @@ export default function SaaSHome() {
                                       Download PDF
                                     </button>
                                   )}
-                                </td>
-                              </tr>
-                            ))
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
                           )}
                         </tbody>
                       </table>

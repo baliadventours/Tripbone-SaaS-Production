@@ -53,7 +53,10 @@ import {
   Zap,
   Download,
   Send,
-  Clock
+  Clock,
+  RefreshCw,
+  XCircle,
+  Check
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -382,6 +385,17 @@ export default function SaaSSuperAdmin() {
   const [generatedInvoiceLink, setGeneratedInvoiceLink] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [isManualCreating, setIsManualCreating] = useState(false);
+
+  // Subscription Renewal Modal State
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [renewForm, setRenewForm] = useState({
+    tenantId: '',
+    plan: 'professional',
+    billingInterval: 'monthly',
+    amount: 99,
+    customNotes: ''
+  });
+  const [renewLoading, setRenewLoading] = useState(false);
 
   // Delete Customer
   const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
@@ -853,6 +867,226 @@ export default function SaaSSuperAdmin() {
     } catch (err: any) {
       console.error("Error rejecting invoice:", err);
       alert("Failed to reject invoice: " + err.message);
+    }
+  };
+
+  // Unified Invoices List combining DB invoices and synthesized tenant fallbacks
+  const allInvoices = React.useMemo(() => {
+    const list = [...invoices];
+    tenants.forEach(t => {
+      const exists = list.some(inv => inv.tenantId === t.id);
+      if (!exists) {
+        const isLifetime = t.billingInterval === 'lifetime' || String(t.plan || '').toLowerCase().includes('lifetime');
+        const planName = formatPlanName(t.plan, packages);
+        const planPrice = getPlanPrice(t.plan, t.billingInterval, packages);
+        list.push({
+          id: `${t.id}_INV-101`,
+          tenantId: t.id,
+          tenantName: t.companyName || 'Operator Workspace',
+          no: 'INV-101',
+          invoiceDate: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+          dueDate: isLifetime ? 'Lifetime Access' : (t.trialEnds ? new Date(t.trialEnds).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : 'N/A'),
+          amount: `$${planPrice}.00`,
+          status: t.status === 'active' ? 'PAID' : t.manualPaymentPending ? 'PENDING' : 'UNPAID',
+          plan: planName,
+          billingInterval: t.billingInterval || 'monthly',
+          isSynthesized: true
+        });
+      }
+    });
+    return list.sort((a, b) => new Date(b.createdAt || b.invoiceDate || 0).getTime() - new Date(a.createdAt || a.invoiceDate || 0).getTime());
+  }, [invoices, tenants, packages]);
+
+  const handleProcessPayment = async (inv: any) => {
+    const matchedTenant = tenants.find(t => t.id === inv.tenantId);
+    const tenantName = matchedTenant?.companyName || inv.tenantName || inv.tenantId;
+    if (!window.confirm(`Process payment and activate subscription for ${tenantName} (Invoice #${inv.no || inv.id})?`)) return;
+    
+    try {
+      const invDocId = inv.id || `${inv.tenantId}_${inv.no || 'INV-101'}`;
+      const isLifetime = inv.billingInterval === 'lifetime' || matchedTenant?.billingInterval === 'lifetime' || String(inv.dueDate || '').toLowerCase().includes('lifetime');
+      const dueDateVal = isLifetime ? 'Lifetime Access' : (inv.dueDate || 'N/A');
+
+      await setDoc(doc(db, 'invoices', invDocId), {
+        id: invDocId,
+        tenantId: inv.tenantId,
+        tenantName: tenantName,
+        no: inv.no || 'INV-101',
+        status: 'PAID',
+        plan: inv.plan || matchedTenant?.plan || 'starter',
+        billingInterval: inv.billingInterval || matchedTenant?.billingInterval || 'monthly',
+        amount: inv.amount || '$0.00',
+        dueDate: dueDateVal,
+        paymentMethod: 'Superadmin Processed',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      if (inv.tenantId) {
+        await setDoc(doc(db, 'tenants', inv.tenantId), {
+          status: 'active',
+          manualPaymentPending: false,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        setTenants(prev => prev.map(t => t.id === inv.tenantId ? { ...t, status: 'active', manualPaymentPending: false } : t));
+      }
+
+      setInvoices(prev => {
+        const exists = prev.some(item => item.id === invDocId || item.id === inv.id);
+        if (exists) {
+          return prev.map(item => (item.id === invDocId || item.id === inv.id) ? { ...item, status: 'PAID', dueDate: dueDateVal } : item);
+        } else {
+          return [...prev, { ...inv, id: invDocId, status: 'PAID', dueDate: dueDateVal }];
+        }
+      });
+
+      alert("✨ Payment processed! Subscription activated for " + tenantName);
+    } catch (err: any) {
+      console.error("Error processing payment:", err);
+      alert("Failed to process payment: " + (err.message || err));
+    }
+  };
+
+  const handleOpenRenewModal = (item?: any) => {
+    if (item) {
+      const tenantId = item.tenantId || item.id || (tenants[0]?.id || '');
+      const matchedTenant = tenants.find(t => t.id === tenantId);
+      const plan = item.plan || matchedTenant?.plan || 'professional';
+      const billingInterval = item.billingInterval || matchedTenant?.billingInterval || 'monthly';
+      const price = getPlanPrice(plan, billingInterval, packages);
+      
+      setRenewForm({
+        tenantId,
+        plan,
+        billingInterval,
+        amount: price || 99,
+        customNotes: `Subscription renewal for ${matchedTenant?.companyName || 'Tenant'}`
+      });
+    } else {
+      const defaultTenant = tenants[0];
+      setRenewForm({
+        tenantId: defaultTenant?.id || '',
+        plan: defaultTenant?.plan || 'professional',
+        billingInterval: defaultTenant?.billingInterval || 'monthly',
+        amount: getPlanPrice(defaultTenant?.plan || 'professional', defaultTenant?.billingInterval || 'monthly', packages) || 99,
+        customNotes: ''
+      });
+    }
+    setIsRenewModalOpen(true);
+  };
+
+  const handleExecuteRenewal = async () => {
+    if (!renewForm.tenantId) {
+      alert("Please select a tenant workspace to renew.");
+      return;
+    }
+    setRenewLoading(true);
+    try {
+      const matchedTenant = tenants.find(t => t.id === renewForm.tenantId);
+      const newInvNo = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+      const invDocId = `${renewForm.tenantId}_${newInvNo}`;
+      
+      const isLifetime = renewForm.billingInterval === 'lifetime';
+      let dueDateStr = 'Lifetime Access';
+      if (!isLifetime) {
+        const d = new Date();
+        if (renewForm.billingInterval === 'annual') {
+          d.setFullYear(d.getFullYear() + 1);
+        } else {
+          d.setMonth(d.getMonth() + 1);
+        }
+        dueDateStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+      }
+
+      const newInvoiceData = {
+        id: invDocId,
+        tenantId: renewForm.tenantId,
+        tenantName: matchedTenant?.companyName || 'Operator Workspace',
+        no: newInvNo,
+        invoiceDate: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+        dueDate: dueDateStr,
+        amount: `$${renewForm.amount}.00`,
+        status: 'PAID',
+        plan: renewForm.plan,
+        billingInterval: renewForm.billingInterval,
+        paymentMethod: 'Superadmin Manual Renewal',
+        notes: renewForm.customNotes || 'Subscription manual renewal by Superadmin',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'invoices', invDocId), newInvoiceData);
+
+      await setDoc(doc(db, 'tenants', renewForm.tenantId), {
+        plan: renewForm.plan,
+        billingInterval: renewForm.billingInterval,
+        status: 'active',
+        manualPaymentPending: false,
+        trialEnds: dueDateStr,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setTenants(prev => prev.map(t => t.id === renewForm.tenantId ? {
+        ...t,
+        plan: renewForm.plan,
+        billingInterval: renewForm.billingInterval,
+        status: 'active',
+        manualPaymentPending: false,
+        trialEnds: dueDateStr
+      } : t));
+
+      setInvoices(prev => [newInvoiceData, ...prev]);
+
+      setIsRenewModalOpen(false);
+      alert(`🎉 Subscription renewed successfully for ${matchedTenant?.companyName || 'tenant'}! Invoice #${newInvNo} generated.`);
+    } catch (err: any) {
+      console.error("Error executing renewal:", err);
+      alert("Failed to renew subscription: " + (err.message || err));
+    } finally {
+      setRenewLoading(false);
+    }
+  };
+
+  const handleCancelInvoice = async (inv: any) => {
+    if (!window.confirm(`Are you sure you want to cancel invoice #${inv.no || inv.id}?`)) return;
+    try {
+      const invDocId = inv.id || `${inv.tenantId}_${inv.no || 'INV-101'}`;
+      await setDoc(doc(db, 'invoices', invDocId), {
+        id: invDocId,
+        tenantId: inv.tenantId,
+        no: inv.no || 'INV-101',
+        status: 'CANCELLED',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      if (inv.tenantId) {
+        await setDoc(doc(db, 'tenants', inv.tenantId), {
+          manualPaymentPending: false,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        setTenants(prev => prev.map(t => t.id === inv.tenantId ? { ...t, manualPaymentPending: false } : t));
+      }
+
+      setInvoices(prev => prev.map(item => (item.id === invDocId || item.id === inv.id) ? { ...item, status: 'CANCELLED' } : item));
+      alert("Invoice #" + (inv.no || inv.id) + " marked as CANCELLED.");
+    } catch (err: any) {
+      console.error("Error cancelling invoice:", err);
+      alert("Failed to cancel invoice: " + (err.message || err));
+    }
+  };
+
+  const handleDeleteInvoice = async (inv: any) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY DELETE invoice #${inv.no || inv.id}? This action cannot be undone.`)) return;
+    try {
+      const invDocId = inv.id || `${inv.tenantId}_${inv.no || 'INV-101'}`;
+      if (!inv.isSynthesized) {
+        await deleteDoc(doc(db, 'invoices', invDocId));
+      }
+      setInvoices(prev => prev.filter(item => item.id !== invDocId && item.id !== inv.id));
+      alert("Invoice permanently deleted.");
+    } catch (err: any) {
+      console.error("Error deleting invoice:", err);
+      alert("Failed to delete invoice: " + (err.message || err));
     }
   };
 
@@ -2763,6 +2997,140 @@ export default function SaaSSuperAdmin() {
                   </table>
                 </div>
               </div>
+
+              {/* Dashboard Invoice Management Section */}
+              <div className={`p-6 border rounded-2xl text-left shadow-xs mt-6 ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tenant Subscription Invoices</h2>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Monitor, process payment, renew, and manage operator workspace subscription invoices.</p>
+                  </div>
+                  <button
+                    onClick={() => handleOpenRenewModal()}
+                    className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-black transition-all shadow-md flex items-center space-x-2 self-start sm:self-auto cursor-pointer"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Renew Subscription</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border rounded-xl dark:border-gray-800 border-gray-150">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800 bg-slate-900/50 text-gray-400' : 'border-gray-150 bg-gray-50 text-gray-500'}`}>
+                        <th className="py-3 px-4">Invoice ID</th>
+                        <th className="py-3 px-4">Tenant</th>
+                        <th className="py-3 px-4">Active Package</th>
+                        <th className="py-3 px-4">Due Date</th>
+                        <th className="py-3 px-4 text-right">Amount</th>
+                        <th className="py-3 px-4 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-150'}`}>
+                      {allInvoices.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-xs text-gray-500">
+                            No invoices found.
+                          </td>
+                        </tr>
+                      ) : (
+                        allInvoices.map((inv) => {
+                          const matchedTenant = tenants.find(t => t.id === inv.tenantId);
+                          const isLifetime = inv.billingInterval === 'lifetime' || matchedTenant?.billingInterval === 'lifetime' || String(inv.dueDate || '').toLowerCase().includes('lifetime');
+
+                          return (
+                            <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                              <td className="py-3.5 px-4 font-mono font-bold text-indigo-500">
+                                #{inv.no || inv.id || 'INV-00'}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {matchedTenant?.companyName || inv.tenantName || 'Operator Workspace'}
+                                </span>
+                                <span className="block text-[10px] text-gray-500">
+                                  {matchedTenant?.adminEmail || matchedTenant?.email || 'N/A'} • {matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : 'SaaS Tenant'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 font-medium">
+                                <span className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-500 font-mono text-[10px] uppercase font-bold">
+                                  {formatPlanName(inv.plan || matchedTenant?.plan, packages)} ({inv.billingInterval || matchedTenant?.billingInterval || 'monthly'})
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 font-medium">
+                                {isLifetime ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
+                                    ✨ Lifetime Access
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600 dark:text-gray-300">{inv.dueDate || matchedTenant?.trialEnds || '-'}</span>
+                                )}
+                              </td>
+                              <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {inv.amount || '$0.00'}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <div className="flex items-center justify-end space-x-1.5 flex-wrap gap-1">
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase mr-1 ${
+                                    inv.status === 'PAID'
+                                      ? 'bg-emerald-500/10 text-emerald-500'
+                                      : inv.status === 'PENDING'
+                                        ? 'bg-amber-500/10 text-amber-500 animate-pulse'
+                                        : inv.status === 'CANCELLED'
+                                          ? 'bg-gray-500/10 text-gray-400'
+                                          : 'bg-rose-500/10 text-rose-500'
+                                  }`}>
+                                    {inv.status || 'UNPAID'}
+                                  </span>
+
+                                  {inv.status !== 'PAID' && (
+                                    <button
+                                      onClick={() => handleProcessPayment(inv)}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
+                                      title="Process payment & activate subscription"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                      <span>Process Payment</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => handleOpenRenewModal(inv)}
+                                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
+                                    title="Renew subscription"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>Renew</span>
+                                  </button>
+
+                                  {inv.status !== 'CANCELLED' && (
+                                    <button
+                                      onClick={() => handleCancelInvoice(inv)}
+                                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
+                                      title="Cancel invoice"
+                                    >
+                                      <XCircle className="w-3 h-3" />
+                                      <span>Cancel</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => handleDeleteInvoice(inv)}
+                                    className="px-2 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1 cursor-pointer"
+                                    title="Delete invoice permanently"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -3522,14 +3890,12 @@ export default function SaaSSuperAdmin() {
                           </>
                         ) : (
                           <>
-                            <th className="py-3 px-4">Invoice #</th>
-                            <th className="py-3 px-4">SaaS Tenant Operator</th>
-                            <th className="py-3 px-4">Plan & Cycle</th>
-                            <th className="py-3 px-4">Invoice Date</th>
+                            <th className="py-3 px-4">Invoice ID</th>
+                            <th className="py-3 px-4">Tenant</th>
+                            <th className="py-3 px-4">Active Package</th>
                             <th className="py-3 px-4">Due Date</th>
                             <th className="py-3 px-4 text-right">Amount</th>
-                            <th className="py-3 px-4 text-center">Status</th>
-                            <th className="py-3 px-4 text-right">Manual Proof / Actions</th>
+                            <th className="py-3 px-4 text-center">Action</th>
                           </>
                         )}
                       </tr>
@@ -3600,10 +3966,10 @@ export default function SaaSSuperAdmin() {
                           );
                         });
                       })() : (() => {
-                        const filtered = invoices.filter(inv => {
+                        const filtered = allInvoices.filter(inv => {
                           const matchedTenant = tenants.find(t => t.id === inv.tenantId);
                           const matchesStatus = txStatusFilter === 'all' || inv.status?.toLowerCase() === txStatusFilter || (txStatusFilter === 'pending' && inv.status === 'PENDING');
-                          const companyName = (matchedTenant?.companyName || '').toLowerCase();
+                          const companyName = (matchedTenant?.companyName || inv.tenantName || '').toLowerCase();
                           const adminEmail = (matchedTenant?.adminEmail || matchedTenant?.email || '').toLowerCase();
                           const slugName = (matchedTenant?.slug || '').toLowerCase();
                           const invoiceNo = (inv.no || '').toLowerCase();
@@ -3615,7 +3981,7 @@ export default function SaaSSuperAdmin() {
                         if (filtered.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={8} className="py-8 text-center text-xs text-gray-500">
+                              <td colSpan={6} className="py-8 text-center text-xs text-gray-500">
                                 No operator invoices found matching the criteria.
                               </td>
                             </tr>
@@ -3624,71 +3990,92 @@ export default function SaaSSuperAdmin() {
 
                         return filtered.map((inv) => {
                           const matchedTenant = tenants.find(t => t.id === inv.tenantId);
+                          const isLifetime = inv.billingInterval === 'lifetime' || matchedTenant?.billingInterval === 'lifetime' || String(inv.dueDate || '').toLowerCase().includes('lifetime');
+
                           return (
                             <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
                               <td className="py-3.5 px-4 font-mono font-bold text-indigo-500">
-                                #{inv.no || 'INV-00'}
+                                #{inv.no || inv.id || 'INV-00'}
                               </td>
                               <td className="py-3.5 px-4">
                                 <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                  {matchedTenant?.companyName || 'Operator Workspace'}
+                                  {matchedTenant?.companyName || inv.tenantName || 'Operator Workspace'}
                                 </span>
                                 <span className="block text-[10px] text-gray-500">
-                                  {matchedTenant?.adminEmail || matchedTenant?.email || 'N/A'} • {matchedTenant?.slug}.tripbone.com
+                                  {matchedTenant?.adminEmail || matchedTenant?.email || 'N/A'} • {matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : 'SaaS Tenant'}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4 capitalize font-medium">
-                                <span className="px-2 py-0.5 rounded bg-slate-500/10 text-slate-400 font-mono text-[10px] uppercase">
-                                  {matchedTenant?.plan || 'Starter'} ({matchedTenant?.billingInterval || 'Monthly'})
+                              <td className="py-3.5 px-4 font-medium">
+                                <span className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-500 font-mono text-[10px] uppercase font-bold">
+                                  {formatPlanName(inv.plan || matchedTenant?.plan, packages)} ({inv.billingInterval || matchedTenant?.billingInterval || 'monthly'})
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4 text-gray-500">
-                                {inv.invoiceDate}
-                              </td>
-                              <td className="py-3.5 px-4 text-gray-500">
-                                {inv.dueDate}
+                              <td className="py-3.5 px-4 font-medium">
+                                {isLifetime ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
+                                    ✨ Lifetime Access
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600 dark:text-gray-300">{inv.dueDate || matchedTenant?.trialEnds || '-'}</span>
+                                )}
                               </td>
                               <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                {inv.amount}
+                                {inv.amount || '$0.00'}
                               </td>
                               <td className="py-3.5 px-4 text-center">
-                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                  inv.status === 'PAID'
-                                    ? 'bg-emerald-500/10 text-emerald-500'
-                                    : inv.status === 'PENDING'
-                                      ? 'bg-amber-500/10 text-amber-500 animate-pulse'
-                                      : 'bg-rose-500/10 text-rose-500'
-                                }`}>
-                                  {inv.status || 'UNPAID'}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                {inv.status === 'PENDING' ? (
-                                  <div className="flex items-center justify-end space-x-1.5">
-                                    <div className="text-left mr-2 max-w-[120px] truncate">
-                                      <p className="text-[9px] text-amber-500 font-bold uppercase">Pending Proof</p>
-                                      <p className="text-[8px] text-gray-500 truncate" title={inv.manualPaymentNotes}>
-                                        {inv.manualPaymentNotes || 'No notes'}
-                                      </p>
-                                    </div>
+                                <div className="flex items-center justify-end space-x-1.5 flex-wrap gap-1">
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase mr-1 ${
+                                    inv.status === 'PAID'
+                                      ? 'bg-emerald-500/10 text-emerald-500'
+                                      : inv.status === 'PENDING'
+                                        ? 'bg-amber-500/10 text-amber-500 animate-pulse'
+                                        : inv.status === 'CANCELLED'
+                                          ? 'bg-gray-500/10 text-gray-400'
+                                          : 'bg-rose-500/10 text-rose-500'
+                                  }`}>
+                                    {inv.status || 'UNPAID'}
+                                  </span>
+
+                                  {inv.status !== 'PAID' && (
                                     <button
-                                      onClick={() => handleApproveInvoice(inv)}
-                                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold shadow-xs transition-colors"
+                                      onClick={() => handleProcessPayment(inv)}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
+                                      title="Process payment & activate subscription"
                                     >
-                                      Approve
+                                      <Check className="w-3 h-3" />
+                                      <span>Process Payment</span>
                                     </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => handleOpenRenewModal(inv)}
+                                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
+                                    title="Renew subscription"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>Renew</span>
+                                  </button>
+
+                                  {inv.status !== 'CANCELLED' && (
                                     <button
-                                      onClick={() => handleRejectInvoice(inv)}
-                                      className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold shadow-xs transition-colors"
+                                      onClick={() => handleCancelInvoice(inv)}
+                                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
+                                      title="Cancel invoice"
                                     >
-                                      Reject
+                                      <XCircle className="w-3 h-3" />
+                                      <span>Cancel</span>
                                     </button>
-                                  </div>
-                                ) : inv.status === 'PAID' ? (
-                                  <span className="text-[10px] text-emerald-500 font-extrabold uppercase">Payment Complete</span>
-                                ) : (
-                                  <span className="text-[10px] text-gray-500 uppercase">Unpaid / Manual Transfer</span>
-                                )}
+                                  )}
+
+                                  <button
+                                    onClick={() => handleDeleteInvoice(inv)}
+                                    className="px-2 py-1 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg text-[10px] font-black transition-colors shadow-xs flex items-center space-x-1"
+                                    title="Delete invoice permanently"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -5517,6 +5904,132 @@ export default function SaaSSuperAdmin() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Renewal Modal */}
+      {isRenewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+          <div className={`w-full max-w-lg p-6 rounded-2xl border shadow-2xl space-y-5 ${isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-white border-gray-100 text-slate-900'}`}>
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-slate-800">
+              <div className="flex items-center space-x-2">
+                <RefreshCw className="w-5 h-5 text-indigo-500" />
+                <h3 className="font-extrabold text-base">Renew Tenant Subscription</h3>
+              </div>
+              <button 
+                onClick={() => setIsRenewModalOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-left">
+              <div>
+                <label className="block font-bold mb-1 text-gray-700 dark:text-gray-300">Select Tenant Workspace</label>
+                <select
+                  value={renewForm.tenantId}
+                  onChange={(e) => {
+                    const tid = e.target.value;
+                    const t = tenants.find(item => item.id === tid);
+                    const p = t?.plan || 'professional';
+                    const interval = t?.billingInterval || 'monthly';
+                    const amt = getPlanPrice(p, interval, packages) || 99;
+                    setRenewForm(prev => ({ ...prev, tenantId: tid, plan: p, billingInterval: interval, amount: amt }));
+                  }}
+                  className={`w-full p-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                >
+                  {tenants.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.companyName || t.slug} ({t.adminEmail || 'N/A'}) - Currently {t.plan || 'starter'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1 text-gray-700 dark:text-gray-300">Subscription Package</label>
+                  <select
+                    value={renewForm.plan}
+                    onChange={(e) => {
+                      const p = e.target.value;
+                      const amt = getPlanPrice(p, renewForm.billingInterval, packages) || (p === 'starter' ? 49 : p === 'professional' ? 99 : p === 'business' ? 199 : p === 'agency' ? 299 : 499);
+                      setRenewForm(prev => ({ ...prev, plan: p, amount: amt }));
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                  >
+                    <option value="starter">Starter</option>
+                    <option value="professional">Professional</option>
+                    <option value="business">Business</option>
+                    <option value="agency">Agency</option>
+                    <option value="enterprise">Enterprise</option>
+                    {packages.map(pkg => (
+                      <option key={pkg.id || pkg.slug} value={pkg.slug}>{pkg.name || pkg.slug}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1 text-gray-700 dark:text-gray-300">Billing Cycle / Term</label>
+                  <select
+                    value={renewForm.billingInterval}
+                    onChange={(e) => {
+                      const interval = e.target.value as any;
+                      const amt = getPlanPrice(renewForm.plan, interval, packages) || (interval === 'lifetime' ? 499 : interval === 'annual' ? 299 : 99);
+                      setRenewForm(prev => ({ ...prev, billingInterval: interval, amount: amt }));
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                  >
+                    <option value="monthly">Monthly Subscription</option>
+                    <option value="annual">Annual Subscription</option>
+                    <option value="lifetime">Lifetime Subscription (One-time)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-gray-700 dark:text-gray-300">Invoice Amount ($ USD)</label>
+                <input
+                  type="number"
+                  value={renewForm.amount}
+                  onChange={(e) => setRenewForm(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                  className={`w-full p-2.5 rounded-xl border text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                  placeholder="99"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-gray-700 dark:text-gray-300">Notes / Admin Reference (Optional)</label>
+                <input
+                  type="text"
+                  value={renewForm.customNotes}
+                  onChange={(e) => setRenewForm(prev => ({ ...prev, customNotes: e.target.value }))}
+                  className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                  placeholder="e.g. Approved manual payment / offline check"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsRenewModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={renewLoading}
+                onClick={handleExecuteRenewal}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center space-x-2"
+              >
+                {renewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span>Confirm & Execute Renewal</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
