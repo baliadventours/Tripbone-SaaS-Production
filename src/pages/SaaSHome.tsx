@@ -411,47 +411,6 @@ export default function SaaSHome() {
           plansList.push({ id: snap.id, ...data, interval: data.interval || 'monthly' });
         });
 
-        // Ensure we have annual and lifetime variants of each unique plan slug
-        const baseSlugs = Array.from(new Set(plansList.map(p => p.slug)));
-        baseSlugs.forEach(slug => {
-          const monthlyPlan = plansList.find(p => p.slug === slug && p.interval === 'monthly');
-          if (monthlyPlan) {
-            // Add annual if not present
-            if (!plansList.some(p => p.slug === slug && p.interval === 'annual')) {
-              let annualPrice = (monthlyPlan.price || 49) * 10;
-              if (slug === 'starter') annualPrice = 490;
-              else if (slug === 'professional') annualPrice = 990;
-              else if (slug === 'business') annualPrice = 1990;
-
-              plansList.push({
-                ...monthlyPlan,
-                id: `${monthlyPlan.id}_annual`,
-                interval: 'annual',
-                price: annualPrice,
-                productId: monthlyPlan.productId ? `${monthlyPlan.productId}_annual` : `prod_${slug}_annual`,
-                name: monthlyPlan.name.replace('Plan', 'Annual Plan')
-              });
-            }
-
-            // Add lifetime if not present
-            if (!plansList.some(p => p.slug === slug && p.interval === 'lifetime')) {
-              let lifetimePrice = (monthlyPlan.price || 49) * 5;
-              if (slug === 'starter') lifetimePrice = 249;
-              else if (slug === 'professional') lifetimePrice = 499;
-              else if (slug === 'business') lifetimePrice = 999;
-
-              plansList.push({
-                ...monthlyPlan,
-                id: `${monthlyPlan.id}_lifetime`,
-                interval: 'lifetime',
-                price: lifetimePrice,
-                productId: monthlyPlan.productId ? `${monthlyPlan.productId}_lifetime` : `prod_${slug}_lifetime`,
-                name: monthlyPlan.name.replace('Plan', 'Lifetime Plan')
-              });
-            }
-          }
-        });
-
         setPlans(plansList);
       } catch (err) {
         console.error('Error fetching initial database metadata:', err);
@@ -2737,22 +2696,7 @@ export default function SaaSHome() {
                       >
                         Resend Link
                       </button>
-                      <button 
-                        onClick={async () => {
-                          try {
-                            await setDoc(doc(db, 'tenants', activeWorkspace.id), {
-                              emailVerified: true
-                            }, { merge: true });
-                            setSuccess("✨ Simulated confirmation click! Your workspace has been verified.");
-                            setTenants(prev => prev.map(t => t.id === activeWorkspace.id ? { ...t, emailVerified: true } : t));
-                          } catch (err) {
-                            console.error("Simulation verify error:", err);
-                          }
-                        }}
-                        className="font-bold text-[10px] bg-emerald-600 text-white px-2.5 py-1 rounded hover:bg-emerald-500 transition-colors"
-                      >
-                        Simulate Email Click
-                      </button>
+                      
                     </div>
                   </div>
                 )}
