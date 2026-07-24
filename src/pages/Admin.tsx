@@ -7516,23 +7516,47 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     const activeTenantId = getActiveTenantId() || (currentUserProfile as any)?.tenantId || '';
     let count = 0;
 
-    for (const rawTour of importedTours) {
-      if (!rawTour.title || typeof rawTour.title !== 'string') continue;
+    const sanitizeForFirestore = (obj: any): any => {
+      if (obj === undefined) return null;
+      if (obj === null || typeof obj !== 'object') return obj;
+      if (obj.toDate || obj._methodName) return obj;
+      if (obj instanceof Date) return obj;
+      if (Array.isArray(obj)) {
+        return obj.map(sanitizeForFirestore).filter(v => v !== undefined && v !== null);
+      }
+      const result: Record<string, any> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          const sanitized = sanitizeForFirestore(value);
+          if (sanitized !== undefined) {
+            result[key] = sanitized;
+          }
+        }
+      }
+      return result;
+    };
 
-      const { id, createdAt, updatedAt, ...cleanTour } = rawTour as any;
+    for (const rawTour of importedTours) {
+      if (!rawTour || !rawTour.title || typeof rawTour.title !== 'string') continue;
+
+      const { id, createdAt, updatedAt, tenantId: oldTenantId, ...cleanTour } = rawTour as any;
 
       const baseTitle = cleanTour.title.trim();
       const baseSlug = cleanTour.slug ? String(cleanTour.slug).trim() : baseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
       const uniqueSlug = `${baseSlug}-${randomSuffix}`;
 
-      const tourDataToSave = {
+      const rawDiscount = (cleanTour.discountPrice !== undefined && cleanTour.discountPrice !== null && cleanTour.discountPrice !== '')
+        ? Number(cleanTour.discountPrice)
+        : 0;
+
+      const tourDataToSave = sanitizeForFirestore({
         ...cleanTour,
         title: baseTitle,
         slug: uniqueSlug,
         description: cleanTour.description || '',
         regularPrice: Number(cleanTour.regularPrice) || 0,
-        discountPrice: cleanTour.discountPrice ? Number(cleanTour.discountPrice) : undefined,
+        discountPrice: rawDiscount,
         duration: cleanTour.duration || 'Full Day',
         status: cleanTour.status || 'published',
         featuredImage: cleanTour.featuredImage || (cleanTour.gallery && cleanTour.gallery[0]) || '',
@@ -7550,7 +7574,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         tenantId: activeTenantId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      };
+      });
 
       try {
         await addDoc(collection(db, 'tours'), tourDataToSave);
@@ -7988,6 +8012,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [isUploadingBlogImage, setIsUploadingBlogImage] = useState(false);
 
     const handleGenerateBlog = async () => {
       if (!aiPrompt.trim()) return;
@@ -8041,13 +8066,32 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       };
     }, []);
 
+    const handleBlogFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setIsUploadingBlogImage(true);
+      try {
+        const url = await uploadImage(file);
+        setEditingPost(prev => prev ? { ...prev, featuredImage: url } : prev);
+      } catch (err: any) {
+        console.error("Blog image upload failed:", err);
+        alert("Image upload failed: " + (err.message || err));
+      } finally {
+        setIsUploadingBlogImage(false);
+        e.target.value = '';
+      }
+    };
+
     const handleSavePost = async (e: FormEvent) => {
       e.preventDefault();
       if (!editingPost?.title || !editingPost?.slug) return;
 
       const { id, ...restData } = editingPost as any;
+      const currentTenantId = getActiveTenantId();
       const postData = {
         ...restData,
+        tenantId: restData.tenantId || currentTenantId,
+        featuredImage: editingPost.featuredImage || '',
         seo: restData.seo || { title: '', description: '' },
         updatedAt: serverTimestamp(),
       };
@@ -8056,12 +8100,12 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         postData.createdAt = serverTimestamp();
       }
 
-      const cleanUndefined = (obj) => {
+      const cleanUndefined = (obj: any): any => {
         if (obj === undefined) return null;
         if (typeof obj !== 'object' || obj === null) return obj;
         if (obj.toDate || obj._methodName) return obj; // Firebase timestamp or FieldValue
         if (Array.isArray(obj)) return obj.map(cleanUndefined).filter(v => v !== null);
-        const result = {};
+        const result: Record<string, any> = {};
         for (const [k, v] of Object.entries(obj)) {
           if (v !== undefined) {
             result[k] = cleanUndefined(v);
@@ -8075,14 +8119,14 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         if (editingPost.id) {
           await updateDoc(doc(db, 'posts', editingPost.id), cleanPostData);
         } else {
-          await addDoc(collection(db, 'posts'), { ...cleanPostData, tenantId: getActiveTenantId() });
+          await addDoc(collection(db, 'posts'), cleanPostData);
         }
         setIsModalOpen(false);
         setEditingPost(null);
         alert("Success: Blog post saved!");
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error saving post:", err);
-        alert("Failed to save post: " + err.message);
+        alert("Failed to save post: " + (err.message || err));
       }
     };
 
@@ -8250,38 +8294,81 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Featured Image</label>
-                    <div className="flex gap-4 items-center">
-                      <div className="h-24 w-40 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl overflow-hidden relative group">
-                        <img 
-                          src={editingPost?.featuredImage || 'https://picsum.photos/seed/placeholder/800/600'} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                          <Icons.Upload className="h-6 w-6 text-white" />
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                try {
-                                  const url = await uploadImage(file);
-                                  setEditingPost(prev => prev ? { ...prev, featuredImage: url } : prev);
-                                } catch (err) {
-                                  alert("Upload failed.");
-                                }
-                              }
-                            }}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                          />
-                        </div>
+                  {/* Refactored Featured Image Upload & Management Section */}
+                  <div className="space-y-4 bg-gray-50/70 p-5 rounded-2xl border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-gray-700 uppercase tracking-widest flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        Featured Image
+                      </label>
+                      {editingPost?.featuredImage && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingPost(prev => prev ? { ...prev, featuredImage: '' } : prev)}
+                          className="text-[11px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 transition-all"
+                        >
+                          <Icons.X className="h-3 w-3" /> Remove Image
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid md:grid-cols-12 gap-4 items-center">
+                      <div className="md:col-span-4 aspect-video bg-white border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden relative group flex items-center justify-center shadow-inner">
+                        {editingPost?.featuredImage ? (
+                          <>
+                            <img 
+                              src={editingPost.featuredImage} 
+                              alt="Article Featured" 
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                              <label className="cursor-pointer bg-white text-gray-900 text-xs font-black px-3 py-1.5 rounded-lg shadow-md hover:bg-gray-100 transition-all flex items-center gap-1">
+                                <Icons.Upload className="h-3.5 w-3.5 text-primary" />
+                                Change
+                                <input 
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleBlogFileUpload}
+                                  className="hidden"
+                                  disabled={isUploadingBlogImage}
+                                />
+                              </label>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center p-4">
+                            <ImageIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                            <p className="text-[11px] font-bold text-gray-400">No image selected</p>
+                          </div>
+                        )}
+
+                        {isUploadingBlogImage && (
+                          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-10">
+                            <Icons.Loader2 className="h-6 w-6 text-primary animate-spin" />
+                            <span className="text-[11px] font-black text-gray-700 uppercase tracking-wider">Uploading Image...</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-bold text-gray-400">Paste Image URL, Upload, or Pick from Gallery</p>
+
+                      <div className="md:col-span-8 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className={`cursor-pointer px-4 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all shadow-sm ${
+                            isUploadingBlogImage 
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                              : 'bg-primary text-white hover:bg-orange-600'
+                          }`}>
+                            {isUploadingBlogImage ? <Icons.Loader2 className="h-4 w-4 animate-spin" /> : <Icons.Upload className="h-4 w-4" />}
+                            {isUploadingBlogImage ? 'Uploading...' : 'Upload Image File'}
+                            <input 
+                              type="file"
+                              accept="image/*"
+                              onChange={handleBlogFileUpload}
+                              className="hidden"
+                              disabled={isUploadingBlogImage}
+                            />
+                          </label>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -8291,18 +8378,22 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                 }
                               }, false);
                             }}
-                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-black px-2.5 py-1 rounded-md border border-blue-100 flex items-center gap-1 transition-all"
+                            className="bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-sm"
                           >
-                            <ImageIcon className="h-3 w-3" />
+                            <ImageIcon className="h-4 w-4 text-blue-600" />
                             Pick from Gallery
                           </button>
                         </div>
-                        <input 
-                          value={editingPost?.featuredImage || ''}
-                          onChange={e => setEditingPost(prev => prev ? { ...prev, featuredImage: e.target.value } : prev)}
-                          placeholder="https://..."
-                          className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold text-sm focus:border-primary focus:bg-white outline-none transition-all"
-                        />
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Paste Image Web URL</label>
+                          <input 
+                            value={editingPost?.featuredImage || ''}
+                            onChange={e => setEditingPost(prev => prev ? { ...prev, featuredImage: e.target.value } : prev)}
+                            placeholder="https://images.unsplash.com/photo-..."
+                            className="w-full rounded-xl border border-gray-200 bg-white p-3 font-medium text-xs focus:border-primary focus:outline-none transition-all"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
