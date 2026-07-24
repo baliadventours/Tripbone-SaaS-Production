@@ -1029,7 +1029,7 @@ export default function SaaSSuperAdmin() {
       setTenants(prev => prev.map(t => t.id === renewForm.tenantId ? {
         ...t,
         plan: renewForm.plan,
-        billingInterval: renewForm.billingInterval,
+        billingInterval: renewForm.billingInterval as 'monthly' | 'annual' | 'lifetime',
         status: 'active',
         manualPaymentPending: false,
         trialEnds: dueDateStr
