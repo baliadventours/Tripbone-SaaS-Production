@@ -71,6 +71,7 @@ const SaaSContact = lazy(() => import('./pages/SaaSContact'));
 const SaaSTerms = lazy(() => import('./pages/SaaSTerms'));
 const SaaSPrivacy = lazy(() => import('./pages/SaaSPrivacy'));
 const SaasCookies = lazy(() => import('./pages/SaasCookies'));
+const AppSumoRedeem = lazy(() => import('./pages/AppSumoRedeem'));
 
 // Lazy load non-critical components
 import { useTenantSEO } from './hooks/useTenantSEO';
@@ -199,6 +200,8 @@ function AppContent() {
             <Route path="/superadmin/*" element={<SaaSSuperAdmin />} />
             <Route path="/login" element={<SaaSHome />} />
             <Route path="/signup" element={<SaaSHome />} />
+            <Route path="/redeem" element={<AppSumoRedeem />} />
+            <Route path="/appsumo" element={<AppSumoRedeem />} />
             
             {/* SaaS App Gate (Legacy Mode) */}
             {isAppGate && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { db, collection, getDocs, addDoc, setDoc, updateDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
 import { getDoc, onSnapshot } from 'firebase/firestore';
 import { formatPlanName, getPlanPrice } from '../lib/planUtils';
@@ -18,7 +19,7 @@ import {
   User, Settings, Key, Receipt, Copy, Plus, MessageSquare, LogOut,
   HelpCircle, EyeOff, ChevronRight, AlertTriangle, AlertCircle, X, Megaphone,
   Map, UserCheck, Briefcase, FileText, Image, Bell, Sliders, ChevronDown,
-  LifeBuoy, Terminal, Clock, Moon, Sun, BookOpen
+  LifeBuoy, Terminal, Clock, Moon, Sun, BookOpen, Tag, Gift
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -3462,10 +3463,19 @@ export default function SaaSHome() {
                     "border rounded-2xl p-6 relative overflow-hidden shadow-xs",
                     isDarkMode ? "bg-[#111928] border-slate-800" : "bg-white border-gray-200"
                   )}>
-                    <h2 className={cn("text-sm font-bold mb-4 flex items-center space-x-2", isDarkMode ? "text-white" : "text-gray-950")}>
-                      <CreditCard className="w-5 h-5 text-[#00b272]" />
-                      <span>Current Package Summary</span>
-                    </h2>
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                      <h2 className={cn("text-sm font-bold flex items-center space-x-2", isDarkMode ? "text-white" : "text-gray-950")}>
+                        <CreditCard className="w-5 h-5 text-[#00b272]" />
+                        <span>Current Package Summary</span>
+                      </h2>
+                      <Link 
+                        to="/redeem" 
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-500/30 transition-colors flex items-center space-x-1.5"
+                      >
+                        <Tag className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Redeem AppSumo Code</span>
+                      </Link>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                       <div className={cn(

@@ -56,7 +56,11 @@ import {
   Clock,
   RefreshCw,
   XCircle,
-  Check
+  Check,
+  Gift,
+  Copy,
+  FileSpreadsheet,
+  Upload
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -107,7 +111,7 @@ export default function SaaSSuperAdmin() {
     'overview' | 
     'workspaces' | 'resource_usage' | 
     'operators' | 'end_users' | 'demo_leads' |
-    'packages' | 'transactions' | 'coupons' |
+    'packages' | 'transactions' | 'coupons' | 'invoices' |
     'tickets' | 'announcements' |
     'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase'
   >('overview');
@@ -195,6 +199,21 @@ export default function SaaSSuperAdmin() {
     minBookingValue: 0
   });
   const [isCreatingCoupon, setIsCreatingCoupon] = useState(false);
+
+  // AppSumo Coupon Management States
+  const [couponSubTab, setCouponSubTab] = useState<'appsumo' | 'standard'>('appsumo');
+  const [sumoBatchTitle, setSumoBatchTitle] = useState('AppSumo Launch 2026');
+  const [sumoPlan, setSumoPlan] = useState('professional');
+  const [sumoTierName, setSumoTierName] = useState('AppSumo Tier 1');
+  const [sumoPrefix, setSumoPrefix] = useState('SUMO-T1-');
+  const [sumoQuantity, setSumoQuantity] = useState(25);
+  const [isGeneratingSumoBatch, setIsGeneratingSumoBatch] = useState(false);
+
+  const [sumoImportText, setSumoImportText] = useState('');
+  const [isImportingSumo, setIsImportingSumo] = useState(false);
+  const [sumoSearch, setSumoSearch] = useState('');
+  const [sumoFilterStatus, setSumoFilterStatus] = useState<'all' | 'available' | 'redeemed' | 'revoked'>('all');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Brand configurations
   const [globalBrand, setGlobalBrand] = useState({
@@ -2843,161 +2862,675 @@ export default function SaaSSuperAdmin() {
 
         {activeTab === 'coupons' && (
           <div className="space-y-8 animate-fadeIn text-left">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            
+            {/* Header & Sub-tab Switcher */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-800/60">
               <div>
-                <h2 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Platform Discount Coupons</h2>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Manage promotional code discounts used by tenants to get percentage or fixed price cuts.</p>
+                <h2 className={`text-xl font-black flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <Gift className="w-6 h-6 text-amber-500" />
+                  <span>AppSumo & Promo Code Administration</span>
+                </h2>
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Generate AppSumo batch codes, import/export CSV lists, and manage promo discounts for customer redemption.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 bg-slate-900/80 p-1 rounded-xl border border-gray-800">
+                <button
+                  onClick={() => setCouponSubTab('appsumo')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+                    couponSubTab === 'appsumo'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5" />
+                  <span>AppSumo Deals</span>
+                </button>
+                <button
+                  onClick={() => setCouponSubTab('standard')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+                    couponSubTab === 'standard'
+                      ? 'bg-indigo-600 text-white shadow-md font-extrabold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>Checkout Promo Codes</span>
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Form card */}
-              <div className={`p-6 border rounded-2xl h-fit ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
-                <h3 className={`font-bold mb-4 flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <Plus className="w-4 h-4 text-indigo-500" />
-                  <span>Create Global Coupon</span>
-                </h3>
+            {/* AppSumo Section */}
+            {couponSubTab === 'appsumo' && (
+              <div className="space-y-8">
 
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!newCoupon.code.trim()) return;
-                  setIsCreatingCoupon(true);
-                  try {
-                    const couponData = {
-                      ...newCoupon,
-                      code: newCoupon.code.toUpperCase().trim(),
-                      createdAt: new Date().toISOString()
-                    };
-                    await addDoc(collection(db, 'coupons'), couponData);
-                    setCoupons(prev => [...prev, couponData]);
-                    setNewCoupon({
-                      code: '',
-                      discountType: 'percentage',
-                      discountValue: 10,
-                      isActive: true,
-                      minBookingValue: 0
-                    });
-                    setSuccess('🎉 Coupon successfully created in database!');
-                  } catch (err: any) {
-                    setError('Failed to create coupon: ' + err.message);
-                  } finally {
-                    setIsCreatingCoupon(false);
-                  }
-                }} className="space-y-4">
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Promo Code</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. BALITOUR20"
-                      value={newCoupon.code}
-                      onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value })}
-                      required
-                      className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                    />
+                {/* AppSumo Metrics Stats Bar */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {(() => {
+                    const sumoList = coupons.filter(c => c.discountType === 'appsumo_lifetime' || c.appsumoTier || c.code?.startsWith('SUMO'));
+                    const total = sumoList.length;
+                    const redeemed = sumoList.filter(c => c.isRedeemed || c.status === 'REDEEMED').length;
+                    const available = sumoList.filter(c => !c.isRedeemed && c.status !== 'REVOKED').length;
+                    const revoked = sumoList.filter(c => c.status === 'REVOKED').length;
+                    const rate = total > 0 ? Math.round((redeemed / total) * 100) : 0;
+
+                    return (
+                      <>
+                        <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                          <span className="text-[10px] text-gray-400 uppercase font-mono font-bold">Total Codes Generated</span>
+                          <p className="text-2xl font-black text-amber-400 font-mono mt-1">{total}</p>
+                          <span className="text-[10px] text-gray-500">Across all AppSumo tiers</span>
+                        </div>
+                        <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                          <span className="text-[10px] text-gray-400 uppercase font-mono font-bold">Redeemed Deals</span>
+                          <p className="text-2xl font-black text-emerald-400 font-mono mt-1">{redeemed}</p>
+                          <span className="text-[10px] text-emerald-500/80 font-bold">{rate}% redemption rate</span>
+                        </div>
+                        <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                          <span className="text-[10px] text-gray-400 uppercase font-mono font-bold">Available Unused</span>
+                          <p className="text-2xl font-black text-white font-mono mt-1">{available}</p>
+                          <span className="text-[10px] text-gray-500">Ready for AppSumo buyers</span>
+                        </div>
+                        <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                          <span className="text-[10px] text-gray-400 uppercase font-mono font-bold">Revoked / Disabled</span>
+                          <p className="text-2xl font-black text-red-400 font-mono mt-1">{revoked}</p>
+                          <span className="text-[10px] text-gray-500">Blocked codes</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Batch Generator & CSV Tools Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                  {/* Batch Code Generator Card */}
+                  <div className={`p-6 border rounded-2xl ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                    <h3 className={`font-black mb-4 flex items-center justify-between text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <span className="flex items-center space-x-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Generate AppSumo Code Batch</span>
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono">Bulk Auto-Gen</span>
+                    </h3>
+
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (sumoQuantity < 1) return;
+                      setIsGeneratingSumoBatch(true);
+                      try {
+                        const generatedDocs: any[] = [];
+                        const prefix = (sumoPrefix || 'SUMO-T1-').toUpperCase().trim();
+                        const batchName = sumoBatchTitle.trim() || 'AppSumo Launch';
+
+                        for (let i = 0; i < sumoQuantity; i++) {
+                          const r1 = Math.random().toString(36).substring(2, 6).toUpperCase();
+                          const r2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+                          const generatedCode = `${prefix}${r1}-${r2}`;
+
+                          const codeDoc = {
+                            code: generatedCode,
+                            discountType: 'appsumo_lifetime',
+                            plan: sumoPlan,
+                            appsumoTier: sumoTierName,
+                            billingInterval: 'lifetime',
+                            isActive: true,
+                            isRedeemed: false,
+                            status: 'AVAILABLE',
+                            batchTitle: batchName,
+                            createdAt: new Date().toISOString()
+                          };
+
+                          const ref = await addDoc(collection(db, 'coupons'), codeDoc);
+                          generatedDocs.push({ id: ref.id, ...codeDoc });
+                        }
+
+                        setCoupons(prev => [...generatedDocs, ...prev]);
+                        setSuccess(`🎉 Generated ${sumoQuantity} codes for "${batchName}"!`);
+                      } catch (err: any) {
+                        setError('Failed to generate codes: ' + err.message);
+                      } finally {
+                        setIsGeneratingSumoBatch(false);
+                      }
+                    }} className="space-y-4">
+
+                      <div>
+                        <label className={`block text-xs font-bold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Batch Name / Campaign Title</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. AppSumo Launch 2026 - Tier 1"
+                          value={sumoBatchTitle}
+                          onChange={(e) => setSumoBatchTitle(e.target.value)}
+                          required
+                          className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={`block text-xs font-bold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Target Plan Package</label>
+                          <select
+                            value={sumoPlan}
+                            onChange={(e) => setSumoPlan(e.target.value)}
+                            className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                          >
+                            <option value="starter">Starter Plan ($29/mo tier)</option>
+                            <option value="professional">Professional Plan ($79/mo tier)</option>
+                            <option value="business">Business Plan ($199/mo tier)</option>
+                            <option value="agency">Agency Plan ($399/mo tier)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className={`block text-xs font-bold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>AppSumo Deal Tier Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. AppSumo Tier 1"
+                            value={sumoTierName}
+                            onChange={(e) => setSumoTierName(e.target.value)}
+                            required
+                            className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={`block text-xs font-bold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Code Prefix</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. SUMO-T1-"
+                            value={sumoPrefix}
+                            onChange={(e) => setSumoPrefix(e.target.value)}
+                            className={`w-full px-3.5 py-2 rounded-xl text-xs font-mono uppercase border focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className={`block text-xs font-bold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Quantity to Generate</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="1000"
+                            value={sumoQuantity}
+                            onChange={(e) => setSumoQuantity(Number(e.target.value))}
+                            required
+                            className={`w-full px-3.5 py-2 rounded-xl text-xs font-mono border focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isGeneratingSumoBatch}
+                        className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md"
+                      >
+                        {isGeneratingSumoBatch ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+                        <span>Generate {sumoQuantity} AppSumo Codes</span>
+                      </button>
+                    </form>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Bulk Text Import & CSV Export Card */}
+                  <div className={`p-6 border rounded-2xl flex flex-col justify-between ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
                     <div>
-                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Discount Type</label>
-                      <select
-                        value={newCoupon.discountType}
-                        onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value })}
-                        className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                      >
-                        <option value="percentage">Percentage (%)</option>
-                        <option value="fixed">Fixed ($)</option>
-                      </select>
+                      <h3 className={`font-black mb-4 flex items-center justify-between text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <span className="flex items-center space-x-2">
+                          <Upload className="w-4 h-4 text-indigo-400" />
+                          <span>Paste / Import AppSumo Codes</span>
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-mono">Custom Codes</span>
+                      </h3>
+
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const rawCodes = sumoImportText
+                          .split(/[\n,;]+/)
+                          .map(c => c.trim().toUpperCase())
+                          .filter(c => c.length > 2);
+
+                        if (rawCodes.length === 0) return;
+                        setIsImportingSumo(true);
+
+                        try {
+                          const importedDocs: any[] = [];
+                          const batchName = sumoBatchTitle.trim() || 'AppSumo Manual Import';
+
+                          for (const code of rawCodes) {
+                            const codeDoc = {
+                              code,
+                              discountType: 'appsumo_lifetime',
+                              plan: sumoPlan,
+                              appsumoTier: sumoTierName,
+                              billingInterval: 'lifetime',
+                              isActive: true,
+                              isRedeemed: false,
+                              status: 'AVAILABLE',
+                              batchTitle: batchName,
+                              createdAt: new Date().toISOString()
+                            };
+
+                            const ref = await addDoc(collection(db, 'coupons'), codeDoc);
+                            importedDocs.push({ id: ref.id, ...codeDoc });
+                          }
+
+                          setCoupons(prev => [...importedDocs, ...prev]);
+                          setSumoImportText('');
+                          setSuccess(`🎉 Successfully imported ${rawCodes.length} custom AppSumo codes!`);
+                        } catch (err: any) {
+                          setError('Failed to import codes: ' + err.message);
+                        } finally {
+                          setIsImportingSumo(false);
+                        }
+                      }} className="space-y-3">
+                        <textarea
+                          rows={4}
+                          placeholder="Paste custom codes here (one code per line or comma-separated)..."
+                          value={sumoImportText}
+                          onChange={(e) => setSumoImportText(e.target.value)}
+                          className={`w-full p-3 rounded-xl text-xs font-mono border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={isImportingSumo || !sumoImportText.trim()}
+                          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/30 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                        >
+                          {isImportingSumo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          <span>Import Pasted Codes</span>
+                        </button>
+                      </form>
                     </div>
 
-                    <div>
-                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Discount Value</label>
+                    {/* CSV Export Tool Banner */}
+                    <div className={`mt-6 p-4 rounded-xl border flex items-center justify-between gap-4 ${isDarkMode ? 'bg-slate-950/60 border-gray-800' : 'bg-slate-50 border-gray-200'}`}>
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center space-x-1.5">
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                          <span>Export Codes to CSV</span>
+                        </h4>
+                        <p className="text-[10px] text-gray-400">Download CSV file ready for AppSumo Vendor Dashboard upload.</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sumoCodes = coupons.filter(c => c.discountType === 'appsumo_lifetime' || c.appsumoTier || c.code?.startsWith('SUMO'));
+                          if (sumoCodes.length === 0) {
+                            alert('No AppSumo codes available to export.');
+                            return;
+                          }
+
+                          const csvRows = ['Code,Tier,Plan,Status,Batch,Created Date,Redeemed By Email'];
+                          sumoCodes.forEach(c => {
+                            csvRows.push(`"${c.code}","${c.appsumoTier || 'AppSumo Tier 1'}","${c.plan || 'professional'}","${c.status || (c.isRedeemed ? 'REDEEMED' : 'AVAILABLE')}","${c.batchTitle || ''}","${c.createdAt || ''}","${c.redeemedByEmail || ''}"`);
+                          });
+
+                          const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.setAttribute('href', url);
+                          link.setAttribute('download', `Tripbone_AppSumo_Codes_${new Date().toISOString().split('T')[0]}.csv`);
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 shrink-0 transition-all cursor-pointer shadow-sm"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Filterable Table of AppSumo Codes */}
+                <div className={`border rounded-2xl overflow-hidden ${isDarkMode ? 'border-gray-850 bg-slate-900/40' : 'border-gray-200 bg-white shadow-xs'}`}>
+                  
+                  {/* Table Toolbar */}
+                  <div className={`p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${isDarkMode ? 'border-gray-800 bg-slate-950/40' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="relative flex-1 max-w-md w-full">
+                      <Search className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" />
                       <input
-                        type="number"
-                        min="1"
-                        value={newCoupon.discountValue}
-                        onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: Number(e.target.value) })}
+                        type="text"
+                        placeholder="Search code, batch, tier, or email..."
+                        value={sumoSearch}
+                        onChange={(e) => setSumoSearch(e.target.value)}
+                        className={`w-full pl-9 pr-4 py-1.5 rounded-xl text-xs border focus:outline-none focus:ring-2 focus:ring-amber-500/30 ${isDarkMode ? 'bg-slate-900 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 self-end sm:self-auto">
+                      <select
+                        value={sumoFilterStatus}
+                        onChange={(e) => setSumoFilterStatus(e.target.value as any)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border focus:outline-none ${isDarkMode ? 'bg-slate-900 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="available">Available Unused</option>
+                        <option value="redeemed">Redeemed</option>
+                        <option value="revoked">Revoked</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800/80 bg-slate-950/60 text-gray-400' : 'border-gray-200 bg-gray-100 text-gray-500'}`}>
+                          <th className="py-3.5 px-6">AppSumo Code</th>
+                          <th className="py-3.5 px-6">Deal Tier & Package</th>
+                          <th className="py-3.5 px-6">Batch Title</th>
+                          <th className="py-3.5 px-6">Status</th>
+                          <th className="py-3.5 px-6">Redeemed By</th>
+                          <th className="py-3.5 px-6 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800/50' : 'divide-gray-100'}`}>
+                        {(() => {
+                          const sumoFiltered = coupons.filter(c => {
+                            const isSumo = c.discountType === 'appsumo_lifetime' || c.appsumoTier || c.code?.startsWith('SUMO');
+                            if (!isSumo) return false;
+
+                            const isRedeemed = c.isRedeemed || c.status === 'REDEEMED';
+                            const isRevoked = c.status === 'REVOKED' || c.isActive === false;
+
+                            if (sumoFilterStatus === 'available' && (isRedeemed || isRevoked)) return false;
+                            if (sumoFilterStatus === 'redeemed' && !isRedeemed) return false;
+                            if (sumoFilterStatus === 'revoked' && !isRevoked) return false;
+
+                            if (sumoSearch.trim()) {
+                              const s = sumoSearch.toLowerCase().trim();
+                              const matchCode = c.code?.toLowerCase().includes(s);
+                              const matchBatch = c.batchTitle?.toLowerCase().includes(s);
+                              const matchEmail = c.redeemedByEmail?.toLowerCase().includes(s);
+                              const matchTier = c.appsumoTier?.toLowerCase().includes(s);
+                              return matchCode || matchBatch || matchEmail || matchTier;
+                            }
+
+                            return true;
+                          });
+
+                          if (sumoFiltered.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={6} className="py-12 text-center text-xs text-gray-500">
+                                  No AppSumo codes found. Use the generator above to create your first batch!
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return sumoFiltered.map((c, idx) => {
+                            const isRedeemed = c.isRedeemed || c.status === 'REDEEMED';
+                            const isRevoked = c.status === 'REVOKED';
+
+                            return (
+                              <tr key={c.id || idx} className={`text-sm transition-colors ${isDarkMode ? 'hover:bg-slate-900/40' : 'hover:bg-gray-50'}`}>
+                                <td className="py-4 px-6">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-bold text-xs font-mono uppercase px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                                      {c.code}
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(c.code);
+                                        setCopiedCode(c.code);
+                                        setTimeout(() => setCopiedCode(null), 2000);
+                                      }}
+                                      className="text-gray-500 hover:text-white transition-colors cursor-pointer p-1"
+                                      title="Copy Code"
+                                    >
+                                      {copiedCode === c.code ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                    </button>
+                                  </div>
+                                </td>
+
+                                <td className="py-4 px-6">
+                                  <div className="text-xs">
+                                    <span className="font-bold text-white block">{c.appsumoTier || 'AppSumo Tier 1'}</span>
+                                    <span className="text-[10px] text-gray-400 uppercase font-mono">{formatPlanName(c.plan || 'professional', [])} (Lifetime)</span>
+                                  </div>
+                                </td>
+
+                                <td className="py-4 px-6 text-xs text-gray-400">
+                                  {c.batchTitle || 'AppSumo Deal'}
+                                </td>
+
+                                <td className="py-4 px-6">
+                                  {isRedeemed ? (
+                                    <span className="text-[10px] px-2.5 py-1 rounded-full font-bold border font-mono bg-emerald-950/50 text-emerald-400 border-emerald-900/60">
+                                      REDEEMED
+                                    </span>
+                                  ) : isRevoked ? (
+                                    <span className="text-[10px] px-2.5 py-1 rounded-full font-bold border font-mono bg-red-950/50 text-red-400 border-red-900/60">
+                                      REVOKED
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] px-2.5 py-1 rounded-full font-bold border font-mono bg-amber-950/50 text-amber-400 border-amber-900/60">
+                                      AVAILABLE
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="py-4 px-6 text-xs">
+                                  {c.redeemedByEmail ? (
+                                    <div>
+                                      <span className="font-bold text-white block">{c.redeemedByCompanyName || 'Operator Workspace'}</span>
+                                      <span className="text-[10px] text-gray-400 font-mono">{c.redeemedByEmail}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-600 text-xs">— Unredeemed —</span>
+                                  )}
+                                </td>
+
+                                <td className="py-4 px-6 text-right">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    {!isRedeemed && (
+                                      <button
+                                        onClick={async () => {
+                                          const newStatus = isRevoked ? 'AVAILABLE' : 'REVOKED';
+                                          try {
+                                            await updateDoc(doc(db, 'coupons', c.id), { status: newStatus, isActive: !isRevoked });
+                                            setCoupons(prev => prev.map(item => item.id === c.id ? { ...item, status: newStatus, isActive: !isRevoked } : item));
+                                          } catch (err: any) {
+                                            setError('Failed to update: ' + err.message);
+                                          }
+                                        }}
+                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                                          isRevoked 
+                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
+                                            : 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'
+                                        }`}
+                                      >
+                                        {isRevoked ? 'Reactivate' : 'Revoke'}
+                                      </button>
+                                    )}
+
+                                    <button
+                                      onClick={async () => {
+                                        if (!window.confirm(`Delete coupon code ${c.code}?`)) return;
+                                        try {
+                                          await deleteDoc(doc(db, 'coupons', c.id));
+                                          setCoupons(prev => prev.filter(item => item.id !== c.id));
+                                        } catch (err: any) {
+                                          setError('Failed to delete: ' + err.message);
+                                        }
+                                      }}
+                                      className="p-1.5 rounded-lg bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+                                      title="Delete Code"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* Standard Checkout Coupons Section */}
+            {couponSubTab === 'standard' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Form card */}
+                <div className={`p-6 border rounded-2xl h-fit ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100 shadow-xs'}`}>
+                  <h3 className={`font-bold mb-4 flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <Plus className="w-4 h-4 text-indigo-500" />
+                    <span>Create Global Promo Coupon</span>
+                  </h3>
+
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newCoupon.code.trim()) return;
+                    setIsCreatingCoupon(true);
+                    try {
+                      const couponData = {
+                        ...newCoupon,
+                        code: newCoupon.code.toUpperCase().trim(),
+                        createdAt: new Date().toISOString()
+                      };
+                      await addDoc(collection(db, 'coupons'), couponData);
+                      setCoupons(prev => [...prev, couponData]);
+                      setNewCoupon({
+                        code: '',
+                        discountType: 'percentage',
+                        discountValue: 10,
+                        isActive: true,
+                        minBookingValue: 0
+                      });
+                      setSuccess('🎉 Coupon successfully created in database!');
+                    } catch (err: any) {
+                      setError('Failed to create coupon: ' + err.message);
+                    } finally {
+                      setIsCreatingCoupon(false);
+                    }
+                  }} className="space-y-4">
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Promo Code</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. BALITOUR20"
+                        value={newCoupon.code}
+                        onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value })}
                         required
                         className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Min Booking Value ($)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newCoupon.minBookingValue}
-                      onChange={(e) => setNewCoupon({ ...newCoupon, minBookingValue: Number(e.target.value) })}
-                      className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Discount Type</label>
+                        <select
+                          value={newCoupon.discountType}
+                          onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value })}
+                          className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        >
+                          <option value="percentage">Percentage (%)</option>
+                          <option value="fixed">Fixed ($)</option>
+                        </select>
+                      </div>
 
-                  <div className="flex items-center space-x-2 pt-2">
-                    <input
-                      type="checkbox"
-                      id="isActiveCoupon"
-                      checked={newCoupon.isActive}
-                      onChange={(e) => setNewCoupon({ ...newCoupon, isActive: e.target.checked })}
-                      className="rounded text-indigo-600 focus:ring-indigo-500/30 h-4 w-4"
-                    />
-                    <label htmlFor="isActiveCoupon" className={`text-xs font-bold cursor-pointer ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Active coupon code</label>
-                  </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Discount Value</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={newCoupon.discountValue}
+                          onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: Number(e.target.value) })}
+                          required
+                          className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+                    </div>
 
-                  <button
-                    type="submit"
-                    disabled={isCreatingCoupon}
-                    className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/40 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
-                  >
-                    {isCreatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    <span>Save Coupon Code</span>
-                  </button>
-                </form>
-              </div>
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Min Spend Value ($)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newCoupon.minBookingValue}
+                        onChange={(e) => setNewCoupon({ ...newCoupon, minBookingValue: Number(e.target.value) })}
+                        className={`w-full px-3.5 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                      />
+                    </div>
 
-              {/* Coupons List */}
-              <div className={`lg:col-span-2 border rounded-2xl overflow-hidden ${isDarkMode ? 'border-gray-850 bg-slate-900/40' : 'border-gray-200 bg-white shadow-xs'}`}>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800/80 bg-slate-950/40 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
-                        <th className="py-4 px-6">Promo Code</th>
-                        <th className="py-4 px-6">Type</th>
-                        <th className="py-4 px-6">Value</th>
-                        <th className="py-4 px-6">Min. Spend</th>
-                        <th className="py-4 px-6">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800/50' : 'divide-gray-100'}`}>
-                      {coupons.map((c, idx) => (
-                        <tr key={c.id || idx} className={`text-sm transition-colors ${isDarkMode ? 'hover:bg-slate-900/20' : 'hover:bg-gray-50'}`}>
-                          <td className="py-4 px-6">
-                            <span className="font-bold text-xs font-mono uppercase px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{c.code}</span>
-                          </td>
-                          <td className={`py-4 px-6 text-xs capitalize ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{c.discountType}</td>
-                          <td className={`py-4 px-6 font-bold text-xs font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            {c.discountType === 'percentage' ? `${c.discountValue}%` : `$${c.discountValue}`}
-                          </td>
-                          <td className={`py-4 px-6 font-mono text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>${c.minBookingValue || 0}</td>
-                          <td className="py-4 px-6">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border font-mono ${c.isActive ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/40' : 'bg-gray-950/40 text-gray-400 border-gray-900/40'}`}>
-                              {c.isActive ? 'ACTIVE' : 'INACTIVE'}
-                            </span>
-                          </td>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <input
+                        type="checkbox"
+                        id="isActiveCoupon"
+                        checked={newCoupon.isActive}
+                        onChange={(e) => setNewCoupon({ ...newCoupon, isActive: e.target.checked })}
+                        className="rounded text-indigo-600 focus:ring-indigo-500/30 h-4 w-4"
+                      />
+                      <label htmlFor="isActiveCoupon" className={`text-xs font-bold cursor-pointer ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Active coupon code</label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isCreatingCoupon}
+                      className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/40 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                    >
+                      {isCreatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      <span>Save Promo Code</span>
+                    </button>
+                  </form>
+                </div>
+
+                {/* Coupons List */}
+                <div className={`lg:col-span-2 border rounded-2xl overflow-hidden ${isDarkMode ? 'border-gray-850 bg-slate-900/40' : 'border-gray-200 bg-white shadow-xs'}`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-mono uppercase tracking-wider ${isDarkMode ? 'border-gray-800/80 bg-slate-950/40 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+                          <th className="py-4 px-6">Promo Code</th>
+                          <th className="py-4 px-6">Type</th>
+                          <th className="py-4 px-6">Value</th>
+                          <th className="py-4 px-6">Min. Spend</th>
+                          <th className="py-4 px-6">Status</th>
                         </tr>
-                      ))}
-                      {coupons.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-xs text-gray-500">No promo coupons defined yet.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800/50' : 'divide-gray-100'}`}>
+                        {coupons.filter(c => c.discountType !== 'appsumo_lifetime' && !c.appsumoTier).map((c, idx) => (
+                          <tr key={c.id || idx} className={`text-sm transition-colors ${isDarkMode ? 'hover:bg-slate-900/20' : 'hover:bg-gray-50'}`}>
+                            <td className="py-4 px-6">
+                              <span className="font-bold text-xs font-mono uppercase px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{c.code}</span>
+                            </td>
+                            <td className={`py-4 px-6 text-xs capitalize ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{c.discountType}</td>
+                            <td className={`py-4 px-6 font-bold text-xs font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {c.discountType === 'percentage' ? `${c.discountValue}%` : `$${c.discountValue}`}
+                            </td>
+                            <td className={`py-4 px-6 font-mono text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>${c.minBookingValue || 0}</td>
+                            <td className="py-4 px-6">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border font-mono ${c.isActive ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/40' : 'bg-gray-950/40 text-gray-400 border-gray-900/40'}`}>
+                                {c.isActive ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Dashboard Invoice Management Section */}
-              <div className={`p-6 border rounded-2xl text-left shadow-xs mt-6 ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100'}`}>
+          </div>
+        )}
+
+        {activeTab === 'invoices' && (
+          /* Dashboard Invoice Management Section */
+          <div className={`p-6 border rounded-2xl text-left shadow-xs mt-6 ${isDarkMode ? 'bg-[#111928] border-gray-850' : 'bg-white border-gray-100'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
                     <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tenant Subscription Invoices</h2>
@@ -3142,8 +3675,6 @@ export default function SaaSSuperAdmin() {
                   </table>
                 </div>
               </div>
-            </div>
-          </div>
         )}
 
         {activeTab === 'integrations' && (
