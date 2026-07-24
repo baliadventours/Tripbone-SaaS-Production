@@ -28,6 +28,7 @@ export default function SaaSHome() {
   const brandColor = globalBrand?.brandColor || '#1db3cd';
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [closedAnnouncements, setClosedAnnouncements] = useState<string[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(true);
   const [step, setStep] = useState(1); // 1 = Main/Dashboard/Auth, 2 = Website Setup, 3 = Website Info, 4 = Business Address
@@ -404,6 +405,11 @@ export default function SaaSHome() {
         setTenants(tenantList);
         
         // Fetch billing plans dynamically
+        const invoicesSnapshot = await getDocs(collection(db, 'invoices'));
+        const invList: any[] = [];
+        invoicesSnapshot.forEach(snap => invList.push({ id: snap.id, ...snap.data() }));
+        setInvoices(invList);
+        
         const plansSnapshot = await getDocs(collection(db, 'billingPlans'));
         const plansList: any[] = [];
         plansSnapshot.forEach((snap) => {
@@ -969,23 +975,20 @@ export default function SaaSHome() {
     } else { // starter
       defaultPrice = billingInterval === 'lifetime' ? 249 : billingInterval === 'annual' ? 490 : 49;
     }
-
     const price = matchedPlan 
       ? (matchedPlan.price !== undefined ? matchedPlan.price : defaultPrice)
       : defaultPrice;
-    
+      
     const amountStr = `$${price}.00`;
-    
-    const invoices: any[] = [];
+    const genInvoices = [];
     const now = new Date();
     
     const isTrial = activeWorkspace.status === 'trial' || activeWorkspace.trialEnds;
+    const trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     
     if (isTrial) {
-      const trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
       // 1. Trial Activation Invoice (0 payment)
-      invoices.push({
+      genInvoices.push({
         no: "T-101",
         invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         dueDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
@@ -996,7 +999,7 @@ export default function SaaSHome() {
       });
       
       // 2. Subscription Invoice based on package chosen (UNPAID)
-      invoices.push({
+      genInvoices.push({
         no: "INV-121",
         invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         dueDate: trialEndsDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
@@ -1005,78 +1008,60 @@ export default function SaaSHome() {
         amount: amountStr,
         status: "UNPAID"
       });
-      
-      return invoices.reverse();
-    }
-    
-    let currentInvoiceDate = new Date(createdDate);
-    let invoiceIndex = 121;
-    
-    let safetyCounter = 0;
-    while (currentInvoiceDate <= now && safetyCounter < 100) {
-      safetyCounter++;
-      const invDate = new Date(currentInvoiceDate);
-      
-      const dueDate = new Date(invDate);
-      if (billingInterval === 'annual') {
-        dueDate.setFullYear(dueDate.getFullYear() + 1);
-      } else if (billingInterval === 'lifetime') {
-        dueDate.setFullYear(dueDate.getFullYear() + 100);
-      } else {
-        dueDate.setMonth(dueDate.getMonth() + 1);
-      }
-      
-      let status: 'PAID' | 'UNPAID' = 'PAID';
-      if (activeWorkspace.status === 'pending') {
-        status = 'UNPAID';
-      } else if (activeWorkspace.status === 'inactive') {
-        status = 'UNPAID';
-      } else if (billingInterval !== 'lifetime' && now > dueDate) {
-        status = 'PAID';
-      } else {
-        status = activeWorkspace.status === 'suspended' ? 'UNPAID' : 'PAID';
-      }
-      
-      invoices.push({
-        no: String(invoiceIndex),
-        invoiceDate: invDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        dueDate: billingInterval === 'lifetime' ? 'Never (Lifetime)' : dueDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        rawInvoiceDate: invDate,
-        rawDueDate: dueDate,
-        amount: amountStr,
-        status: status
-      });
-      
-      if (billingInterval === 'annual') {
-        currentInvoiceDate.setFullYear(currentInvoiceDate.getFullYear() + 1);
-      } else if (billingInterval === 'lifetime') {
-        break;
-      } else {
-        currentInvoiceDate.setMonth(currentInvoiceDate.getMonth() + 1);
-      }
-      invoiceIndex += 1;
-    }
-    
-    return invoices.reverse();
-  }, [activeWorkspace, plans]);
-
-  // Real Database Sync Fields & Operations
-  const [customDomainInput, setCustomDomainInput] = useState('');
-  const [operatorNameInput, setOperatorNameInput] = useState('');
-  const [operatorPhoneInput, setOperatorPhoneInput] = useState('');
-  const [operatorAddressInput, setOperatorAddressInput] = useState('');
-
-  useEffect(() => {
-    if (activeWorkspace) {
-      setActiveTenantId(activeWorkspace.id);
-      setCustomDomainInput(activeWorkspace.customDomain || '');
-      setOperatorNameInput(activeWorkspace.companyName || '');
-      setOperatorPhoneInput(activeWorkspace.phone || '');
-      setOperatorAddressInput(activeWorkspace.address || '');
     } else {
-      setActiveTenantId(null);
+      let currentInvoiceDate = new Date(createdDate);
+      let invoiceIndex = 121;
+      let safetyCounter = 0;
+
+      while (currentInvoiceDate <= now && safetyCounter < 100) {
+        let dueDate = new Date(currentInvoiceDate);
+        dueDate.setDate(dueDate.getDate() + 7); // Due 7 days after invoice
+        
+        let status = 'PAID';
+        
+        // If this is the most recent invoice and it's past due and workspace is not active
+        if (currentInvoiceDate.getMonth() === now.getMonth() && currentInvoiceDate.getFullYear() === now.getFullYear()) {
+           if (activeWorkspace.status !== 'active') {
+             status = 'UNPAID';
+           }
+        }
+
+        genInvoices.push({
+          no: `INV-${invoiceIndex}`,
+          invoiceDate: currentInvoiceDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+          dueDate: dueDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+          rawInvoiceDate: new Date(currentInvoiceDate),
+          rawDueDate: new Date(dueDate),
+          amount: amountStr,
+          status: status
+        });
+        
+        if (billingInterval === 'annual') {
+          currentInvoiceDate.setFullYear(currentInvoiceDate.getFullYear() + 1);
+        } else if (billingInterval === 'lifetime') {
+          break;
+        } else {
+          currentInvoiceDate.setMonth(currentInvoiceDate.getMonth() + 1);
+        }
+        invoiceIndex++;
+        safetyCounter++;
+      }
     }
-  }, [activeWorkspace]);
+    
+    const dbInvoices = invoices.filter(inv => inv.tenantId === activeWorkspace.id);
+    const merged = genInvoices.map(genInv => {
+       const found = dbInvoices.find(dbInv => dbInv.no === genInv.no);
+       return found || genInv;
+    });
+    
+    dbInvoices.forEach(dbInv => {
+       if (!merged.find(m => m.no === dbInv.no)) {
+           merged.push(dbInv);
+       }
+    });
+    
+    return merged.sort((a,b) => new Date(b.rawInvoiceDate || b.createdAt || b.invoiceDate).getTime() - new Date(a.rawInvoiceDate || a.createdAt || a.invoiceDate).getTime());
+  }, [activeWorkspace, plans, invoices]);
 
   useEffect(() => {
     if (!activeWorkspace) {

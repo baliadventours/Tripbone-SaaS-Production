@@ -1483,9 +1483,18 @@ const BookingTimeManager = () => {
     }, [roleFilter]);
 
     useEffect(() => {
-      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+      const tenantId = getActiveTenantId();
+      const q = tenantId 
+        ? query(collection(db, 'users'), where('tenantId', '==', tenantId))
+        : query(collection(db, 'users'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        setUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile)));
+        let list = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+        list.sort((a: any, b: any) => {
+          const tA = a.createdAt?.seconds || 0;
+          const tB = b.createdAt?.seconds || 0;
+          return tB - tA;
+        });
+        setUsers(list);
         setLoading(false);
       });
       return unsubscribe;
@@ -1518,6 +1527,7 @@ const BookingTimeManager = () => {
           ...newPartner,
           uid: tempId,
           photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(newPartner.displayName || '')}&background=random`,
+          tenantId: getActiveTenantId(),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
@@ -6248,7 +6258,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
 
     let unsubscribeUsers = () => {};
     if (!isSupplier && !isAgent) {
-      unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const userQ = tenantId 
+          ? query(collection(db, 'users'), where('tenantId', '==', tenantId))
+          : collection(db, 'users');
+      unsubscribeUsers = onSnapshot(userQ, (snapshot) => {
           setUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile)));
       }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
     }
