@@ -3950,9 +3950,6 @@ const CommunicationManager = () => {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const docRef = doc(db, 'communicationSettings', getActiveTenantId() || 'global');
-      const snap = await getDoc(docRef);
-      
       const defaults: CommunicationSettings = {
         id: 'settings',
         emailProvider: 'none',
@@ -3990,22 +3987,35 @@ const CommunicationManager = () => {
         templates: {} as any
       };
 
-      if (snap.exists()) {
-        const data = snap.data() as any;
-        // Merge templates specifically to ensure new ones are added
-        setSettings({ 
-          ...defaults, 
-          ...data,
-          whatsappTemplates: {
-            ...defaults.whatsappTemplates,
-            ...(data.whatsappTemplates || {})
+      try {
+        const docRef = doc(db, 'communicationSettings', getActiveTenantId() || 'global');
+        const snap = await getDoc(docRef);
+
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          // Merge templates specifically to ensure new ones are added
+          setSettings({ 
+            ...defaults, 
+            ...data,
+            whatsappTemplates: {
+              ...defaults.whatsappTemplates,
+              ...(data.whatsappTemplates || {})
+            }
+          });
+        } else {
+          try {
+            await setDoc(docRef, defaults);
+          } catch (e) {
+            console.warn('Could not auto-create communication settings doc:', e);
           }
-        });
-      } else {
-        await setDoc(docRef, defaults);
+          setSettings(defaults);
+        }
+      } catch (err: any) {
+        console.error('Error fetching communication settings:', err);
         setSettings(defaults);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchSettings();
   }, []);

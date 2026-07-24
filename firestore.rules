@@ -290,7 +290,14 @@ service cloud.firestore {
                guide.whatsapp is string && guide.whatsapp.size() > 0 && guide.whatsapp.size() <= 32;
       }
     }
-    match /communicationSettings/{id} { allow read: if isAdmin(); allow write: if isAdmin(); }
+    match /communicationSettings/{id} { 
+      allow read: if true; 
+      allow write: if isSuperAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (getUserData().role == 'admin' || getUserData().role == 'superadmin')
+      ); 
+    }
     match /email_logs/{id} { allow read: if isAdmin(); allow write: if false; }
 
     // --- Coupons ---
