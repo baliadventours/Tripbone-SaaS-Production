@@ -94,6 +94,10 @@ export default function SaaSHome() {
   // Sidebar states
   const [activeLeftMenu, setActiveLeftMenu] = useState('dashboard'); // 'dashboard' | 'my-site' | 'billing' | 'tickets' | 'docs' | 'profile'
   const [tenantActiveMenu, setTenantActiveMenu] = useState<string | null>('dashboard');
+  const [customDomainInput, setCustomDomainInput] = useState('');
+  const [operatorNameInput, setOperatorNameInput] = useState('');
+  const [operatorPhoneInput, setOperatorPhoneInput] = useState('');
+  const [operatorAddressInput, setOperatorAddressInput] = useState('');
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [billingInterval, setBillingInterval] = useState('monthly');

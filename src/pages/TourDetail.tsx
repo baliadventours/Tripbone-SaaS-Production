@@ -142,13 +142,13 @@ export default function TourDetail() {
           const allPoints = urgencySnap.docs.map(d => ({ id: d.id, ...d.data() } as UrgencyPoint));
           const seen = new Set<string>();
           const uniquePoints: UrgencyPoint[] = [];
-          for (const pt of allPoints) {
-            const title = (pt.title || (pt as any).text || '').trim().toLowerCase();
+          for (const pItem of allPoints) {
+            const title = (pItem.title || (pItem as any).text || '').trim().toLowerCase();
             if (title && !seen.has(title)) {
               seen.add(title);
-              uniquePoints.push(pt);
+              uniquePoints.push(pItem);
             } else if (!title) {
-              uniquePoints.push(pt);
+              uniquePoints.push(pItem);
             }
           }
           setUrgencyPoints(uniquePoints);

@@ -6257,9 +6257,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'tourTypes'));
 
     let unsubscribeUsers = () => {};
+    const tenantIdForUsers = getActiveTenantId();
     if (!isSupplier && !isAgent) {
-      const userQ = tenantId 
-          ? query(collection(db, 'users'), where('tenantId', '==', tenantId))
+      const userQ = tenantIdForUsers 
+          ? query(collection(db, 'users'), where('tenantId', '==', tenantIdForUsers))
           : collection(db, 'users');
       unsubscribeUsers = onSnapshot(userQ, (snapshot) => {
           setUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile)));
@@ -6291,13 +6292,13 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       const allPoints = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UrgencyPoint));
       const seen = new Set<string>();
       const uniquePoints: UrgencyPoint[] = [];
-      for (const pt of allPoints) {
-        const title = (pt.title || (pt as any).text || '').trim().toLowerCase();
+      for (const pItem of allPoints) {
+        const title = (pItem.title || (pItem as any).text || '').trim().toLowerCase();
         if (title && !seen.has(title)) {
           seen.add(title);
-          uniquePoints.push(pt);
+          uniquePoints.push(pItem);
         } else if (!title) {
-          uniquePoints.push(pt);
+          uniquePoints.push(pItem);
         }
       }
       setUrgencyPoints(uniquePoints);
