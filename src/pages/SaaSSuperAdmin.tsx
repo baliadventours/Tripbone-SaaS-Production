@@ -311,6 +311,24 @@ export default function SaaSSuperAdmin() {
     return nextBilling.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const getPackageTextColor = (planRaw: string, formattedName: string) => {
+    const name = (formattedName || planRaw || '').toLowerCase();
+    const raw = (planRaw || '').toLowerCase();
+    if (name.includes('agency') || name.includes('enterprise') || raw.includes('agency') || raw.includes('enterprise')) {
+      return 'text-amber-600 dark:text-amber-400';
+    }
+    if (name.includes('business') || raw.includes('business')) {
+      return 'text-emerald-600 dark:text-emerald-400';
+    }
+    if (name.includes('professional') || name.includes('pro') || raw.includes('pro')) {
+      return 'text-indigo-600 dark:text-indigo-400';
+    }
+    if (name.includes('starter') || raw.includes('starter')) {
+      return 'text-sky-600 dark:text-sky-400';
+    }
+    return 'text-indigo-600 dark:text-indigo-400';
+  };
+
   // Announcements form
   const [announcement, setAnnouncement] = useState({
     title: '',
@@ -3029,6 +3047,8 @@ export default function SaaSSuperAdmin() {
                             }
                           }
                           const showLifetime = isLifetime || dueDateDisplay === 'Never (Lifetime)';
+                          const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages);
+                          const planColor = getPackageTextColor(inv.plan || matchedTenant?.plan || '', planFormatted);
 
                           return (
                             <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
@@ -3043,18 +3063,20 @@ export default function SaaSSuperAdmin() {
                                   {matchedTenant?.adminEmail || matchedTenant?.email || 'N/A'} • {matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : 'SaaS Tenant'}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4">
-                                <span className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 text-xs font-medium inline-block">
-                                  {formatPlanName(inv.plan || matchedTenant?.plan, packages)}
+                              <td className="py-3.5 px-4 font-bold text-xs">
+                                <span className={planColor}>
+                                  {planFormatted}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td className="py-3.5 px-4 font-bold text-xs">
                                 {showLifetime ? (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
+                                  <span className="text-emerald-600 dark:text-emerald-400">
                                     ✨ Lifetime Access
                                   </span>
                                 ) : (
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">{dueDateDisplay}</span>
+                                  <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
+                                    {dueDateDisplay}
+                                  </span>
                                 )}
                               </td>
                               <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -3925,6 +3947,8 @@ export default function SaaSSuperAdmin() {
                             }
                           }
                           const showLifetime = isLifetime || dueDateDisplay === 'Never (Lifetime)';
+                          const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages);
+                          const planColor = getPackageTextColor(inv.plan || matchedTenant?.plan || '', planFormatted);
 
                           return (
                             <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
@@ -3939,18 +3963,20 @@ export default function SaaSSuperAdmin() {
                                   {matchedTenant?.adminEmail || matchedTenant?.email || 'N/A'} • {matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : 'SaaS Tenant'}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4">
-                                <span className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 text-xs font-medium inline-block">
-                                  {formatPlanName(inv.plan || matchedTenant?.plan, packages)}
+                              <td className="py-3.5 px-4 font-bold text-xs">
+                                <span className={planColor}>
+                                  {planFormatted}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td className="py-3.5 px-4 font-bold text-xs">
                                 {showLifetime ? (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
+                                  <span className="text-emerald-600 dark:text-emerald-400">
                                     ✨ Lifetime Access
                                   </span>
                                 ) : (
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">{dueDateDisplay}</span>
+                                  <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
+                                    {dueDateDisplay}
+                                  </span>
                                 )}
                               </td>
                               <td className={`py-3.5 px-4 text-right font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
