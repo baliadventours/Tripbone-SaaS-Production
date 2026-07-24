@@ -112,6 +112,10 @@ export default function Footer() {
                      <Link to="/contact" className="hover:underline hover:text-primary transition-colors">Contact</Link>
                      <span className="text-gray-300">·</span>
                      <Link to="/tours" className="hover:underline hover:text-primary transition-colors">Tours</Link>
+                     <span className="text-gray-300">·</span>
+                     <a href="https://www.tripbone.com" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-primary transition-colors font-medium">
+                        Powered by Tripbone.com
+                     </a>
                   </div>
                   <div className="flex items-center gap-6">
                      <span className="flex items-center gap-1.5 font-extrabold text-gray-700">
