@@ -3047,7 +3047,8 @@ export default function SaaSSuperAdmin() {
                             }
                           }
                           const showLifetime = isLifetime || dueDateDisplay === 'Never (Lifetime)';
-                          const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages);
+                          const invInterval = inv.billingInterval || matchedTenant?.billingInterval || 'monthly';
+                          const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages, invInterval);
                           const planColor = getPackageTextColor(inv.plan || matchedTenant?.plan || '', planFormatted);
 
                           return (
@@ -3947,7 +3948,8 @@ export default function SaaSSuperAdmin() {
                             }
                           }
                           const showLifetime = isLifetime || dueDateDisplay === 'Never (Lifetime)';
-                          const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages);
+                          const invInterval = inv.billingInterval || matchedTenant?.billingInterval || 'monthly';
+                          const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages, invInterval);
                           const planColor = getPackageTextColor(inv.plan || matchedTenant?.plan || '', planFormatted);
 
                           return (

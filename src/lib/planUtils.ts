@@ -1,9 +1,29 @@
-export function formatPlanName(planInput?: string, packagesList: any[] = []): string {
-  if (!planInput) return 'Starter Plan';
-  const trimmed = planInput.trim();
+export function formatPlanName(planInput?: string, packagesList: any[] = [], intervalInput?: string): string {
+  if (!planInput && !intervalInput) return 'Starter Monthly';
+
+  const trimmed = (planInput || '').trim();
+  const lower = trimmed.toLowerCase();
+
+  // Determine interval label
+  let intervalLabel = '';
+  if (lower.includes('lifetime') || (intervalInput && intervalInput.toLowerCase() === 'lifetime')) {
+    intervalLabel = 'Lifetime';
+  } else if (lower.includes('annual') || lower.includes('yearly') || (intervalInput && (intervalInput.toLowerCase() === 'annual' || intervalInput.toLowerCase() === 'annually' || intervalInput.toLowerCase() === 'yearly'))) {
+    intervalLabel = 'Annual';
+  } else if (lower.includes('monthly') || (intervalInput && intervalInput.toLowerCase() === 'monthly')) {
+    intervalLabel = 'Monthly';
+  } else if (intervalInput) {
+    const rawInt = intervalInput.trim().toLowerCase();
+    if (rawInt === 'annual' || rawInt === 'annually' || rawInt === 'yearly') intervalLabel = 'Annual';
+    else if (rawInt === 'lifetime') intervalLabel = 'Lifetime';
+    else intervalLabel = 'Monthly';
+  } else {
+    intervalLabel = 'Monthly';
+  }
 
   // 1. Direct match in packagesList by id, slug, creemProductId, or name
-  if (packagesList && packagesList.length > 0) {
+  let baseName = '';
+  if (packagesList && packagesList.length > 0 && trimmed) {
     const matched = packagesList.find(p =>
       p.id === trimmed ||
       p.slug?.toLowerCase() === trimmed.toLowerCase() ||
@@ -11,25 +31,35 @@ export function formatPlanName(planInput?: string, packagesList: any[] = []): st
       (p.name && p.name.toLowerCase() === trimmed.toLowerCase())
     );
     if (matched && matched.name) {
-      return matched.name;
+      baseName = matched.name;
     }
   }
 
-  const lower = trimmed.toLowerCase();
-  if (lower.includes('starter')) return 'Starter Plan';
-  if (lower.includes('professional') || lower.includes('pro')) return 'Professional Plan';
-  if (lower.includes('business')) return 'Business Plan';
-  if (lower.includes('enterprise')) return 'Enterprise Plan';
-
-  // Raw product IDs (e.g. Prod_7bVobHJrxgzRiVALrMlltJ or prod_business_123)
-  if (lower.startsWith('prod_') || lower.startsWith('prod-')) {
-    if (lower.includes('pro')) return 'Professional Plan';
-    if (lower.includes('starter')) return 'Starter Plan';
-    if (lower.includes('enterprise')) return 'Enterprise Plan';
-    return 'Business Plan';
+  if (!baseName) {
+    if (lower.includes('starter')) baseName = 'Starter';
+    else if (lower.includes('professional') || lower.includes('pro')) baseName = 'Professional';
+    else if (lower.includes('business')) baseName = 'Business';
+    else if (lower.includes('agency') || lower.includes('enterprise')) baseName = 'Agency';
+    else if (lower.startsWith('prod_') || lower.startsWith('prod-')) {
+      if (lower.includes('pro')) baseName = 'Professional';
+      else if (lower.includes('starter')) baseName = 'Starter';
+      else if (lower.includes('agency') || lower.includes('enterprise')) baseName = 'Agency';
+      else baseName = 'Business';
+    } else if (trimmed) {
+      baseName = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    } else {
+      baseName = 'Starter';
+    }
   }
 
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  // Strip trailing "Plan", "Monthly", "Annual", "Annually", "Yearly", "Lifetime" from baseName to prevent duplication like "Professional Monthly Monthly"
+  baseName = baseName
+    .replace(/\s*(Plan|Monthly|Annual|Annually|Yearly|Lifetime)\s*$/i, '')
+    .trim();
+
+  if (!baseName) baseName = 'Starter';
+
+  return `${baseName} ${intervalLabel}`;
 }
 
 export function getPlanPrice(planInput?: string, interval: string = 'monthly', packagesList: any[] = []): number {
