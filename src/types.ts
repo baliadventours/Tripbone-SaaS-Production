@@ -600,13 +600,18 @@ export interface Tenant {
   email?: string;
   phone?: string;
   address?: string;
-  plan: 'starter' | 'professional' | 'business' | 'agency' | 'enterprise';
+  plan: 'starter' | 'professional' | 'business' | 'agency' | 'enterprise' | string;
   billingInterval?: 'monthly' | 'annual' | 'lifetime';
   status: 'active' | 'pending' | 'suspended' | 'trial' | 'inactive';
   trialEnds?: any;
   subscriptionId?: string;
   adminEmail?: string;
   emailVerified?: boolean;
+  manualPaymentPending?: boolean;
+  manualPaymentInvoiceNo?: string;
+  manualPaymentDate?: string;
+  manualPaymentNotes?: string;
+  manualPaymentFileName?: string;
   createdAt: any;
   updatedAt: any;
 }

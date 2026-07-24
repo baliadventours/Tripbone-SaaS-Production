@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db, collection, getDocs, addDoc, setDoc, updateDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
-import { getDoc } from 'firebase/firestore';
+import { getDoc, onSnapshot } from 'firebase/firestore';
+import { formatPlanName, getPlanPrice } from '../lib/planUtils';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useTenant } from '../lib/TenantContext';
 import { Helmet } from 'react-helmet-async';
@@ -429,6 +430,16 @@ export default function SaaSHome() {
       }
     }
     loadTenants();
+
+    // Subscribe to real-time invoices updates
+    const unsubInvoices = onSnapshot(collection(db, 'invoices'), (snapshot) => {
+      const invList: any[] = [];
+      snapshot.forEach(snap => invList.push({ id: snap.id, ...snap.data() }));
+      setInvoices(invList);
+    }, (err) => {
+      console.warn("Realtime invoices listener warning:", err);
+    });
+    return () => unsubInvoices();
   }, []);
 
   const handleLaunchSSO = async (tenantSlug: string, customDomain?: string, redirectPath?: string) => {
@@ -944,128 +955,45 @@ export default function SaaSHome() {
     return nextBilling.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, [activeWorkspace]);
 
-  const getDynamicInvoices = useMemo(() => {
-    if (!activeWorkspace) return [];
-    
-    let createdAtStr = activeWorkspace.createdAt;
-    if (!createdAtStr) {
-      const fallbackDate = new Date();
-      fallbackDate.setMonth(fallbackDate.getMonth() - 2);
-      createdAtStr = fallbackDate.toISOString();
-    }
-    
-    const createdDate = new Date(createdAtStr);
-    if (isNaN(createdDate.getTime())) {
-      const fallbackDate = new Date();
-      fallbackDate.setMonth(fallbackDate.getMonth() - 2);
-      createdDate.setTime(fallbackDate.getTime());
-    }
-    
-    const planSlug = activeWorkspace.plan || 'starter';
-    const billingInterval = activeWorkspace.billingInterval || 'monthly';
-    
-    const matchedPlan = plans.find(p => 
-      p.slug?.toLowerCase() === planSlug.toLowerCase() && 
-      (p.interval || 'monthly') === billingInterval
-    ) || plans.find(p => p.slug?.toLowerCase() === planSlug.toLowerCase());
-    
-    let defaultPrice = 49;
-    if (planSlug === 'business') {
-      defaultPrice = billingInterval === 'lifetime' ? 999 : billingInterval === 'annual' ? 1990 : 199;
-    } else if (planSlug === 'professional') {
-      defaultPrice = billingInterval === 'lifetime' ? 499 : billingInterval === 'annual' ? 990 : 99;
-    } else if (planSlug === 'enterprise') {
-      defaultPrice = billingInterval === 'lifetime' ? 2499 : billingInterval === 'annual' ? 4990 : 499;
-    } else { // starter
-      defaultPrice = billingInterval === 'lifetime' ? 249 : billingInterval === 'annual' ? 490 : 49;
-    }
-    const price = matchedPlan 
-      ? (matchedPlan.price !== undefined ? matchedPlan.price : defaultPrice)
-      : defaultPrice;
-      
-    const amountStr = `$${price}.00`;
-    const genInvoices = [];
-    const now = new Date();
-    
-    const isTrial = activeWorkspace.status === 'trial' || activeWorkspace.trialEnds;
-    const trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
-    if (isTrial) {
-      // 1. Trial Activation Invoice (0 payment)
-      genInvoices.push({
-        no: "T-101",
-        invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        dueDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        rawInvoiceDate: createdDate,
-        rawDueDate: createdDate,
-        amount: "$0.00",
-        status: "PAID"
-      });
-      
-      // 2. Subscription Invoice based on package chosen (UNPAID)
-      genInvoices.push({
-        no: "INV-121",
+  // Auto seed initial invoice in Firestore if workspace has no invoices in DB
+  useEffect(() => {
+    if (!activeWorkspace || loadingTenants) return;
+    const activeWsId = activeWorkspace.id;
+    const existingInvoices = invoices.filter(inv => inv.tenantId === activeWsId);
+
+    if (existingInvoices.length === 0) {
+      const invId = `${activeWsId}_INV-101`;
+      const createdDate = activeWorkspace.createdAt ? new Date(activeWorkspace.createdAt) : new Date();
+      const trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const planName = formatPlanName(activeWorkspace.plan, plans);
+      const planPrice = getPlanPrice(activeWorkspace.plan, activeWorkspace.billingInterval, plans);
+
+      const initialInvoice = {
+        id: invId,
+        tenantId: activeWsId,
+        tenantName: activeWorkspace.companyName || 'Operator Workspace',
+        no: 'INV-101',
         invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         dueDate: trialEndsDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-        rawInvoiceDate: createdDate,
-        rawDueDate: trialEndsDate,
-        amount: amountStr,
-        status: "UNPAID"
+        amount: activeWorkspace.status === 'trial' ? '$0.00' : `$${planPrice}.00`,
+        status: activeWorkspace.status === 'active' ? 'PAID' : activeWorkspace.manualPaymentPending ? 'PENDING' : 'UNPAID',
+        plan: planName,
+        billingInterval: activeWorkspace.billingInterval || 'monthly',
+        paymentMethod: activeWorkspace.manualPaymentPending ? 'Manual Bank Transfer' : 'Card / Sandbox Gate',
+        createdAt: activeWorkspace.createdAt || new Date().toISOString()
+      };
+
+      setDoc(doc(db, 'invoices', invId), initialInvoice, { merge: true }).catch(err => {
+        console.error("Error auto-seeding invoice:", err);
       });
-    } else {
-      let currentInvoiceDate = new Date(createdDate);
-      let invoiceIndex = 121;
-      let safetyCounter = 0;
-
-      while (currentInvoiceDate <= now && safetyCounter < 100) {
-        let dueDate = new Date(currentInvoiceDate);
-        dueDate.setDate(dueDate.getDate() + 7); // Due 7 days after invoice
-        
-        let status = 'PAID';
-        
-        // If this is the most recent invoice and it's past due and workspace is not active
-        if (currentInvoiceDate.getMonth() === now.getMonth() && currentInvoiceDate.getFullYear() === now.getFullYear()) {
-           if (activeWorkspace.status !== 'active') {
-             status = 'UNPAID';
-           }
-        }
-
-        genInvoices.push({
-          no: `INV-${invoiceIndex}`,
-          invoiceDate: currentInvoiceDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-          dueDate: dueDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-          rawInvoiceDate: new Date(currentInvoiceDate),
-          rawDueDate: new Date(dueDate),
-          amount: amountStr,
-          status: status
-        });
-        
-        if (billingInterval === 'annual') {
-          currentInvoiceDate.setFullYear(currentInvoiceDate.getFullYear() + 1);
-        } else if (billingInterval === 'lifetime') {
-          break;
-        } else {
-          currentInvoiceDate.setMonth(currentInvoiceDate.getMonth() + 1);
-        }
-        invoiceIndex++;
-        safetyCounter++;
-      }
     }
-    
+  }, [activeWorkspace, invoices, loadingTenants, plans]);
+
+  const getDynamicInvoices = useMemo(() => {
+    if (!activeWorkspace) return [];
     const dbInvoices = invoices.filter(inv => inv.tenantId === activeWorkspace.id);
-    const merged = genInvoices.map(genInv => {
-       const found = dbInvoices.find(dbInv => dbInv.no === genInv.no);
-       return found || genInv;
-    });
-    
-    dbInvoices.forEach(dbInv => {
-       if (!merged.find(m => m.no === dbInv.no)) {
-           merged.push(dbInv);
-       }
-    });
-    
-    return merged.sort((a,b) => new Date(b.rawInvoiceDate || b.createdAt || b.invoiceDate).getTime() - new Date(a.rawInvoiceDate || a.createdAt || a.invoiceDate).getTime());
-  }, [activeWorkspace, plans, invoices]);
+    return dbInvoices.sort((a,b) => new Date(b.createdAt || b.invoiceDate || 0).getTime() - new Date(a.createdAt || a.invoiceDate || 0).getTime());
+  }, [activeWorkspace, invoices]);
 
   useEffect(() => {
     if (!activeWorkspace) {
@@ -1219,15 +1147,30 @@ export default function SaaSHome() {
     if (paymentModalMethod === 'manual') {
       try {
         setPaymentModalLoading(true);
+        const invId = paymentModalInvoice.id || `${activeWorkspace.id}_${paymentModalInvoice.no || 'INV-101'}`;
         
-        // Update tenant document in Firestore to record manual payment proof
+        // 1. Update invoice document in Firestore invoices collection
+        await setDoc(doc(db, 'invoices', invId), {
+          id: invId,
+          tenantId: activeWorkspace.id,
+          tenantName: activeWorkspace.companyName || 'Operator Workspace',
+          no: paymentModalInvoice.no || 'INV-101',
+          status: 'PENDING',
+          manualPaymentNotes: paymentModalProofNotes || 'Receipt submitted by tenant',
+          manualPaymentFileName: paymentModalProofFile ? paymentModalProofFile.name : '',
+          paymentMethod: 'Manual Bank Transfer',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        // 2. Update tenant document in Firestore tenants collection
         const tenantRef = doc(db, 'tenants', activeWorkspace.id);
         await setDoc(tenantRef, {
           manualPaymentPending: true,
-          manualPaymentInvoiceNo: paymentModalInvoice.no,
+          manualPaymentInvoiceNo: paymentModalInvoice.no || 'INV-101',
           manualPaymentDate: new Date().toISOString(),
           manualPaymentNotes: paymentModalProofNotes,
-          manualPaymentFileName: paymentModalProofFile ? paymentModalProofFile.name : ''
+          manualPaymentFileName: paymentModalProofFile ? paymentModalProofFile.name : '',
+          updatedAt: new Date().toISOString()
         }, { merge: true });
         
         // Update local state so it's reflected immediately

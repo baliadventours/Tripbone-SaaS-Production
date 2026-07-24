@@ -2407,13 +2407,32 @@ export async function createServer() {
         getAdminApp();
         const db = getAdminDb();
         if (db) {
+          const activePlan = productId || 'starter';
           await db.collection('tenants').doc(tenantId).update({
             status: 'active',
+            manualPaymentPending: false,
             subscriptionId: `sub_tripay_mock_${Math.random().toString(36).substring(2, 10)}`,
-            plan: productId || 'starter',
+            plan: activePlan,
             updatedAt: new Date().toISOString()
           });
-          console.log(`[Tripay Sandbox] Tenant ${tenantId} activated directly in Firestore database!`);
+
+          const invId = `${tenantId}_INV-101`;
+          const nowStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+          await db.collection('invoices').doc(invId).set({
+            id: invId,
+            tenantId: tenantId,
+            no: 'INV-101',
+            invoiceDate: nowStr,
+            dueDate: nowStr,
+            amount: activePlan.toLowerCase().includes('business') ? '$199.00' : activePlan.toLowerCase().includes('pro') ? '$99.00' : '$49.00',
+            status: 'PAID',
+            plan: activePlan,
+            paymentMethod: 'Tripay Virtual Account',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+
+          console.log(`[Tripay Sandbox] Tenant ${tenantId} activated and invoice ${invId} marked PAID in Firestore!`);
         } else {
           console.warn(`[Tripay Sandbox] Firestore database not initialized. Direct activation skipped.`);
         }
@@ -2598,13 +2617,32 @@ export async function createServer() {
         getAdminApp();
         const db = getAdminDb();
         if (db) {
+          const activePlan = productId || 'starter';
           await db.collection('tenants').doc(tenantId).update({
             status: 'active',
+            manualPaymentPending: false,
             subscriptionId: `sub_mock_${Math.random().toString(36).substring(2, 10)}`,
-            plan: productId || 'starter',
+            plan: activePlan,
             updatedAt: new Date().toISOString()
           });
-          console.log(`[Mock Checkout Sandbox] Successfully activated tenant ${tenantId} directly in Firestore database!`);
+
+          const invId = `${tenantId}_INV-101`;
+          const nowStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+          await db.collection('invoices').doc(invId).set({
+            id: invId,
+            tenantId: tenantId,
+            no: 'INV-101',
+            invoiceDate: nowStr,
+            dueDate: nowStr,
+            amount: activePlan.toLowerCase().includes('business') ? '$199.00' : activePlan.toLowerCase().includes('pro') ? '$99.00' : '$49.00',
+            status: 'PAID',
+            plan: activePlan,
+            paymentMethod: 'Creem.io Sandbox Card',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+
+          console.log(`[Mock Checkout Sandbox] Successfully activated tenant ${tenantId} and invoice ${invId} marked PAID in Firestore!`);
         } else {
           console.warn(`[Mock Checkout Sandbox] Firestore database not initialized. Direct activation skipped.`);
         }

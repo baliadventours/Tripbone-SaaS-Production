@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc, serverTimestamp } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getDoc, setDoc } from 'firebase/firestore';
+import { getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { formatPlanName, getPlanPrice } from '../lib/planUtils';
 import { useTenant } from '../lib/TenantContext';
 import { uploadImage } from '../lib/imgbb';
 import { LogOut, Lock, Loader2, Key } from 'lucide-react';
@@ -772,6 +773,19 @@ export default function SaaSSuperAdmin() {
       }
     }
     loadData();
+
+    // Real-time listener for invoices collection
+    const unsubInvoices = onSnapshot(collection(db, 'invoices'), (snapshot) => {
+      const invoicesList: any[] = [];
+      snapshot.forEach((snap) => {
+        invoicesList.push({ id: snap.id, ...snap.data() });
+      });
+      setInvoices(invoicesList);
+    }, (err) => {
+      console.warn("Realtime invoices listener in Superadmin:", err);
+    });
+
+    return () => unsubInvoices();
   }, [isAuthorized]);
 
   const handleDeleteLead = async (id: string) => {
@@ -790,16 +804,18 @@ export default function SaaSSuperAdmin() {
     try {
       // 1. Update invoice status in database
       const invoiceDocId = invoice.id || `${invoice.tenantId}_${invoice.no}`;
-      await updateDoc(doc(db, 'invoices', invoiceDocId), {
-        status: 'PAID'
-      });
+      await setDoc(doc(db, 'invoices', invoiceDocId), {
+        status: 'PAID',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
       
       // 2. Update corresponding tenant subscription status to active
       if (invoice.tenantId) {
-        await updateDoc(doc(db, 'tenants', invoice.tenantId), {
+        await setDoc(doc(db, 'tenants', invoice.tenantId), {
           status: 'active',
-          manualPaymentPending: false
-        });
+          manualPaymentPending: false,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         
         // Update local tenants state
         setTenants(prev => prev.map(t => t.id === invoice.tenantId ? { ...t, status: 'active', manualPaymentPending: false } : t));
@@ -819,14 +835,16 @@ export default function SaaSSuperAdmin() {
     if (!window.confirm(`Are you sure you want to reject/mark unpaid invoice #${invoice.no}?`)) return;
     try {
       const invoiceDocId = invoice.id || `${invoice.tenantId}_${invoice.no}`;
-      await updateDoc(doc(db, 'invoices', invoiceDocId), {
-        status: 'UNPAID'
-      });
+      await setDoc(doc(db, 'invoices', invoiceDocId), {
+        status: 'UNPAID',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
       
       if (invoice.tenantId) {
-        await updateDoc(doc(db, 'tenants', invoice.tenantId), {
-          manualPaymentPending: false
-        });
+        await setDoc(doc(db, 'tenants', invoice.tenantId), {
+          manualPaymentPending: false,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         setTenants(prev => prev.map(t => t.id === invoice.tenantId ? { ...t, manualPaymentPending: false } : t));
       }
       
@@ -1160,10 +1178,31 @@ export default function SaaSSuperAdmin() {
 
   const updateTenantPlan = async (tenantId: string, newPlan: Tenant['plan']) => {
     try {
-      await updateDoc(doc(db, 'tenants', tenantId), {
+      const planName = formatPlanName(newPlan, packages);
+      const planPrice = getPlanPrice(newPlan, selectedTenant?.billingInterval || 'monthly', packages);
+
+      await setDoc(doc(db, 'tenants', tenantId), {
         plan: newPlan,
-        updatedAt: new Date()
-      });
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // Update/write corresponding invoice record in Firestore
+      const invId = `${tenantId}_INV-101`;
+      const nowStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+      await setDoc(doc(db, 'invoices', invId), {
+        id: invId,
+        tenantId: tenantId,
+        tenantName: selectedTenant?.companyName || 'Operator Workspace',
+        no: 'INV-101',
+        invoiceDate: nowStr,
+        dueDate: nowStr,
+        amount: `$${planPrice}.00`,
+        status: 'PAID',
+        plan: planName,
+        paymentMethod: 'Superadmin Subscription Adjustment',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
       setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, plan: newPlan } : t));
       if (selectedTenant && selectedTenant.id === tenantId) {
         setSelectedTenant({ ...selectedTenant, plan: newPlan });
@@ -5248,123 +5287,44 @@ export default function SaaSSuperAdmin() {
                         </tr>
                       </thead>
                       <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-200'}`}>
-                        {/* Dynamic Transactions */}
+                        {/* Dynamic Transactions from Firestore invoices */}
                         {(() => {
-                          let createdAtStr = selectedTenant.createdAt;
-                          if (!createdAtStr) {
-                            const fallbackDate = new Date();
-                            fallbackDate.setMonth(fallbackDate.getMonth() - 2);
-                            createdAtStr = fallbackDate.toISOString();
-                          }
-                          const createdDate = new Date(createdAtStr);
-                          if (isNaN(createdDate.getTime())) {
+                          const tenantInvoices = invoices.filter(inv => inv.tenantId === selectedTenant.id)
+                            .sort((a,b) => new Date(b.createdAt || b.invoiceDate || 0).getTime() - new Date(a.createdAt || a.invoiceDate || 0).getTime());
+
+                          if (tenantInvoices.length === 0) {
                             return (
                               <tr>
                                 <td colSpan={4} className="py-4 text-center text-xs text-gray-500">
-                                  No transaction history found.
+                                  No transaction history recorded in database.
                                 </td>
                               </tr>
                             );
-                          }
-                          
-                          const billingInterval = selectedTenant.billingInterval || 'monthly';
-                          const planSlug = selectedTenant.plan || 'starter';
-                          const matchedPlan = packages.find(p => 
-                            p.slug?.toLowerCase() === planSlug.toLowerCase() && 
-                            (p.interval || 'monthly') === billingInterval
-                          ) || packages.find(p => p.slug?.toLowerCase() === planSlug.toLowerCase());
-                          
-                          let defaultPrice = 49;
-                          if (planSlug === 'business') {
-                            defaultPrice = billingInterval === 'lifetime' ? 999 : billingInterval === 'annual' ? 1990 : 199;
-                          } else if (planSlug === 'professional') {
-                            defaultPrice = billingInterval === 'lifetime' ? 499 : billingInterval === 'annual' ? 990 : 99;
-                          } else if (planSlug === 'enterprise') {
-                            defaultPrice = billingInterval === 'lifetime' ? 2499 : billingInterval === 'annual' ? 4990 : 499;
-                          } else { // starter
-                            defaultPrice = billingInterval === 'lifetime' ? 249 : billingInterval === 'annual' ? 490 : 49;
                           }
 
-                          const price = matchedPlan 
-                            ? (matchedPlan.price !== undefined ? matchedPlan.price : defaultPrice)
-                            : defaultPrice;
-                          
-                          const now = new Date();
-                          const transactions: any[] = [];
-                          let currentCycleDate = new Date(createdDate);
-                          let safetyCounter = 0;
-                          
-                          if (selectedTenant.status === 'trial') {
-                            // 1. Trial Period Activation ($0)
-                            transactions.push({
-                              date: createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                              description: `Trial Period - ${planSlug.toUpperCase()}`,
-                              amount: "$0.00",
-                              status: 'Trial'
-                            });
-                            
-                            // 2. Subscription Renewal (Unpaid during trial)
-                            transactions.push({
-                              date: createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                              description: `Subscription Renewal - ${planSlug.toUpperCase()}`,
-                              amount: `$${price}.00`,
-                              status: 'Unpaid'
-                            });
-                          } else {
-                            while (currentCycleDate <= now && safetyCounter < 100) {
-                              safetyCounter++;
-                              const txnDate = new Date(currentCycleDate);
-                              
-                              let status = 'Paid';
-                              if (selectedTenant.status === 'pending') {
-                                status = 'Pending';
-                              } else if (selectedTenant.status === 'suspended') {
-                                status = 'Unpaid';
-                              }
-                              
-                              transactions.push({
-                                date: txnDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                                description: `Subscription Renewal - ${planSlug.toUpperCase()}`,
-                                amount: `$${price}.00`,
-                                status: status
-                              });
-                              
-                              if (billingInterval === 'annual') {
-                                currentCycleDate.setFullYear(currentCycleDate.getFullYear() + 1);
-                              } else if (billingInterval === 'lifetime') {
-                                break;
-                              } else {
-                                currentCycleDate.setMonth(currentCycleDate.getMonth() + 1);
-                              }
-                            }
-                          }
-                          
-                          if (transactions.length === 0) {
+                          return tenantInvoices.map((inv, index) => {
+                            const statusColor = inv.status === 'PAID' ? 'text-emerald-500 font-bold' :
+                              inv.status === 'PENDING' ? 'text-amber-500 font-bold' : 'text-rose-500 font-bold';
+
                             return (
-                              <tr>
-                                <td colSpan={4} className="py-4 text-center text-xs text-gray-500">
-                                  No transaction history found.
+                              <tr key={inv.id || index} className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                <td className="py-3 px-4 font-mono text-xs">{inv.invoiceDate || inv.createdAt?.substring(0,10) || 'N/A'}</td>
+                                <td className="py-3 px-4">
+                                  <div className="font-semibold">Invoice #{inv.no || 'INV-101'}</div>
+                                  <div className="text-xs text-gray-500">{inv.plan || formatPlanName(selectedTenant.plan, packages)} ({inv.paymentMethod || 'Credit / Debit Card'})</div>
+                                  {inv.manualPaymentNotes && (
+                                    <div className="text-xs text-amber-500 mt-0.5 font-sans">Notes: {inv.manualPaymentNotes}</div>
+                                  )}
+                                </td>
+                                <td className="py-3 px-4 font-mono font-bold">{inv.amount || `$${getPlanPrice(selectedTenant.plan, selectedTenant.billingInterval, packages)}.00`}</td>
+                                <td className="py-3 px-4">
+                                  <span className={`text-xs uppercase tracking-wider ${statusColor}`}>
+                                    {inv.status || 'UNPAID'}
+                                  </span>
                                 </td>
                               </tr>
                             );
-                          }
-                          
-                          return transactions.reverse().map((txn, index) => (
-                            <tr key={index} className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              <td className="py-3 px-4 font-mono text-xs">{txn.date}</td>
-                              <td className="py-3 px-4">{txn.description}</td>
-                              <td className="py-3 px-4 font-mono">{txn.amount}</td>
-                              <td className="py-3 px-4">
-                                <span className={`text-xs font-semibold ${
-                                  txn.status === 'Paid' ? 'text-emerald-500' : 
-                                  txn.status === 'Trial' ? 'text-sky-500 font-bold' : 
-                                  txn.status === 'Pending' ? 'text-amber-500' : 'text-rose-500'
-                                }`}>
-                                  {txn.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ));
+                          });
                         })()}
                       </tbody>
                     </table>
