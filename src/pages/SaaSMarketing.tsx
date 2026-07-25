@@ -207,11 +207,11 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-slate-900 max-w-4xl mx-auto"
+              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-slate-900 max-w-3xl mx-auto"
             >
-              Build Your Tour Booking Website <br className="hidden sm:inline" />
+              Build Your Tour Booking <br />
               <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 bg-clip-text text-transparent">
-                in 2 Minutes
+                Website in 2 Minutes
               </span>
             </motion.h1>
 
@@ -429,72 +429,90 @@ export default function SaaSMarketing() {
         </section>
 
         {/* --- 2. LOGO CLOUD (POWERED BY THE STACK YOU TRUST) --- */}
-        <section id="logos" className="py-14 bg-slate-50/70 border-y border-slate-200/50 px-6">
+        <section id="logos" className="py-12 bg-slate-50/70 border-y border-slate-200/50 px-6">
           <div className="max-w-7xl mx-auto text-center">
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-8">
               POWERED BY THE STACK YOU TRUST
             </p>
 
-            <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10 md:gap-12">
+            <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12 md:gap-16">
               
               {/* Firebase */}
-              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+              <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
                 <img 
                   src="https://i.ibb.co.com/s9YgF0yS/firebase.png" 
                   alt="Firebase" 
                   referrerPolicy="no-referrer"
-                  className="h-7 sm:h-8 w-auto object-contain"
+                  className="h-6 sm:h-7 w-auto object-contain"
                 />
+                <span className="font-extrabold text-sm sm:text-base text-slate-800 tracking-tight">Firebase</span>
               </div>
 
               {/* Stripe */}
-              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+              <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
                 <img 
                   src="https://i.ibb.co.com/gb6tFnrN/stripe.jpg" 
                   alt="Stripe" 
                   referrerPolicy="no-referrer"
-                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                  className="h-6 sm:h-7 w-auto object-contain mix-blend-multiply rounded-xs"
                 />
+                <span className="font-extrabold text-sm sm:text-base text-slate-800 tracking-tight">Stripe</span>
               </div>
 
               {/* PayPal */}
-              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+              <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
                 <img 
                   src="https://i.ibb.co.com/20D5cDRw/paypal.png" 
                   alt="PayPal" 
                   referrerPolicy="no-referrer"
-                  className="h-7 sm:h-8 w-auto object-contain"
+                  className="h-6 sm:h-7 w-auto object-contain"
                 />
+                <span className="font-extrabold text-sm sm:text-base text-slate-800 tracking-tight">PayPal</span>
               </div>
 
               {/* WhatsApp */}
-              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+              <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
                 <img 
                   src="https://i.ibb.co.com/7dXQmL8M/Whats-App-Logo-wine.png" 
                   alt="WhatsApp" 
                   referrerPolicy="no-referrer"
-                  className="h-7 sm:h-8 w-auto object-contain"
+                  className="h-6 sm:h-7 w-auto object-contain"
                 />
+                <span className="font-extrabold text-sm sm:text-base text-slate-800 tracking-tight">WhatsApp</span>
               </div>
 
               {/* Vercel */}
-              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+              <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
                 <img 
                   src="https://i.ibb.co.com/bjDj8TGh/vercel.jpg" 
                   alt="Vercel" 
                   referrerPolicy="no-referrer"
-                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                  className="h-5 sm:h-6 w-auto object-contain mix-blend-multiply rounded-xs"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextElementSibling) {
+                      e.currentTarget.nextElementSibling.insertAdjacentHTML('beforebegin', '<svg class="h-5 w-auto fill-slate-900 mr-1" viewBox="0 0 76 65"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z"/></svg>');
+                    }
+                  }}
                 />
+                <span className="font-extrabold text-sm sm:text-base text-slate-800 tracking-tight">Vercel</span>
               </div>
 
               {/* Resend */}
-              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+              <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
                 <img 
                   src="https://i.ibb.co.com/27pGFXpW/Resend.jpg" 
                   alt="Resend" 
                   referrerPolicy="no-referrer"
-                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                  className="h-5 sm:h-6 w-auto object-contain mix-blend-multiply rounded-xs"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextElementSibling) {
+                      e.currentTarget.nextElementSibling.insertAdjacentHTML('beforebegin', '<svg class="h-5 w-auto fill-slate-900 mr-1" viewBox="0 0 24 24"><path d="M2 5.5A2.5 2.5 0 014.5 3h15A2.5 2.5 0 0122 5.5v13a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 18.5v-13zm2.5-.5a1 1 0 00-1 1v.793l8.5 5.312 8.5-5.312V6a1 1 0 00-1-1h-15zm16 3.528l-7.97 4.981a1 1 0 01-1.06 0L3.5 8.528V18.5a1 1 0 001 1h15a1 1 0 001-1V8.528z"/></svg>');
+                    }
+                  }}
                 />
+                <span className="font-extrabold text-sm sm:text-base text-slate-800 tracking-tight">Resend</span>
               </div>
 
             </div>
