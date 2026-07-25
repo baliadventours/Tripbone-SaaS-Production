@@ -12,7 +12,8 @@ import {
   Map, CreditCard, Mail, FileText, BarChart, 
   X, ChevronDown, ChevronUp, Layers, ExternalLink,
   Rocket, Zap, Smartphone, Bot, TrendingUp, Star,
-  CheckCircle2, ShieldAlert, Database, Triangle
+  CheckCircle2, ShieldAlert, Database, Triangle,
+  Search, Bell
 } from 'lucide-react';
 
 export default function SaaSMarketing() {
@@ -179,77 +180,177 @@ export default function SaaSMarketing() {
       <div className="bg-white min-h-screen">
         
         {/* --- 1. HERO SECTION --- */}
-        <section id="hero" className="pt-36 pb-24 md:pt-44 md:pb-32 px-6 relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white">
-          <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-transparent pointer-events-none" style={{ backgroundImage: `linear-gradient(to bottom, ${brandColor}08, transparent)` }}></div>
-          
-          <div className="max-w-7xl mx-auto text-center relative z-10">
-            
-            {/* Pill Badge */}
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex flex-wrap justify-center items-center gap-2 md:gap-3 px-5 py-2 rounded-full bg-slate-100 border border-slate-200/60 text-xs md:text-sm font-semibold text-slate-600 mb-8 shadow-sm"
-            >
-              <span className="flex h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: brandColor }}></span>
-              <span>AI-Powered</span>
-              <span className="text-slate-300">•</span>
-              <span>Launch in 2 Minutes</span>
-              <span className="text-slate-300">•</span>
-              <span>No Code Required</span>
-            </motion.div>
+        <section 
+          id="hero" 
+          className="pt-32 pb-24 lg:pt-40 lg:pb-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden text-white"
+          style={{ backgroundColor: globalBrand?.brandColor || '#0052FF' }}
+        >
+          {/* Ambient glowing radial shapes */}
+          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-indigo-400/25 rounded-full blur-3xl pointer-events-none"></div>
 
-            {/* Main Heading */}
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl md:text-5xl lg:text-[3.15rem] xl:text-[3.45rem] font-black text-slate-900 tracking-tight leading-[1.1] max-w-5xl mx-auto mb-6"
-            >
-              Your Tour Website, Live in 2 Minutes.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-500 via-slate-600 to-slate-400">No Coding. No Developer. No Excuses.</span>
-            </motion.h1>
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+              
+              {/* LEFT COLUMN */}
+              <div className="lg:col-span-6 space-y-6 text-left">
+                {/* Brand Header Logo */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="inline-flex items-center gap-1.5 text-2xl font-black tracking-tight text-white"
+                >
+                  <span>tripbone</span>
+                  <span className="text-amber-300 animate-pulse text-xl">✨</span>
+                </motion.div>
 
-            {/* Subheading Description */}
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-3xl mx-auto mb-10"
-            >
-              AI builds it, you own it. A blazing-fast, fully automated booking site — your data, your rules, zero technical skill required.
-            </motion.p>
+                {/* Main Heading */}
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="text-4xl sm:text-5xl lg:text-[3.2rem] xl:text-[3.6rem] font-black tracking-tight leading-[1.08] text-white"
+                >
+                  Build Your Tour <br />
+                  Booking Website <br />
+                  <span className="text-[#34d399] inline-block mt-1">in 2 Minutes</span>
+                </motion.h1>
 
-            {/* Action Buttons */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
-            >
-              <button 
-                onClick={() => navigate('/pricing')} 
-                className="w-full sm:w-auto px-8 py-4 text-white text-lg font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 hover:-translate-y-0.5 cursor-pointer hover:brightness-110"
-                style={{ backgroundColor: brandColor }}
+                {/* Subtitle */}
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-blue-100 font-medium text-lg sm:text-xl tracking-wide opacity-90"
+                >
+                  AI-Powered. No Code. All-in-One.
+                </motion.p>
+
+                {/* 2x2 Feature Grid */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="grid grid-cols-2 gap-3 max-w-md pt-2"
+                >
+                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
+                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                      <Sparkles className="h-4 w-4 text-[#34d399]" />
+                    </div>
+                    <span>AI Tour Builder</span>
+                  </div>
+
+                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
+                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                      <BarChart className="h-4 w-4 text-[#34d399]" />
+                    </div>
+                    <span>Smart Dashboard</span>
+                  </div>
+
+                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
+                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                      <Smartphone className="h-4 w-4 text-[#34d399]" />
+                    </div>
+                    <span>Mobile Ready</span>
+                  </div>
+
+                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
+                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                      <TrendingUp className="h-4 w-4 text-[#34d399]" />
+                    </div>
+                    <span>Grow Your Business</span>
+                  </div>
+                </motion.div>
+
+                {/* CTA Button Row */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+                >
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="bg-[#34d399] hover:bg-[#20e08c] text-slate-950 font-black text-base px-8 py-4 rounded-full shadow-xl shadow-blue-950/40 flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                  >
+                    <span>Start Free Demo</span>
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </button>
+                  
+                  <div className="flex items-center gap-2 text-blue-100 font-semibold text-xs sm:text-sm opacity-90">
+                    <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0">
+                      <Check className="h-3.5 w-3.5 text-[#34d399]" />
+                    </div>
+                    <span>No credit card required</span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* RIGHT COLUMN - SCREENSHOT MOCKUP COMPOSITION (DESKTOP + MOBILE) */}
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="lg:col-span-6 relative pt-4 lg:pt-0"
               >
-                <Rocket className="w-5 h-5 text-white" />
-                <span>Launch Your Site Free</span>
-              </button>
-              <button 
-                onClick={() => setShowDemoModal(true)} 
-                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-lg font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 hover:-translate-y-0.5 cursor-pointer"
-              >
-                <Play className="w-5 h-5 text-slate-500 fill-slate-500" style={{ color: brandColor, fill: brandColor }} />
-                <span>Watch Demo</span>
-              </button>
-            </motion.div>
+                <div className="relative max-w-2xl mx-auto lg:max-w-none">
+                  
+                  {/* Back Card: Desktop Browser Frame with Desktop Screenshot */}
+                  <div className="bg-slate-900 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] border border-white/20 overflow-hidden relative mr-8 sm:mr-20 md:mr-24 group">
+                    {/* Browser Chrome Header */}
+                    <div className="bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 flex items-center justify-between border-b border-slate-800/80">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                      </div>
+                      <div className="bg-slate-800/80 text-slate-300 text-[10px] sm:text-xs font-mono px-3 py-0.5 rounded-md border border-slate-700/60 max-w-[200px] sm:max-w-[260px] truncate flex items-center gap-1.5 shadow-inner">
+                        <span className="text-emerald-400">🔒</span>
+                        <span>baliadventours.com</span>
+                      </div>
+                      <div className="w-10"></div>
+                    </div>
 
-            {/* --- PRODUCT SCREENSHOT / INTEGRATED DASHBOARD SIMULATOR --- */}
+                    {/* Screenshot Container with exact proportions */}
+                    <div className="relative overflow-hidden bg-slate-900 w-full">
+                      <img 
+                        src="https://i.ibb.co.com/pjK5RnBD/image.png" 
+                        alt="Bali Adventours Desktop Website" 
+                        className="w-full h-auto object-cover object-top block transition-transform duration-700 group-hover:scale-[1.015]"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Front Card: Mobile Phone Frame with Mobile Screenshot */}
+                  <div className="absolute -right-1 sm:-right-4 md:-right-6 top-6 sm:top-10 w-[200px] sm:w-[245px] md:w-[265px] bg-slate-950 rounded-[40px] p-2 border-[4px] border-slate-800/90 shadow-[0_30px_80px_rgba(0,0,0,0.6)] overflow-hidden z-20 group/mobile">
+                    {/* Screen wrapper with rounded screen corners */}
+                    <div className="relative rounded-[32px] overflow-hidden bg-slate-900 w-full">
+                      <img 
+                        src="https://i.ibb.co.com/Wvn9gm9t/IMG-3101.png" 
+                        alt="Bali Adventours Mobile View" 
+                        className="w-full h-auto object-cover object-top block transition-transform duration-700 group-hover/mobile:scale-[1.015]"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              </motion.div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* --- PRODUCT SCREENSHOT / INTEGRATED DASHBOARD SIMULATOR --- */}
+        <section className="py-16 px-6 bg-slate-50/60 border-b border-slate-200/50">
+          <div className="max-w-7xl mx-auto">
             <motion.div 
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
-              className="mt-20 max-w-6xl mx-auto rounded-3xl border border-slate-200/80 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.12)] bg-white overflow-hidden text-left"
+              className="max-w-6xl mx-auto rounded-3xl border border-slate-200/80 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.12)] bg-white overflow-hidden text-left"
             >
               {/* Toolbar */}
               <div className="bg-slate-50/80 border-b border-slate-200/70 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
