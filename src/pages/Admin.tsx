@@ -178,6 +178,8 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
   const [newValue, setNewValue] = useState('');
   const [newIcon, setNewIcon] = useState('');
   const [newColor, setNewColor] = useState('#10b981');
+  const [newFeaturedImage, setNewFeaturedImage] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
@@ -201,7 +203,11 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
       const data = { 
         name: newValue,
         ...(type === 'categories' && { icon: newIcon }),
-        ...(type === 'labels' && { color: newColor })
+        ...(type === 'labels' && { color: newColor }),
+        ...(type === 'locations' && { 
+          featuredImage: newFeaturedImage,
+          description: newDescription
+        })
       };
 
       if (editingItem) {
@@ -215,6 +221,8 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
       setNewValue('');
       setNewIcon('');
       setNewColor('#10b981');
+      setNewFeaturedImage('');
+      setNewDescription('');
       setIsAdding(false);
       setEditingItem(null);
     } catch (error) {
@@ -238,6 +246,21 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
     }
   };
 
+  const handleLocationImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setNewFeaturedImage(url);
+    } catch (error) {
+      console.error("Upload error", error);
+      alert("Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (confirm(`Delete this ${label}?`)) {
       await deleteDoc(doc(db, collectionName, id));
@@ -248,6 +271,8 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
     setEditingItem(item);
     setNewValue(item.name);
     setNewIcon(item.icon || '');
+    setNewFeaturedImage(item.featuredImage || item.image || item.imageUrl || '');
+    setNewDescription(item.description || '');
     setIsAdding(true);
   };
 
@@ -279,6 +304,8 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
             setEditingItem(null);
             setNewValue('');
             setNewIcon('');
+            setNewFeaturedImage('');
+            setNewDescription('');
           }}
           className="bg-primary text-white px-6 py-3 rounded-[10px] font-bold text-sm tracking-wide flex items-center gap-2 shadow-lg shadow-orange-200"
         >
@@ -361,36 +388,106 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
               )}
             </div>
           )}
+
+          {type === 'locations' && (
+            <div className="space-y-4 pt-4 border-t border-gray-100">
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Featured Image</label>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <input
+                    type="url"
+                    placeholder="Image URL (e.g. https://images.unsplash.com/...)"
+                    value={newFeaturedImage}
+                    onChange={e => setNewFeaturedImage(e.target.value)}
+                    className="flex-1 w-full rounded-[10px] border-2 border-gray-100 p-3 focus:border-primary focus:outline-none text-xs font-medium"
+                  />
+                  <div className="relative shrink-0">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLocationImageUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      id="location-image-upload"
+                    />
+                    <label 
+                      htmlFor="location-image-upload"
+                      className="flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-[10px] text-xs font-bold cursor-pointer transition-colors"
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      <span>Upload Image</span>
+                    </label>
+                  </div>
+                </div>
+                {newFeaturedImage && (
+                  <div className="mt-3 relative w-32 h-20 rounded-xl overflow-hidden border border-gray-200 group">
+                    <img src={newFeaturedImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <button
+                      type="button"
+                      onClick={() => setNewFeaturedImage('')}
+                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Location Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe this destination, highlights, climate, or why travelers should visit..."
+                  value={newDescription}
+                  onChange={e => setNewDescription(e.target.value)}
+                  className="w-full rounded-[10px] border-2 border-gray-100 p-3 focus:border-primary focus:outline-none text-xs font-medium"
+                />
+              </div>
+            </div>
+          )}
         </form>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map(item => (
-          <div key={item.id} className="bg-white p-6 rounded-[10px] border border-gray-100 shadow-sm flex items-center justify-between group hover:border-primary transition-all">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-orange-50 rounded-[10px] flex items-center justify-center text-primary transition-transform group-hover:scale-110">
-                <IconDisplay icon={(item as any).icon} />
+        {items.map(item => {
+          const locImage = (item as any).featuredImage || (item as any).image || (item as any).imageUrl;
+          const locDesc = (item as any).description;
+          return (
+            <div key={item.id} className="bg-white p-6 rounded-[10px] border border-gray-100 shadow-sm flex flex-col justify-between group hover:border-primary transition-all">
+              <div className="flex items-start gap-4 mb-4">
+                {type === 'locations' && locImage ? (
+                  <img src={locImage} className="h-16 w-16 rounded-[12px] object-cover shrink-0 border border-gray-100 shadow-sm" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="h-12 w-12 bg-orange-50 rounded-[10px] flex items-center justify-center text-primary transition-transform group-hover:scale-110 shrink-0">
+                    <IconDisplay icon={(item as any).icon} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-extrabold text-gray-900 tracking-tight text-base truncate">{item.name}</h4>
+                  {type === 'locations' && locDesc && (
+                    <p className="text-xs text-gray-500 line-clamp-2 mt-1 font-medium">{locDesc}</p>
+                  )}
+                </div>
               </div>
-              <span className="font-extrabold text-gray-900 tracking-tight">{item.name}</span>
+
+              <div className="flex items-center justify-end gap-1 pt-3 border-t border-gray-50">
+                <button 
+                  onClick={() => startEdit(item)}
+                  className="p-2 text-gray-400 hover:text-primary transition-colors bg-gray-50 rounded-lg"
+                  title="Edit"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={() => handleDelete(item.id)}
+                  className="p-2 text-gray-300 hover:text-red-600 transition-colors bg-gray-50 rounded-lg"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => startEdit(item)}
-                className="p-2 text-gray-400 hover:text-primary transition-colors bg-gray-50 rounded-lg"
-                title="Edit"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-              <button 
-                onClick={() => handleDelete(item.id)}
-                className="p-2 text-gray-300 hover:text-red-600 transition-colors bg-gray-50 rounded-lg"
-                title="Delete"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

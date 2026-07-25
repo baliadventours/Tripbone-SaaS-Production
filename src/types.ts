@@ -86,6 +86,10 @@ export interface TourType {
 export interface LocationMeta {
   id: string;
   name: string;
+  featuredImage?: string;
+  image?: string;
+  imageUrl?: string;
+  description?: string;
 }
 
 export interface ImportantInfoSection {
