@@ -21,6 +21,14 @@ router.post("/ask-concierge", async (req, res) => {
       return res.status(400).json({ error: "Missing query or invalid input." });
     }
 
+    // Call Creem Moderation API to comply with AI Wrapper policies
+    try {
+      await moderateCreemContent(query);
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked query]:", modErr.message);
+      return res.status(400).json({ error: "Query blocked by moderation policy." });
+    }
+
     const tenantApiKey = await resolveTenantGeminiKey(tenantId);
     const apiKey = tenantApiKey || process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
@@ -497,6 +505,14 @@ router.post("/extract-booking", async (req, res) => {
     const { emailText, apiKey, tenantId } = req.body;
     if (!emailText) {
       return res.status(400).json({ error: "Missing required field: emailText" });
+    }
+
+    // Call Creem Moderation API to comply with AI Wrapper policies
+    try {
+      await moderateCreemContent(emailText);
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked email text]:", modErr.message);
+      return res.status(400).json({ error: "Email text blocked by moderation policy." });
     }
 
     const tenantApiKey = await resolveTenantGeminiKey(tenantId);

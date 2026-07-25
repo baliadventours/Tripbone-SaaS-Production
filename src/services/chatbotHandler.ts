@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { getAdminDb } from "./firebaseAdmin.js";
+import { moderateCreemContent } from "./creemService.js";
 
 let genAI: any = null;
 let db: any = null;
@@ -260,6 +261,14 @@ CONVENTIONS:
   });
 
   const lastMessage = messages[messages.length - 1];
+  if (lastMessage?.parts) {
+    try {
+      await moderateCreemContent(typeof lastMessage.parts === 'string' ? lastMessage.parts : JSON.stringify(lastMessage.parts));
+    } catch (modErr: any) {
+      console.warn("[Chatbot Moderation Blocked]:", modErr.message);
+      return { text: "I'm sorry, but your message violates our content safety policy and cannot be processed." };
+    }
+  }
   let result = await chat.sendMessage({ message: lastMessage.parts });
   
   const handleFunctionCalls = async (response: any): Promise<any> => {

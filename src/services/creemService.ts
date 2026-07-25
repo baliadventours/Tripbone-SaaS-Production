@@ -82,14 +82,19 @@ export async function moderateCreemContent(text: string) {
   const rawApiKey = typeof process !== 'undefined' ? (process as any).env?.CREEM_API_KEY || (process as any).env?.VITE_CREEM_API_KEY : '';
   const apiKey = typeof rawApiKey === 'string' ? rawApiKey.trim() : '';
 
-  if (!apiKey || apiKey.toLowerCase().includes('placeholder')) {
-    // If no API key, assume valid to prevent blocking dev
-    return { status: 'approved' };
-  }
-
   const rawMode = typeof process !== 'undefined' ? (process as any).env?.CREEM_MODE || (process as any).env?.VITE_CREEM_MODE : '';
   const isLive = rawMode === 'live';
   const url = isLive ? 'https://api.creem.io/v1/moderations' : 'https://test-api.creem.io/v1/moderations';
+
+  if (!apiKey || apiKey.toLowerCase().includes('placeholder') || apiKey === '') {
+    // Basic compliance check fallback if CREEM_API_KEY is not configured
+    const lower = text.toLowerCase();
+    const prohibitedKeywords = ['hate', 'violence', 'illegal', 'harmful', 'nsfw', 'abuse', 'exploit', 'malware', 'weapon'];
+    if (prohibitedKeywords.some(word => lower.includes(word))) {
+      throw new Error('Content violates safety guidelines and moderation policy.');
+    }
+    return { status: 'approved', flagged: false };
+  }
 
   try {
     const response = await axios.post(url, { text }, {
@@ -99,11 +104,14 @@ export async function moderateCreemContent(text: string) {
       }
     });
     // Check if the content is flagged
-    if (response.data && response.data.status === 'rejected') {
-       throw new Error('Content violates safety guidelines.');
+    if (response.data && (response.data.status === 'rejected' || response.data.flagged === true)) {
+      throw new Error('Content violates Creem safety guidelines and moderation policy.');
     }
     return response.data;
   } catch (error: any) {
+    if (error.message?.includes('violates')) {
+      throw error;
+    }
     const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
     throw new Error(`Creem.io Moderation Error: ${errorDetails}`);
   }
