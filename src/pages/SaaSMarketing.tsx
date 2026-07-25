@@ -13,7 +13,7 @@ import {
   X, ChevronDown, ChevronUp, Layers, ExternalLink,
   Rocket, Zap, Smartphone, Bot, TrendingUp, Star,
   CheckCircle2, ShieldAlert, Database, Triangle,
-  Search, Bell
+  Search, Bell, MapPin, Filter, ChevronLeft
 } from 'lucide-react';
 
 export default function SaaSMarketing() {
@@ -52,20 +52,62 @@ export default function SaaSMarketing() {
 
   const brandColor = globalBrand?.brandColor || '#1db3cd';
 
-  // Stats / Dashboard simulator states
-  const [activeTab, setActiveTab] = useState<'overview' | 'bookings' | 'whatsapp' | 'seo'>('overview');
-  const [simulatedPrompt, setSimulatedPrompt] = useState('Create a premium sunset catamaran cruise tour in Nusa Penida');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedTour, setGeneratedTour] = useState<any | null>(null);
-  const [liveVisitors, setLiveVisitors] = useState(142);
+  // Hero Wix-Style Showcase Slideshow Images
+  const heroSlideshowImages = [
+    {
+      url: 'https://i.ibb.co.com/8hnJ2jy/Bali-Gorilla-ATV-Adventure-Adventure-Tours-in-Bali-07-25-2026-10-30-PM-optimized.webp',
+      title: 'Bali Gorilla ATV Adventure',
+      domain: 'baligorillaatv.com',
+      prompt: 'Create an adventure tour operator site for Bali Gorilla ATV with instant booking & galleries'
+    },
+    {
+      url: 'https://i.ibb.co.com/pvDvGrRL/Tripbone-com-Advanced-Tour-Booking-Platform-07-25-2026-10-27-PM-optimized.webp',
+      title: 'Tripbone OS Dashboard',
+      domain: 'app.tripbone.com',
+      prompt: 'Show live booking calendar, ticket generator, multi-currency checkout & revenue analytics'
+    },
+    {
+      url: 'https://i.ibb.co.com/MDVb2D4B/Book-Tour-and-Adventures-in-Bali-07-25-2026-10-28-PM-optimized.webp',
+      title: 'Bali Adventure Portal',
+      domain: 'balitoursportal.com',
+      prompt: 'Design an interactive tour discovery platform with smart search filters and instant quotes'
+    },
+    {
+      url: 'https://i.ibb.co.com/PzbSvVB4/Book-Bali-Adventure-Activities-and-Tours-in-Bali-Bali-Dream-Trip-07-25-2026-10-29-PM-optimized.webp',
+      title: 'Bali Dream Trip',
+      domain: 'balidreamtrip.com',
+      prompt: 'Build a private island hopping & custom luxury boat charter booking site'
+    },
+    {
+      url: 'https://i.ibb.co.com/p6cD32cZ/Book-Tour-and-Adventours-in-Bali-Bali-Blissful-Tours-07-25-2026-10-31-PM-optimized.webp',
+      title: 'Bali Blissful Tours',
+      domain: 'baliblissfultours.com',
+      prompt: 'Craft an eco-tourism and wellness retreat booking site with automated driver dispatch'
+    },
+    {
+      url: 'https://i.ibb.co.com/F4QLxZZ1/Bali-Adventours-Discover-Authentic-Bali-Experiences-07-25-2026-10-30-PM-optimized.webp',
+      title: 'Bali Adventours',
+      domain: 'baliadventours.com',
+      prompt: 'Generate an authentic Balinese expedition portal with hand-vetted local guides'
+    },
+    {
+      url: 'https://i.ibb.co.com/fYYSHPsS/Smart-Bali-Tours-Tours-Adventure-in-Bali-07-25-2026-10-28-PM-optimized.webp',
+      title: 'Smart Bali Tours',
+      domain: 'smartbalitours.com',
+      prompt: 'Create an AI-personalized itinerary generator with instant WhatsApp booking integration'
+    }
+  ];
 
-  // Auto-change simulation stats & visitors
+  const [activeSlide, setActiveSlide] = useState(1);
+  const [isHovered, setIsHovered] = useState(false);
+
   useEffect(() => {
+    if (isHovered) return;
     const interval = setInterval(() => {
-      setLiveVisitors(prev => prev + Math.floor(Math.random() * 5) - 2);
-    }, 3000);
+      setActiveSlide((prev) => (prev + 1) % heroSlideshowImages.length);
+    }, 4500);
     return () => clearInterval(interval);
-  }, []);
+  }, [isHovered, heroSlideshowImages.length]);
 
   const handleGetStarted = () => {
     const hostname = window.location.hostname;
@@ -108,24 +150,6 @@ export default function SaaSMarketing() {
     loadShowcases();
   }, []);
 
-  // AI Prompt generation simulation
-  const triggerSimulation = () => {
-    if (isGenerating) return;
-    setIsGenerating(true);
-    setGeneratedTour(null);
-    setTimeout(() => {
-      setGeneratedTour({
-        title: '🌴 Ultimate Nusa Penida Sunset Catamaran Experience',
-        desc: 'Sail around the iconic Kelingking beach, snorkel with manta rays, and enjoy an organic sunset dinner with premium cocktails prepared by our on-board chef.',
-        price: '$149 USD',
-        duration: '6 Hours',
-        includes: ['Luxury catamaran cruise', 'Snorkeling equipment', 'Gourmet dinner & drinks', 'Hotel transfer'],
-        seoMeta: 'Nusa Penida Catamaran Cruise, Sunset Snorkeling Tour Bali, Private Charter Nusa Penida'
-      });
-      setIsGenerating(false);
-    }, 2500);
-  };
-
   // FAQ contents as structured in the wireframe
   const faqs = [
     { 
@@ -150,16 +174,6 @@ export default function SaaSMarketing() {
     }
   ];
 
-  // Grayscale logos for the trust section
-  const logos = [
-    { name: "Google Firebase", icon: Database },
-    { name: "PayPal", icon: CreditCard },
-    { name: "Stripe", icon: CreditCard },
-    { name: "WhatsApp", icon: MessageCircle },
-    { name: "Resend", icon: Mail },
-    { name: "Vercel", icon: Triangle }
-  ];
-
   return (
     <>
       <Helmet>
@@ -178,489 +192,459 @@ export default function SaaSMarketing() {
       `}</style>
 
       <div className="bg-white min-h-screen">
-        
-        {/* --- 1. HERO SECTION --- */}
+            {/* --- 1. HERO SECTION (WIX.COM MODEL) --- */}
         <section 
           id="hero" 
-          className="pt-32 pb-24 lg:pt-40 lg:pb-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden text-white"
-          style={{ backgroundColor: globalBrand?.brandColor || '#0052FF' }}
+          className="pt-28 pb-20 sm:pt-36 sm:pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-gradient-to-b from-[#FFFDF9] via-[#FAF8F3] to-[#F3F6FA] text-slate-900 border-b border-slate-200/60"
         >
-          {/* Ambient glowing radial shapes */}
-          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-indigo-400/25 rounded-full blur-3xl pointer-events-none"></div>
+          {/* Ambient soft background radial glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-amber-100/40 via-blue-100/30 to-emerald-100/40 rounded-full blur-3xl pointer-events-none -z-0"></div>
 
-          <div className="max-w-7xl mx-auto relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-              
-              {/* LEFT COLUMN */}
-              <div className="lg:col-span-6 space-y-6 text-left">
-                {/* Brand Header Logo */}
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="inline-flex items-center gap-1.5 text-2xl font-black tracking-tight text-white"
-                >
-                  <span>tripbone</span>
-                  <span className="text-amber-300 animate-pulse text-xl">✨</span>
-                </motion.div>
+          <div className="max-w-6xl mx-auto text-center relative z-10 space-y-8">
+            
+            {/* Giant Wix-Style Centered Headline */}
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-slate-900 max-w-4xl mx-auto"
+            >
+              Build Your Tour Booking Website <br className="hidden sm:inline" />
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 bg-clip-text text-transparent">
+                in 2 Minutes
+              </span>
+            </motion.h1>
 
-                {/* Main Heading */}
-                <motion.h1 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 }}
-                  className="text-4xl sm:text-5xl lg:text-[3.2rem] xl:text-[3.6rem] font-black tracking-tight leading-[1.08] text-white"
-                >
-                  Build Your Tour <br />
-                  Booking Website <br />
-                  <span className="text-[#34d399] inline-block mt-1">in 2 Minutes</span>
-                </motion.h1>
+            {/* Centered Subheadline */}
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-slate-600 font-bold text-xl sm:text-2xl max-w-2xl mx-auto tracking-wide"
+            >
+              AI-Powered. No Code. All-in-One.
+            </motion.p>
 
-                {/* Subtitle */}
-                <motion.p 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="text-blue-100 font-medium text-lg sm:text-xl tracking-wide opacity-90"
-                >
-                  AI-Powered. No Code. All-in-One.
-                </motion.p>
-
-                {/* 2x2 Feature Grid */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                  className="grid grid-cols-2 gap-3 max-w-md pt-2"
-                >
-                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
-                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                      <Sparkles className="h-4 w-4 text-[#34d399]" />
-                    </div>
-                    <span>AI Tour Builder</span>
-                  </div>
-
-                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
-                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                      <BarChart className="h-4 w-4 text-[#34d399]" />
-                    </div>
-                    <span>Smart Dashboard</span>
-                  </div>
-
-                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
-                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                      <Smartphone className="h-4 w-4 text-[#34d399]" />
-                    </div>
-                    <span>Mobile Ready</span>
-                  </div>
-
-                  <div className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 text-white p-3 sm:p-3.5 rounded-2xl flex items-center gap-3 font-bold text-xs sm:text-sm shadow-sm transition-all">
-                    <div className="h-8 w-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                      <TrendingUp className="h-4 w-4 text-[#34d399]" />
-                    </div>
-                    <span>Grow Your Business</span>
-                  </div>
-                </motion.div>
-
-                {/* CTA Button Row */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                  className="pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4"
-                >
-                  <button
-                    onClick={() => navigate('/signup')}
-                    className="bg-[#34d399] hover:bg-[#20e08c] text-slate-950 font-black text-base px-8 py-4 rounded-full shadow-xl shadow-blue-950/40 flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group"
-                  >
-                    <span>Start Free Demo</span>
-                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </button>
-                  
-                  <div className="flex items-center gap-2 text-blue-100 font-semibold text-xs sm:text-sm opacity-90">
-                    <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0">
-                      <Check className="h-3.5 w-3.5 text-[#34d399]" />
-                    </div>
-                    <span>No credit card required</span>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* RIGHT COLUMN - SCREENSHOT MOCKUP COMPOSITION (DESKTOP + MOBILE) */}
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                className="lg:col-span-6 relative pt-4 lg:pt-0"
+            {/* Centered CTA Button Group */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2"
+            >
+              <button
+                onClick={() => navigate('/signup')}
+                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-black text-base sm:text-lg px-8 py-4 rounded-full shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] group"
               >
-                <div className="relative max-w-2xl mx-auto lg:max-w-none">
-                  
-                  {/* Back Card: Desktop Browser Frame with Desktop Screenshot */}
-                  <div className="bg-slate-900 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] border border-white/20 overflow-hidden relative mr-8 sm:mr-20 md:mr-24 group">
-                    {/* Browser Chrome Header */}
-                    <div className="bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 flex items-center justify-between border-b border-slate-800/80">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
-                      </div>
-                      <div className="bg-slate-800/80 text-slate-300 text-[10px] sm:text-xs font-mono px-3 py-0.5 rounded-md border border-slate-700/60 max-w-[200px] sm:max-w-[260px] truncate flex items-center gap-1.5 shadow-inner">
-                        <span className="text-emerald-400">🔒</span>
-                        <span>baliadventours.com</span>
-                      </div>
-                      <div className="w-10"></div>
-                    </div>
+                <span>Get Started</span>
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </button>
 
-                    {/* Screenshot Container with exact proportions */}
-                    <div className="relative overflow-hidden bg-slate-900 w-full">
-                      <img 
-                        src="https://i.ibb.co.com/pjK5RnBD/image.png" 
-                        alt="Bali Adventours Desktop Website" 
-                        className="w-full h-auto object-cover object-top block transition-transform duration-700 group-hover:scale-[1.015]"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Front Card: Mobile Phone Frame with Mobile Screenshot */}
-                  <div className="absolute -right-1 sm:-right-4 md:-right-6 top-6 sm:top-10 w-[200px] sm:w-[245px] md:w-[265px] bg-slate-950 rounded-[40px] p-2 border-[4px] border-slate-800/90 shadow-[0_30px_80px_rgba(0,0,0,0.6)] overflow-hidden z-20 group/mobile">
-                    {/* Screen wrapper with rounded screen corners */}
-                    <div className="relative rounded-[32px] overflow-hidden bg-slate-900 w-full">
-                      <img 
-                        src="https://i.ibb.co.com/Wvn9gm9t/IMG-3101.png" 
-                        alt="Bali Adventours Mobile View" 
-                        className="w-full h-auto object-cover object-top block transition-transform duration-700 group-hover/mobile:scale-[1.015]"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  </div>
-
+              <button
+                onClick={() => setShowDemoModal(true)}
+                className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-900 font-bold text-base sm:text-lg px-8 py-4 rounded-full border-2 border-slate-200/90 shadow-sm flex items-center justify-center gap-2.5 cursor-pointer transition-all hover:border-slate-300 hover:scale-[1.03] active:scale-[0.98] group"
+              >
+                <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <Play className="h-3 w-3 fill-current ml-0.5" />
                 </div>
-              </motion.div>
+                <span>Try Demo</span>
+              </button>
+            </motion.div>
 
-            </div>
-          </div>
-        </section>
+            <p className="text-xs font-semibold text-slate-500 pt-1">
+              Start for free. No credit card required.
+            </p>
 
-        {/* --- PRODUCT SCREENSHOT / INTEGRATED DASHBOARD SIMULATOR --- */}
-        <section className="py-16 px-6 bg-slate-50/60 border-b border-slate-200/50">
-          <div className="max-w-7xl mx-auto">
+            {/* --- WIX-STYLE HORIZONTAL SLIDESHOW SHOWCASE --- */}
             <motion.div 
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              className="max-w-6xl mx-auto rounded-3xl border border-slate-200/80 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.12)] bg-white overflow-hidden text-left"
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="pt-8 relative max-w-6xl mx-auto"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
-              {/* Toolbar */}
-              <div className="bg-slate-50/80 border-b border-slate-200/70 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-                  <span className="text-xs font-mono font-bold text-slate-400 ml-4 bg-slate-200/50 px-3 py-1 rounded-md">
-                    tripbone-partner-suite (Live)
-                  </span>
+              
+              {/* SLIDESHOW STAGE CONTAINER */}
+              <div className="relative flex items-center justify-center min-h-[320px] sm:min-h-[460px] md:min-h-[520px] overflow-visible px-2">
+                
+                {/* 1. PREVIOUS SLIDE (LEFT BACKGROUND RECTANGLE) */}
+                <div 
+                  onClick={() => setActiveSlide((activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length)}
+                  className="absolute left-2 sm:left-4 md:left-8 top-12 sm:top-16 z-10 w-[38%] sm:w-[35%] opacity-40 hover:opacity-80 scale-90 blur-[1px] hover:blur-0 rounded-2xl shadow-xl border border-slate-300/80 bg-white overflow-hidden cursor-pointer transition-all duration-500 transform -rotate-3 hover:scale-95"
+                >
+                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <span className="text-[9px] font-mono text-slate-500 truncate ml-2">
+                      {heroSlideshowImages[(activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length].domain}
+                    </span>
+                  </div>
+                  <img 
+                    src={heroSlideshowImages[(activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length].url} 
+                    alt="Previous slide" 
+                    className="w-full h-auto object-cover object-top"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
-                {/* Simulated Tabs */}
-                <div className="flex gap-1.5 bg-slate-200/50 p-1 rounded-xl">
-                  {(['overview', 'bookings', 'whatsapp', 'seo'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                        activeTab === tab 
-                          ? 'bg-white text-slate-900 shadow-sm' 
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
+
+                {/* 2. NEXT SLIDE (RIGHT BACKGROUND RECTANGLE) */}
+                <div 
+                  onClick={() => setActiveSlide((activeSlide + 1) % heroSlideshowImages.length)}
+                  className="absolute right-2 sm:right-4 md:right-8 top-12 sm:top-16 z-10 w-[38%] sm:w-[35%] opacity-40 hover:opacity-80 scale-90 blur-[1px] hover:blur-0 rounded-2xl shadow-xl border border-slate-300/80 bg-white overflow-hidden cursor-pointer transition-all duration-500 transform rotate-3 hover:scale-95"
+                >
+                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                    <span className="text-[9px] font-mono text-slate-500 truncate ml-2">
+                      {heroSlideshowImages[(activeSlide + 1) % heroSlideshowImages.length].domain}
+                    </span>
+                  </div>
+                  <img 
+                    src={heroSlideshowImages[(activeSlide + 1) % heroSlideshowImages.length].url} 
+                    alt="Next slide" 
+                    className="w-full h-auto object-cover object-top"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                {/* 3. CENTER ACTIVE SLIDE (WIX HERO FOCAL WINDOW) */}
+                <div className="relative z-20 w-[82%] sm:w-[75%] md:w-[70%] bg-slate-900 rounded-2xl shadow-[0_30px_90px_-15px_rgba(15,23,42,0.35)] border border-slate-200/80 overflow-hidden text-left transition-all duration-500 transform">
+                  
+                  {/* Browser Chrome Navbar */}
+                  <div className="bg-slate-900/95 backdrop-blur-md px-3.5 sm:px-5 py-2.5 flex items-center justify-between border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                    </div>
+
+                    <div className="bg-slate-800/90 text-slate-300 text-[10px] sm:text-xs font-mono px-3.5 py-1 rounded-md border border-slate-700/80 flex items-center gap-2 shadow-inner">
+                      <span className="text-emerald-400">🔒</span>
+                      <span className="font-semibold text-white">
+                        {heroSlideshowImages[activeSlide].domain}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        LIVE DEMO
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Active Screenshot Frame */}
+                  <div className="relative overflow-hidden bg-slate-950 min-h-[220px] sm:min-h-[340px]">
+                    <AnimatePresence mode="wait">
+                      <motion.img 
+                        key={activeSlide}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.02 }}
+                        transition={{ duration: 0.4 }}
+                        src={heroSlideshowImages[activeSlide].url} 
+                        alt={heroSlideshowImages[activeSlide].title} 
+                        className="w-full h-auto object-cover object-top block"
+                        referrerPolicy="no-referrer"
+                      />
+                    </AnimatePresence>
+
+                    {/* WIX-STYLE FLOATING AI CHAT PROMPT OVERLAY */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      key={`prompt-${activeSlide}`}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                      className="absolute right-3 sm:right-6 bottom-3 sm:bottom-6 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 p-3.5 sm:p-4 max-w-[240px] sm:max-w-[300px] text-slate-900 hidden xs:block"
                     >
-                      {tab}
-                    </button>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+                            ✨
+                          </div>
+                          <span className="font-extrabold text-xs text-slate-900">Ask Aria AI</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase">Ready</span>
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] sm:text-xs text-slate-700 font-medium leading-snug bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 mb-2.5">
+                        "{heroSlideshowImages[activeSlide].prompt}"
+                      </p>
+
+                      <div className="bg-slate-100 rounded-full px-3 py-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                        <span>Generating layout...</span>
+                        <div className="h-4 w-4 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[9px]">
+                          ↑
+                        </div>
+                      </div>
+                    </motion.div>
+
+                  </div>
+
+                </div>
+
+                {/* SLIDESHOW NAVIGATION ARROWS */}
+                <button 
+                  onClick={() => setActiveSlide((activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length)}
+                  className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-30 bg-white/90 hover:bg-white text-slate-800 p-2.5 sm:p-3 rounded-full shadow-lg border border-slate-200/80 transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                  title="Previous Site"
+                >
+                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+
+                <button 
+                  onClick={() => setActiveSlide((activeSlide + 1) % heroSlideshowImages.length)}
+                  className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-30 bg-white/90 hover:bg-white text-slate-800 p-2.5 sm:p-3 rounded-full shadow-lg border border-slate-200/80 transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                  title="Next Site"
+                >
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+
+              </div>
+
+              {/* SLIDESHOW DOTS SELECTOR BELOW CAROUSEL */}
+              <div className="pt-6 flex flex-col items-center gap-3">
+                {/* Dot Indicators */}
+                <div className="flex items-center gap-1.5">
+                  {heroSlideshowImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveSlide(idx)}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${
+                        activeSlide === idx ? 'w-6 bg-slate-900' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                      }`}
+                    />
                   ))}
                 </div>
               </div>
 
-              {/* Inside Browser Dashboard Panel */}
-              <div className="p-6 md:p-8 bg-slate-50/40 min-h-[480px] grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                {/* Left Mini Sidebar */}
-                <div className="lg:col-span-3 space-y-2 border-r border-slate-200/60 pr-6 hidden lg:block">
-                  <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-center space-x-3">
-                    <div className="w-3 h-3 rounded-full bg-[#1db3cd] animate-ping"></div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-800">Ubud Adventures</h4>
-                      <p className="text-[10px] font-mono font-bold text-[#1db3cd]">active.ubudtours.com</p>
-                    </div>
-                  </div>
-                  <nav className="space-y-1 pt-4">
-                    <span className="px-3 text-[10px] uppercase font-black text-slate-400 tracking-wider block mb-2">Backoffice</span>
-                    {[
-                      { icon: Layout, label: 'Analytics Hub' },
-                      { icon: Map, label: 'Manage Tours' },
-                      { icon: Users, label: 'Bookings Portal' },
-                      { icon: MessageCircle, label: 'WhatsApp Automation' },
-                      { icon: FileText, label: 'SEO Generator' },
-                      { icon: CreditCard, label: 'Payout Settings' }
-                    ].map((item, i) => (
-                      <div key={i} className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100/80 cursor-pointer`}>
-                        <item.icon className="w-4 h-4 text-slate-400" />
-                        <span>{item.label}</span>
-                      </div>
-                    ))}
-                  </nav>
-                </div>
-
-                {/* Right Interactive/Simulation Work Area */}
-                <div className="lg:col-span-9 flex flex-col justify-between">
-                  
-                  {activeTab === 'overview' && (
-                    <div className="space-y-6">
-                      {/* Grid Stats */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-slate-500 uppercase">Weekly Bookings</span>
-                            <span className="text-xs font-bold text-[#05c46b] bg-emerald-50 px-2 py-0.5 rounded-full">+18.2%</span>
-                          </div>
-                          <p className="text-2xl font-black text-slate-900">$24,580.00</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-1">Processed securely via Stripe</p>
-                        </div>
-                        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-slate-500 uppercase">Live Traffic</span>
-                            <span className="relative flex h-2.5 w-2.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#05c46b] opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#05c46b]"></span>
-                            </span>
-                          </div>
-                          <p className="text-2xl font-black text-slate-900">{liveVisitors} online</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-1">Viewing from 14 global locations</p>
-                        </div>
-                        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-slate-500 uppercase">WhatsApp Tickets</span>
-                            <span className="text-xs font-bold text-[#1db3cd] bg-cyan-50 px-2 py-0.5 rounded-full">100% Rate</span>
-                          </div>
-                          <p className="text-2xl font-black text-slate-900">1,208 sent</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-1">No human support time required</p>
-                        </div>
-                      </div>
-
-                      {/* Interactive Section */}
-                      <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#1db3cd]/10 rounded-full blur-2xl"></div>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="space-y-1">
-                            <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-indigo-500/20 text-[#1db3cd] text-[10px] font-black uppercase tracking-wider mb-2">
-                              Interactive Simulation
-                            </span>
-                            <h4 className="text-lg font-black text-white">Test Tripbone AI Engine Live</h4>
-                            <p className="text-xs text-slate-400">Describe a custom itinerary concept below and see how the AI designs pages in seconds.</p>
-                          </div>
-                        </div>
-
-                        {/* Text Prompt input simulator */}
-                        <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                          <input 
-                            type="text" 
-                            value={simulatedPrompt}
-                            onChange={(e) => setSimulatedPrompt(e.target.value)}
-                            placeholder="Describe your tour..." 
-                            className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-[#1db3cd] transition-all"
-                          />
-                          <button 
-                            onClick={triggerSimulation}
-                            disabled={isGenerating}
-                            className="bg-[#1db3cd] hover:bg-[#1596ad] text-slate-900 font-black px-5 py-3 rounded-xl text-xs transition-colors cursor-pointer shrink-0"
-                          >
-                            {isGenerating ? 'AI Architect Drafting...' : 'Generate Instantly'}
-                          </button>
-                        </div>
-
-                        {/* Simulated Output with Loading state */}
-                        <div className="mt-4">
-                          {isGenerating && (
-                            <div className="p-4 bg-slate-850 border border-slate-800 rounded-xl animate-pulse flex items-center space-x-4">
-                              <Sparkles className="w-5 h-5 text-[#1db3cd] animate-spin" />
-                              <div className="space-y-2 flex-1">
-                                <div className="h-3 bg-slate-700 rounded w-1/3"></div>
-                                <div className="h-2.5 bg-slate-700 rounded w-5/6"></div>
-                              </div>
-                            </div>
-                          )}
-
-                          {generatedTour && (
-                            <motion.div 
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="p-4 bg-slate-800 border border-slate-700 rounded-xl text-xs space-y-3"
-                            >
-                              <div className="flex items-center justify-between">
-                                <h5 className="font-extrabold text-[#1db3cd]">{generatedTour.title}</h5>
-                                <span className="text-[10px] font-mono text-[#05c46b] bg-emerald-950 px-2 py-0.5 rounded-full font-bold">{generatedTour.price}</span>
-                              </div>
-                              <p className="text-slate-300 leading-relaxed text-[11px]">{generatedTour.desc}</p>
-                              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700 text-[10px] text-slate-400">
-                                <div><strong>Includes:</strong> {generatedTour.includes.join(', ')}</div>
-                                <div><strong>SEO Tags:</strong> {generatedTour.seoMeta}</div>
-                              </div>
-                            </motion.div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'bookings' && (
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-                      <h4 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-                        <Users className="w-4 h-4 text-indigo-500" />
-                        <span>Live Booking Stream</span>
-                      </h4>
-                      <div className="space-y-3">
-                        {[
-                          { name: 'Sarah Connor', tour: 'Kelingking Secret Beaches & Sunset Snorkeling', amount: '$180.00', gateway: 'Stripe', status: 'Confirmed', time: 'Just now' },
-                          { name: 'Hiroshi Tanaka', tour: 'Mt. Batur Sunrise Trekking Adventure', amount: '$140.00', gateway: 'Stripe', status: 'Confirmed', time: '3 mins ago' },
-                          { name: 'Dieter Schmidt', tour: 'Ubud White Water Rafting & Quad Biking', amount: '$210.00', gateway: 'PayPal', status: 'Pending', time: '14 mins ago' }
-                        ].map((item, i) => (
-                          <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors">
-                            <div className="space-y-1">
-                              <p className="text-xs font-black text-slate-900">{item.name}</p>
-                              <p className="text-[11px] text-slate-500">{item.tour}</p>
-                            </div>
-                            <div className="flex items-center gap-3 mt-2 sm:mt-0">
-                              <span className="text-xs font-mono font-bold text-slate-800">{item.amount}</span>
-                              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md text-slate-500 font-bold">{item.gateway}</span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.status === 'Confirmed' ? 'bg-green-50 text-[#05c46b]' : 'bg-amber-50 text-amber-600'}`}>{item.status}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'whatsapp' && (
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-                      <h4 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-                        <MessageCircle className="w-4 h-4 text-[#05c46b]" />
-                        <span>Autopilot WhatsApp Flow</span>
-                      </h4>
-                      <div className="max-w-md mx-auto space-y-3 bg-[#e5ddd5]/50 p-4 rounded-2xl border border-slate-150">
-                        <div className="bg-[#dcf8c6] p-3 rounded-xl shadow-sm text-xs text-slate-800 max-w-[85%] ml-auto">
-                          <p className="font-bold text-[#05c46b] text-[10px] mb-1">Tripbone Bot (To: Sarah C.)</p>
-                          <p>Hi Sarah! Your booking for the **Kelingking Snorkeling Tour** is officially confirmed! 🏝️</p>
-                          <p className="mt-2 text-[10px] text-slate-400">10:42 AM - Sent ✓✓</p>
-                        </div>
-                        <div className="bg-white p-3 rounded-xl shadow-sm text-xs text-slate-800 max-w-[85%]">
-                          <p className="font-bold text-slate-500 text-[10px] mb-1">Sarah Connor</p>
-                          <p>Wow! That was so fast. Do I need to bring my own towel?</p>
-                          <p className="mt-2 text-[10px] text-slate-400">10:43 AM</p>
-                        </div>
-                        <div className="bg-[#dcf8c6] p-3 rounded-xl shadow-sm text-xs text-slate-800 max-w-[85%] ml-auto animate-pulse">
-                          <p className="font-bold text-[#05c46b] text-[10px] mb-1">Tripbone Bot (To: Sarah C.)</p>
-                          <p>No need! Fresh towels, safety vests, mineral water, and a dynamic local guide are all included in your voucher. 🎫 Here is your digital receipt: **VOUCHER-NUSA-9832**</p>
-                          <p className="mt-2 text-[10px] text-slate-400">10:43 AM - Sent ✓✓</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'seo' && (
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-                      <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-purple-500" />
-                        <span>Organic Keywords & Autopilot Blog Posts</span>
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/50">
-                          <p className="text-[10px] uppercase font-black text-slate-400 mb-2">High Value Keywords Targeted</p>
-                          <div className="space-y-1.5 text-xs text-slate-700">
-                            <div className="flex justify-between font-bold"><span>1. best snorkeling spots bali</span> <span className="text-[#05c46b]">Pos: #1</span></div>
-                            <div className="flex justify-between font-bold"><span>2. mount batur private guide</span> <span className="text-[#05c46b]">Pos: #3</span></div>
-                            <div className="flex justify-between font-bold"><span>3. ubud rafting tour price</span> <span className="text-[#05c46b]">Pos: #2</span></div>
-                          </div>
-                        </div>
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/50 space-y-2">
-                          <p className="text-[10px] uppercase font-black text-slate-400">Latest AI Published Post</p>
-                          <p className="text-xs font-black text-slate-900 leading-tight">"A Locals Secret Guide to Snorkeling with Manta Rays in Nusa Penida"</p>
-                          <p className="text-[10px] text-[#05c46b] font-bold">✨ Generated & Optimized for Search In 4 Seconds</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-6 flex justify-between items-center text-xs text-slate-400 border-t border-slate-100 pt-4 font-mono">
-                    <span>Database ID: prod-us-firestore</span>
-                    <span>Last updated: just now</span>
-                  </div>
-                </div>
-
-              </div>
             </motion.div>
 
           </div>
         </section>
 
         {/* --- 2. LOGO CLOUD (POWERED BY THE STACK YOU TRUST) --- */}
-        <section id="logos" className="py-16 bg-slate-50/50 border-y border-slate-200/40 px-6">
+        <section id="logos" className="py-14 bg-slate-50/70 border-y border-slate-200/50 px-6">
           <div className="max-w-7xl mx-auto text-center">
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-8">
               POWERED BY THE STACK YOU TRUST
             </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all">
-              {logos.map((logo, idx) => {
-                const IconComponent = logo.icon;
-                return (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <IconComponent className="w-5 h-5 text-slate-400" />
-                    <span className="font-mono text-sm font-bold text-slate-600 tracking-wider uppercase">{logo.name}</span>
-                  </div>
-                );
-              })}
+
+            <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10 md:gap-12">
+              
+              {/* Firebase */}
+              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+                <img 
+                  src="https://i.ibb.co.com/s9YgF0yS/firebase.png" 
+                  alt="Firebase" 
+                  referrerPolicy="no-referrer"
+                  className="h-7 sm:h-8 w-auto object-contain"
+                />
+              </div>
+
+              {/* Stripe */}
+              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+                <img 
+                  src="https://i.ibb.co.com/gb6tFnrN/stripe.jpg" 
+                  alt="Stripe" 
+                  referrerPolicy="no-referrer"
+                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                />
+              </div>
+
+              {/* PayPal */}
+              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+                <img 
+                  src="https://i.ibb.co.com/20D5cDRw/paypal.png" 
+                  alt="PayPal" 
+                  referrerPolicy="no-referrer"
+                  className="h-7 sm:h-8 w-auto object-contain"
+                />
+              </div>
+
+              {/* WhatsApp */}
+              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+                <img 
+                  src="https://i.ibb.co.com/7dXQmL8M/Whats-App-Logo-wine.png" 
+                  alt="WhatsApp" 
+                  referrerPolicy="no-referrer"
+                  className="h-7 sm:h-8 w-auto object-contain"
+                />
+              </div>
+
+              {/* Vercel */}
+              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+                <img 
+                  src="https://i.ibb.co.com/bjDj8TGh/vercel.jpg" 
+                  alt="Vercel" 
+                  referrerPolicy="no-referrer"
+                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                />
+              </div>
+
+              {/* Resend */}
+              <div className="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200/70 shadow-xs flex items-center justify-center grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition-all cursor-pointer hover:scale-105 group">
+                <img 
+                  src="https://i.ibb.co.com/27pGFXpW/Resend.jpg" 
+                  alt="Resend" 
+                  referrerPolicy="no-referrer"
+                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                />
+              </div>
+
             </div>
           </div>
         </section>
 
-        {/* --- 3. GO LIVE IN JUST 5 SIMPLE STEPS --- */}
-        <section id="how-it-works" className="py-24 md:py-32 bg-white">
-          <div className="max-w-7xl mx-auto px-6 text-center">
+        {/* --- 3. REFINED & REDESIGNED SIMPLE ONBOARDING STEPS --- */}
+        <section id="how-it-works" className="py-24 md:py-32 bg-slate-900 text-white relative overflow-hidden">
+          {/* Subtle Ambient Background Lighting */}
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
             
-            <span className="text-xs font-black text-[#1db3cd] uppercase tracking-widest bg-cyan-50 border border-cyan-200/50 px-3.5 py-1.5 rounded-full mb-4 inline-block">
-              SIMPLE ONBOARDING
-            </span>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-              Go Live in Just 5 Simple Steps
-            </h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto mb-20 leading-relaxed">
-              No tech skills needed. AI does the heavy lifting so you can focus on selling tours.
-            </p>
+            {/* Section Header */}
+            <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-black tracking-widest uppercase">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Simple Onboarding</span>
+              </span>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-tight">
+                Go Live in Just 5 Simple Steps
+              </h2>
+              <p className="text-base sm:text-lg text-slate-400 font-normal leading-relaxed">
+                Zero coding or technical setup required. Our hybrid AI website engine handles the entire build process automatically in under 2 minutes.
+              </p>
+            </div>
 
-            {/* Stepper Timeline */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-4 relative">
+            {/* Step Progress Bar & Connected Timeline Cards */}
+            <div className="relative">
               
-              {/* Desktop connector line */}
-              <div className="hidden md:block absolute top-10 left-[10%] right-[10%] h-[3px] bg-slate-150 z-0"></div>
+              {/* Desktop Connecting Progress Line */}
+              <div className="hidden lg:block absolute top-[52px] left-[8%] right-[8%] h-[3px] bg-slate-800 rounded-full z-0">
+                <div className="h-full w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 rounded-full opacity-60"></div>
+              </div>
 
-              {[
-                { step: "1", title: "Create Account", desc: "Sign up instantly for free" },
-                { step: "2", title: "Tell Us About You", desc: "Describe tours & destination" },
-                { step: "3", title: "AI Provisioning", desc: "Full site built in 2 minutes" },
-                { step: "4", title: "Connect Domain", desc: "Attach your custom domain" },
-                { step: "5", title: "Website Live", desc: "Start taking bookings & payments" }
-              ].map((item, idx) => (
-                <div key={idx} className="relative z-10 flex flex-col items-center group">
-                  <div className={`w-20 h-20 rounded-full flex items-center justify-center font-black text-2xl mb-6 shadow-md border-4 transition-all duration-300 ${
-                    idx === 4 
-                      ? 'bg-emerald-500 text-white border-emerald-100 group-hover:scale-105 shadow-emerald-200/50' 
-                      : 'bg-white text-slate-700 border-slate-100 group-hover:border-[#1db3cd] group-hover:text-[#1db3cd]'
-                  }`}>
-                    {item.step}
-                  </div>
-                  <h3 className="text-lg font-black text-slate-900 mb-1.5 tracking-tight">{item.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed max-w-[160px]">{item.desc}</p>
-                </div>
-              ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-4 relative z-10">
+                
+                {[
+                  { 
+                    num: "1", 
+                    stepTag: "01",
+                    title: "Create Account", 
+                    desc: "Sign up free in seconds with no credit card required.",
+                    icon: Rocket,
+                    color: "text-blue-400",
+                    glow: "group-hover:border-blue-500/50 group-hover:shadow-blue-500/10",
+                    badgeBg: "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                  },
+                  { 
+                    num: "2", 
+                    stepTag: "02",
+                    title: "Tell Us About You", 
+                    desc: "Describe your destination, tour packages, and brand vibe.",
+                    icon: Compass,
+                    color: "text-indigo-400",
+                    glow: "group-hover:border-indigo-500/50 group-hover:shadow-indigo-500/10",
+                    badgeBg: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
+                  },
+                  { 
+                    num: "3", 
+                    stepTag: "03",
+                    title: "AI Provisioning", 
+                    desc: "Full website layout, pages, and booking system generated in 2 minutes.",
+                    icon: Zap,
+                    color: "text-amber-400",
+                    glow: "group-hover:border-amber-500/50 group-hover:shadow-amber-500/10",
+                    badgeBg: "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                  },
+                  { 
+                    num: "4", 
+                    stepTag: "04",
+                    title: "Connect Domain", 
+                    desc: "Link your custom business domain with automated SSL.",
+                    icon: Globe,
+                    color: "text-cyan-400",
+                    glow: "group-hover:border-cyan-500/50 group-hover:shadow-cyan-500/10",
+                    badgeBg: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+                  },
+                  { 
+                    num: "5", 
+                    stepTag: "05",
+                    title: "Start Taking Bookings", 
+                    desc: "Accept instant credit card payments & send automated WhatsApp vouchers.",
+                    icon: CheckCircle2,
+                    color: "text-emerald-400",
+                    glow: "group-hover:border-emerald-500/50 group-hover:shadow-emerald-500/10",
+                    badgeBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                  }
+                ].map((item, idx) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: idx * 0.1 }}
+                      className={`group relative bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-700/80 p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${item.glow}`}
+                    >
+                      <div>
+                        {/* Circle Step Number Indicator Header */}
+                        <div className="flex items-center justify-between mb-6">
+                          <div className={`w-12 h-12 rounded-2xl ${item.badgeBg} border flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110 duration-300 shadow-inner`}>
+                            <IconComponent className="w-5 h-5" />
+                          </div>
+                          <span className="text-2xl font-black text-slate-600 font-mono group-hover:text-slate-400 transition-colors">
+                            {item.stepTag}
+                          </span>
+                        </div>
 
+                        {/* Title */}
+                        <h3 className="text-lg font-black text-white mb-2 tracking-tight group-hover:text-cyan-300 transition-colors">
+                          {item.title}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                          {item.desc}
+                        </p>
+                      </div>
+
+                      {/* Step Tag Footer */}
+                      <div className="pt-6 mt-6 border-t border-slate-700/50 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                        <span>STEP {item.num} OF 5</span>
+                        <span className={`font-bold ${item.color}`}>Ready in 2m</span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+              </div>
+
+            </div>
+
+            {/* Bottom Callout Bar */}
+            <div className="mt-16 text-center">
+              <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-slate-800/90 border border-slate-700 px-8 py-4 rounded-full shadow-xl">
+                <span className="text-sm font-medium text-slate-300">
+                  Ready to launch your tour website today?
+                </span>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-slate-900 font-black text-sm px-6 py-2.5 rounded-full transition-all cursor-pointer shadow-lg hover:scale-105 active:scale-95 flex items-center gap-2"
+                >
+                  <span>Get Started Free</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
           </div>
