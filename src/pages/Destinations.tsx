@@ -173,7 +173,11 @@ export default function Destinations() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredLocations.map((loc, i) => {
-              const imageSrc = loc.featuredImage || loc.image || loc.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(loc.name.toLowerCase())}/800/1000`;
+              let rawImage = loc.featuredImage || loc.image || loc.imageUrl;
+              if (rawImage && rawImage.startsWith('api/')) {
+                rawImage = '/' + rawImage;
+              }
+              const imageSrc = rawImage || `https://picsum.photos/seed/${encodeURIComponent(loc.name.toLowerCase())}/800/1000`;
               const description = loc.description || `Discover the breathtaking natural beauty, local culture, and memorable tour experiences in ${loc.name}.`;
 
               return (

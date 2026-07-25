@@ -395,8 +395,8 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Featured Image</label>
                 <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                   <input
-                    type="url"
-                    placeholder="Image URL (e.g. https://images.unsplash.com/...)"
+                    type="text"
+                    placeholder="Image URL or upload path (e.g. https://...)"
                     value={newFeaturedImage}
                     onChange={e => setNewFeaturedImage(e.target.value)}
                     className="flex-1 w-full rounded-[10px] border-2 border-gray-100 p-3 focus:border-primary focus:outline-none text-xs font-medium"
@@ -420,7 +420,11 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
                 </div>
                 {newFeaturedImage && (
                   <div className="mt-3 relative w-32 h-20 rounded-xl overflow-hidden border border-gray-200 group">
-                    <img src={newFeaturedImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img 
+                      src={newFeaturedImage.startsWith('api/') ? '/' + newFeaturedImage : newFeaturedImage} 
+                      className="w-full h-full object-cover" 
+                      referrerPolicy="no-referrer" 
+                    />
                     <button
                       type="button"
                       onClick={() => setNewFeaturedImage('')}
@@ -449,7 +453,10 @@ const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'loc
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map(item => {
-          const locImage = (item as any).featuredImage || (item as any).image || (item as any).imageUrl;
+          let locImage = (item as any).featuredImage || (item as any).image || (item as any).imageUrl;
+          if (locImage && locImage.startsWith('api/')) {
+            locImage = '/' + locImage;
+          }
           const locDesc = (item as any).description;
           return (
             <div key={item.id} className="bg-white p-6 rounded-[10px] border border-gray-100 shadow-sm flex flex-col justify-between group hover:border-primary transition-all">
