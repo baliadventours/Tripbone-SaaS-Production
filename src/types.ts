@@ -211,6 +211,8 @@ export interface Review {
   image?: string;
   images?: string[]; // New: support for multiple images
   status: 'pending' | 'approved' | 'rejected'; // New moderation status
+  platform?: 'direct' | 'google' | 'tripadvisor' | 'airbnb';
+  externalUrl?: string;
   createdAt: any;
 }
 
@@ -484,6 +486,24 @@ export interface SiteSettings {
   topBarText?: string;
   topBarLink?: string;
   topBarLinkText?: string;
+
+  // External Reviews Collection Settings (TripAdvisor, Google Maps, Airbnb)
+  externalReviewsEnabled?: boolean;
+  googleReviewsEnabled?: boolean;
+  googlePlaceId?: string;
+  googleReviewUrl?: string;
+  googleRating?: number;
+  googleReviewCount?: number;
+
+  tripadvisorEnabled?: boolean;
+  tripadvisorUrl?: string;
+  tripadvisorRating?: number;
+  tripadvisorReviewCount?: number;
+
+  airbnbEnabled?: boolean;
+  airbnbUrl?: string;
+  airbnbRating?: number;
+  airbnbReviewCount?: number;
 
   // SEO & AI Crawler Settings
   homeTitleFormat?: string; // e.g. "{{siteName}} - Best Bali Tours"

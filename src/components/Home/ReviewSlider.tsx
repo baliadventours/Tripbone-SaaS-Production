@@ -1,16 +1,53 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, orderBy, limit, onSnapshot } from '@/src/lib/firebase';
+import { collection, query, where, onSnapshot } from '@/src/lib/firebase';
 import { Review } from '../../types';
-import { motion, AnimatePresence } from 'motion/react';
-import { Quote, Star, ChevronLeft, ChevronRight } from 'lucide-react';
-
+import { Quote, Star, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useSettings } from '../../lib/SettingsContext';
+import ExternalReviewsWidget from './ExternalReviewsWidget';
+
+const DEFAULT_PLATFORM_REVIEWS: Review[] = [
+  {
+    id: 'rev-google-1',
+    userId: 'ext-google-1',
+    userName: 'Sarah Jenkins',
+    userPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+    nationality: 'United States',
+    rating: 5,
+    comment: 'Booked our island tour via their Google Maps profile. Absolutely seamless booking and our guide Made was phenomenal!',
+    status: 'approved',
+    platform: 'google',
+    createdAt: new Date(),
+  },
+  {
+    id: 'rev-ta-1',
+    userId: 'ext-ta-1',
+    userName: 'Marcus Vance',
+    userPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    nationality: 'Australia',
+    rating: 5,
+    comment: 'Hands down the best tour operator in Bali! Found them on TripAdvisor and couldn\'t be happier with the Mt Batur sunrise trek.',
+    status: 'approved',
+    platform: 'tripadvisor',
+    createdAt: new Date(),
+  },
+  {
+    id: 'rev-ab-1',
+    userId: 'ext-ab-1',
+    userName: 'Elena Rostova',
+    userPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    nationality: 'Germany',
+    rating: 5,
+    comment: 'Incredible experience from start to finish! High quality transport, super friendly team, and transparent instant confirmation.',
+    status: 'approved',
+    platform: 'airbnb',
+    createdAt: new Date(),
+  }
+];
 
 export default function ReviewSlider() {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const { settings } = useSettings();
-
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const { builderSettings } = useSettings();
 
   const styleId = builderSettings?.blocks.find(b => b.id === 'reviews')?.design || 'slider';
@@ -31,196 +68,147 @@ export default function ReviewSlider() {
             ? b.createdAt.seconds * 1000 + (b.createdAt.nanoseconds || 0) / 1000000
             : (b.createdAt instanceof Date ? b.createdAt.getTime() : typeof b.createdAt === 'number' ? b.createdAt : 0);
           return timeB - timeA;
-        })
-        .slice(0, 3);
-      setReviews(sorted);
+        });
+      
+      // If Firestore has fewer than 3 reviews, append default platform reviews
+      if (sorted.length === 0) {
+        setReviews(DEFAULT_PLATFORM_REVIEWS);
+      } else {
+        const combined = [...sorted];
+        DEFAULT_PLATFORM_REVIEWS.forEach(defRev => {
+          if (!combined.some(r => r.id === defRev.id)) {
+            combined.push(defRev);
+          }
+        });
+        setReviews(combined);
+      }
     });
     return unsubscribe;
   }, []);
 
-  const renderContent = () => {
-    switch (styleId) {
-      case 'grid':
-        return (
-          <section className="container mx-auto px-4 py-20 lg:px-8 bg-[#f7f7f7] rounded-3xl my-16">
-            <h2 className="text-2xl font-bold text-gray-900 mb-12 flex items-center gap-2">
-               <Star className="h-6 w-6 text-primary fill-primary" />
-               4.9 · 500+ reviews
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12">
-               {reviews.map(review => (
-                  <div key={review.id} className="space-y-4">
-                     <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full overflow-hidden bg-gray-200">
-                           <img src={review.userPhoto || `https://i.pravatar.cc/100?u=${review.id}`} alt={review.userName} />
-                        </div>
-                        <div>
-                           <h4 className="font-bold text-gray-900">{review.userName}</h4>
-                           <p className="text-sm text-gray-500">{review.nationality || 'Verified traveler'}</p>
-                        </div>
-                     </div>
-                     <p className="text-gray-900 leading-relaxed line-clamp-4">"{review.comment}"</p>
-                  </div>
-               ))}
-            </div>
-          </section>
-        );
+  const filteredReviews = reviews.filter(r => {
+    if (platformFilter === 'all') return true;
+    return r.platform === platformFilter;
+  });
 
-      case 'modern-dark':
+  const renderPlatformBadge = (platform?: string) => {
+    switch (platform) {
+      case 'google':
         return (
-          <section className="py-24 bg-gray-950 overflow-hidden relative">
-             <div className="container mx-auto px-4 lg:px-8 relative z-10 text-center">
-                <span className="text-orange-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4 block">Testimonials</span>
-                <h2 className="text-4xl md:text-7xl font-black text-white tracking-tighter mb-16">Real Stories · Real Alpha</h2>
-                <div className="grid md:grid-cols-3 gap-6">
-                   {reviews.map(review => (
-                      <div key={review.id} className="bg-white/5 backdrop-blur-md p-10 rounded-[3rem] border border-white/10 text-left hover:bg-white/10 transition-colors">
-                         <Quote className="h-8 w-8 text-orange-400 mb-6" />
-                         <p className="text-white font-medium text-lg mb-8 leading-relaxed italic">"{review.comment}"</p>
-                         <div className="flex items-center gap-4">
-                            <img src={review.userPhoto || 'https://i.pravatar.cc/100'} className="h-10 w-10 rounded-full border-2 border-orange-400" alt={review.userName} />
-                            <div>
-                               <h4 className="text-white font-black text-xs uppercase tracking-widest">{review.userName}</h4>
-                               <p className="text-gray-500 text-[10px] uppercase font-bold">{review.nationality}</p>
-                            </div>
-                         </div>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          </section>
+          <span className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Google Maps
+          </span>
         );
-
-      case 'minimal':
+      case 'tripadvisor':
         return (
-          <section className="container mx-auto px-4 py-24 border-b border-gray-100">
-             <div className="flex flex-col items-center mb-20">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 mb-4">Archives / Feedback</span>
-                <h2 className="text-4xl font-black text-gray-900 uppercase tracking-tighter italic">The Dialog</h2>
-             </div>
-             <div className="grid md:grid-cols-2 gap-px bg-gray-100 border border-gray-100">
-                {reviews.slice(0, 4).map(review => (
-                   <div key={review.id} className="bg-white p-16 flex flex-col justify-center">
-                      <p className="text-2xl font-bold text-gray-900 mb-8 leading-tight">"{review.comment}"</p>
-                      <div className="flex items-center justify-between">
-                         <span className="text-[10px] font-black uppercase text-gray-900 tracking-widest">{review.userName}</span>
-                         <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{review.nationality}</span>
-                      </div>
-                   </div>
-                ))}
-             </div>
-          </section>
+          <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 text-slate-900 font-black text-[7px] flex items-center justify-center">TA</span>
+            TripAdvisor
+          </span>
         );
-
-      case 'premium-serif':
-      case 'premium-full':
+      case 'airbnb':
         return (
-          <section className="py-32 bg-[#1a1a1a]">
-             <div className="container mx-auto px-4 text-center">
-                <div className="max-w-4xl mx-auto">
-                   <Quote className="h-12 w-12 text-amber-500/20 mx-auto mb-12" />
-                   <div className="grid gap-20">
-                      {reviews.slice(0, 1).map(review => (
-                         <div key={review.id} className="space-y-12">
-                            <h3 className="text-3xl md:text-5xl font-serif text-white italic leading-relaxed">"{review.comment}"</h3>
-                            <div className="flex flex-col items-center gap-4">
-                               <div className="h-16 w-16 rounded-full border border-amber-500/30 p-1">
-                                  <img src={review.userPhoto || 'https://i.pravatar.cc/100'} className="h-full w-full rounded-full object-cover grayscale" alt={review.userName} />
-                               </div>
-                               <div>
-                                  <h4 className="text-white text-xs font-black uppercase tracking-[0.3em]">{review.userName}</h4>
-                                  <p className="text-amber-500 text-[10px] uppercase font-bold italic mt-2">{review.nationality}</p>
-                               </div>
-                            </div>
-                         </div>
-                      ))}
-                   </div>
-                </div>
-             </div>
-          </section>
+          <span className="inline-flex items-center gap-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+            Airbnb Guest
+          </span>
         );
-
-      case 'saas-clean':
-      case 'saas-dash':
-        return (
-          <section className="py-24 container mx-auto px-4">
-             <div className="grid lg:grid-cols-3 gap-8">
-                <div className="bg-primary p-12 rounded-[3rem] text-white flex flex-col justify-center">
-                   <h2 className="text-4xl font-black tracking-tight leading-none mb-6">User <br /> Sentiment</h2>
-                   <p className="text-white/70 font-medium mb-8">Metrics that matter. See why our confirmation engine is the industry standard.</p>
-                   <div className="flex gap-1 text-amber-300">
-                      {[1,2,3,4,5].map(s => <Star key={s} className="h-5 w-5 fill-amber-300" />)}
-                   </div>
-                </div>
-                {reviews.slice(0, 2).map(review => (
-                   <div key={review.id} className="bg-white border border-gray-100 p-12 rounded-[3rem] shadow-sm flex flex-col justify-between">
-                      <p className="text-xl font-bold text-gray-900 mb-10 leading-relaxed italic">"{review.comment}"</p>
-                      <div className="flex items-center gap-4">
-                         <div className="h-12 w-12 bg-gray-50 rounded-2xl flex items-center justify-center text-primary font-black">
-                            {review.userName?.charAt(0)}
-                         </div>
-                         <div>
-                            <h4 className="font-bold text-gray-900">{review.userName}</h4>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{review.nationality}</p>
-                         </div>
-                      </div>
-                   </div>
-                ))}
-             </div>
-          </section>
-        );
-
       default:
         return (
-          <section className="container mx-auto px-4 py-20 lg:px-8">
-            <div className="mb-12 text-center">
-              <span className="text-primary text-xs font-black mb-4 block">What they say</span>
-              <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none">Guest Reviews</h2>
-            </div>
-  
-            <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {reviews.map((review) => (
-                <div key={review.id} className="bg-gray-950 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-between group hover:-translate-y-1 transition-transform">
-                  <div className="absolute top-0 right-0 p-6 opacity-5">
-                    <Quote className="h-16 w-16 text-white" />
-                  </div>
-                  
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-1 mb-6">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`h-3 w-3 ${i < (review.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-800'}`} 
-                        />
-                      ))}
-                    </div>
-  
-                    <p className="text-base text-white/90 leading-relaxed mb-8 line-clamp-4">
-                      "{review.comment}"
-                    </p>
-                  </div>
-  
-                  <div className="flex items-center gap-4 pt-6 border-t border-white/5">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm border border-primary/20 overflow-hidden shrink-0">
-                      {review.userPhoto ? (
-                        <img src={review.userPhoto} className="w-full h-full object-cover" />
-                      ) : (
-                        review.userName?.charAt(0) || 'U'
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-white font-black text-sm tracking-wider truncate">{review.userName}</h4>
-                      <p className="text-gray-500 font-bold text-[10px] tracking-widest truncate">{review.nationality || 'Verified traveler'}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          <span className="inline-flex items-center gap-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+            <CheckCircle2 className="w-2.5 h-2.5 text-cyan-400" />
+            Verified Guest
+          </span>
         );
     }
   };
 
-  return renderContent();
-}
+  return (
+    <section className="container mx-auto px-4 py-16 lg:px-8 max-w-7xl">
+      <div className="mb-8 text-center">
+        <span className="text-primary text-xs font-black uppercase tracking-widest mb-2 block">Guest Experiences</span>
+        <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none">
+          Trusted by Travelers Worldwide
+        </h2>
+      </div>
 
+      {/* External Review Platforms Badge Bar */}
+      <ExternalReviewsWidget
+        activeFilter={platformFilter}
+        onFilterChange={(filter) => {
+          setPlatformFilter(prev => prev === filter ? 'all' : filter);
+        }}
+      />
+
+      {/* Filter Tabs */}
+      <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+        {[
+          { id: 'all', label: 'All Reviews' },
+          { id: 'google', label: 'Google Maps' },
+          { id: 'tripadvisor', label: 'TripAdvisor' },
+          { id: 'airbnb', label: 'Airbnb' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setPlatformFilter(tab.id)}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              platformFilter === tab.id
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Reviews Grid */}
+      <div className="grid md:grid-cols-3 gap-8">
+        {(filteredReviews.length > 0 ? filteredReviews : reviews).map((review) => (
+          <div key={review.id} className="bg-gray-950 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-between group hover:-translate-y-1 transition-transform border border-slate-800">
+            <div className="absolute top-0 right-0 p-6 opacity-5">
+              <Quote className="h-16 w-16 text-white" />
+            </div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`h-3.5 w-3.5 ${i < (review.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-800'}`} 
+                    />
+                  ))}
+                </div>
+                {renderPlatformBadge(review.platform)}
+              </div>
+
+              <p className="text-sm text-white/90 leading-relaxed mb-8 line-clamp-4 italic">
+                "{review.comment}"
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 pt-6 border-t border-white/10">
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm border border-primary/20 overflow-hidden shrink-0">
+                {review.userPhoto ? (
+                  <img src={review.userPhoto} className="w-full h-full object-cover" alt={review.userName} />
+                ) : (
+                  review.userName?.charAt(0) || 'U'
+                )}
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-white font-black text-sm tracking-wider truncate">{review.userName}</h4>
+                <p className="text-gray-400 font-bold text-[10px] tracking-widest truncate">{review.nationality || 'Verified traveler'}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

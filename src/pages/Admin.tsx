@@ -1253,7 +1253,20 @@ const BookingTimeManager = () => {
         {showAddForm && (
           <form onSubmit={handleCreateReview} className="bg-white p-8 rounded-[10px] border border-orange-100 shadow-sm space-y-6 motion-safe:animate-in motion-safe:fade-in">
              <h3 className="font-black text-gray-900 uppercase tracking-widest text-xs">Create Professional Admin Review</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Platform Origin</label>
+                   <select 
+                     value={newReview.platform || 'direct'}
+                     onChange={e => setNewReview({...newReview, platform: e.target.value as any})}
+                     className="w-full rounded-xl border-2 border-gray-50 bg-gray-50/50 p-4 font-bold focus:border-primary focus:bg-white focus:outline-none transition-all"
+                   >
+                     <option value="direct">Direct Website</option>
+                     <option value="google">Google Maps</option>
+                     <option value="tripadvisor">TripAdvisor</option>
+                     <option value="airbnb">Airbnb</option>
+                   </select>
+                </div>
                 <div className="space-y-2">
                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select Tour</label>
                    <select 
@@ -1466,6 +1479,17 @@ const BookingTimeManager = () => {
                            {review.nationality && (
                              <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                                <Icons.Globe className="h-2.5 w-2.5" /> {review.nationality}
+                             </span>
+                           )}
+                           {review.platform && (
+                             <span className={cn(
+                               "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1",
+                               review.platform === 'google' ? "bg-blue-100 text-blue-700 border border-blue-200" :
+                               review.platform === 'tripadvisor' ? "bg-emerald-100 text-emerald-700 border border-emerald-200" :
+                               review.platform === 'airbnb' ? "bg-rose-100 text-rose-700 border border-rose-200" :
+                               "bg-purple-100 text-purple-700 border border-purple-200"
+                             )}>
+                               {review.platform}
                              </span>
                            )}
                         </h3>
