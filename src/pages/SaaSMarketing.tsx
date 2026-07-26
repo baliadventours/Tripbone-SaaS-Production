@@ -192,13 +192,14 @@ export default function SaaSMarketing() {
       `}</style>
 
       <div className="bg-white min-h-screen">
-            {/* --- 1. HERO SECTION (WIX.COM MODEL) --- */}
+        {/* --- 1. HERO SECTION (WIX.COM MODEL - PREMIUM DARK) --- */}
         <section 
           id="hero" 
-          className="pt-28 pb-20 sm:pt-36 sm:pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-gradient-to-b from-[#FFFDF9] via-[#FAF8F3] to-[#F3F6FA] text-slate-900 border-b border-slate-200/60"
+          className="pt-28 pb-20 sm:pt-36 sm:pb-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-slate-950 text-white border-b border-slate-800/80"
         >
-          {/* Ambient soft background radial glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-amber-100/40 via-blue-100/30 to-emerald-100/40 rounded-full blur-3xl pointer-events-none -z-0"></div>
+          {/* Ambient glowing radial light flares */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-tr from-cyan-600/15 via-indigo-600/20 to-emerald-500/15 rounded-full blur-[120px] pointer-events-none -z-0"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b12_1px,transparent_1px),linear-gradient(to_bottom,#1e293b12_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
           <div className="max-w-6xl mx-auto text-center relative z-10 space-y-8">
             
@@ -207,10 +208,10 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-slate-900 max-w-3xl mx-auto"
+              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white max-w-3xl mx-auto"
             >
               Build Your Tour Booking <br />
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
                 Website in 2 Minutes
               </span>
             </motion.h1>
@@ -220,7 +221,7 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-slate-600 font-bold text-xl sm:text-2xl max-w-2xl mx-auto tracking-wide"
+              className="text-slate-300 font-bold text-xl sm:text-2xl max-w-2xl mx-auto tracking-wide"
             >
               AI-Powered. No Code. All-in-One.
             </motion.p>
@@ -234,7 +235,7 @@ export default function SaaSMarketing() {
             >
               <button
                 onClick={() => navigate('/signup')}
-                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-black text-base sm:text-lg px-8 py-4 rounded-full shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] group"
+                className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-base sm:text-lg px-8 py-4 rounded-full shadow-2xl shadow-cyan-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] group"
               >
                 <span>Get Started</span>
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -242,16 +243,16 @@ export default function SaaSMarketing() {
 
               <button
                 onClick={() => setShowDemoModal(true)}
-                className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-900 font-bold text-base sm:text-lg px-8 py-4 rounded-full border-2 border-slate-200/90 shadow-sm flex items-center justify-center gap-2.5 cursor-pointer transition-all hover:border-slate-300 hover:scale-[1.03] active:scale-[0.98] group"
+                className="w-full sm:w-auto bg-slate-800/90 hover:bg-slate-700/90 text-white font-bold text-base sm:text-lg px-8 py-4 rounded-full border border-slate-700 shadow-sm flex items-center justify-center gap-2.5 cursor-pointer transition-all hover:border-slate-600 hover:scale-[1.03] active:scale-[0.98] group"
               >
-                <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="h-6 w-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
                   <Play className="h-3 w-3 fill-current ml-0.5" />
                 </div>
                 <span>Try Demo</span>
               </button>
             </motion.div>
 
-            <p className="text-xs font-semibold text-slate-500 pt-1">
+            <p className="text-xs font-semibold text-slate-400 pt-1">
               Start for free. No credit card required.
             </p>
 
@@ -271,20 +272,20 @@ export default function SaaSMarketing() {
                 {/* 1. PREVIOUS SLIDE (LEFT BACKGROUND RECTANGLE) */}
                 <div 
                   onClick={() => setActiveSlide((activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length)}
-                  className="absolute left-2 sm:left-4 md:left-8 top-12 sm:top-16 z-10 w-[38%] sm:w-[35%] opacity-40 hover:opacity-80 scale-90 blur-[1px] hover:blur-0 rounded-2xl shadow-xl border border-slate-300/80 bg-white overflow-hidden cursor-pointer transition-all duration-500 transform -rotate-3 hover:scale-95"
+                  className="absolute left-2 sm:left-4 md:left-8 top-12 sm:top-16 z-10 w-[38%] sm:w-[35%] opacity-40 hover:opacity-80 scale-90 blur-[1px] hover:blur-0 rounded-2xl shadow-2xl border border-slate-800 bg-slate-900 overflow-hidden cursor-pointer transition-all duration-500 transform -rotate-3 hover:scale-95"
                 >
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <span className="text-[9px] font-mono text-slate-500 truncate ml-2">
+                  <div className="bg-slate-900 px-3 py-1.5 border-b border-slate-800 flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span className="text-[9px] font-mono text-slate-400 truncate ml-2">
                       {heroSlideshowImages[(activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length].domain}
                     </span>
                   </div>
                   <img 
                     src={heroSlideshowImages[(activeSlide - 1 + heroSlideshowImages.length) % heroSlideshowImages.length].url} 
                     alt="Previous slide" 
-                    className="w-full h-auto object-cover object-top"
+                    className="w-full h-auto object-cover object-top opacity-80"
                     referrerPolicy="no-referrer"
                   />
                 </div>
@@ -292,26 +293,26 @@ export default function SaaSMarketing() {
                 {/* 2. NEXT SLIDE (RIGHT BACKGROUND RECTANGLE) */}
                 <div 
                   onClick={() => setActiveSlide((activeSlide + 1) % heroSlideshowImages.length)}
-                  className="absolute right-2 sm:right-4 md:right-8 top-12 sm:top-16 z-10 w-[38%] sm:w-[35%] opacity-40 hover:opacity-80 scale-90 blur-[1px] hover:blur-0 rounded-2xl shadow-xl border border-slate-300/80 bg-white overflow-hidden cursor-pointer transition-all duration-500 transform rotate-3 hover:scale-95"
+                  className="absolute right-2 sm:right-4 md:right-8 top-12 sm:top-16 z-10 w-[38%] sm:w-[35%] opacity-40 hover:opacity-80 scale-90 blur-[1px] hover:blur-0 rounded-2xl shadow-2xl border border-slate-800 bg-slate-900 overflow-hidden cursor-pointer transition-all duration-500 transform rotate-3 hover:scale-95"
                 >
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <span className="text-[9px] font-mono text-slate-500 truncate ml-2">
+                  <div className="bg-slate-900 px-3 py-1.5 border-b border-slate-800 flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span className="text-[9px] font-mono text-slate-400 truncate ml-2">
                       {heroSlideshowImages[(activeSlide + 1) % heroSlideshowImages.length].domain}
                     </span>
                   </div>
                   <img 
                     src={heroSlideshowImages[(activeSlide + 1) % heroSlideshowImages.length].url} 
                     alt="Next slide" 
-                    className="w-full h-auto object-cover object-top"
+                    className="w-full h-auto object-cover object-top opacity-80"
                     referrerPolicy="no-referrer"
                   />
                 </div>
 
                 {/* 3. CENTER ACTIVE SLIDE (WIX HERO FOCAL WINDOW) */}
-                <div className="relative z-20 w-[82%] sm:w-[75%] md:w-[70%] bg-slate-900 rounded-2xl shadow-[0_30px_90px_-15px_rgba(15,23,42,0.35)] border border-slate-200/80 overflow-hidden text-left transition-all duration-500 transform">
+                <div className="relative z-20 w-[82%] sm:w-[75%] md:w-[70%] bg-slate-900 rounded-2xl shadow-[0_30px_90px_-15px_rgba(0,0,0,0.8)] border border-slate-700/80 overflow-hidden text-left transition-all duration-500 transform">
                   
                   {/* Browser Chrome Navbar */}
                   <div className="bg-slate-900/95 backdrop-blur-md px-3.5 sm:px-5 py-2.5 flex items-center justify-between border-b border-slate-800">
