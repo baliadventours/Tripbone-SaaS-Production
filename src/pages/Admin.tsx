@@ -1463,9 +1463,9 @@ const BookingTimeManager = () => {
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Google Maps Review Link</label>
                   <input
                     type="text"
-                    value={localSettings?.googleReviewUrl ?? ''}
+                    value={localSettings?.googleReviewUrl ?? 'https://maps.app.goo.gl/2pB62e6cRxkjJevL6'}
                     onChange={(e) => handleUpdateSetting('googleReviewUrl', e.target.value)}
-                    placeholder="https://maps.google.com/..."
+                    placeholder="https://maps.app.goo.gl/2pB62e6cRxkjJevL6"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   />
                 </div>
@@ -1527,9 +1527,9 @@ const BookingTimeManager = () => {
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">TripAdvisor Listing Link</label>
                   <input
                     type="text"
-                    value={localSettings?.tripadvisorUrl ?? ''}
+                    value={localSettings?.tripadvisorUrl ?? 'https://www.tripadvisor.com/Attraction_Review-g297694-d7939737-Reviews-Bali_Adventours-Denpasar_Bali.html'}
                     onChange={(e) => handleUpdateSetting('tripadvisorUrl', e.target.value)}
-                    placeholder="https://www.tripadvisor.com/..."
+                    placeholder="https://www.tripadvisor.com/Attraction_Review-g297694-d7939737-Reviews-Bali_Adventours-Denpasar_Bali.html"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
                 </div>
@@ -1591,9 +1591,9 @@ const BookingTimeManager = () => {
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Airbnb Host Listing Link</label>
                   <input
                     type="text"
-                    value={localSettings?.airbnbUrl ?? ''}
+                    value={localSettings?.airbnbUrl ?? 'https://www.airbnb.com/experiences/4127629'}
                     onChange={(e) => handleUpdateSetting('airbnbUrl', e.target.value)}
-                    placeholder="https://www.airbnb.com/..."
+                    placeholder="https://www.airbnb.com/experiences/4127629"
                     className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30"
                   />
                 </div>

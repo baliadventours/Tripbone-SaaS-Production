@@ -30,7 +30,20 @@ const defaultSettings: SiteSettings = {
   secondaryColor: '#1F3B1F',
   bodyFont: 'Poppins',
   headingFont: 'Oswald',
-  currency: 'USD'
+  currency: 'USD',
+  externalReviewsEnabled: true,
+  googleReviewsEnabled: true,
+  googleReviewUrl: 'https://maps.app.goo.gl/2pB62e6cRxkjJevL6',
+  googleRating: 4.9,
+  googleReviewCount: 520,
+  tripadvisorEnabled: true,
+  tripadvisorUrl: 'https://www.tripadvisor.com/Attraction_Review-g297694-d7939737-Reviews-Bali_Adventours-Denpasar_Bali.html',
+  tripadvisorRating: 5.0,
+  tripadvisorReviewCount: 342,
+  airbnbEnabled: true,
+  airbnbUrl: 'https://www.airbnb.com/experiences/4127629',
+  airbnbRating: 4.95,
+  airbnbReviewCount: 185
 };
 
 const SettingsContext = createContext<SettingsContextType>({
