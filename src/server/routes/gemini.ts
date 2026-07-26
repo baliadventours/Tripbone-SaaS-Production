@@ -680,43 +680,46 @@ Output MUST be a JSON array of review objects matching the schema.`,
           userName: "Dominic Thorne",
           nationality: "United States",
           rating: 5,
-          comment: "5 stars without a doubt! Booked Bali Adventours for 4 days straight. Ketut was the friendliest driver we could have asked for. Kept our kids entertained and knew all the secret photo spots.",
+          comment: "5 stars without a doubt! Booked Bali Adventours for 4 days straight on Google. Ketut was the friendliest driver we could have asked for. Kept our kids entertained and knew all the secret photo spots.",
           platform: 'google'
         },
         {
           userName: "Emily & James",
           nationality: "Canada",
           rating: 5,
-          comment: "Superhost experience on Airbnb! We did the Ubud monkey forest and rice terrace walk. The local cultural stories from our host made all the difference.",
+          comment: "Superhost experience on Airbnb! We did the Ubud monkey forest and rice terrace walk with Bali Adventours. The local cultural stories from our host made all the difference.",
           platform: 'airbnb'
         },
         {
           userName: "Lars Lindqvist",
           nationality: "Sweden",
           rating: 5,
-          comment: "Best private driver and customized tour in Bali. We visited Sekumpul waterfall and Ulun Danu Beratan. Very honest pricing and luxury clean vehicle.",
+          comment: "Best private driver and customized tour in Bali found via TripAdvisor. We visited Sekumpul waterfall and Ulun Danu Beratan. Very honest pricing and luxury clean vehicle.",
           platform: 'tripadvisor'
         },
         {
           userName: "Marie-Claire Dubois",
           nationality: "France",
           rating: 5,
-          comment: "Super experience d'excursion a Nusa Penida. Organisation feeling, bateau rapide et guide privee au top!",
+          comment: "Super experience d'excursion a Nusa Penida avec Bali Adventours. Organisation feeling, bateau rapide et guide privee au top!",
           platform: 'google'
         },
         {
           userName: "Charlotte M",
           nationality: "Australia",
           rating: 5,
-          comment: "ATV Quad Bike & White Water Rafting Combo. So much fun! Bali Adventours made everything smooth from booking to hotel drop-off.",
-          platform: 'tripadvisor'
+          comment: "ATV Quad Bike & White Water Rafting Combo booked through Airbnb Experiences. So much fun! Bali Adventours made everything smooth from booking to hotel drop-off.",
+          platform: 'airbnb'
         }
       ];
 
       if (platform === 'all') {
         reviews = realBaliAdventoursReviews;
       } else {
-        reviews = realBaliAdventoursReviews.map(r => ({ ...r, platform }));
+        reviews = realBaliAdventoursReviews.filter(r => r.platform === platform);
+        if (reviews.length === 0) {
+          reviews = realBaliAdventoursReviews.map(r => ({ ...r, platform }));
+        }
       }
     }
 

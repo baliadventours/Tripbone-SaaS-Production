@@ -33,7 +33,7 @@ const defaultSettings: SiteSettings = {
   currency: 'USD',
   externalReviewsEnabled: true,
   googleReviewsEnabled: true,
-  googleReviewUrl: 'https://maps.app.goo.gl/2pB62e6cRxkjJevL6',
+  googleReviewUrl: 'https://www.google.com/maps/place/Bali+Adventours/@-8.4655289,115.3440464,18z/data=!4m18!1m9!3m8!1s0x2dd240fe46cca75b:0xbd3a5e58ca91c8b5!2sBali+Adventours!8m2!3d-8.466484!4d115.3451461!9m1!1b1!16s%2Fg%2F11b76fptbd!3m7!1s0x2dd240fe46cca75b:0xbd3a5e58ca91c8b5!8m2!3d-8.466484!4d115.3451461!9m1!1b1!16s%2Fg%2F11b76fptbd?entry=ttu',
   googleRating: 4.9,
   googleReviewCount: 520,
   tripadvisorEnabled: true,
@@ -41,7 +41,7 @@ const defaultSettings: SiteSettings = {
   tripadvisorRating: 5.0,
   tripadvisorReviewCount: 342,
   airbnbEnabled: true,
-  airbnbUrl: 'https://www.airbnb.com/experiences/4127629',
+  airbnbUrl: 'https://www.airbnb.com/experiences/4127629?modal=reviews',
   airbnbRating: 4.95,
   airbnbReviewCount: 185,
   maxDisplayReviews: 6

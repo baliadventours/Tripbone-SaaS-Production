@@ -1030,6 +1030,8 @@ const BookingTimeManager = () => {
     const [localSettings, setLocalSettings] = useState<Partial<SiteSettings>>({});
     const [savingSettings, setSavingSettings] = useState(false);
     const [reviews, setReviews] = useState<Review[]>([]);
+    const [selectedReviewIds, setSelectedReviewIds] = useState<string[]>([]);
+    const [deletingBulk, setDeletingBulk] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
     const [showSourceSettings, setShowSourceSettings] = useState(false);
@@ -1255,6 +1257,54 @@ const BookingTimeManager = () => {
       }
     };
 
+    const handleDeleteSelected = async () => {
+      if (selectedReviewIds.length === 0) return;
+      if (!confirm(`Are you sure you want to permanently delete ${selectedReviewIds.length} selected review(s)?`)) return;
+
+      try {
+        setDeletingBulk(true);
+        const toDelete = reviews.filter(r => selectedReviewIds.includes(r.id));
+        for (const r of toDelete) {
+          const docRef = (r as any).refPath ? doc(db, (r as any).refPath) : doc(db, 'reviews', r.id);
+          await deleteDoc(docRef);
+        }
+        setSelectedReviewIds([]);
+        setSyncSuccessMsg(`Successfully deleted ${toDelete.length} selected review(s)!`);
+        setTimeout(() => setSyncSuccessMsg(null), 5000);
+      } catch (err) {
+        console.error("Bulk delete error:", err);
+        alert("Error deleting selected reviews. Please try again.");
+      } finally {
+        setDeletingBulk(false);
+      }
+    };
+
+    const handleClearAllExternalReviews = async () => {
+      const extList = reviews.filter(r => r.platform || (r as any).userId?.startsWith('ext-') || (r as any).userId?.includes('-sync-'));
+      if (extList.length === 0) {
+        alert("No external/imported reviews found to delete.");
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete all ${extList.length} imported external reviews? This will immediately remove them from the website.`)) return;
+
+      try {
+        setDeletingBulk(true);
+        for (const r of extList) {
+          const docRef = (r as any).refPath ? doc(db, (r as any).refPath) : doc(db, 'reviews', r.id);
+          await deleteDoc(docRef);
+        }
+        setSelectedReviewIds(prev => prev.filter(id => !extList.some(r => r.id === id)));
+        setSyncSuccessMsg(`Successfully deleted all ${extList.length} imported external review(s)!`);
+        setTimeout(() => setSyncSuccessMsg(null), 5000);
+      } catch (err) {
+        console.error("Clear external reviews error:", err);
+        alert("Error clearing external reviews.");
+      } finally {
+        setDeletingBulk(false);
+      }
+    };
+
     const handleModerate = async (review: any, status: 'approved' | 'rejected') => {
       try {
         const docRef = doc(db, review.refPath);
@@ -1359,11 +1409,11 @@ const BookingTimeManager = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   type="button"
                   onClick={() => handleSyncExternalReviews('all')}
-                  disabled={syncingPlatform !== null}
+                  disabled={syncingPlatform !== null || deletingBulk}
                   className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer disabled:opacity-50 transition-all"
                 >
                   {syncingPlatform === 'all' ? (
@@ -1372,6 +1422,16 @@ const BookingTimeManager = () => {
                     <Icons.RefreshCw className="h-3.5 w-3.5" />
                   )}
                   Auto-Sync All Review Links
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearAllExternalReviews}
+                  disabled={deletingBulk || syncingPlatform !== null}
+                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  {deletingBulk ? <Icons.Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icons.Trash2 className="h-3.5 w-3.5 text-red-400" />}
+                  Clear All Imported Reviews
                 </button>
 
                 <div className="flex items-center gap-2 border-l border-slate-800 pl-4">
@@ -1816,20 +1876,89 @@ const BookingTimeManager = () => {
           </form>
         )}
 
+        {/* Bulk Action Toolbar */}
+        {reviews.length > 0 && (
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={reviews.length > 0 && selectedReviewIds.length === reviews.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedReviewIds(reviews.map(r => r.id));
+                    } else {
+                      setSelectedReviewIds([]);
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                />
+                Select All ({reviews.length})
+              </label>
+
+              {selectedReviewIds.length > 0 && (
+                <span className="text-xs font-black text-primary bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100">
+                  {selectedReviewIds.length} Selected
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              {selectedReviewIds.length > 0 && (
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={deletingBulk}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-100 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {deletingBulk ? <Icons.Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icons.Trash2 className="h-3.5 w-3.5" />}
+                  Delete Selected ({selectedReviewIds.length})
+                </button>
+              )}
+
+              <button
+                onClick={handleClearAllExternalReviews}
+                disabled={deletingBulk}
+                className="bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Icons.Trash2 className="h-3.5 w-3.5" />
+                Clear External Reviews
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={cn(
           "grid gap-6",
           viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
         )}>
           {reviews.map(review => {
             const status = (review as any).status || 'pending';
+            const isSelected = selectedReviewIds.includes(review.id);
             return (
               <div key={review.id} className={cn(
-                "bg-white p-8 rounded-[10px] border shadow-sm flex flex-col gap-6 group transition-all",
+                "bg-white p-8 rounded-[10px] border shadow-sm flex flex-col gap-6 group transition-all relative",
                 viewMode === 'list' ? "md:flex-row md:items-start" : "flex-col",
-                status === 'approved' ? "border-orange-100" : status === 'rejected' ? "border-red-100 opacity-60" : "border-amber-200 bg-amber-50/10"
+                status === 'approved' ? "border-orange-100" : status === 'rejected' ? "border-red-100 opacity-60" : "border-amber-200 bg-amber-50/10",
+                isSelected && "ring-2 ring-primary border-primary bg-orange-50/10"
               )}>
+                {/* Selection Checkbox */}
+                <div className="absolute top-4 left-4 z-10">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedReviewIds(prev => [...prev, review.id]);
+                      } else {
+                        setSelectedReviewIds(prev => prev.filter(id => id !== review.id));
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                </div>
+
                 <div className={cn(
-                  "h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden",
+                  "h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden mt-4 md:mt-0",
                   viewMode === 'grid' && "mx-auto"
                 )}>
                   {review.userPhoto ? (
