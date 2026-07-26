@@ -101,19 +101,26 @@ export async function moderateCreemContent(text: string) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey
-      }
+      },
+      timeout: 3000
     });
     // Check if the content is flagged
     if (response.data && (response.data.status === 'rejected' || response.data.flagged === true)) {
-      throw new Error('Content violates Creem safety guidelines and moderation policy.');
+      throw new Error('Content violates safety guidelines and moderation policy.');
     }
     return response.data;
   } catch (error: any) {
-    if (error.message?.includes('violates')) {
+    if (error.message?.includes('violates') || error.message?.includes('safety guidelines')) {
       throw error;
     }
-    const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
-    throw new Error(`Creem.io Moderation Error: ${errorDetails}`);
+    // If Creem API fails or endpoint is unavailable, fallback to local keyword check
+    console.warn(`[Creem Moderation API Warning]: ${error.message}. Performing local safety check.`);
+    const lower = text.toLowerCase();
+    const prohibitedKeywords = ['hate', 'violence', 'illegal', 'harmful', 'nsfw', 'abuse', 'exploit', 'malware', 'weapon'];
+    if (prohibitedKeywords.some(word => lower.includes(word))) {
+      throw new Error('Content violates safety guidelines and moderation policy.');
+    }
+    return { status: 'approved', flagged: false };
   }
 }
 

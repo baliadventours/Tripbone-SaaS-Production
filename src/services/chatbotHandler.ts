@@ -252,7 +252,7 @@ CONVENTIONS:
   }));
 
   const chat = ai.chats.create({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     history,
     config: {
       systemInstruction,
@@ -265,11 +265,23 @@ CONVENTIONS:
     try {
       await moderateCreemContent(typeof lastMessage.parts === 'string' ? lastMessage.parts : JSON.stringify(lastMessage.parts));
     } catch (modErr: any) {
-      console.warn("[Chatbot Moderation Blocked]:", modErr.message);
-      return { text: "I'm sorry, but your message violates our content safety policy and cannot be processed." };
+      if (modErr.message?.includes('violates') || modErr.message?.includes('safety guidelines')) {
+        console.warn("[Chatbot Moderation Blocked]:", modErr.message);
+        return { text: "I'm sorry, but your message violates our content safety policy and cannot be processed." };
+      }
+      console.warn("[Chatbot Moderation Note]:", modErr.message);
     }
   }
-  let result = await chat.sendMessage({ message: lastMessage.parts });
+
+  let result;
+  try {
+    result = await chat.sendMessage({ message: lastMessage.parts });
+  } catch (chatErr: any) {
+    console.error("[Chatbot Gemini API Error]:", chatErr);
+    return { 
+      text: `Halo! I'm here to help you. How can I assist you with booking or tour information for ${brandName}? You can also [chat with us on WhatsApp](${whatsappLink}) anytime!` 
+    };
+  }
   
   const handleFunctionCalls = async (response: any): Promise<any> => {
     const functionCalls = response.functionCalls;
