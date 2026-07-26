@@ -6,45 +6,6 @@ import { Quote, Star, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useSettings } from '../../lib/SettingsContext';
 import ExternalReviewsWidget from './ExternalReviewsWidget';
 
-const DEFAULT_PLATFORM_REVIEWS: Review[] = [
-  {
-    id: 'rev-google-1',
-    userId: 'ext-google-1',
-    userName: 'Sarah Jenkins',
-    userPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    nationality: 'United States',
-    rating: 5,
-    comment: 'Booked our island tour via their Google Maps profile. Absolutely seamless booking and our guide Made was phenomenal!',
-    status: 'approved',
-    platform: 'google',
-    createdAt: new Date(),
-  },
-  {
-    id: 'rev-ta-1',
-    userId: 'ext-ta-1',
-    userName: 'Marcus Vance',
-    userPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    nationality: 'Australia',
-    rating: 5,
-    comment: 'Hands down the best tour operator in Bali! Found them on TripAdvisor and couldn\'t be happier with the Mt Batur sunrise trek.',
-    status: 'approved',
-    platform: 'tripadvisor',
-    createdAt: new Date(),
-  },
-  {
-    id: 'rev-ab-1',
-    userId: 'ext-ab-1',
-    userName: 'Elena Rostova',
-    userPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-    nationality: 'Germany',
-    rating: 5,
-    comment: 'Incredible experience from start to finish! High quality transport, super friendly team, and transparent instant confirmation.',
-    status: 'approved',
-    platform: 'airbnb',
-    createdAt: new Date(),
-  }
-];
-
 export default function ReviewSlider() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [platformFilter, setPlatformFilter] = useState<string>('all');
@@ -71,18 +32,7 @@ export default function ReviewSlider() {
           return timeB - timeA;
         });
       
-      // If Firestore has fewer than 3 reviews, append default platform reviews
-      if (sorted.length === 0) {
-        setReviews(DEFAULT_PLATFORM_REVIEWS);
-      } else {
-        const combined = [...sorted];
-        DEFAULT_PLATFORM_REVIEWS.forEach(defRev => {
-          if (!combined.some(r => r.id === defRev.id)) {
-            combined.push(defRev);
-          }
-        });
-        setReviews(combined);
-      }
+      setReviews(sorted);
     });
     return unsubscribe;
   }, []);

@@ -609,118 +609,114 @@ router.post("/fetch-external-reviews", async (req, res) => {
     const targetUrl = url || (platform === 'tripadvisor'
       ? 'https://www.tripadvisor.com/Attraction_Review-g297694-d7939737-Reviews-Bali_Adventours-Denpasar_Bali.html'
       : platform === 'airbnb'
-      ? 'https://www.airbnb.com/experiences/4127629'
-      : 'https://maps.app.goo.gl/2pB62e6cRxkjJevL6');
+      ? 'https://www.airbnb.com/experiences/4127629?modal=reviews'
+      : 'https://www.google.com/maps/place/Bali+Adventours/@-8.4655289,115.3440464,18z/data=!4m18!1m9!3m8!1s0x2dd240fe46cca75b:0xbd3a5e58ca91c8b5!2sBali+Adventours');
 
-    const prompt = `
-      Search the web for REAL, authentic customer reviews for "Bali Adventours" or the business listed at this link:
-      Platform: ${platform}
-      URL: "${targetUrl}"
-
-      Instructions:
-      - Use Google Search Grounding to find real reviews published by travelers on ${platform} for Bali Adventours.
-      - Extract 4 to 6 authentic reviews.
-      - Return reviewer names, nationality/origin, star ratings (1 to 5), realistic comments, and platform name ('google', 'tripadvisor', or 'airbnb').
-    `;
-
-    let reviews: any[] = [];
+    // Attempt 1: Direct Page Content Scraping
+    let directPageContent = "";
     try {
-      const { GoogleGenAI, Type } = await import("@google/genai");
-      const ai = new GoogleGenAI({
-        apiKey: finalKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      const fetchRes = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9'
+        },
+        signal: AbortSignal.timeout(6000)
       });
-
-      const response = await generateContentWithFallback(ai, {
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: `You are an AI Review Collector. Your job is to extract REAL, genuine traveler reviews for Bali Adventours from ${platform} using Google Search Grounding.
-Output MUST be a JSON array of review objects matching the schema.`,
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                userName: { type: Type.STRING },
-                nationality: { type: Type.STRING },
-                rating: { type: Type.NUMBER },
-                comment: { type: Type.STRING },
-                platform: { type: Type.STRING }
-              },
-              required: ["userName", "rating", "comment", "platform"]
-            }
-          }
-        }
-      });
-
-      let text = response.text || "[]";
-      if (text.includes("```json")) {
-        text = text.split("```json")[1].split("```")[0].trim();
-      } else if (text.includes("```")) {
-        text = text.split("```")[1].split("```")[0].trim();
+      if (fetchRes.ok) {
+        const html = await fetchRes.text();
+        directPageContent = html
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .slice(0, 15000);
       }
-      reviews = JSON.parse(text);
-    } catch (aiErr: any) {
-      console.warn("[Fetch External Reviews AI Grounding Error, using fallback reviews]:", aiErr.message);
+    } catch (e: any) {
+      console.log("[Direct page fetch info]:", e.message);
     }
 
-    if (!Array.isArray(reviews) || reviews.length === 0) {
-      const realBaliAdventoursReviews = [
-        {
-          userName: "Nathan & Rebecca S",
-          nationality: "United Kingdom",
-          rating: 5,
-          comment: "Incredible Mt Batur Sunrise Trek with Bali Adventours! Our driver Wayan picked us up on time at 2:15am. Our mountain guide Made was so attentive and helped us reach the summit safely. Breakfast cooked in volcanic steam was amazing.",
-          platform: 'tripadvisor'
-        },
-        {
-          userName: "Dominic Thorne",
-          nationality: "United States",
-          rating: 5,
-          comment: "5 stars without a doubt! Booked Bali Adventours for 4 days straight on Google. Ketut was the friendliest driver we could have asked for. Kept our kids entertained and knew all the secret photo spots.",
-          platform: 'google'
-        },
-        {
-          userName: "Emily & James",
-          nationality: "Canada",
-          rating: 5,
-          comment: "Superhost experience on Airbnb! We did the Ubud monkey forest and rice terrace walk with Bali Adventours. The local cultural stories from our host made all the difference.",
-          platform: 'airbnb'
-        },
-        {
-          userName: "Lars Lindqvist",
-          nationality: "Sweden",
-          rating: 5,
-          comment: "Best private driver and customized tour in Bali found via TripAdvisor. We visited Sekumpul waterfall and Ulun Danu Beratan. Very honest pricing and luxury clean vehicle.",
-          platform: 'tripadvisor'
-        },
-        {
-          userName: "Marie-Claire Dubois",
-          nationality: "France",
-          rating: 5,
-          comment: "Super experience d'excursion a Nusa Penida avec Bali Adventours. Organisation feeling, bateau rapide et guide privee au top!",
-          platform: 'google'
-        },
-        {
-          userName: "Charlotte M",
-          nationality: "Australia",
-          rating: 5,
-          comment: "ATV Quad Bike & White Water Rafting Combo booked through Airbnb Experiences. So much fun! Bali Adventours made everything smooth from booking to hotel drop-off.",
-          platform: 'airbnb'
-        }
-      ];
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey: finalKey });
 
-      if (platform === 'all') {
-        reviews = realBaliAdventoursReviews;
-      } else {
-        reviews = realBaliAdventoursReviews.filter(r => r.platform === platform);
-        if (reviews.length === 0) {
-          reviews = realBaliAdventoursReviews.map(r => ({ ...r, platform }));
+    let reviews: any[] = [];
+
+    // If direct page text was acquired, extract real reviews from it
+    if (directPageContent && directPageContent.length > 200) {
+      try {
+        const response = await generateContentWithFallback(ai, {
+          model: "gemini-3.5-flash",
+          contents: `Scraped raw web page content for ${platform} (${targetUrl}):\n\n${directPageContent}\n\nTask: Extract 3 to 6 actual, real customer reviews for "Bali Adventours". Output strictly a JSON array of objects with keys: userName, nationality, rating (number 1-5), comment, platform ("${platform}").`,
+          config: {
+            systemInstruction: `You are an expert review parser. Output ONLY a valid JSON array of objects with keys: userName, nationality, rating, comment, platform. Do NOT include markdown code fences or extra words.`
+          }
+        });
+        const rawText = (response.text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+        const match = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const jsonStr = match ? match[0] : rawText;
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          reviews = parsed;
         }
+      } catch (err: any) {
+        console.warn("[Direct content review extraction info]:", err.message);
       }
+    }
+
+    // Attempt 2: If direct scraping yielded no reviews, use Google Search Grounding with proper JSON prompt formatting
+    if (!reviews || reviews.length === 0) {
+      try {
+        const searchPrompt = `Search the web using Google Search for actual, real customer reviews published for the tour operator business "Bali Adventours" in Bali, Indonesia on ${platform} (${targetUrl}).
+
+Find real traveler reviews for Bali Adventours on ${platform}.
+
+For each review, extract:
+- userName: Name of reviewer
+- nationality: Country or origin (e.g. "Australia", "United Kingdom", "United States", "Germany", "France", "Sweden", or "Global Traveler")
+- rating: Integer star rating (1 to 5)
+- comment: The actual text/quote of their review for Bali Adventours
+- platform: "${platform}"
+
+Output MUST be strictly a valid JSON array of review objects. No markdown backticks, no markdown code fence, no commentary before or after.
+Example:
+[{"userName":"Sarah Jenkins","nationality":"Australia","rating":5,"comment":"We booked Mount Batur sunrise trek with Bali Adventours. Wayan was our driver and Made was our guide. Unforgettable experience!","platform":"${platform}"}]
+`;
+
+        const response = await generateContentWithFallback(ai, {
+          model: "gemini-3.5-flash",
+          contents: searchPrompt,
+          config: {
+            systemInstruction: `You are a review search AI. Use Google Search to find real customer reviews for "Bali Adventours" on ${platform}. Output ONLY a raw valid JSON array. Do NOT wrap in \`\`\`json markdown blocks or include additional conversation.`,
+            tools: [{ googleSearch: {} }]
+          }
+        });
+
+        let text = (response.text || "").trim();
+        text = text.replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/\s*```$/, "").trim();
+        const match = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const jsonStr = match ? match[0] : text;
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          reviews = parsed;
+        }
+      } catch (aiErr: any) {
+        console.error("[Search Grounding External Reviews Error]:", aiErr.message);
+      }
+    }
+
+    // Format & validate extracted reviews
+    reviews = (reviews || []).map((r: any) => ({
+      userName: r.userName || 'Verified Traveler',
+      nationality: r.nationality || 'Global Traveler',
+      rating: Math.min(5, Math.max(1, Number(r.rating) || 5)),
+      comment: r.comment || '',
+      platform: r.platform || (platform === 'all' ? 'google' : platform)
+    })).filter((r: any) => r.comment.length > 5);
+
+    if (reviews.length === 0) {
+      return res.status(404).json({
+        error: `Could not fetch live reviews from ${platform}. Please check the review link in settings or try again.`
+      });
     }
 
     res.json({ success: true, reviews });

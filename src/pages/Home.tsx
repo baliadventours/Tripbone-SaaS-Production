@@ -475,7 +475,7 @@ export default function Home() {
         }
       } catch (e) {}
     }
-    return DEFAULT_FALLBACK_REVIEWS;
+    return [];
   });
   const [posts, setPosts] = useState<BlogPost[]>(() => {
     if (typeof window !== "undefined") {
