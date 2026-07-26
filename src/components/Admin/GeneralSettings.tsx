@@ -676,7 +676,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={settings?.topBarEnabled ?? true}
+                      checked={settings?.topBarEnabled ?? false}
                       onChange={(e) => setSettings(s => s ? { ...s, topBarEnabled: e.target.checked } : null)}
                       className="sr-only peer"
                     />
@@ -689,9 +689,9 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Badge / Tagline</label>
                     <input
                       type="text"
-                      value={settings?.topBarBadge ?? 'PROMO 🚀'}
+                      value={settings?.topBarBadge ?? ''}
                       onChange={(e) => setSettings(s => s ? { ...s, topBarBadge: e.target.value } : null)}
-                      placeholder="e.g. PROMO 🚀, NEW UPDATE, LIMITED DEAL"
+                      placeholder="e.g. PROMO 🚀, SPECIAL OFFER, LIMITED DEAL"
                       className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
                     />
                   </div>
@@ -700,9 +700,9 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">CTA Link Text</label>
                     <input
                       type="text"
-                      value={settings?.topBarLinkText ?? 'Get Started'}
+                      value={settings?.topBarLinkText ?? ''}
                       onChange={(e) => setSettings(s => s ? { ...s, topBarLinkText: e.target.value } : null)}
-                      placeholder="e.g. Claim Offer, Learn More, Get Started"
+                      placeholder="e.g. Book Now, View Deals, Contact Us"
                       className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
                     />
                   </div>
@@ -711,9 +711,9 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Announcement / Promotional Message</label>
                     <input
                       type="text"
-                      value={settings?.topBarText ?? 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!'}
+                      value={settings?.topBarText ?? ''}
                       onChange={(e) => setSettings(s => s ? { ...s, topBarText: e.target.value } : null)}
-                      placeholder="Enter announcement text to show at top bar..."
+                      placeholder="e.g. Save 15% on all Mount Batur & Ubud tours this week!"
                       className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
                     />
                   </div>
@@ -722,9 +722,9 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">CTA Redirect URL / Link</label>
                     <input
                       type="text"
-                      value={settings?.topBarLink ?? '/signup'}
+                      value={settings?.topBarLink ?? ''}
                       onChange={(e) => setSettings(s => s ? { ...s, topBarLink: e.target.value } : null)}
-                      placeholder="e.g. /signup, /pricing, or https://example.com"
+                      placeholder="e.g. /tours, /contact, or WhatsApp link"
                       className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
                     />
                   </div>
@@ -735,12 +735,16 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                   <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-2">Live Dark Top Bar Preview</span>
                   <div className="bg-slate-950 text-slate-200 rounded-xl p-3 border border-slate-800 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 overflow-hidden truncate">
-                      <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex-shrink-0">
-                        {settings?.topBarBadge || 'PROMO 🚀'}
-                      </span>
-                      <span className="truncate">{settings?.topBarText || 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!'}</span>
+                      {settings?.topBarBadge && (
+                        <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex-shrink-0">
+                          {settings.topBarBadge}
+                        </span>
+                      )}
+                      <span className="truncate">{settings?.topBarText || 'Your announcement message preview...'}</span>
                     </div>
-                    <span className="font-bold text-cyan-400 underline ml-2 flex-shrink-0">{settings?.topBarLinkText || 'Get Started'} &rarr;</span>
+                    {settings?.topBarLinkText && (
+                      <span className="font-bold text-cyan-400 underline ml-2 flex-shrink-0">{settings.topBarLinkText} &rarr;</span>
+                    )}
                   </div>
                 </div>
               </div>

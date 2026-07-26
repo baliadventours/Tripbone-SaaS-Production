@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, X, Megaphone, Zap } from 'lucide-react';
 import { useSettings } from '../lib/SettingsContext';
+import { useTenant } from '../lib/TenantContext';
 
 interface TopAnnouncementBarProps {
   onDismiss?: () => void;
@@ -10,6 +11,7 @@ interface TopAnnouncementBarProps {
 
 export default function TopAnnouncementBar({ onDismiss, className = '' }: TopAnnouncementBarProps) {
   const { settings, globalBrand } = useSettings();
+  const { isMaster, tenantId } = useTenant();
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('tripbone_topbar_dismissed') === 'true';
@@ -17,10 +19,24 @@ export default function TopAnnouncementBar({ onDismiss, className = '' }: TopAnn
     return false;
   });
 
-  // Priorities: tenant settings > globalBrand > defaults
+  const isTenantWebsite = !isMaster || Boolean(tenantId && tenantId !== 'master');
+  const defaultSaaSMessage = 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!';
+
+  // On tenant websites, NEVER display the top SaaS promotional bar unless the tenant explicitly enabled it with custom text
+  if (isTenantWebsite) {
+    const tenantBarEnabled = settings?.topBarEnabled === true;
+    const customText = settings?.topBarText;
+    const isSaaSPromoText = !customText || customText.includes('Build Your Tour Booking Website') || customText === defaultSaaSMessage;
+
+    if (!tenantBarEnabled || isSaaSPromoText || !customText) {
+      return null;
+    }
+  }
+
+  // Priorities for SaaS platform: tenant settings > globalBrand > defaults
   const enabled = settings?.topBarEnabled ?? globalBrand?.topBarEnabled ?? true;
   const badge = settings?.topBarBadge || globalBrand?.topBarBadge || 'PROMO 🚀';
-  const text = settings?.topBarText || globalBrand?.topBarText || 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!';
+  const text = settings?.topBarText || globalBrand?.topBarText || defaultSaaSMessage;
   const link = settings?.topBarLink || globalBrand?.topBarLink || '/signup';
   const linkText = settings?.topBarLinkText || globalBrand?.topBarLinkText || 'Get Started';
 
