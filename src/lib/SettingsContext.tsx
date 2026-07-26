@@ -43,7 +43,8 @@ const defaultSettings: SiteSettings = {
   airbnbEnabled: true,
   airbnbUrl: 'https://www.airbnb.com/experiences/4127629',
   airbnbRating: 4.95,
-  airbnbReviewCount: 185
+  airbnbReviewCount: 185,
+  maxDisplayReviews: 6
 };
 
 const SettingsContext = createContext<SettingsContextType>({

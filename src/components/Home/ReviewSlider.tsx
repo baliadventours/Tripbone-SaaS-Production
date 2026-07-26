@@ -48,9 +48,10 @@ const DEFAULT_PLATFORM_REVIEWS: Review[] = [
 export default function ReviewSlider() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [platformFilter, setPlatformFilter] = useState<string>('all');
-  const { builderSettings } = useSettings();
+  const { builderSettings, settings } = useSettings();
 
   const styleId = builderSettings?.blocks.find(b => b.id === 'reviews')?.design || 'slider';
+  const maxDisplay = settings?.maxDisplayReviews ? Number(settings.maxDisplayReviews) : 6;
 
   useEffect(() => {
     const q = query(
@@ -169,7 +170,7 @@ export default function ReviewSlider() {
 
       {/* Reviews Grid */}
       <div className="grid md:grid-cols-3 gap-8">
-        {(filteredReviews.length > 0 ? filteredReviews : reviews).map((review) => (
+        {(filteredReviews.length > 0 ? filteredReviews : reviews).slice(0, maxDisplay).map((review) => (
           <div key={review.id} className="bg-gray-950 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-between group hover:-translate-y-1 transition-transform border border-slate-800">
             <div className="absolute top-0 right-0 p-6 opacity-5">
               <Quote className="h-16 w-16 text-white" />

@@ -504,6 +504,7 @@ export interface SiteSettings {
   airbnbUrl?: string;
   airbnbRating?: number;
   airbnbReviewCount?: number;
+  maxDisplayReviews?: number;
 
   // SEO & AI Crawler Settings
   homeTitleFormat?: string; // e.g. "{{siteName}} - Best Bali Tours"

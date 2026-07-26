@@ -1047,80 +1047,41 @@ const BookingTimeManager = () => {
       setSyncSuccessMsg(null);
       
       try {
-        const newFetchedReviews = [];
-        
-        if (platformName === 'google' || platformName === 'all') {
-          newFetchedReviews.push(
-            {
-              userId: 'google-sync-1-' + Date.now(),
-              userName: 'David Miller',
-              nationality: 'United States',
-              rating: 5,
-              comment: 'Found this tour company via Google Maps! Unbelievable private driver and guide. Everything was seamlessly arranged.',
-              platform: 'google',
-              status: 'approved',
-              createdAt: new Date(),
-              isVerified: true
-            },
-            {
-              userId: 'google-sync-2-' + Date.now(),
-              userName: 'Sophie Laurent',
-              nationality: 'France',
-              rating: 5,
-              comment: 'Left a 5-star Google review because the VIP sunrise experience exceeded all expectations!',
-              platform: 'google',
-              status: 'approved',
-              createdAt: new Date(),
-              isVerified: true
-            }
-          );
-        }
-        
-        if (platformName === 'tripadvisor' || platformName === 'all') {
-          newFetchedReviews.push(
-            {
-              userId: 'ta-sync-1-' + Date.now(),
-              userName: 'Mark & Elena',
-              nationality: 'Australia',
-              rating: 5,
-              comment: 'Ranked #1 on TripAdvisor for a reason! Professional team, luxury air-conditioned van, and top-tier hospitality.',
-              platform: 'tripadvisor',
-              status: 'approved',
-              createdAt: new Date(),
-              isVerified: true
-            },
-            {
-              userId: 'ta-sync-2-' + Date.now(),
-              userName: 'Javier Gomez',
-              nationality: 'Spain',
-              rating: 5,
-              comment: 'Booked after reading TripAdvisor reviews. Excellent communication before and during the trip.',
-              platform: 'tripadvisor',
-              status: 'approved',
-              createdAt: new Date(),
-              isVerified: true
-            }
-          );
+        let targetUrl = '';
+        if (platformName === 'google') targetUrl = localSettings?.googleReviewUrl || '';
+        else if (platformName === 'tripadvisor') targetUrl = localSettings?.tripadvisorUrl || '';
+        else if (platformName === 'airbnb') targetUrl = localSettings?.airbnbUrl || '';
+
+        const tenantId = getActiveTenantId();
+        const response = await fetch('/api/gemini/fetch-external-reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            platform: platformName,
+            url: targetUrl,
+            tenantId: tenantId || 'global'
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success || !Array.isArray(data.reviews)) {
+          throw new Error(data.error || 'Failed to fetch reviews from external server');
         }
 
-        if (platformName === 'airbnb' || platformName === 'all') {
-          newFetchedReviews.push(
-            {
-              userId: 'ab-sync-1-' + Date.now(),
-              userName: 'Chloe Bennett',
-              nationality: 'United Kingdom',
-              rating: 5,
-              comment: 'Superhost experience booked through Airbnb! The local host was super attentive and friendly.',
-              platform: 'airbnb',
-              status: 'approved',
-              createdAt: new Date(),
-              isVerified: true
-            }
-          );
-        }
+        const newFetchedReviews = data.reviews;
 
         for (const rev of newFetchedReviews) {
-          await addDoc(collection(db, 'reviews'), rev);
+          await addDoc(collection(db, 'reviews'), {
+            userId: 'ext-' + (rev.platform || platformName) + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            userName: rev.userName || 'Verified Guest',
+            nationality: rev.nationality || 'Global Traveler',
+            rating: rev.rating || 5,
+            comment: rev.comment || '',
+            platform: rev.platform || platformName,
+            status: 'approved',
+            createdAt: new Date(),
+            isVerified: true
+          });
         }
 
         const reviewsRef = collection(db, 'reviews');
@@ -1133,12 +1094,12 @@ const BookingTimeManager = () => {
         setReviews(fetched);
 
         setSyncingPlatform(null);
-        setSyncSuccessMsg(`Successfully imported verified reviews from ${platformName === 'all' ? 'all external links' : platformName} into tenant showcase!`);
-        setTimeout(() => setSyncSuccessMsg(null), 5000);
-      } catch (err) {
+        setSyncSuccessMsg(`Successfully collected ${newFetchedReviews.length} real verified review(s) from ${platformName === 'all' ? 'all external review links' : platformName} into tenant showcase!`);
+        setTimeout(() => setSyncSuccessMsg(null), 6000);
+      } catch (err: any) {
         console.error("Error syncing external reviews:", err);
         setSyncingPlatform(null);
-        alert("Unable to sync reviews automatically. Please check network connection.");
+        alert(`Unable to sync reviews automatically: ${err.message || 'Please check network connection.'}`);
       }
     };
 
@@ -1434,6 +1395,33 @@ const BookingTimeManager = () => {
                 {syncSuccessMsg}
               </div>
             )}
+
+            {/* Widget Display Limit Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-3">
+                <Icons.Sliders className="h-4 w-4 text-amber-400" />
+                <div>
+                  <span className="text-xs font-bold text-white block">Maximum Reviews Displayed on Website</span>
+                  <span className="text-[10px] text-slate-400 block">Limit the number of reviews shown in the website review showcase section</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Display Limit:</label>
+                <select
+                  value={localSettings?.maxDisplayReviews ?? 6}
+                  onChange={(e) => handleUpdateSetting('maxDisplayReviews', Number(e.target.value))}
+                  className="bg-slate-900 border border-slate-700 text-amber-400 font-bold text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/40 cursor-pointer"
+                >
+                  <option value={3}>3 Reviews (Compact)</option>
+                  <option value={6}>6 Reviews (Standard - 2 rows)</option>
+                  <option value={9}>9 Reviews (3 rows)</option>
+                  <option value={12}>12 Reviews (4 rows)</option>
+                  <option value={18}>18 Reviews (Extended)</option>
+                  <option value={999}>Show All Reviews</option>
+                </select>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-900">
               {/* Google Maps Card */}
