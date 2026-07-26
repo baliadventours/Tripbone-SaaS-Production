@@ -227,7 +227,12 @@ export default function SaaSSuperAdmin() {
     linkedinUrl: '',
     facebookUrl: '',
     instagramUrl: '',
-    brandColor: '#1db3cd'
+    brandColor: '#1db3cd',
+    topBarEnabled: true,
+    topBarBadge: 'PROMO 🚀',
+    topBarText: 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!',
+    topBarLink: '/signup',
+    topBarLinkText: 'Get Started'
   });
   const [savingBrand, setSavingBrand] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -4010,6 +4015,71 @@ export default function SaaSSuperAdmin() {
                           />
                         </div>
                         <p className="text-[10px] text-gray-500 mt-1">This color will align branding components dynamically across the marketing site.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Header Announcement Bar Section */}
+                  <div className="border-t border-gray-150 dark:border-gray-800/60 pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Top Dark Navigation & Announcement Bar</h4>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Global top announcement bar for promotions, updates, or announcements.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={globalBrand.topBarEnabled ?? true}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, topBarEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Badge / Tagline</label>
+                        <input
+                          type="text"
+                          value={globalBrand.topBarBadge ?? 'PROMO 🚀'}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, topBarBadge: e.target.value })}
+                          placeholder="PROMO 🚀"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>CTA Link Text</label>
+                        <input
+                          type="text"
+                          value={globalBrand.topBarLinkText ?? 'Get Started'}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, topBarLinkText: e.target.value })}
+                          placeholder="Get Started"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Announcement Message</label>
+                        <input
+                          type="text"
+                          value={globalBrand.topBarText ?? 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!'}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, topBarText: e.target.value })}
+                          placeholder="Announcement message..."
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>CTA Redirect Link</label>
+                        <input
+                          type="text"
+                          value={globalBrand.topBarLink ?? '/signup'}
+                          onChange={(e) => setGlobalBrand({ ...globalBrand, topBarLink: e.target.value })}
+                          placeholder="/signup"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${isDarkMode ? 'bg-slate-950/80 border-gray-800 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                        />
                       </div>
                     </div>
                   </div>

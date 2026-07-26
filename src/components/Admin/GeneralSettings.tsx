@@ -659,6 +659,91 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
             )}
 
             {(activeTab === 'all' || activeTab === 'website') && (
+              <div className="space-y-6 border border-slate-200/80 rounded-[24px] p-6 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-cyan-500" />
+                      <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Top Dark Navigation & Announcement Bar</h3>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Manage promotional messages, announcements, or updates displayed at the top bar across your website.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings?.topBarEnabled ?? true}
+                      onChange={(e) => setSettings(s => s ? { ...s, topBarEnabled: e.target.checked } : null)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Badge / Tagline</label>
+                    <input
+                      type="text"
+                      value={settings?.topBarBadge ?? 'PROMO 🚀'}
+                      onChange={(e) => setSettings(s => s ? { ...s, topBarBadge: e.target.value } : null)}
+                      placeholder="e.g. PROMO 🚀, NEW UPDATE, LIMITED DEAL"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">CTA Link Text</label>
+                    <input
+                      type="text"
+                      value={settings?.topBarLinkText ?? 'Get Started'}
+                      onChange={(e) => setSettings(s => s ? { ...s, topBarLinkText: e.target.value } : null)}
+                      placeholder="e.g. Claim Offer, Learn More, Get Started"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Announcement / Promotional Message</label>
+                    <input
+                      type="text"
+                      value={settings?.topBarText ?? 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!'}
+                      onChange={(e) => setSettings(s => s ? { ...s, topBarText: e.target.value } : null)}
+                      placeholder="Enter announcement text to show at top bar..."
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">CTA Redirect URL / Link</label>
+                    <input
+                      type="text"
+                      value={settings?.topBarLink ?? '/signup'}
+                      onChange={(e) => setSettings(s => s ? { ...s, topBarLink: e.target.value } : null)}
+                      placeholder="e.g. /signup, /pricing, or https://example.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 bg-gray-50 text-gray-900"
+                    />
+                  </div>
+                </div>
+
+                {/* Dark Live Preview */}
+                <div className="pt-3 border-t border-gray-100">
+                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-2">Live Dark Top Bar Preview</span>
+                  <div className="bg-slate-950 text-slate-200 rounded-xl p-3 border border-slate-800 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 overflow-hidden truncate">
+                      <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-black px-2 py-0.5 rounded-full flex-shrink-0">
+                        {settings?.topBarBadge || 'PROMO 🚀'}
+                      </span>
+                      <span className="truncate">{settings?.topBarText || 'Build Your Tour Booking Website in 2 Minutes — AI-Powered & Zero Code!'}</span>
+                    </div>
+                    <span className="font-bold text-cyan-400 underline ml-2 flex-shrink-0">{settings?.topBarLinkText || 'Get Started'} &rarr;</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(activeTab === 'all' || activeTab === 'website') && (
               <div className="space-y-4 border border-gray-100 rounded-[20px] p-6 bg-gray-50/50">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>

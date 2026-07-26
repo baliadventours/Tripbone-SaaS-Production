@@ -3,6 +3,7 @@ import { Link, Outlet } from 'react-router-dom';
 import { Compass, ChevronDown, Sparkles, Box, LayoutTemplate, BriefcaseBusiness, Globe, Bot, Navigation, ShieldCheck, X } from 'lucide-react';
 import { useSettings } from '../../lib/SettingsContext';
 import { useAuth } from '../../lib/AuthContext';
+import TopAnnouncementBar from '../TopAnnouncementBar';
 
 export default function SaaSLayout() {
   const { settings, globalBrand } = useSettings();
@@ -68,9 +69,11 @@ export default function SaaSLayout() {
         .selection-brand-color::selection { background-color: ${brandColor} !important; color: white !important; }
       `}</style>
       
-      {/* Header */}
-      <header className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      {/* Top Fixed Header with Dark Navigation Announcement Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <TopAnnouncementBar />
+        <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/50 transition-all duration-300">
+          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-2.5 cursor-pointer">
               {globalBrand?.logoUrl || settings?.logoURL ? (
@@ -182,6 +185,7 @@ export default function SaaSLayout() {
           </div>
         </div>
       </header>
+      </div>
 
       {/* Main Content Area */}
       <main className="flex-1 w-full relative">

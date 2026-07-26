@@ -8,6 +8,7 @@ import { UserProfile } from '../types';
 import { useSettings } from '../lib/SettingsContext';
 import { useTenant } from '../lib/TenantContext';
 import CurrencySwitcher from './CurrencySwitcher';
+import TopAnnouncementBar from './TopAnnouncementBar';
 import { cn, getSafeImageUrl } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -853,6 +854,9 @@ export default function Header() {
       isCheckout ? "hidden md:block shadow-none" : "shadow-sm md:shadow-none",
       (topNavStyle === 'default' || !topNavStyle) ? "bg-white" : "bg-transparent"
     )}>
+      {/* Top Dark Announcement / Header Navigation Bar */}
+      <TopAnnouncementBar />
+
       {/* Conditionally Render Top Nav */}
       {renderTopNav()}
 

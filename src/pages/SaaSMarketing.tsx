@@ -521,24 +521,23 @@ export default function SaaSMarketing() {
         </section>
 
         {/* --- 3. REFINED & REDESIGNED SIMPLE ONBOARDING STEPS --- */}
-        <section id="how-it-works" className="py-24 md:py-32 bg-slate-900 text-white relative overflow-hidden">
+        <section id="how-it-works" className="py-24 md:py-32 bg-slate-50 text-slate-900 relative overflow-hidden border-b border-slate-200/80">
           {/* Subtle Ambient Background Lighting */}
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-100/50 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-emerald-100/50 rounded-full blur-[120px] pointer-events-none"></div>
 
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             
             {/* Section Header */}
             <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-black tracking-widest uppercase">
-                <Sparkles className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-600 text-xs font-black tracking-widest uppercase">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                 <span>Simple Onboarding</span>
               </span>
-              <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-tight">
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                 Go Live in Just 5 Simple Steps
               </h2>
-              <p className="text-base sm:text-lg text-slate-400 font-normal leading-relaxed">
+              <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed">
                 Zero coding or technical setup required. Our hybrid AI website engine handles the entire build process automatically in under 2 minutes.
               </p>
             </div>
@@ -547,8 +546,8 @@ export default function SaaSMarketing() {
             <div className="relative">
               
               {/* Desktop Connecting Progress Line */}
-              <div className="hidden lg:block absolute top-[52px] left-[8%] right-[8%] h-[3px] bg-slate-800 rounded-full z-0">
-                <div className="h-full w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 rounded-full opacity-60"></div>
+              <div className="hidden lg:block absolute top-[52px] left-[8%] right-[8%] h-[3px] bg-slate-200 rounded-full z-0">
+                <div className="h-full w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 rounded-full opacity-60"></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-4 relative z-10">
@@ -560,9 +559,9 @@ export default function SaaSMarketing() {
                     title: "Create Account", 
                     desc: "Sign up free in seconds with no credit card required.",
                     icon: Rocket,
-                    color: "text-blue-400",
+                    color: "text-blue-600",
                     glow: "group-hover:border-blue-500/50 group-hover:shadow-blue-500/10",
-                    badgeBg: "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                    badgeBg: "bg-blue-50 text-blue-600 border-blue-200"
                   },
                   { 
                     num: "2", 
@@ -570,9 +569,9 @@ export default function SaaSMarketing() {
                     title: "Tell Us About You", 
                     desc: "Describe your destination, tour packages, and brand vibe.",
                     icon: Compass,
-                    color: "text-indigo-400",
+                    color: "text-indigo-600",
                     glow: "group-hover:border-indigo-500/50 group-hover:shadow-indigo-500/10",
-                    badgeBg: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
+                    badgeBg: "bg-indigo-50 text-indigo-600 border-indigo-200"
                   },
                   { 
                     num: "3", 
@@ -580,9 +579,9 @@ export default function SaaSMarketing() {
                     title: "AI Provisioning", 
                     desc: "Full website layout, pages, and booking system generated in 2 minutes.",
                     icon: Zap,
-                    color: "text-amber-400",
+                    color: "text-amber-600",
                     glow: "group-hover:border-amber-500/50 group-hover:shadow-amber-500/10",
-                    badgeBg: "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                    badgeBg: "bg-amber-50 text-amber-600 border-amber-200"
                   },
                   { 
                     num: "4", 
@@ -590,9 +589,9 @@ export default function SaaSMarketing() {
                     title: "Connect Domain", 
                     desc: "Link your custom business domain with automated SSL.",
                     icon: Globe,
-                    color: "text-cyan-400",
+                    color: "text-cyan-600",
                     glow: "group-hover:border-cyan-500/50 group-hover:shadow-cyan-500/10",
-                    badgeBg: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+                    badgeBg: "bg-cyan-50 text-cyan-600 border-cyan-200"
                   },
                   { 
                     num: "5", 
@@ -600,9 +599,9 @@ export default function SaaSMarketing() {
                     title: "Start Taking Bookings", 
                     desc: "Accept instant credit card payments & send automated WhatsApp vouchers.",
                     icon: CheckCircle2,
-                    color: "text-emerald-400",
+                    color: "text-emerald-600",
                     glow: "group-hover:border-emerald-500/50 group-hover:shadow-emerald-500/10",
-                    badgeBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                    badgeBg: "bg-emerald-50 text-emerald-600 border-emerald-200"
                   }
                 ].map((item, idx) => {
                   const IconComponent = item.icon;
@@ -613,32 +612,32 @@ export default function SaaSMarketing() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: idx * 0.1 }}
-                      className={`group relative bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-700/80 p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${item.glow}`}
+                      className={`group relative bg-white rounded-2xl border border-slate-200/90 p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${item.glow}`}
                     >
                       <div>
                         {/* Circle Step Number Indicator Header */}
                         <div className="flex items-center justify-between mb-6">
-                          <div className={`w-12 h-12 rounded-2xl ${item.badgeBg} border flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110 duration-300 shadow-inner`}>
+                          <div className={`w-12 h-12 rounded-2xl ${item.badgeBg} border flex items-center justify-center font-black text-lg transition-transform group-hover:scale-110 duration-300 shadow-xs`}>
                             <IconComponent className="w-5 h-5" />
                           </div>
-                          <span className="text-2xl font-black text-slate-600 font-mono group-hover:text-slate-400 transition-colors">
+                          <span className="text-2xl font-black text-slate-300 font-mono group-hover:text-slate-500 transition-colors">
                             {item.stepTag}
                           </span>
                         </div>
 
                         {/* Title */}
-                        <h3 className="text-lg font-black text-white mb-2 tracking-tight group-hover:text-cyan-300 transition-colors">
+                        <h3 className="text-lg font-black text-slate-900 mb-2 tracking-tight group-hover:text-blue-600 transition-colors">
                           {item.title}
                         </h3>
 
                         {/* Description */}
-                        <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
                           {item.desc}
                         </p>
                       </div>
 
                       {/* Step Tag Footer */}
-                      <div className="pt-6 mt-6 border-t border-slate-700/50 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                      <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono text-slate-400">
                         <span>STEP {item.num} OF 5</span>
                         <span className={`font-bold ${item.color}`}>Ready in 2m</span>
                       </div>
@@ -652,13 +651,13 @@ export default function SaaSMarketing() {
 
             {/* Bottom Callout Bar */}
             <div className="mt-16 text-center">
-              <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-slate-800/90 border border-slate-700 px-8 py-4 rounded-full shadow-xl">
-                <span className="text-sm font-medium text-slate-300">
+              <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-white border border-slate-200 px-8 py-4 rounded-full shadow-lg">
+                <span className="text-sm font-medium text-slate-700">
                   Ready to launch your tour website today?
                 </span>
                 <button
                   onClick={() => navigate('/signup')}
-                  className="bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 text-slate-900 font-black text-sm px-6 py-2.5 rounded-full transition-all cursor-pointer shadow-lg hover:scale-105 active:scale-95 flex items-center gap-2"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-black text-sm px-6 py-2.5 rounded-full transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
                   <span>Get Started Free</span>
                   <ArrowRight className="w-4 h-4" />
@@ -669,15 +668,20 @@ export default function SaaSMarketing() {
           </div>
         </section>
 
-        {/* --- 4. EVERYTHING YOU NEED TO RUN YOUR TOUR BUSINESS (Features Grid) --- */}
-        <section id="features" className="py-24 md:py-32 bg-slate-50/50 border-y border-slate-200/50">
-          <div className="max-w-7xl mx-auto px-6">
+        {/* --- 4. EVERYTHING YOU NEED TO RUN YOUR TOUR BUSINESS (Features Grid - DARK THEME) --- */}
+        <section id="features" className="py-24 md:py-32 bg-slate-900 text-white relative overflow-hidden border-y border-slate-800">
+          {/* Ambient Lighting */}
+          <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
             
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 border border-indigo-200/50 px-3.5 py-1.5 rounded-full mb-4 inline-block">
+              <span className="text-xs font-black text-cyan-400 uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1.5 rounded-full mb-4 inline-block">
                 ALL-IN-ONE PLATFORM
               </span>
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-4">
                 Everything You Need to Run <br />Your Tour Business
               </h2>
             </div>
@@ -686,67 +690,67 @@ export default function SaaSMarketing() {
               {[
                 { 
                   icon: Layout, 
-                  color: "text-blue-500", 
-                  bg: "bg-blue-50", 
+                  color: "text-cyan-400", 
+                  bg: "bg-cyan-500/10 border border-cyan-500/20", 
                   title: "AI Website Builder", 
                   desc: "Generate your complete website in minutes with zero code." 
                 },
                 { 
                   icon: Map, 
-                  color: "text-indigo-500", 
-                  bg: "bg-indigo-50", 
+                  color: "text-indigo-400", 
+                  bg: "bg-indigo-500/10 border border-indigo-500/20", 
                   title: "AI Tour Creator", 
                   desc: "Create professional tour pages instantly with AI-generated content." 
                 },
                 { 
                   icon: Sparkles, 
-                  color: "text-amber-500", 
-                  bg: "bg-amber-50", 
+                  color: "text-amber-400", 
+                  bg: "bg-amber-500/10 border border-amber-500/20", 
                   title: "Booking Engine", 
                   desc: "Online bookings with real-time availability management." 
                 },
                 { 
                   icon: CreditCard, 
-                  color: "text-emerald-500", 
-                  bg: "bg-emerald-50", 
+                  color: "text-emerald-400", 
+                  bg: "bg-emerald-500/10 border border-emerald-500/20", 
                   title: "Online Payments", 
                   desc: "Stripe, PayPal, Bank Transfer and more payment options." 
                 },
                 { 
                   icon: MessageCircle, 
-                  color: "text-emerald-600", 
-                  bg: "bg-emerald-50", 
+                  color: "text-emerald-400", 
+                  bg: "bg-emerald-500/10 border border-emerald-500/20", 
                   title: "WhatsApp Automation", 
                   desc: "Automatically notify customers and deliver tickets via WhatsApp." 
                 },
                 { 
                   icon: Mail, 
-                  color: "text-rose-500", 
-                  bg: "bg-rose-50", 
+                  color: "text-rose-400", 
+                  bg: "bg-rose-500/10 border border-rose-500/20", 
                   title: "Email Automation", 
                   desc: "Booking confirmations and reminders sent automatically." 
                 },
                 { 
                   icon: FileText, 
-                  color: "text-purple-500", 
-                  bg: "bg-purple-50", 
+                  color: "text-purple-400", 
+                  bg: "bg-purple-500/10 border border-purple-500/20", 
                   title: "SEO Content Generator", 
                   desc: "AI writes SEO blogs that attract organic traffic automatically." 
                 },
                 { 
                   icon: BarChart, 
-                  color: "text-cyan-500", 
-                  bg: "bg-cyan-50", 
+                  color: "text-sky-400", 
+                  bg: "bg-sky-500/10 border border-sky-500/20", 
                   title: "Dashboard & Reports", 
                   desc: "Track bookings, revenue and customers in one place." 
                 },
               ].map((feature, i) => (
-                <div key={i} className="bg-white p-8 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                <div key={i} className="bg-slate-800/80 p-8 rounded-2xl border border-slate-700/80 shadow-md hover:shadow-2xl hover:border-slate-600 hover:-translate-y-1 transition-all duration-300">
                   <div className={`w-12 h-12 rounded-xl ${feature.bg} flex items-center justify-center mb-6`}>
                     <feature.icon className={`w-6 h-6 ${feature.color}`} />
                   </div>
-                  <h3 className="text-lg font-black text-slate-900 mb-2 tracking-tight">{feature.title}</h3>
-                  <p className="text-slate-500 text-xs leading-relaxed">{feature.desc}</p>
+                  <h3 className="text-lg font-black text-white mb-2 tracking-tight">{feature.title}</h3>
+                  <p className="text-slate-400 text-xs leading-relaxed">{feature.desc}</p>
                 </div>
               ))}
             </div>

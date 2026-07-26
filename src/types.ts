@@ -478,6 +478,13 @@ export interface SiteSettings {
   facebookUrl?: string;
   twitterUrl?: string;
   tiktokUrl?: string;
+  // Top Announcement & Header Navigation Bar Settings
+  topBarEnabled?: boolean;
+  topBarBadge?: string;
+  topBarText?: string;
+  topBarLink?: string;
+  topBarLinkText?: string;
+
   // SEO & AI Crawler Settings
   homeTitleFormat?: string; // e.g. "{{siteName}} - Best Bali Tours"
   pageTitleFormat?: string; // e.g. "{{title}} | {{siteName}}"
