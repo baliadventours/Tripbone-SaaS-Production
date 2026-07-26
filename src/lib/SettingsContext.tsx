@@ -44,7 +44,9 @@ const defaultSettings: SiteSettings = {
   airbnbUrl: 'https://www.airbnb.com/experiences/4127629?modal=reviews',
   airbnbRating: 4.95,
   airbnbReviewCount: 185,
-  maxDisplayReviews: 6
+  maxDisplayReviews: 6,
+  elfsightEnabled: true,
+  elfsightEmbedCode: `<script src="https://elfsightcdn.com/platform.js" async></script>\n<div class="elfsight-app-f42c2859-6759-4fed-9af6-fba72d93a9f6" data-elfsight-app-lazy></div>`
 };
 
 const SettingsContext = createContext<SettingsContextType>({

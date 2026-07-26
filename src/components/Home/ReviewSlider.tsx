@@ -5,6 +5,7 @@ import { Review } from '../../types';
 import { Quote, Star, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useSettings } from '../../lib/SettingsContext';
 import ExternalReviewsWidget from './ExternalReviewsWidget';
+import ElfsightWidget from './ElfsightWidget';
 
 export default function ReviewSlider() {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -96,70 +97,81 @@ export default function ReviewSlider() {
         }}
       />
 
+      {/* Elfsight Live Widget Embed */}
+      {settings?.elfsightEnabled !== false && settings?.elfsightEmbedCode && (
+        <div className="mb-10 w-full">
+          <ElfsightWidget embedCode={settings.elfsightEmbedCode} />
+        </div>
+      )}
+
       {/* Filter Tabs */}
-      <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
-        {[
-          { id: 'all', label: 'All Reviews' },
-          { id: 'google', label: 'Google Maps' },
-          { id: 'tripadvisor', label: 'TripAdvisor' },
-          { id: 'airbnb', label: 'Airbnb' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setPlatformFilter(tab.id)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              platformFilter === tab.id
-                ? 'bg-slate-900 text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {reviews.length > 0 && (
+        <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+          {[
+            { id: 'all', label: 'All Reviews' },
+            { id: 'google', label: 'Google Maps' },
+            { id: 'tripadvisor', label: 'TripAdvisor' },
+            { id: 'airbnb', label: 'Airbnb' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setPlatformFilter(tab.id)}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                platformFilter === tab.id
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Reviews Grid */}
-      <div className="grid md:grid-cols-3 gap-8">
-        {(filteredReviews.length > 0 ? filteredReviews : reviews).slice(0, maxDisplay).map((review) => (
-          <div key={review.id} className="bg-gray-950 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-between group hover:-translate-y-1 transition-transform border border-slate-800">
-            <div className="absolute top-0 right-0 p-6 opacity-5">
-              <Quote className="h-16 w-16 text-white" />
-            </div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-3.5 w-3.5 ${i < (review.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-800'}`} 
-                    />
-                  ))}
+      {reviews.length > 0 && (
+        <div className="grid md:grid-cols-3 gap-8">
+          {(filteredReviews.length > 0 ? filteredReviews : reviews).slice(0, maxDisplay).map((review) => (
+            <div key={review.id} className="bg-gray-950 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-between group hover:-translate-y-1 transition-transform border border-slate-800">
+              <div className="absolute top-0 right-0 p-6 opacity-5">
+                <Quote className="h-16 w-16 text-white" />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`h-3.5 w-3.5 ${i < (review.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-800'}`} 
+                      />
+                    ))}
+                  </div>
+                  {renderPlatformBadge(review.platform)}
                 </div>
-                {renderPlatformBadge(review.platform)}
+
+                <p className="text-sm text-white/90 leading-relaxed mb-8 line-clamp-4 italic">
+                  "{review.comment}"
+                </p>
               </div>
 
-              <p className="text-sm text-white/90 leading-relaxed mb-8 line-clamp-4 italic">
-                "{review.comment}"
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4 pt-6 border-t border-white/10">
-              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm border border-primary/20 overflow-hidden shrink-0">
-                {review.userPhoto ? (
-                  <img src={review.userPhoto} className="w-full h-full object-cover" alt={review.userName} />
-                ) : (
-                  review.userName?.charAt(0) || 'U'
-                )}
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-white font-black text-sm tracking-wider truncate">{review.userName}</h4>
-                <p className="text-gray-400 font-bold text-[10px] tracking-widest truncate">{review.nationality || 'Verified traveler'}</p>
+              <div className="flex items-center gap-4 pt-6 border-t border-white/10">
+                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-sm border border-primary/20 overflow-hidden shrink-0">
+                  {review.userPhoto ? (
+                    <img src={review.userPhoto} className="w-full h-full object-cover" alt={review.userName} />
+                  ) : (
+                    review.userName?.charAt(0) || 'U'
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-white font-black text-sm tracking-wider truncate">{review.userName}</h4>
+                  <p className="text-gray-400 font-bold text-[10px] tracking-widest truncate">{review.nationality || 'Verified traveler'}</p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

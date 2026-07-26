@@ -506,6 +506,10 @@ export interface SiteSettings {
   airbnbReviewCount?: number;
   maxDisplayReviews?: number;
 
+  // Elfsight Integration
+  elfsightEnabled?: boolean;
+  elfsightEmbedCode?: string;
+
   // SEO & AI Crawler Settings
   homeTitleFormat?: string; // e.g. "{{siteName}} - Best Bali Tours"
   pageTitleFormat?: string; // e.g. "{{title}} | {{siteName}}"

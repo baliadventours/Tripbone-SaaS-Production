@@ -1456,6 +1456,59 @@ const BookingTimeManager = () => {
               </div>
             )}
 
+            {/* Elfsight Live Review Widget Integration Card */}
+            <div className="bg-slate-950 p-5 rounded-xl border border-amber-500/30 shadow-lg space-y-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 font-black text-xs shadow-md">
+                    ES
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      Elfsight Review Widget Code Integration
+                      <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                        Supports Airbnb, Google & TripAdvisor
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Paste your widget HTML embed code or App ID from Elfsight to display live customer reviews on your website.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={localSettings?.elfsightEnabled ?? true}
+                    onChange={(e) => handleUpdateSetting('elfsightEnabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Elfsight Widget Embed Code or App ID
+                </label>
+                <textarea
+                  rows={2}
+                  value={localSettings?.elfsightEmbedCode ?? ''}
+                  onChange={(e) => handleUpdateSetting('elfsightEmbedCode', e.target.value)}
+                  placeholder={`Paste Elfsight code snippet e.g.:\n<script src="https://static.elfsight.com/platform/platform.js" async></script>\n<div class="elfsight-app-12345678-abcd-1234-abcd-1234567890ab" data-elfsight-app-lazy></div>`}
+                  className="w-full px-3 py-2.5 rounded-xl text-xs font-mono bg-slate-900 border border-slate-700 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y"
+                />
+                <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                  <span>Paste full Elfsight HTML code or class (e.g., <code className="text-slate-400">elfsight-app-xxxx</code>).</span>
+                  {localSettings?.elfsightEmbedCode && (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <Icons.CheckCircle2 className="h-3 w-3" /> Elfsight Code Loaded
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Widget Display Limit Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
               <div className="flex items-center gap-3">
