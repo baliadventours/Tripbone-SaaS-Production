@@ -169,80 +169,82 @@ export default function ReviewSlider() {
         }}
       />
 
-      {/* Elfsight Live Widget Embed */}
-      {settings?.elfsightEnabled !== false && settings?.elfsightEmbedCode && (
+      {/* Elfsight Live Widget Embed OR Fallback Custom Reviews */}
+      {settings?.elfsightEnabled !== false && settings?.elfsightEmbedCode ? (
         <div className="mb-6 sm:mb-10 w-full">
           <ElfsightWidget embedCode={settings.elfsightEmbedCode} />
         </div>
-      )}
-
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap">
-        {[
-          { id: 'all', label: 'All Reviews' },
-          { id: 'google', label: 'Google Maps' },
-          { id: 'tripadvisor', label: 'TripAdvisor' },
-          { id: 'airbnb', label: 'Airbnb' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setPlatformFilter(tab.id)}
-            className={`px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-              platformFilter === tab.id
-                ? 'bg-slate-900 text-white shadow-md scale-105'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Reviews Grid & Mobile Carousel */}
-      <div className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-6 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-        {displayList.slice(0, maxDisplay).map((review) => (
-          <div 
-            key={review.id} 
-            className="w-[280px] sm:w-[320px] md:w-auto shrink-0 snap-center md:snap-align-none bg-gray-950 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl flex flex-col justify-between group hover:-translate-y-1 transition-transform border border-slate-800"
-          >
-            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-              <Quote className="h-16 w-16 text-white" />
-            </div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4 gap-2">
-                <div className="flex items-center gap-1 shrink-0">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-3.5 w-3.5 ${i < (review.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-800'}`} 
-                    />
-                  ))}
-                </div>
-                {renderPlatformBadge(review.platform)}
-              </div>
-
-              <p className="text-xs sm:text-sm text-white/90 leading-relaxed mb-6 sm:mb-8 line-clamp-4 italic">
-                "{review.comment}"
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 pt-4 sm:pt-6 border-t border-white/10 mt-auto">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-xs sm:text-sm border border-primary/20 overflow-hidden shrink-0">
-                {review.userPhoto ? (
-                  <img src={review.userPhoto} className="w-full h-full object-cover" alt={review.userName} />
-                ) : (
-                  review.userName?.charAt(0) || 'U'
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h4 className="text-white font-black text-xs sm:text-sm tracking-wider truncate">{review.userName}</h4>
-                <p className="text-gray-400 font-bold text-[9px] sm:text-[10px] tracking-widest truncate">{review.nationality || 'Verified traveler'}</p>
-              </div>
-            </div>
+      ) : (
+        <>
+          {/* Filter Tabs */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap">
+            {[
+              { id: 'all', label: 'All Reviews' },
+              { id: 'google', label: 'Google Maps' },
+              { id: 'tripadvisor', label: 'TripAdvisor' },
+              { id: 'airbnb', label: 'Airbnb' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setPlatformFilter(tab.id)}
+                className={`px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  platformFilter === tab.id
+                    ? 'bg-slate-900 text-white shadow-md scale-105'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
+
+          {/* Reviews Grid & Mobile Carousel */}
+          <div className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-6 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            {displayList.slice(0, maxDisplay).map((review) => (
+              <div 
+                key={review.id} 
+                className="w-[280px] sm:w-[320px] md:w-auto shrink-0 snap-center md:snap-align-none bg-gray-950 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl flex flex-col justify-between group hover:-translate-y-1 transition-transform border border-slate-800"
+              >
+                <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                  <Quote className="h-16 w-16 text-white" />
+                </div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4 gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          className={`h-3.5 w-3.5 ${i < (review.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-800'}`} 
+                        />
+                      ))}
+                    </div>
+                    {renderPlatformBadge(review.platform)}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-white/90 leading-relaxed mb-6 sm:mb-8 line-clamp-4 italic">
+                    "{review.comment}"
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 pt-4 sm:pt-6 border-t border-white/10 mt-auto">
+                  <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black text-xs sm:text-sm border border-primary/20 overflow-hidden shrink-0">
+                    {review.userPhoto ? (
+                      <img src={review.userPhoto} className="w-full h-full object-cover" alt={review.userName} />
+                    ) : (
+                      review.userName?.charAt(0) || 'U'
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-white font-black text-xs sm:text-sm tracking-wider truncate">{review.userName}</h4>
+                    <p className="text-gray-400 font-bold text-[9px] sm:text-[10px] tracking-widest truncate">{review.nationality || 'Verified traveler'}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }

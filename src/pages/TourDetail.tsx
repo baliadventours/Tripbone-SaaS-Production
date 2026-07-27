@@ -248,8 +248,16 @@ export default function TourDetail() {
         <meta name="twitter:title" content={tourTitle} />
         <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content={tour.featuredImage || tour.gallery?.[0] || settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
-        {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
-        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
       </Helmet>
       {isMobile ? (
         <div className="block md:hidden w-full">

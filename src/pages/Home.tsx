@@ -1634,24 +1634,28 @@ export default function Home() {
           content={settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80"}
         />
 
-        <script type="application/ld+json">
-          {JSON.stringify(organizationSchema)}
-        </script>
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            url: siteUrl,
-            potentialAction: {
-              "@type": "SearchAction",
-              target: {
-                "@type": "EntryPoint",
-                urlTemplate: `${siteUrl}/tours?search={search_term_string}`,
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              url: siteUrl,
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: `${siteUrl}/tours?search={search_term_string}`,
+                },
+                "query-input": "required name=search_term_string",
               },
-              "query-input": "required name=search_term_string",
-            },
-          })}
-        </script>
+            }),
+          }}
+        />
       </Helmet>
 
       {/* Mobile Redesigned View Layout */}

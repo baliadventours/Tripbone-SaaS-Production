@@ -284,8 +284,16 @@ export default function BlogPostDetail() {
         <meta name="twitter:title" content={blogTitle} />
         <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content={post.featuredImage || settings?.ogImage || settings?.heroImage || settings?.logoURL || "https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp"} />
-        {blogSchema && <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>}
-        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
+        {blogSchema && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
+          />
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
       </Helmet>
       {/* Breadcrumbs */}
       <nav className="pt-24 pb-6 bg-white border-b border-gray-50">

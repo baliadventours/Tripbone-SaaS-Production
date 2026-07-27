@@ -251,9 +251,10 @@ export default function AIHub() {
         <meta name="description" content="Access our official Bali Travel Advisory and live Expert Concierge. Vetted locally for vacationers, fully structured with Schema.org JSON-LD for AI search engines and crawler agents." />
         <meta name="keywords" content="Bali Travel Advisory, Verified Bali Guides, Bali travel hacks, Bali FAQ schema, Bali local concierge, Bali Adventours" />
         {faqs.length > 0 && (
-          <script type="application/ld+json">
-            {JSON.stringify(faqSchemaMarkup)}
-          </script>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchemaMarkup) }}
+          />
         )}
       </Helmet>
 
