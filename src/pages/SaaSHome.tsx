@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db, collection, getDocs, addDoc, setDoc, updateDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
 import { getDoc, onSnapshot } from 'firebase/firestore';
-import { formatPlanName, getPlanPrice } from '../lib/planUtils';
+import { formatPlanName, getPlanPrice, getNextBillingDate } from '../lib/planUtils';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useTenant } from '../lib/TenantContext';
 import { Helmet } from 'react-helmet-async';
@@ -1226,6 +1226,29 @@ export default function SaaSHome() {
     }
   };
 
+  const handleRenewSubscription = () => {
+    if (!activeWorkspace) return;
+
+    const unpaidInvoice = getDynamicInvoices.find(inv => inv.status === 'UNPAID' || inv.status === 'PENDING') || getDynamicInvoices[0] || {
+      id: `${activeWorkspace.id}_INV-RENEW`,
+      no: `INV-${Math.floor(100 + Math.random() * 899)}`,
+      tenantId: activeWorkspace.id,
+      plan: activeWorkspace.plan || 'starter',
+      billingInterval: activeWorkspace.billingInterval || 'monthly',
+      amount: `$${getPlanPrice(activeWorkspace.plan, activeWorkspace.billingInterval, plans)}.00`,
+      dueDate: getNextBillingDate({ createdAt: new Date().toISOString(), billingInterval: activeWorkspace.billingInterval || 'monthly' }),
+      status: 'UNPAID'
+    };
+
+    setPaymentModalInvoice(unpaidInvoice);
+    setPaymentModalMethod('creem');
+    setPaymentModalTripayChannel('QRISC');
+    setPaymentModalProofFile(null);
+    setPaymentModalProofNotes('');
+    setPaymentModalSuccess(false);
+    setPaymentModalOpen(true);
+  };
+
   const handleInvoicePaymentSubmit = async () => {
     if (!activeWorkspace || !paymentModalInvoice) return;
 
@@ -1277,18 +1300,19 @@ export default function SaaSHome() {
 
     try {
       setPaymentModalLoading(true);
-      const planLower = (activeWorkspace.plan || '').toLowerCase();
+      const targetPlanSlug = (paymentModalInvoice?.plan || activeWorkspace.plan || '').toLowerCase();
+      const targetInterval = (paymentModalInvoice?.billingInterval || activeWorkspace.billingInterval || 'monthly').toLowerCase();
       
-      // Find matching plan and its productId
+      // Find matching plan and its productId/creemProductId
       const matchedPlan = plans.find(p => 
-        p.slug?.toLowerCase() === planLower && 
-        (p.interval || 'monthly') === (activeWorkspace.billingInterval || 'monthly')
-      ) || plans.find(p => p.slug?.toLowerCase() === planLower);
+        (p.slug?.toLowerCase() === targetPlanSlug || p.id === targetPlanSlug) && 
+        (p.interval || 'monthly').toLowerCase() === targetInterval
+      ) || plans.find(p => p.slug?.toLowerCase() === targetPlanSlug || p.id === targetPlanSlug);
       
-      const productId = matchedPlan?.productId || 'prod_starter_123';
+      const productId = matchedPlan?.productId || matchedPlan?.creemProductId || paymentModalInvoice?.productId || 'prod_starter_123';
       const email = currentUser?.email || '';
       
-      const successUrl = `${window.location.origin}/?upgrade_success=true&tenant=${activeWorkspace.slug}&plan=${activeWorkspace.plan}&interval=${activeWorkspace.billingInterval || 'monthly'}`;
+      const successUrl = `${window.location.origin}/?upgrade_success=true&tenant=${activeWorkspace.slug}&plan=${targetPlanSlug}&interval=${targetInterval}`;
 
       if (paymentModalMethod === 'creem') {
         const session = await createCreemCheckoutSession({
@@ -3591,15 +3615,14 @@ export default function SaaSHome() {
                       <p className="text-xs text-gray-400 max-w-md">
                         To update billing methods, add card details, view credit details, or cancel your active package, visit the billing portal.
                       </p>
-                      <a
-                        href="https://creem.io"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={handleRenewSubscription}
                         className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-colors flex items-center space-x-1.5 shrink-0 cursor-pointer"
                       >
                         <span>Renewal Subscription</span>
                         <ArrowRight className="w-3.5 h-3.5" />
-                      </a>
+                      </button>
                     </div>
                   </div>
 

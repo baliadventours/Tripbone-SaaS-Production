@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { useTenant } from '../../lib/TenantContext';
-import { LayoutTemplate, Menu, Save, Loader2, Image as ImageIcon, Plus, Trash2, X, AlertCircle, Upload, LayoutGrid, Star, Heart, ArrowUp, ArrowDown, Search, Check, Sparkles } from 'lucide-react';
+import { LayoutTemplate, Menu, Save, Loader2, Image as ImageIcon, Plus, Trash2, X, AlertCircle, Upload, LayoutGrid, Star, Heart, ArrowUp, ArrowDown, Search, Check, Sparkles, Mail, CheckCircle } from 'lucide-react';
 import { uploadImage } from '../../lib/imgbb';
 import { cn } from '../../lib/utils';
 
@@ -1738,9 +1738,9 @@ export default function WebsiteBuilder() {
                       </div>
                     </div>
 
-                    {pageEditorState.featuredImages.length > 0 ? (
+                    {(pageEditorState.featuredImages || []).length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {pageEditorState.featuredImages.map((img, idx) => (
+                        {(pageEditorState.featuredImages || []).map((img, idx) => (
                           <div key={idx} className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
                             <img src={img} className="w-full h-full object-cover" alt="Gallery item" />
                             <button

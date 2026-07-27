@@ -8,6 +8,8 @@ export async function createCreemCheckoutSession(params: {
   successUrl: string;
   email: string;
   tenantId: string;
+  apiKey?: string;
+  mode?: string;
 }) {
   // If running in browser, call the Vercel serverless function to avoid CORS
   if (typeof window !== 'undefined') {
@@ -21,8 +23,8 @@ export async function createCreemCheckoutSession(params: {
     return data;
   }
 
-  // Server-side logic (Vercel Node.js environment)
-  const rawApiKey = typeof process !== 'undefined' ? (process as any).env?.CREEM_API_KEY || (process as any).env?.VITE_CREEM_API_KEY : '';
+  // Server-side logic
+  const rawApiKey = params.apiKey || (typeof process !== 'undefined' ? (process as any).env?.CREEM_API_KEY || (process as any).env?.VITE_CREEM_API_KEY : '');
   const apiKey = typeof rawApiKey === 'string' ? rawApiKey.trim() : '';
 
   const isFallback = !apiKey || 
@@ -39,7 +41,7 @@ export async function createCreemCheckoutSession(params: {
     };
   }
 
-  const rawMode = typeof process !== 'undefined' ? (process as any).env?.CREEM_MODE || (process as any).env?.VITE_CREEM_MODE : '';
+  const rawMode = params.mode || (typeof process !== 'undefined' ? (process as any).env?.CREEM_MODE || (process as any).env?.VITE_CREEM_MODE : 'test');
   const isLive = rawMode === 'live';
   const url = isLive ? CREEM_LIVE_URL : CREEM_TEST_URL;
 
@@ -62,6 +64,7 @@ export async function createCreemCheckoutSession(params: {
     return response.data;
   } catch (error: any) {
     const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    console.error(`[Creem API Error]:`, errorDetails);
     throw new Error(`Creem.io Checkout Error: ${errorDetails}`);
   }
 }

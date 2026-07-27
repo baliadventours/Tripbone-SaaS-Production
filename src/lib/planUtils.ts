@@ -92,3 +92,35 @@ export function getPlanPrice(planInput?: string, interval: string = 'monthly', p
   }
   return isLifetime ? 249 : isAnnual ? 490 : 49;
 }
+
+export function getNextBillingDate(tenant: any): string {
+  if (!tenant) return 'N/A';
+  let createdAtStr = tenant.createdAt;
+  if (!createdAtStr) {
+    const fallbackDate = new Date();
+    fallbackDate.setMonth(fallbackDate.getMonth() - 2);
+    createdAtStr = fallbackDate.toISOString();
+  }
+  const createdDate = new Date(createdAtStr);
+  if (isNaN(createdDate.getTime())) {
+    return 'N/A';
+  }
+  
+  const billingInterval = tenant.billingInterval || 'monthly';
+  if (billingInterval === 'lifetime') return 'Never (Lifetime)';
+  
+  const now = new Date();
+  let nextBilling = new Date(createdDate);
+  
+  let safetyCounter = 0;
+  while (nextBilling <= now && safetyCounter < 100) {
+    safetyCounter++;
+    if (billingInterval === 'annual' || billingInterval === 'annually' || billingInterval === 'yearly') {
+      nextBilling.setFullYear(nextBilling.getFullYear() + 1);
+    } else {
+      nextBilling.setMonth(nextBilling.getMonth() + 1);
+    }
+  }
+  
+  return nextBilling.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}

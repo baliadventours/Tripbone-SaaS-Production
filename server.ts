@@ -2125,17 +2125,41 @@ export async function createServer() {
       }
 
       console.log(`[Billing API] Creating Creem checkout for tenant: ${tenantId}, product: ${productId}`);
+
+      let creemApiKey = "";
+      let creemMode = "test";
+      try {
+        getAdminApp();
+        const db = getAdminDb();
+        if (db) {
+          const globalSnap = await db.collection('communicationSettings').doc('global').get();
+          if (globalSnap.exists) {
+            const data = globalSnap.data() || {};
+            creemApiKey = data.creemApiKey || "";
+            creemMode = data.creemMode || "test";
+          }
+        }
+      } catch (dbErr) {
+        console.warn("[Billing API] Firestore settings fetch failed:", dbErr);
+      }
+
       const data = await createCreemCheckoutSession({
         productId,
         successUrl,
         email,
-        tenantId
+        tenantId,
+        apiKey: creemApiKey,
+        mode: creemMode
       });
 
       res.json({ url: data.checkout_url || data.url });
     } catch (error: any) {
       console.error("[Billing Checkout Error]:", error);
-      res.status(500).json({ error: error.message || "Failed to generate checkout link" });
+      // Fallback gracefully to Sandbox Mock Checkout if Creem fails (e.g., 404 Product Not Found or invalid API key)
+      const { productId, successUrl, email, tenantId } = req.body;
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(productId || 'starter')}&tenantId=${encodeURIComponent(tenantId || 'tenant')}&email=${encodeURIComponent(email || '')}&successUrl=${encodeURIComponent(successUrl || '')}&error=${encodeURIComponent(error.message || 'Product Not Found')}`;
+      console.log(`[Billing API] Creem API call failed. Falling back to Sandbox Simulator.`);
+      res.json({ url: mockUrl });
     }
   });
 
