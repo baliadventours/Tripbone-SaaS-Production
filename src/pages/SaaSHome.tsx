@@ -425,7 +425,7 @@ export default function SaaSHome() {
       console.warn("Realtime invoices listener warning:", err);
     });
 
-    // Subscribe to real-time billing plans & saas packages
+    // Subscribe to real-time billing plans
     const unsubPlans = onSnapshot(collection(db, 'billingPlans'), (snapshot) => {
       const plansList: any[] = [];
       snapshot.forEach((snap) => {
@@ -439,26 +439,10 @@ export default function SaaSHome() {
       console.warn("Realtime billing plans listener warning:", err);
     });
 
-    const unsubPackages = onSnapshot(collection(db, 'saas_packages'), (snapshot) => {
-      if (!snapshot.empty) {
-        const pkgList: any[] = [];
-        snapshot.forEach((snap) => {
-          const data = snap.data();
-          pkgList.push({ id: snap.id, ...data, interval: data.interval || 'monthly' });
-        });
-        if (pkgList.length > 0) {
-          setPlans(pkgList);
-        }
-      }
-    }, (err) => {
-      console.warn("Realtime saas_packages listener warning:", err);
-    });
-
     return () => {
       unsubTenants();
       unsubInvoices();
       unsubPlans();
-      unsubPackages();
     };
   }, []);
 
@@ -1000,7 +984,7 @@ export default function SaaSHome() {
       const invId = `${activeWsId}_INV-101`;
       const createdDate = activeWorkspace.createdAt ? new Date(activeWorkspace.createdAt) : new Date();
       const trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const planName = formatPlanName(activeWorkspace.plan, plans);
+      const planName = formatPlanName(activeWorkspace.plan, plans, activeWorkspace.billingInterval);
       const planPrice = getPlanPrice(activeWorkspace.plan, activeWorkspace.billingInterval, plans);
 
       const isLifetime = activeWorkspace.billingInterval === 'lifetime' || String(activeWorkspace.plan || '').toLowerCase().includes('lifetime');
@@ -1149,7 +1133,7 @@ export default function SaaSHome() {
 
     try {
       if (!currentUser) throw new Error('Not authenticated');
-      const productId = upgradeModalPlan.productId || 'default_product'; 
+      const productId = upgradeModalPlan.creemProductId || upgradeModalPlan.productId || upgradeModalPlan.creem_product_id || upgradeModalPlan.id || 'default_product'; 
       const email = currentUser.email || '';
       
       const successUrl = `${window.location.origin}/?upgrade_success=true&tenant=${activeWorkspace.slug}&plan=${upgradeModalPlan.slug}&interval=${upgradeModalPlan.interval || 'monthly'}`;

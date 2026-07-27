@@ -4,23 +4,39 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
   const raw = (planInput || '').trim();
   const lower = raw.toLowerCase();
 
-  // 1. Clean base name by removing trailing/embedded interval words, hyphens, parentheses, and "Plan"
-  let baseName = raw
-    .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
-    .trim();
+  // 1. Determine Interval Label
+  let intervalLabel = '';
+  if (intervalInput) {
+    const rawInt = intervalInput.trim().toLowerCase();
+    if (rawInt === 'annual' || rawInt === 'annually' || rawInt === 'yearly') intervalLabel = 'Annual';
+    else if (rawInt === 'lifetime') intervalLabel = 'Lifetime';
+    else intervalLabel = 'Monthly';
+  } else {
+    if (lower.includes('lifetime')) intervalLabel = 'Lifetime';
+    else if (lower.includes('annual') || lower.includes('yearly') || lower.includes('annually')) intervalLabel = 'Annual';
+    else intervalLabel = 'Monthly';
+  }
 
-  // 2. Direct match in packagesList if baseName matches package name/slug
+  // 2. Direct match in packagesList
+  let matchedName = '';
   if (packagesList && packagesList.length > 0 && raw) {
     const matched = packagesList.find(p =>
       p.id === raw ||
-      p.slug?.toLowerCase() === raw.toLowerCase() ||
+      p.slug?.toLowerCase() === lower ||
       p.creemProductId === raw ||
-      (p.name && p.name.toLowerCase() === raw.toLowerCase())
+      (p.name && p.name.toLowerCase() === lower)
     );
     if (matched && matched.name) {
-      baseName = matched.name.replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '').trim();
+      matchedName = matched.name;
     }
   }
+
+  let baseName = matchedName || raw;
+
+  // Clean base name by removing trailing/embedded interval words and "plan"
+  baseName = baseName
+    .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+    .trim();
 
   if (!baseName) {
     if (lower.includes('starter')) baseName = 'Starter';
@@ -30,25 +46,14 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
     else if (raw) baseName = raw.charAt(0).toUpperCase() + raw.slice(1);
     else baseName = 'Starter';
   } else {
-    // Capitalize first letter if it's all lowercase
-    if (baseName === baseName.toLowerCase()) {
-      baseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
-    }
+    baseName = baseName
+      .split(/[\s\-_]+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   }
 
-  // 3. Determine Interval Label
-  // Primary priority: explicit intervalInput
-  let intervalLabel = '';
-  if (intervalInput) {
-    const rawInt = intervalInput.trim().toLowerCase();
-    if (rawInt === 'annual' || rawInt === 'annually' || rawInt === 'yearly') intervalLabel = 'Annual';
-    else if (rawInt === 'lifetime') intervalLabel = 'Lifetime';
-    else intervalLabel = 'Monthly';
-  } else {
-    // Fallback: search in raw plan string
-    if (lower.includes('lifetime')) intervalLabel = 'Lifetime';
-    else if (lower.includes('annual') || lower.includes('yearly') || lower.includes('annually')) intervalLabel = 'Annual';
-    else intervalLabel = 'Monthly';
+  if (baseName.toLowerCase().endsWith(intervalLabel.toLowerCase())) {
+    return baseName;
   }
 
   return `${baseName} ${intervalLabel}`;
@@ -59,45 +64,61 @@ export function getPlanPrice(planInput?: string, interval: string = 'monthly', p
   const raw = planInput.trim();
   const lower = raw.toLowerCase();
 
-  const cleanBase = lower
-    .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
-    .trim() || 'starter';
-
   const normInterval = (interval || 'monthly').toLowerCase();
   const isAnnual = normInterval === 'annual' || normInterval === 'annually' || normInterval === 'yearly';
   const isLifetime = normInterval === 'lifetime';
   const targetIntervalStr = isLifetime ? 'lifetime' : isAnnual ? 'annual' : 'monthly';
 
   if (packagesList && packagesList.length > 0) {
-    // Exact match by clean slug + interval
-    const matchedExact = packagesList.find(p =>
-      (p.slug?.toLowerCase().includes(cleanBase) || p.name?.toLowerCase().includes(cleanBase) || p.id === raw) &&
-      (p.interval || 'monthly').toLowerCase() === targetIntervalStr
-    );
-    if (matchedExact && matchedExact.price !== undefined) {
-      return matchedExact.price;
-    }
-
-    const matchedAny = packagesList.find(p =>
+    // 1. Direct match by ID, slug, or creemProductId
+    const matchedDirect = packagesList.find(p =>
       p.id === raw ||
       p.slug?.toLowerCase() === lower ||
       p.creemProductId === raw
     );
-    if (matchedAny && matchedAny.price !== undefined) {
-      return matchedAny.price;
+    if (matchedDirect && typeof matchedDirect.price === 'number') {
+      return matchedDirect.price;
+    }
+
+    // 2. Clean base match + interval match
+    const cleanBase = lower
+      .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+      .trim();
+
+    const matchedExact = packagesList.find(p =>
+      cleanBase &&
+      (p.slug?.toLowerCase().includes(cleanBase) || p.name?.toLowerCase().includes(cleanBase)) &&
+      (p.interval || 'monthly').toLowerCase() === targetIntervalStr
+    );
+    if (matchedExact && typeof matchedExact.price === 'number') {
+      return matchedExact.price;
+    }
+
+    // 3. Any match by cleanBase
+    const matchedBase = packagesList.find(p =>
+      cleanBase &&
+      (p.slug?.toLowerCase().includes(cleanBase) || p.name?.toLowerCase().includes(cleanBase))
+    );
+    if (matchedBase && typeof matchedBase.price === 'number') {
+      return matchedBase.price;
     }
   }
+
+  // Fallback defaults
+  const cleanBase = lower
+    .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+    .trim();
 
   if (cleanBase.includes('enterprise') || cleanBase.includes('agency')) {
     return isLifetime ? 2499 : isAnnual ? 4990 : 499;
   }
   if (cleanBase.includes('business')) {
-    return isLifetime ? 999 : isAnnual ? 1990 : 199;
+    return isLifetime ? 1999 : isAnnual ? 999 : 199;
   }
   if (cleanBase.includes('professional') || cleanBase.includes('pro')) {
-    return isLifetime ? 499 : isAnnual ? 990 : 99;
+    return isLifetime ? 999 : isAnnual ? 499 : 99;
   }
-  return isLifetime ? 249 : isAnnual ? 490 : 49;
+  return isLifetime ? 499 : isAnnual ? 199 : 49;
 }
 
 export function getNextBillingDate(tenant: any): string {

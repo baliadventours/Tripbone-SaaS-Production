@@ -2679,43 +2679,166 @@ export async function createServer() {
     }
   });
 
-  // API Route: Creem.io Webhook Receiver
-  app.get(["/api/billing/webhook", "/api/billing/creem-webhook", "/api/creem/webhook"], (req: any, res: any) => {
-    res.status(200).json({ status: "active", message: "Creem.io Webhook Endpoint is operational" });
-  });
+  // API Route: Creem.io Universal Webhook Receiver (supports GET/POST/HEAD/OPTIONS across all path variations)
+  const creemWebhookPaths = [
+    "/api/billing/webhook",
+    "/api/billing/webhook/",
+    "/api/billing/creem-webhook",
+    "/api/billing/creem-webhook/",
+    "/api/creem/webhook",
+    "/api/creem/webhook/",
+    "/api/creem-webhook",
+    "/api/creem-webhook/",
+    "/api/webhook",
+    "/api/webhook/",
+    "/api/webhooks",
+    "/api/webhooks/",
+    "/webhook",
+    "/webhook/",
+    "/creem-webhook",
+    "/creem-webhook/",
+    "/creem/webhook",
+    "/creem/webhook/"
+  ];
 
-  app.post(["/api/billing/webhook", "/api/billing/webhook/", "/api/billing/creem-webhook", "/api/creem/webhook"], async (req: any, res: any) => {
+  app.all(creemWebhookPaths, async (req: any, res: any) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+      return res.status(200).json({ status: "active", message: "Creem.io Webhook Endpoint is operational" });
+    }
+
     try {
       const event = req.body || {};
-      const eventType = event.type || event.event || 'test';
-      const data = event.data || event.payload || {};
+      const eventType = (event.type || event.event || 'test').toLowerCase();
+      const data = event.data || event.payload || event.object || {};
       const metadata = data.metadata || event.metadata || {};
-      const tenantId = metadata.tenantId || metadata.tenant_id;
+      let tenantId = metadata.tenantId || metadata.tenant_id;
 
-      console.log(`[Creem Webhook] Received event: "${eventType}" for Tenant: "${tenantId || 'none (test/ping)'}"`);
-
-      if (!tenantId) {
-        console.log(`[Creem Webhook] Test ping or event without tenantId received. Returning 200 OK.`);
-        return res.status(200).json({ success: true, message: "Webhook endpoint reachable" });
-      }
+      console.log(`[Creem Webhook] Received event: "${eventType}" for Tenant: "${tenantId || 'none (checking fallback)'}"`);
 
       getAdminApp();
       const db = getAdminDb();
 
+      // Search tenant by customer email or metadata email/slug if tenantId is missing
+      if (!tenantId && db) {
+        const searchEmail = (data.customer?.email || data.customer_email || data.email || metadata.email || '').toLowerCase().trim();
+        const searchSlug = (metadata.tenant || metadata.slug || '').toLowerCase().trim();
+
+        if (searchEmail) {
+          try {
+            const snap = await db.collection('tenants').where('email', '==', searchEmail).get();
+            if (!snap.empty) {
+              tenantId = snap.docs[0].id;
+            } else {
+              const snapAdmin = await db.collection('tenants').where('adminEmail', '==', searchEmail).get();
+              if (!snapAdmin.empty) {
+                tenantId = snapAdmin.docs[0].id;
+              }
+            }
+          } catch (err) {
+            console.warn("[Creem Webhook] Email search failed:", err);
+          }
+        }
+        if (!tenantId && searchSlug) {
+          try {
+            const snapSlug = await db.collection('tenants').where('slug', '==', searchSlug).get();
+            if (!snapSlug.empty) {
+              tenantId = snapSlug.docs[0].id;
+            }
+          } catch (err) {
+            console.warn("[Creem Webhook] Slug search failed:", err);
+          }
+        }
+      }
+
+      if (!tenantId) {
+        console.log(`[Creem Webhook] Test ping or event without matching tenantId received. Returning 200 OK.`);
+        return res.status(200).json({ success: true, message: "Webhook endpoint reachable" });
+      }
+
+      const isActivation = eventType.includes('active') || 
+                           eventType.includes('completed') || 
+                           eventType.includes('created') || 
+                           eventType.includes('succeeded') || 
+                           eventType.includes('paid');
+
+      const isCancellation = eventType.includes('canceled') || 
+                             eventType.includes('cancelled') || 
+                             eventType.includes('expired');
+
+      const isPastDue = eventType.includes('past_due');
+
       let updatePayload: any = {};
-      if (eventType === 'subscription.active' || eventType === 'checkout.completed') {
+
+      if (isActivation) {
+        const rawProductId = data.product_id || data.plan_id || data.product || metadata.productId || metadata.plan || '';
+        let newPlanSlug = metadata.plan || 'starter';
+        let newInterval = metadata.interval || 'monthly';
+        let newPrice = 49;
+
+        if (db && rawProductId) {
+          try {
+            const pkgSnap = await db.collection('billingPlans').get();
+            let foundPkg: any = null;
+            pkgSnap.forEach(doc => {
+              const p = doc.data();
+              if (p.creemProductId === rawProductId || doc.id === rawProductId || p.slug === rawProductId) {
+                foundPkg = { id: doc.id, ...p };
+              }
+            });
+
+            if (foundPkg) {
+              newPlanSlug = foundPkg.slug || foundPkg.id;
+              newInterval = foundPkg.interval || 'monthly';
+              newPrice = foundPkg.price || 49;
+            } else if (rawProductId.toLowerCase().includes('professional') || rawProductId.toLowerCase().includes('pro')) {
+              newPlanSlug = 'professional';
+              newPrice = 99;
+            } else if (rawProductId.toLowerCase().includes('business')) {
+              newPlanSlug = 'business';
+              newPrice = 199;
+            }
+          } catch (err) {
+            console.warn("[Creem Webhook] Package lookup error:", err);
+          }
+        }
+
         updatePayload = {
           status: 'active',
-          subscriptionId: data.id || null,
-          plan: data.plan_id || data.product_id || metadata.plan || 'starter',
+          subscriptionId: data.id || data.subscription_id || data.subscription || null,
+          plan: newPlanSlug,
+          billingInterval: newInterval,
           updatedAt: new Date().toISOString()
         };
-      } else if (eventType === 'subscription.canceled' || eventType === 'subscription.expired') {
+
+        // Create/Update paid invoice record
+        if (db) {
+          try {
+            const invId = `INV-${Date.now().toString().slice(-6)}`;
+            const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            await db.collection('invoices').doc(invId).set({
+              id: invId,
+              tenantId: tenantId,
+              no: invId,
+              invoiceDate: dateStr,
+              dueDate: dateStr,
+              amount: `$${newPrice}.00`,
+              status: 'Paid',
+              plan: newPlanSlug,
+              billingInterval: newInterval,
+              paymentMethod: 'Creem.io',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (invErr) {
+            console.warn("[Creem Webhook] Invoice record creation warning:", invErr);
+          }
+        }
+      } else if (isCancellation) {
         updatePayload = {
           status: 'suspended',
           updatedAt: new Date().toISOString()
         };
-      } else if (eventType === 'subscription.past_due') {
+      } else if (isPastDue) {
         updatePayload = {
           status: 'past_due',
           updatedAt: new Date().toISOString()
@@ -2724,10 +2847,10 @@ export async function createServer() {
 
       if (Object.keys(updatePayload).length > 0 && db) {
         await db.collection('tenants').doc(tenantId).update(updatePayload);
-        console.log(`[Creem Webhook] Updated Firestore tenant ${tenantId} to status: ${updatePayload.status}`);
+        console.log(`[Creem Webhook] Updated Firestore tenant ${tenantId} to plan: "${updatePayload.plan || 'current'}" (${updatePayload.billingInterval || 'current'}), status: ${updatePayload.status}`);
       }
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, message: "Webhook processed successfully" });
     } catch (error: any) {
       console.error("[Creem Webhook Error]:", error);
       return res.status(200).json({ success: true, warning: error.message });
