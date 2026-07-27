@@ -27,6 +27,14 @@ export async function createCreemCheckoutSession(params: {
   const rawApiKey = params.apiKey || (typeof process !== 'undefined' ? (process as any).env?.CREEM_API_KEY || (process as any).env?.VITE_CREEM_API_KEY : '');
   const apiKey = typeof rawApiKey === 'string' ? rawApiKey.trim() : '';
 
+  // Sanitize successUrl to ensure it is a valid URL
+  let cleanSuccessUrl = params.successUrl || '';
+  try {
+    cleanSuccessUrl = new URL(params.successUrl).toString();
+  } catch (e) {
+    cleanSuccessUrl = encodeURI(params.successUrl);
+  }
+
   const isFallback = !apiKey || 
     apiKey.toLowerCase().includes('placeholder') || 
     apiKey.toLowerCase().includes('your_') ||
@@ -34,7 +42,7 @@ export async function createCreemCheckoutSession(params: {
 
   if (isFallback) {
     console.log(`[Creem Service] No valid CREEM_API_KEY configured. Falling back to Sandbox Mock Checkout.`);
-    const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId)}&tenantId=${encodeURIComponent(params.tenantId)}&email=${encodeURIComponent(params.email)}&successUrl=${encodeURIComponent(params.successUrl)}`;
+    const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId)}&tenantId=${encodeURIComponent(params.tenantId)}&email=${encodeURIComponent(params.email)}&successUrl=${encodeURIComponent(cleanSuccessUrl)}`;
     return {
       checkout_url: mockUrl,
       url: mockUrl
@@ -47,7 +55,7 @@ export async function createCreemCheckoutSession(params: {
 
   const payload = {
     product_id: params.productId,
-    success_url: params.successUrl,
+    success_url: cleanSuccessUrl,
     metadata: {
       tenantId: params.tenantId,
       email: params.email
@@ -61,7 +69,13 @@ export async function createCreemCheckoutSession(params: {
         'x-api-key': apiKey
       }
     });
-    return response.data;
+    const sessionData = response.data || {};
+    const finalUrl = sessionData.checkout_url || sessionData.checkoutUrl || sessionData.url || sessionData.checkout_session_url || sessionData.pay_url;
+    return {
+      ...sessionData,
+      url: finalUrl,
+      checkout_url: finalUrl
+    };
   } catch (error: any) {
     const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
     console.error(`[Creem API Error]:`, errorDetails);

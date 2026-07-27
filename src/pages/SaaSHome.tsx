@@ -1300,19 +1300,22 @@ export default function SaaSHome() {
 
     try {
       setPaymentModalLoading(true);
-      const targetPlanSlug = (paymentModalInvoice?.plan || activeWorkspace.plan || '').toLowerCase();
-      const targetInterval = (paymentModalInvoice?.billingInterval || activeWorkspace.billingInterval || 'monthly').toLowerCase();
+      const targetRawPlan = (paymentModalInvoice?.plan || activeWorkspace?.plan || 'starter').toLowerCase();
+      const cleanPlanSlug = targetRawPlan
+        .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+        .trim() || 'starter';
+      const targetInterval = (paymentModalInvoice?.billingInterval || activeWorkspace?.billingInterval || 'monthly').toLowerCase();
       
       // Find matching plan and its productId/creemProductId
       const matchedPlan = plans.find(p => 
-        (p.slug?.toLowerCase() === targetPlanSlug || p.id === targetPlanSlug) && 
+        (p.slug?.toLowerCase() === cleanPlanSlug || p.slug?.toLowerCase().includes(cleanPlanSlug) || p.id === cleanPlanSlug) && 
         (p.interval || 'monthly').toLowerCase() === targetInterval
-      ) || plans.find(p => p.slug?.toLowerCase() === targetPlanSlug || p.id === targetPlanSlug);
+      ) || plans.find(p => p.slug?.toLowerCase() === cleanPlanSlug || p.id === cleanPlanSlug);
       
       const productId = matchedPlan?.productId || matchedPlan?.creemProductId || paymentModalInvoice?.productId || 'prod_starter_123';
       const email = currentUser?.email || '';
       
-      const successUrl = `${window.location.origin}/?upgrade_success=true&tenant=${activeWorkspace.slug}&plan=${targetPlanSlug}&interval=${targetInterval}`;
+      const successUrl = `${window.location.origin}/?upgrade_success=true&tenant=${encodeURIComponent(activeWorkspace?.slug || '')}&plan=${encodeURIComponent(cleanPlanSlug)}&interval=${encodeURIComponent(targetInterval)}`;
 
       if (paymentModalMethod === 'creem') {
         const session = await createCreemCheckoutSession({
@@ -2884,7 +2887,7 @@ export default function SaaSHome() {
                   )}>
                     <Sparkles className="w-5 h-5 text-amber-500" />
                     <span>
-                      {activeWorkspace?.plan || 'Starter'}
+                      {formatPlanName(activeWorkspace?.plan, plans, activeWorkspace?.billingInterval)}
                       {(() => {
                         const wsStatus = getWorkspaceStatus(activeWorkspace);
                         if (wsStatus === 'trial') return ' (Trial)';
@@ -3238,7 +3241,7 @@ export default function SaaSHome() {
                                   <td className="py-4 font-bold text-indigo-500">#{invoice.no || invoice.id}</td>
                                   <td className="py-4 font-medium">
                                     <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 font-mono text-[10px] uppercase font-bold">
-                                      {formatPlanName(invoice.plan || activeWorkspace?.plan, plans)} ({invoice.billingInterval || activeWorkspace?.billingInterval || 'monthly'})
+                                      {formatPlanName(invoice.plan || activeWorkspace?.plan, plans, invoice.billingInterval || activeWorkspace?.billingInterval)}
                                     </span>
                                   </td>
                                   <td className="py-4 font-medium">
@@ -3445,7 +3448,7 @@ export default function SaaSHome() {
                             </a>
                           </td>
                           <td className="py-4 px-4 font-bold capitalize">
-                            {workspace.plan || 'Starter'}
+                            {formatPlanName(workspace.plan, plans, workspace.billingInterval)}
                           </td>
                           <td className="py-4 px-4 capitalize">
                             {workspace.billingInterval || 'Monthly'}
@@ -3508,15 +3511,7 @@ export default function SaaSHome() {
                       )}>
                         <span className="text-[10px] text-gray-400 uppercase font-mono tracking-wider font-bold">Selected Plan</span>
                         <p className={cn("text-base font-bold mt-1 capitalize", isDarkMode ? "text-white" : "text-gray-800")}>
-                          {(() => {
-                            const billingInterval = activeWorkspace?.billingInterval || 'monthly';
-                            const planSlug = activeWorkspace?.plan || 'starter';
-                            const matchedPlan = plans.find(p => 
-                              p.slug?.toLowerCase() === planSlug.toLowerCase() && 
-                              (p.interval || 'monthly') === billingInterval
-                            ) || plans.find(p => p.slug?.toLowerCase() === planSlug.toLowerCase());
-                            return matchedPlan ? `${matchedPlan.name} (${billingInterval})` : `${planSlug} (${billingInterval})`;
-                          })()}
+                          {formatPlanName(activeWorkspace?.plan, plans, activeWorkspace?.billingInterval || 'monthly')}
                         </p>
                       </div>
                       <div className={cn(
@@ -3527,30 +3522,9 @@ export default function SaaSHome() {
                         <p className={cn("text-base font-bold mt-1", isDarkMode ? "text-white" : "text-gray-800")}>
                           {(() => {
                             const billingInterval = activeWorkspace?.billingInterval || 'monthly';
-                            const planSlug = activeWorkspace?.plan || 'starter';
-                            const matchedPlan = plans.find(p => 
-                              p.slug?.toLowerCase() === planSlug.toLowerCase() && 
-                              (p.interval || 'monthly') === billingInterval
-                            ) || plans.find(p => p.slug?.toLowerCase() === planSlug.toLowerCase());
-                            
+                            const planPrice = getPlanPrice(activeWorkspace?.plan, billingInterval, plans);
                             const intervalLabel = billingInterval === 'lifetime' ? 'lifetime' : billingInterval === 'annual' ? 'yr' : 'mo';
-                            
-                            if (matchedPlan) {
-                              const displayPrice = matchedPlan.price;
-                              return typeof displayPrice === 'number' ? `$${displayPrice}.00 / ${intervalLabel}` : displayPrice || `$0.00 / ${intervalLabel}`;
-                            }
-                            
-                            let fallbackPrice = 49;
-                            if (planSlug === 'business') {
-                              fallbackPrice = billingInterval === 'lifetime' ? 999 : billingInterval === 'annual' ? 1990 : 199;
-                            } else if (planSlug === 'professional') {
-                              fallbackPrice = billingInterval === 'lifetime' ? 499 : billingInterval === 'annual' ? 990 : 99;
-                            } else if (planSlug === 'enterprise') {
-                              fallbackPrice = billingInterval === 'lifetime' ? 2499 : billingInterval === 'annual' ? 4990 : 499;
-                            } else {
-                              fallbackPrice = billingInterval === 'lifetime' ? 249 : billingInterval === 'annual' ? 490 : 49;
-                            }
-                            return `$${fallbackPrice}.00 / ${intervalLabel}`;
+                            return `$${planPrice}.00 / ${intervalLabel}`;
                           })()}
                         </p>
                       </div>
@@ -4352,7 +4326,7 @@ export default function SaaSHome() {
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-semibold text-gray-500">Plan Details</span>
                         <span className={cn("font-bold text-xs capitalize", isDarkMode ? "text-slate-200" : "text-gray-800")}>
-                          {activeWorkspace?.plan} Plan ({activeWorkspace?.billingInterval || 'monthly'})
+                          {formatPlanName(paymentModalInvoice?.plan || activeWorkspace?.plan, plans, paymentModalInvoice?.billingInterval || activeWorkspace?.billingInterval)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center mb-2">
