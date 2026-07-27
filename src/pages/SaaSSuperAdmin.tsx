@@ -117,6 +117,7 @@ export default function SaaSSuperAdmin() {
   >('overview');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // UI States
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -1998,7 +1999,10 @@ export default function SaaSSuperAdmin() {
     const isActive = activeTab === tabName;
     return (
       <button
-        onClick={() => setActiveTab(tabName)}
+        onClick={() => {
+          setActiveTab(tabName);
+          setIsMobileSidebarOpen(false);
+        }}
         title={label}
         className={`w-full flex items-center justify-between ${
           isSidebarCollapsed ? 'justify-center px-2' : 'px-4'
@@ -2017,9 +2021,9 @@ export default function SaaSSuperAdmin() {
             className="w-4 h-4 shrink-0 transition-colors" 
             style={{ color: isActive ? brandColor : 'currentColor' }} 
           />
-          {!isSidebarCollapsed && <span>{label}</span>}
+          {(!isSidebarCollapsed || isMobileSidebarOpen) && <span>{label}</span>}
         </div>
-        {!isSidebarCollapsed && hasBadge && badgeValue !== undefined && (
+        {(!isSidebarCollapsed || isMobileSidebarOpen) && hasBadge && badgeValue !== undefined && (
           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${
             isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
           }`}>
@@ -2030,8 +2034,115 @@ export default function SaaSSuperAdmin() {
     );
   };
 
+  const renderSidebarNav = (collapsed: boolean) => (
+    <div className="space-y-4 overflow-y-auto pr-1 scrollbar-hide pb-10 flex-1">
+      {/* OVERVIEW */}
+      <div className="space-y-0.5">
+        {!collapsed && (
+          <p className="px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 mt-4 text-left">Overview</p>
+        )}
+        {renderSidebarItem('overview', 'Command Center', Zap)}
+      </div>
+
+      {/* NETWORK & SITES */}
+      <div className="space-y-0.5">
+        {!collapsed ? (
+          <button onClick={() => toggleMenu('network')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Network & Sites</p>
+            {expandedMenus.network ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+        ) : (
+          <hr className="my-2 border-gray-200 dark:border-white/5" />
+        )}
+        {(expandedMenus.network || collapsed) && (
+          <div className="space-y-0.5">
+            {renderSidebarItem('workspaces', 'All Workspaces', Building)}
+            {renderSidebarItem('resource_usage', 'Resource Usage', Database)}
+            {renderSidebarItem('showcase', 'Client Directory', Image)}
+          </div>
+        )}
+      </div>
+
+      {/* CUSTOMERS */}
+      <div className="space-y-0.5">
+        {!collapsed ? (
+          <button onClick={() => toggleMenu('customers')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Customers</p>
+            {expandedMenus.customers ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+        ) : (
+          <hr className="my-2 border-gray-200 dark:border-white/5" />
+        )}
+        {(expandedMenus.customers || collapsed) && (
+          <div className="space-y-0.5">
+            {renderSidebarItem('operators', 'Platform Operators', Users)}
+            {renderSidebarItem('end_users', 'Global End-Users', Globe)}
+            {renderSidebarItem('demo_leads', 'Demo Leads', Megaphone)}
+          </div>
+        )}
+      </div>
+
+      {/* BILLING & SALES */}
+      <div className="space-y-0.5">
+        {!collapsed ? (
+          <button onClick={() => toggleMenu('billing')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Billing & Sales</p>
+            {expandedMenus.billing ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+        ) : (
+          <hr className="my-2 border-gray-200 dark:border-white/5" />
+        )}
+        {(expandedMenus.billing || collapsed) && (
+          <div className="space-y-0.5">
+            {renderSidebarItem('packages', 'Subscriptions', CreditCard)}
+            {renderSidebarItem('transactions', 'Invoices', DollarSign)}
+            {renderSidebarItem('coupons', 'Promo Codes', Tag)}
+            {renderSidebarItem('integrations', 'Payment Gateways', Wallet)}
+          </div>
+        )}
+      </div>
+
+      {/* SUPPORT */}
+      <div className="space-y-0.5">
+        {!collapsed ? (
+          <button onClick={() => toggleMenu('support')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Support</p>
+            {expandedMenus.support ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+        ) : (
+          <hr className="my-2 border-gray-200 dark:border-white/5" />
+        )}
+        {(expandedMenus.support || collapsed) && (
+          <div className="space-y-0.5">
+            {renderSidebarItem('tickets', 'Helpdesk Tickets', MessageSquare, true, stats.pendingTicketsCount || 3)}
+            {renderSidebarItem('announcements', 'Global Announcements', Megaphone)}
+          </div>
+        )}
+      </div>
+
+      {/* SYSTEM */}
+      <div className="space-y-0.5">
+        {!collapsed ? (
+          <button onClick={() => toggleMenu('system')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">System</p>
+            {expandedMenus.system ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+        ) : (
+          <hr className="my-2 border-gray-200 dark:border-white/5" />
+        )}
+        {(expandedMenus.system || collapsed) && (
+          <div className="space-y-0.5">
+            {renderSidebarItem('branding', 'Platform Settings', Settings)}
+            {renderSidebarItem('security', 'Admin Roles', ShieldAlert)}
+            {renderSidebarItem('mailjet', 'Audit Logs', Activity)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className={`min-h-screen flex transition-colors duration-200 ${isDarkMode ? 'bg-[#0b0f19] text-slate-100' : 'bg-slate-50 text-gray-900'}`}>
+    <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-200 ${isDarkMode ? 'bg-[#0b0f19] text-slate-100' : 'bg-slate-50 text-gray-900'}`}>
       <style>{`
         :root {
           --brand-color: ${brandColor};
@@ -2097,8 +2208,113 @@ export default function SaaSSuperAdmin() {
         }
       `}</style>
 
-      {/* Sidebar Navigation */}
-      <aside className={`transition-all duration-300 ${isSidebarCollapsed ? 'w-20 px-3 py-6' : 'w-64 p-6'} border-r flex flex-col justify-between transition-colors duration-200 ${isDarkMode ? 'border-white/5 bg-[#0b0f19]/80 backdrop-blur-2xl' : 'border-gray-200/50 bg-white/60 backdrop-blur-2xl shadow-[4px_0_24px_rgba(0,0,0,0.02)]'} z-20`}>
+      {/* Mobile Top Navigation Header */}
+      <div className={`md:hidden flex items-center justify-between px-4 py-3 border-b sticky top-0 z-30 ${
+        isDarkMode ? 'bg-[#0b0f19]/95 border-white/10 text-white' : 'bg-white/95 border-gray-200 text-gray-900'
+      } backdrop-blur-md shrink-0`}>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className={`p-2 rounded-xl border transition-colors ${
+              isDarkMode ? 'border-gray-800 bg-slate-900 text-gray-300 hover:text-white' : 'border-gray-200 bg-slate-50 text-slate-700 hover:text-slate-900'
+            }`}
+            aria-label="Toggle Navigation"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center space-x-2">
+            <div className="bg-indigo-600 p-1.5 rounded-lg" style={{ backgroundColor: brandColor }}>
+              <Layers className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <span className="text-xs font-black tracking-tight block">{globalBrand.platformName || 'Tripbone'}</span>
+              <span className="text-[9px] font-mono font-bold block -mt-0.5" style={{ color: brandColor }}>Super Admin</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={toggleDarkMode}
+            className={`p-2 rounded-xl border transition-colors ${
+              isDarkMode ? 'border-gray-800 bg-slate-900 text-amber-400' : 'border-gray-200 bg-slate-50 text-indigo-600'
+            }`}
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <img 
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
+            alt="Admin profile" 
+            className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800 shadow-sm" 
+          />
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay / Slide-Over Drawer */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div 
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          <aside className={`relative w-72 max-w-[85vw] h-full p-5 border-r flex flex-col justify-between overflow-y-auto transition-colors z-10 shadow-2xl ${
+            isDarkMode ? 'border-white/10 bg-[#0b0f19] text-slate-100' : 'border-gray-200 bg-white text-gray-900'
+          }`}>
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200/50 dark:border-white/10 shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="bg-indigo-600 p-2 rounded-xl" style={{ backgroundColor: brandColor }}>
+                  <Layers className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left">
+                  {globalBrand.logoUrl ? (
+                    <img src={globalBrand.logoUrl} alt="Logo" className="h-7 max-w-[120px] object-contain" />
+                  ) : (
+                    <span className={`text-sm font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{globalBrand.platformName || 'Tripbone SaaS'}</span>
+                  )}
+                  <p className="text-[9px] font-black tracking-widest uppercase mt-0.5" style={{ color: brandColor }}>Super Admin</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className={`p-2 rounded-xl border ${isDarkMode ? 'border-gray-800 hover:bg-slate-800 text-gray-400' : 'border-gray-200 hover:bg-gray-100 text-gray-600'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {renderSidebarNav(false)}
+
+            <div className={`mt-auto pt-4 border-t ${isDarkMode ? 'border-gray-800' : 'border-slate-100'} shrink-0`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 overflow-hidden">
+                  <img 
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
+                    alt="Admin avatar" 
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800 shrink-0 shadow-sm" 
+                  />
+                  <div className="truncate text-left">
+                    <h4 className={`text-xs font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Admin User</h4>
+                    <p className="text-[10px] text-gray-500 font-bold truncate">admin@tripbone.com</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    await signOut(auth);
+                  }}
+                  className={`p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors`}
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop Sidebar Navigation */}
+      <aside className={`hidden md:flex transition-all duration-300 ${isSidebarCollapsed ? 'w-20 px-3 py-6' : 'w-64 p-6'} border-r flex-col justify-between transition-colors duration-200 ${isDarkMode ? 'border-white/5 bg-[#0b0f19]/80 backdrop-blur-2xl' : 'border-gray-200/50 bg-white/60 backdrop-blur-2xl shadow-[4px_0_24px_rgba(0,0,0,0.02)]'} z-20 shrink-0`}>
         <div className="space-y-8 flex-1 overflow-hidden flex flex-col">
           <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col space-y-4' : 'justify-between'} shrink-0`}>
             <div className="flex items-center space-x-3">
@@ -2125,110 +2341,7 @@ export default function SaaSSuperAdmin() {
             </button>
           </div>
 
-          <div className="space-y-4 overflow-y-auto pr-1 scrollbar-hide pb-10 flex-1">
-            {/* OVERVIEW */}
-            <div className="space-y-0.5">
-              {!isSidebarCollapsed && (
-                <p className="px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 mt-4 text-left">Overview</p>
-              )}
-              {renderSidebarItem('overview', 'Command Center', Zap)}
-            </div>
-
-            {/* NETWORK & SITES */}
-            <div className="space-y-0.5">
-              {!isSidebarCollapsed ? (
-                <button onClick={() => toggleMenu('network')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Network & Sites</p>
-                  {expandedMenus.network ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
-                </button>
-              ) : (
-                <hr className="my-2 border-gray-200 dark:border-white/5" />
-              )}
-              {(expandedMenus.network || isSidebarCollapsed) && (
-                <div className="space-y-0.5">
-                  {renderSidebarItem('workspaces', 'All Workspaces', Building)}
-                  {renderSidebarItem('resource_usage', 'Resource Usage', Database)}
-                  {renderSidebarItem('showcase', 'Client Directory', Image)}
-                </div>
-              )}
-            </div>
-
-            {/* CUSTOMERS */}
-            <div className="space-y-0.5">
-              {!isSidebarCollapsed ? (
-                <button onClick={() => toggleMenu('customers')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Customers</p>
-                  {expandedMenus.customers ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
-                </button>
-              ) : (
-                <hr className="my-2 border-gray-200 dark:border-white/5" />
-              )}
-              {(expandedMenus.customers || isSidebarCollapsed) && (
-                <div className="space-y-0.5">
-                  {renderSidebarItem('operators', 'Platform Operators', Users)}
-                  {renderSidebarItem('end_users', 'Global End-Users', Globe)}
-                  {renderSidebarItem('demo_leads', 'Demo Leads', Megaphone)}
-                </div>
-              )}
-            </div>
-
-            {/* BILLING & SALES */}
-            <div className="space-y-0.5">
-              {!isSidebarCollapsed ? (
-                <button onClick={() => toggleMenu('billing')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Billing & Sales</p>
-                  {expandedMenus.billing ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
-                </button>
-              ) : (
-                <hr className="my-2 border-gray-200 dark:border-white/5" />
-              )}
-              {(expandedMenus.billing || isSidebarCollapsed) && (
-                <div className="space-y-0.5">
-                  {renderSidebarItem('packages', 'Subscriptions', CreditCard)}
-                  {renderSidebarItem('transactions', 'Invoices', DollarSign)}
-                  {renderSidebarItem('coupons', 'Promo Codes', Tag)}
-                  {renderSidebarItem('integrations', 'Payment Gateways', Wallet)}
-                </div>
-              )}
-            </div>
-
-            {/* SUPPORT */}
-            <div className="space-y-0.5">
-              {!isSidebarCollapsed ? (
-                <button onClick={() => toggleMenu('support')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Support</p>
-                  {expandedMenus.support ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
-                </button>
-              ) : (
-                <hr className="my-2 border-gray-200 dark:border-white/5" />
-              )}
-              {(expandedMenus.support || isSidebarCollapsed) && (
-                <div className="space-y-0.5">
-                  {renderSidebarItem('tickets', 'Helpdesk Tickets', MessageSquare, true, stats.pendingTicketsCount || 3)}
-                  {renderSidebarItem('announcements', 'Global Announcements', Megaphone)}
-                </div>
-              )}
-            </div>
-
-            {/* SYSTEM */}
-            <div className="space-y-0.5">
-              {!isSidebarCollapsed ? (
-                <button onClick={() => toggleMenu('system')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">System</p>
-                  {expandedMenus.system ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
-                </button>
-              ) : (
-                <hr className="my-2 border-gray-200 dark:border-white/5" />
-              )}
-              {(expandedMenus.system || isSidebarCollapsed) && (
-                <div className="space-y-0.5">
-                  {renderSidebarItem('branding', 'Platform Settings', Settings)}
-                  {renderSidebarItem('security', 'Admin Roles', ShieldAlert)}
-                  {renderSidebarItem('mailjet', 'Audit Logs', Activity)}
-                </div>
-              )}
-            </div>
-          </div>
+          {renderSidebarNav(isSidebarCollapsed)}
         </div>
 
         {/* Profile Card Bottom */}
@@ -2292,11 +2405,11 @@ export default function SaaSSuperAdmin() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-3 sm:p-6 md:p-8 overflow-y-auto min-w-0 w-full">
         {/* Top Header Bar */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-6 border-b border-gray-200/50 dark:border-white/5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-4 sm:pb-6 mb-4 sm:mb-6 border-b border-gray-200/50 dark:border-white/5 gap-3 sm:gap-4">
           <div className="text-left">
-            <h2 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {activeTab === 'overview' ? 'Command Center' : 
                activeTab === 'workspaces' ? 'All Workspaces' : 
                activeTab === 'resource_usage' ? 'Resource Usage' :
@@ -2314,14 +2427,14 @@ export default function SaaSSuperAdmin() {
                activeTab === 'security' ? 'Admin Security & Roles' :
                'Audit Logs & Operations'}
             </h2>
-            <p className="text-xs text-gray-400 font-bold tracking-wide mt-1 uppercase font-mono">
+            <p className="text-[10px] sm:text-xs text-gray-400 font-bold tracking-wide mt-1 uppercase font-mono">
               {currentDateTime || 'Mon, 20 Jul 2026 • 13:55'}
             </p>
           </div>
 
-          <div className="flex items-center space-x-4 mt-4 md:mt-0">
+          <div className="flex items-center space-x-2 sm:space-x-4 w-full md:w-auto justify-between md:justify-end">
             {/* Search workspaces input */}
-            <div className="relative">
+            <div className="relative flex-1 md:w-60">
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -2333,7 +2446,7 @@ export default function SaaSSuperAdmin() {
                     setActiveTab('workspaces');
                   }
                 }}
-                className={`pl-10 pr-4 py-2 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all w-60 ${
+                className={`pl-10 pr-4 py-2 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all w-full ${
                   isDarkMode 
                     ? 'bg-slate-900/60 border-gray-800 text-white placeholder-gray-500' 
                     : 'bg-slate-100 border-gray-200/50 text-slate-800 placeholder-slate-400'
@@ -2363,13 +2476,13 @@ export default function SaaSSuperAdmin() {
             <img 
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
               alt="Admin profile" 
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800 shadow-sm cursor-pointer" 
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800 shadow-sm cursor-pointer shrink-0" 
             />
           </div>
         </div>
 
         {/* Metric Cards Banner Row 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           {/* Card 1: Total */}
           <div className={`p-6 rounded-3xl border flex flex-col justify-between text-left ${
             isDarkMode 
@@ -2491,7 +2604,7 @@ export default function SaaSSuperAdmin() {
             </div>
 
             {/* Row 2 Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
               {/* Today's Revenue */}
               <div className={`p-6 rounded-3xl border text-left ${
                 isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
@@ -2911,7 +3024,7 @@ export default function SaaSSuperAdmin() {
               <div className="space-y-8">
 
                 {/* AppSumo Metrics Stats Bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {(() => {
                     const sumoList = coupons.filter(c => c.discountType === 'appsumo_lifetime' || c.appsumoTier || c.code?.startsWith('SUMO'));
                     const total = sumoList.length;
