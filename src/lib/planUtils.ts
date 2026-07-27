@@ -23,7 +23,9 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
     const matched = packagesList.find(p =>
       p.id === raw ||
       p.slug?.toLowerCase() === lower ||
+      p.productId === raw ||
       p.creemProductId === raw ||
+      p.creem_product_id === raw ||
       (p.name && p.name.toLowerCase() === lower)
     );
     if (matched && matched.name) {
@@ -70,11 +72,13 @@ export function getPlanPrice(planInput?: string, interval: string = 'monthly', p
   const targetIntervalStr = isLifetime ? 'lifetime' : isAnnual ? 'annual' : 'monthly';
 
   if (packagesList && packagesList.length > 0) {
-    // 1. Direct match by ID, slug, or creemProductId
+    // 1. Direct match by ID, slug, or productId / creemProductId
     const matchedDirect = packagesList.find(p =>
       p.id === raw ||
       p.slug?.toLowerCase() === lower ||
-      p.creemProductId === raw
+      p.productId === raw ||
+      p.creemProductId === raw ||
+      p.creem_product_id === raw
     );
     if (matchedDirect && typeof matchedDirect.price === 'number') {
       return matchedDirect.price;

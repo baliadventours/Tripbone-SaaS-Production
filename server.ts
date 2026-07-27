@@ -2126,25 +2126,56 @@ export async function createServer() {
 
       console.log(`[Billing API] Creating Creem checkout for tenant: ${tenantId}, product: ${productId}`);
 
-      let creemApiKey = "";
-      let creemMode = "test";
+      let targetProductId = productId;
+      let creemApiKey = process.env.CREEM_API_KEY || process.env.CREEM_KEY || "";
+      let creemMode = process.env.CREEM_MODE || "live";
+
       try {
         getAdminApp();
         const db = getAdminDb();
         if (db) {
+          // Fetch settings from Firestore if process.env.CREEM_API_KEY is not set
           const globalSnap = await db.collection('communicationSettings').doc('global').get();
           if (globalSnap.exists) {
             const data = globalSnap.data() || {};
-            creemApiKey = data.creemApiKey || "";
-            creemMode = data.creemMode || "test";
+            if (!creemApiKey && data.creemApiKey) {
+              creemApiKey = data.creemApiKey;
+            }
+            if (data.creemMode && !process.env.CREEM_MODE) {
+              creemMode = data.creemMode;
+            }
+          }
+
+          // Resolve slug or name to actual Creem Product ID from Firestore billingPlans
+          if (!targetProductId.startsWith('prod_')) {
+            const plansSnap = await db.collection('billingPlans').get();
+            let matchedPlanData: any = null;
+            plansSnap.forEach(doc => {
+              const p = doc.data();
+              const pSlug = (p.slug || '').toLowerCase();
+              const pName = (p.name || '').toLowerCase();
+              const reqProd = targetProductId.toLowerCase();
+              if (doc.id === targetProductId || pSlug === reqProd || pSlug.includes(reqProd) || pName.includes(reqProd)) {
+                matchedPlanData = p;
+              }
+            });
+            if (matchedPlanData) {
+              const realProdId = matchedPlanData.productId || matchedPlanData.creemProductId || matchedPlanData.creem_product_id;
+              if (realProdId) {
+                console.log(`[Billing API] Resolved plan slug "${targetProductId}" to Creem Product ID "${realProdId}"`);
+                targetProductId = realProdId;
+              }
+            }
           }
         }
       } catch (dbErr) {
-        console.warn("[Billing API] Firestore settings fetch failed:", dbErr);
+        console.warn("[Billing API] Firestore settings/plans fetch failed:", dbErr);
       }
 
+      console.log(`[Billing API] Creating Creem checkout for tenant: ${tenantId}, product: ${targetProductId}, mode: ${creemMode}, apiKeyConfigured: ${Boolean(creemApiKey)}`);
+
       const data = await createCreemCheckoutSession({
-        productId,
+        productId: targetProductId,
         successUrl,
         email,
         tenantId,
