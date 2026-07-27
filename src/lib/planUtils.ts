@@ -37,19 +37,22 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
 
   // Clean base name by removing trailing/embedded interval words and "plan"
   baseName = baseName
-    .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+    .replace(/\b(plan|monthly|annually|annual|yearly|lifetime)\b/gi, '')
+    .replace(/[\(\)\-_]+/g, ' ')
     .trim();
 
-  if (!baseName) {
-    if (lower.includes('starter')) baseName = 'Starter';
-    else if (lower.includes('professional') || lower.includes('pro')) baseName = 'Professional';
-    else if (lower.includes('business')) baseName = 'Business';
-    else if (lower.includes('agency') || lower.includes('enterprise')) baseName = 'Agency';
-    else if (raw) baseName = raw.charAt(0).toUpperCase() + raw.slice(1);
+  const cleanLower = (baseName || lower).toLowerCase();
+  if (cleanLower.includes('starter')) baseName = 'Starter';
+  else if (cleanLower.includes('professional') || cleanLower.includes('pro')) baseName = 'Professional';
+  else if (cleanLower.includes('business')) baseName = 'Business';
+  else if (cleanLower.includes('agency') || cleanLower.includes('enterprise')) baseName = 'Agency';
+  else if (!baseName) {
+    if (raw) baseName = raw.charAt(0).toUpperCase() + raw.slice(1);
     else baseName = 'Starter';
   } else {
     baseName = baseName
       .split(/[\s\-_]+/)
+      .filter(Boolean)
       .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
   }
@@ -86,7 +89,8 @@ export function getPlanPrice(planInput?: string, interval: string = 'monthly', p
 
     // 2. Clean base match + interval match
     const cleanBase = lower
-      .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+      .replace(/\b(plan|monthly|annually|annual|yearly|lifetime)\b/gi, '')
+      .replace(/[\(\)\-_]+/g, ' ')
       .trim();
 
     const matchedExact = packagesList.find(p =>
@@ -110,7 +114,8 @@ export function getPlanPrice(planInput?: string, interval: string = 'monthly', p
 
   // Fallback defaults
   const cleanBase = lower
-    .replace(/\s*[\(\-_]?\s*(plan|monthly|annual|annually|yearly|lifetime)[\)\-_]?\s*/gi, '')
+    .replace(/\b(plan|monthly|annually|annual|yearly|lifetime)\b/gi, '')
+    .replace(/[\(\)\-_]+/g, ' ')
     .trim();
 
   if (cleanBase.includes('enterprise') || cleanBase.includes('agency')) {

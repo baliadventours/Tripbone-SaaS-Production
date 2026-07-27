@@ -2066,7 +2066,7 @@ export default function SaaSHome() {
                         <p>💼 <strong>Workspace:</strong> {formData.companyName}</p>
                         <p>🔗 <strong>Web Address:</strong> app.{window.location.host.replace('app.', '')}/?tenant={formData.slug}</p>
                         <p>⏱️ <strong>Trial Ends:</strong> {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
-                        <p>🧾 <strong>Invoice Generated:</strong> Premium {formData.plan || 'Starter'} Subscription invoice ($0 Trial Activated, package subscription invoice generated as unpaid and due in 7 days).</p>
+                        <p>🧾 <strong>Invoice Generated:</strong> Premium {formatPlanName(formData.plan, plans, billingInterval)} Subscription invoice ($0 Trial Activated, package subscription invoice generated as unpaid and due in 7 days).</p>
                       </div>
                     </div>
 
@@ -2146,7 +2146,7 @@ export default function SaaSHome() {
                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Subscription Details</h4>
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-sm font-semibold text-gray-600">Package Name</span>
-                          <span className="text-sm font-bold text-gray-900 capitalize">{formData.plan} Plan</span>
+                          <span className="text-sm font-bold text-gray-900">{formatPlanName(formData.plan, plans, billingInterval)}</span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-sm font-semibold text-gray-600">Billing Interval</span>
@@ -3028,7 +3028,7 @@ export default function SaaSHome() {
                                   ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/60" 
                                   : "bg-emerald-50 text-emerald-800 border-emerald-100/60"
                               )}>
-                                {w.plan || 'Starter'}
+                                {formatPlanName(w.plan, plans, w.billingInterval)}
                               </span>
                             </td>
                             <td className="px-6 py-4 font-medium">
@@ -3327,7 +3327,7 @@ export default function SaaSHome() {
                                                   <th style="background-color: #f8fafc; color: #475569; font-size: 12px; text-transform: uppercase; font-weight: 600; text-align: right; padding: 16px; border-bottom: 1px solid #eee;">Amount</th>
                                                 </tr>
                                                 <tr>
-                                                  <td style="font-size: 15px; text-align: left; padding: 16px; border-bottom: 1px solid #eee;">Tripbone ${activeWorkspace?.plan || 'Starter'} Plan Subscription</td>
+                                                  <td style="font-size: 15px; text-align: left; padding: 16px; border-bottom: 1px solid #eee;">Tripbone ${formatPlanName(invoice.plan || activeWorkspace?.plan, plans, invoice.billingInterval || activeWorkspace?.billingInterval)} Subscription</td>
                                                   <td style="text-align: right; font-size: 20px; font-weight: bold; padding: 16px; border-bottom: 1px solid #eee;" class="amount">${invoice.amount}</td>
                                                 </tr>
                                               </table>
@@ -4212,11 +4212,11 @@ export default function SaaSHome() {
                 <div className={cn("rounded-xl p-4 mb-6", isDarkMode ? "bg-slate-800" : "bg-gray-50")}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-400">Current Plan</span>
-                    <span className={cn("font-semibold text-sm", isDarkMode ? "text-slate-300" : "text-gray-700")}>{activeWorkspace?.plan?.toUpperCase() || 'STARTER'}</span>
+                    <span className={cn("font-semibold text-sm", isDarkMode ? "text-slate-300" : "text-gray-700")}>{formatPlanName(activeWorkspace?.plan, plans, activeWorkspace?.billingInterval)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">New Plan</span>
-                    <span className="font-bold text-emerald-500 text-sm">{upgradeModalPlan.slug.toUpperCase()} ({upgradeModalPlan.interval || 'monthly'})</span>
+                    <span className="font-bold text-emerald-500 text-sm">{formatPlanName(upgradeModalPlan.name || upgradeModalPlan.slug, plans, upgradeModalPlan.interval)}</span>
                   </div>
                   <div className={cn("border-t my-3", isDarkMode ? "border-slate-700" : "border-gray-200")}></div>
                   <div className="flex justify-between items-center">

@@ -6305,7 +6305,7 @@ export default function SaaSSuperAdmin() {
                                 <td className="py-3 px-4 font-mono text-xs">{inv.invoiceDate || inv.createdAt?.substring(0,10) || 'N/A'}</td>
                                 <td className="py-3 px-4">
                                   <div className="font-semibold">Invoice #{inv.no || 'INV-101'}</div>
-                                  <div className="text-xs text-gray-500">{inv.plan || formatPlanName(selectedTenant.plan, packages)} ({inv.paymentMethod || 'Credit / Debit Card'})</div>
+                                  <div className="text-xs text-gray-500">{formatPlanName(inv.plan || selectedTenant.plan, packages, inv.billingInterval || selectedTenant.billingInterval)} ({inv.paymentMethod || 'Credit / Debit Card'})</div>
                                   {inv.manualPaymentNotes && (
                                     <div className="text-xs text-amber-500 mt-0.5 font-sans">Notes: {inv.manualPaymentNotes}</div>
                                   )}
