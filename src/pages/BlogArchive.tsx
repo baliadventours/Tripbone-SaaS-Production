@@ -171,7 +171,7 @@ export default function BlogArchive() {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl font-black text-gray-900 mb-6 tracking-tight"
           >
-            Travel Inspiration
+            {pageData?.title || "Travel Inspiration"}
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -179,7 +179,7 @@ export default function BlogArchive() {
             transition={{ delay: 0.1 }}
             className="text-lg text-gray-500 max-w-2xl mx-auto font-medium"
           >
-            Discover the best of Bali through our guides, tips, and local insights
+            {pageData?.subtitle || "Discover the best of Bali through our guides, tips, and local insights"}
           </motion.p>
         </div>
       </section>
@@ -318,8 +318,12 @@ export default function BlogArchive() {
       <section className="py-24 bg-gray-900 relative overflow-hidden mx-6 rounded-[10px] mb-24">
          <div className="absolute inset-0 bg-primary opacity-10 mix-blend-overlay" />
          <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Stay in the Loop</h2>
-            <p className="text-orange-100/70 font-bold mb-10 text-lg">Get the latest travel tips and exclusive Bali offers delivered to your inbox.</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">
+              {pageData?.newsletterTitle || "Stay in the Loop"}
+            </h2>
+            <p className="text-orange-100/70 font-bold mb-10 text-lg">
+              {pageData?.newsletterSubtitle || "Get the latest travel tips and exclusive Bali offers delivered to your inbox."}
+            </p>
             <form className="flex flex-col md:flex-row gap-4 max-w-lg mx-auto">
                <input 
                  type="email" 

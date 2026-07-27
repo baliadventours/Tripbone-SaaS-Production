@@ -292,8 +292,12 @@ export default function Contact() {
           <div className="min-h-screen bg-white">
             {/* Hero */}
             <section className="bg-orange-900 pt-40 pb-24 px-4 text-center">
-              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-6">Get in Touch</h1>
-              <p className="text-orange-100/60 max-w-2xl mx-auto font-medium text-lg italic">We're here to help you plan your perfect adventure. Reach out to our experts.</p>
+              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-6">
+                {pageData?.title || "Get in Touch"}
+              </h1>
+              <p className="text-orange-100/60 max-w-2xl mx-auto font-medium text-lg italic">
+                {pageData?.subtitle || "We're here to help you plan your perfect adventure. Reach out to our experts."}
+              </p>
             </section>
       
             <section className="container mx-auto px-4 py-24">
@@ -301,9 +305,9 @@ export default function Contact() {
                 {/* Contact Info Cards */}
                 <div className="lg:col-span-1 space-y-6">
                   {[
-                    { icon: Phone, title: 'Call Us', detail: settings?.supportPhone || '+62 123 456 789', desc: 'Mon-Sun, 8am-8pm WITA', color: 'emerald' },
-                    { icon: Mail, title: 'Email Us', detail: settings?.supportEmail || 'info@gorillaatvadventure.com', desc: 'We reply within 24 hours', color: 'blue' },
-                    { icon: MapPin, title: 'Visit Us', detail: settings?.officeAddress || 'Jl. Raya Ubud, Gianyar', desc: 'Bali, Indonesia 80571', color: 'orange' }
+                    { icon: Phone, title: 'Call Us', detail: pageData?.phone || settings?.supportPhone || '+62 123 456 789', desc: 'Mon-Sun, 8am-8pm WITA', color: 'emerald' },
+                    { icon: Mail, title: 'Email Us', detail: pageData?.email || settings?.supportEmail || 'info@gorillaatvadventure.com', desc: 'We reply within 24 hours', color: 'blue' },
+                    { icon: MapPin, title: 'Visit Us', detail: pageData?.address || settings?.officeAddress || 'Jl. Raya Ubud, Gianyar', desc: 'Bali, Indonesia 80571', color: 'orange' }
                   ].map((item, i) => (
                     <div key={i} className="bg-gray-50 p-8 rounded-[20px] transition-all hover:shadow-xl group">
                       <div className={`h-12 w-12 rounded-xl bg-${item.color}-50 flex items-center justify-center text-${item.color === 'emerald' ? 'emerald' : item.color}-600 mb-6 group-hover:scale-110 transition-transform`}>
@@ -352,12 +356,23 @@ export default function Contact() {
               </div>
             </section>
       
-            {/* Map Placeholder */}
-            <section className="bg-gray-100 h-[400px] w-full mt-24 relative flex items-center justify-center">
-               <div className="text-center">
-                  <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h4 className="text-gray-400 font-black text-xs">Interactive map coming soon</h4>
-               </div>
+            {/* Map Section */}
+            <section className="bg-gray-100 h-[450px] w-full mt-12 relative flex items-center justify-center overflow-hidden">
+               {pageData?.mapsEmbed ? (
+                 <iframe 
+                   src={pageData.mapsEmbed} 
+                   className="w-full h-full border-0" 
+                   allowFullScreen 
+                   loading="lazy" 
+                   referrerPolicy="no-referrer-when-downgrade" 
+                   title="Google Maps Location"
+                 />
+               ) : (
+                 <div className="text-center">
+                    <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <h4 className="text-gray-400 font-black text-xs">Google Map link can be added in Website Builder</h4>
+                 </div>
+               )}
             </section>
           </div>
         );

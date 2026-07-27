@@ -295,6 +295,21 @@ export default function WebsiteBuilder() {
     twitter: string;
     featuredImages: string[];
     showContactForm: boolean;
+    pillTitle: string;
+    storyTitle: string;
+    storyBody: string;
+    missionText: string;
+    visionText: string;
+    experienceBadgeNumber: string;
+    experienceBadgeTitle: string;
+    experienceBadgeDesc: string;
+    coreValuesTitle: string;
+    coreValuesSubtitle: string;
+    coreValues: { title: string; desc: string }[];
+    newsletterTitle: string;
+    newsletterSubtitle: string;
+    verifiedBadgeTitle: string;
+    verifiedBadgeDesc: string;
   }>({
     title: '',
     subtitle: '',
@@ -314,6 +329,26 @@ export default function WebsiteBuilder() {
     twitter: '',
     featuredImages: [],
     showContactForm: true,
+    pillTitle: '',
+    storyTitle: '',
+    storyBody: '',
+    missionText: '',
+    visionText: '',
+    experienceBadgeNumber: '10+',
+    experienceBadgeTitle: 'Years of Excellence',
+    experienceBadgeDesc: 'Serving over 50,000 satisfied travelers from 80+ countries worldwide.',
+    coreValuesTitle: 'Our Core Values',
+    coreValuesSubtitle: 'The principles that guide every decision we make and every tour we create.',
+    coreValues: [
+      { title: 'People First', desc: 'Our guests and our local community are the heart of our business.' },
+      { title: 'Safety Always', desc: 'Uncompromising standards of safety and professional guidance.' },
+      { title: 'Authenticity', desc: 'Real experiences, real people, and real connections.' },
+      { title: 'Quality Service', desc: 'Continuous improvement in every touchpoint of our journey.' }
+    ],
+    newsletterTitle: 'Stay in the Loop',
+    newsletterSubtitle: 'Get the latest travel tips and exclusive Bali offers delivered to your inbox.',
+    verifiedBadgeTitle: 'Verified Locally & Built for Smart Travel',
+    verifiedBadgeDesc: 'Avoid outdated blogs. All travel advice, local protocols, and logs are continuously maintained by our active on-the-ground team of Balinese private drivers and tour managers.',
   });
   const [savingPage, setSavingPage] = useState(false);
 
@@ -356,6 +391,26 @@ export default function WebsiteBuilder() {
         twitter: existing.socialMedia?.twitter || '',
         featuredImages: existing.featuredImages || [],
         showContactForm: existing.showContactForm ?? true,
+        pillTitle: existing.pillTitle || '',
+        storyTitle: existing.storyTitle || '',
+        storyBody: existing.storyBody || '',
+        missionText: existing.missionText || '',
+        visionText: existing.visionText || '',
+        experienceBadgeNumber: existing.experienceBadgeNumber || '10+',
+        experienceBadgeTitle: existing.experienceBadgeTitle || 'Years of Excellence',
+        experienceBadgeDesc: existing.experienceBadgeDesc || 'Serving over 50,000 satisfied travelers from 80+ countries worldwide.',
+        coreValuesTitle: existing.coreValuesTitle || 'Our Core Values',
+        coreValuesSubtitle: existing.coreValuesSubtitle || 'The principles that guide every decision we make and every tour we create.',
+        coreValues: existing.coreValues && existing.coreValues.length > 0 ? existing.coreValues : [
+          { title: 'People First', desc: 'Our guests and our local community are the heart of our business.' },
+          { title: 'Safety Always', desc: 'Uncompromising standards of safety and professional guidance.' },
+          { title: 'Authenticity', desc: 'Real experiences, real people, and real connections.' },
+          { title: 'Quality Service', desc: 'Continuous improvement in every touchpoint of our journey.' }
+        ],
+        newsletterTitle: existing.newsletterTitle || 'Stay in the Loop',
+        newsletterSubtitle: existing.newsletterSubtitle || 'Get the latest travel tips and exclusive Bali offers delivered to your inbox.',
+        verifiedBadgeTitle: existing.verifiedBadgeTitle || 'Verified Locally & Built for Smart Travel',
+        verifiedBadgeDesc: existing.verifiedBadgeDesc || 'Avoid outdated blogs. All travel advice, local protocols, and logs are continuously maintained by our active on-the-ground team of Balinese private drivers and tour managers.',
       });
     } else {
       setPageEditorState({
@@ -377,6 +432,26 @@ export default function WebsiteBuilder() {
         twitter: '',
         featuredImages: [],
         showContactForm: true,
+        pillTitle: '',
+        storyTitle: '',
+        storyBody: '',
+        missionText: '',
+        visionText: '',
+        experienceBadgeNumber: '10+',
+        experienceBadgeTitle: 'Years of Excellence',
+        experienceBadgeDesc: 'Serving over 50,000 satisfied travelers from 80+ countries worldwide.',
+        coreValuesTitle: 'Our Core Values',
+        coreValuesSubtitle: 'The principles that guide every decision we make and every tour we create.',
+        coreValues: [
+          { title: 'People First', desc: 'Our guests and our local community are the heart of our business.' },
+          { title: 'Safety Always', desc: 'Uncompromising standards of safety and professional guidance.' },
+          { title: 'Authenticity', desc: 'Real experiences, real people, and real connections.' },
+          { title: 'Quality Service', desc: 'Continuous improvement in every touchpoint of our journey.' }
+        ],
+        newsletterTitle: 'Stay in the Loop',
+        newsletterSubtitle: 'Get the latest travel tips and exclusive Bali offers delivered to your inbox.',
+        verifiedBadgeTitle: 'Verified Locally & Built for Smart Travel',
+        verifiedBadgeDesc: 'Avoid outdated blogs. All travel advice, local protocols, and logs are continuously maintained by our active on-the-ground team of Balinese private drivers and tour managers.',
       });
     }
   }, [selectedPageSlug, pagesList]);
@@ -1120,6 +1195,21 @@ export default function WebsiteBuilder() {
                       },
                       featuredImages: pageEditorState.featuredImages || [],
                       showContactForm: pageEditorState.showContactForm ?? true,
+                      pillTitle: pageEditorState.pillTitle || '',
+                      storyTitle: pageEditorState.storyTitle || '',
+                      storyBody: pageEditorState.storyBody || '',
+                      missionText: pageEditorState.missionText || '',
+                      visionText: pageEditorState.visionText || '',
+                      experienceBadgeNumber: pageEditorState.experienceBadgeNumber || '',
+                      experienceBadgeTitle: pageEditorState.experienceBadgeTitle || '',
+                      experienceBadgeDesc: pageEditorState.experienceBadgeDesc || '',
+                      coreValuesTitle: pageEditorState.coreValuesTitle || '',
+                      coreValuesSubtitle: pageEditorState.coreValuesSubtitle || '',
+                      coreValues: pageEditorState.coreValues || [],
+                      newsletterTitle: pageEditorState.newsletterTitle || '',
+                      newsletterSubtitle: pageEditorState.newsletterSubtitle || '',
+                      verifiedBadgeTitle: pageEditorState.verifiedBadgeTitle || '',
+                      verifiedBadgeDesc: pageEditorState.verifiedBadgeDesc || '',
                       updatedAt: serverTimestamp()
                     };
 
@@ -1144,7 +1234,18 @@ export default function WebsiteBuilder() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Pill Badge / Tagline Title</label>
+                <input
+                  type="text"
+                  value={pageEditorState.pillTitle}
+                  onChange={e => setPageEditorState(prev => ({ ...prev, pillTitle: e.target.value }))}
+                  placeholder="e.g. Our story / Curated Expeditions"
+                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-primary focus:bg-white focus:outline-none text-sm font-medium"
+                />
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Hero Title / Main Heading</label>
                 <input
@@ -1168,6 +1269,236 @@ export default function WebsiteBuilder() {
                 />
               </div>
             </div>
+
+            {/* Page-Specific Custom Content Editors */}
+            {selectedPageSlug === 'about' && (
+              <div className="p-6 bg-orange-50/40 rounded-2xl border border-orange-100 space-y-6">
+                <div className="flex items-center gap-2 border-b border-orange-200/60 pb-3">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">About Us Page Custom Content</h4>
+                </div>
+
+                {/* Story Section */}
+                <div className="space-y-4">
+                  <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Story Section Title & Story Body</label>
+                  <input
+                    type="text"
+                    value={pageEditorState.storyTitle}
+                    onChange={e => setPageEditorState(prev => ({ ...prev, storyTitle: e.target.value }))}
+                    placeholder="Story Headline (e.g. Experience Bali Like A Local Expert)"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-primary focus:outline-none"
+                  />
+                  <textarea
+                    rows={4}
+                    value={pageEditorState.storyBody}
+                    onChange={e => setPageEditorState(prev => ({ ...prev, storyBody: e.target.value }))}
+                    placeholder="Founded with a passion for authentic exploration, Smart Bali Tours has been..."
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                {/* Mission & Vision */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Our Mission</label>
+                    <textarea
+                      rows={3}
+                      value={pageEditorState.missionText}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, missionText: e.target.value }))}
+                      placeholder="To provide world-class travel services while preserving local culture..."
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Our Vision</label>
+                    <textarea
+                      rows={3}
+                      value={pageEditorState.visionText}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, visionText: e.target.value }))}
+                      placeholder="Becoming the most trusted gateway for travelers to discover hidden gems..."
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Experience Badge */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-orange-200/60">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Experience Badge Number</label>
+                    <input
+                      type="text"
+                      value={pageEditorState.experienceBadgeNumber}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, experienceBadgeNumber: e.target.value }))}
+                      placeholder="e.g. 10+"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Experience Badge Title</label>
+                    <input
+                      type="text"
+                      value={pageEditorState.experienceBadgeTitle}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, experienceBadgeTitle: e.target.value }))}
+                      placeholder="e.g. Years of Excellence"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Experience Badge Subtitle</label>
+                    <input
+                      type="text"
+                      value={pageEditorState.experienceBadgeDesc}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, experienceBadgeDesc: e.target.value }))}
+                      placeholder="e.g. Serving over 50,000 satisfied travelers..."
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Our Core Values */}
+                <div className="space-y-4 pt-4 border-t border-orange-200/60">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Core Values Section Title</label>
+                      <input
+                        type="text"
+                        value={pageEditorState.coreValuesTitle}
+                        onChange={e => setPageEditorState(prev => ({ ...prev, coreValuesTitle: e.target.value }))}
+                        placeholder="e.g. Our Core Values"
+                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Core Values Section Subtitle</label>
+                      <input
+                        type="text"
+                        value={pageEditorState.coreValuesSubtitle}
+                        onChange={e => setPageEditorState(prev => ({ ...prev, coreValuesSubtitle: e.target.value }))}
+                        placeholder="e.g. The principles that guide every decision..."
+                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <label className="text-xs font-black text-gray-800 uppercase tracking-wider block">Core Values Items</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {pageEditorState.coreValues.map((val, idx) => (
+                      <div key={idx} className="bg-white p-4 rounded-xl border border-gray-200 space-y-2 relative">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-primary uppercase">Value Item #{idx + 1}</span>
+                          {pageEditorState.coreValues.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setPageEditorState(prev => ({
+                                ...prev,
+                                coreValues: prev.coreValues.filter((_, i) => i !== idx)
+                              }))}
+                              className="text-red-500 hover:text-red-700 text-xs font-bold"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={val.title}
+                          onChange={e => {
+                            const newVals = [...pageEditorState.coreValues];
+                            newVals[idx].title = e.target.value;
+                            setPageEditorState(prev => ({ ...prev, coreValues: newVals }));
+                          }}
+                          placeholder="Title (e.g. People First)"
+                          className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:border-primary focus:outline-none"
+                        />
+                        <textarea
+                          rows={2}
+                          value={val.desc}
+                          onChange={e => {
+                            const newVals = [...pageEditorState.coreValues];
+                            newVals[idx].desc = e.target.value;
+                            setPageEditorState(prev => ({ ...prev, coreValues: newVals }));
+                          }}
+                          placeholder="Description..."
+                          className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPageEditorState(prev => ({
+                      ...prev,
+                      coreValues: [...prev.coreValues, { title: 'New Core Value', desc: 'Description of core value' }]
+                    }))}
+                    className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-orange-700 transition"
+                  >
+                    + Add Core Value
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {selectedPageSlug === 'blog' && (
+              <div className="p-6 bg-blue-50/40 rounded-2xl border border-blue-100 space-y-4">
+                <div className="flex items-center gap-2 border-b border-blue-200/60 pb-3">
+                  <Mail className="h-5 w-5 text-blue-600" />
+                  <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">Blog Page Newsletter Banner Settings</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Newsletter Headline</label>
+                    <input
+                      type="text"
+                      value={pageEditorState.newsletterTitle}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, newsletterTitle: e.target.value }))}
+                      placeholder="e.g. Stay in the Loop"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Newsletter Subheadline</label>
+                    <input
+                      type="text"
+                      value={pageEditorState.newsletterSubtitle}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, newsletterSubtitle: e.target.value }))}
+                      placeholder="e.g. Get the latest travel tips and exclusive Bali offers..."
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedPageSlug === 'ai-hub' && (
+              <div className="p-6 bg-teal-50/40 rounded-2xl border border-teal-100 space-y-4">
+                <div className="flex items-center gap-2 border-b border-teal-200/60 pb-3">
+                  <CheckCircle className="h-5 w-5 text-teal-600" />
+                  <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">AI Advisory Hub Verified Banner Settings</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Verified Banner Headline</label>
+                    <input
+                      type="text"
+                      value={pageEditorState.verifiedBadgeTitle}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, verifiedBadgeTitle: e.target.value }))}
+                      placeholder="e.g. Verified Locally & Built for Smart Travel"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-800 uppercase tracking-wider">Verified Banner Description</label>
+                    <textarea
+                      rows={3}
+                      value={pageEditorState.verifiedBadgeDesc}
+                      onChange={e => setPageEditorState(prev => ({ ...prev, verifiedBadgeDesc: e.target.value }))}
+                      placeholder="Avoid outdated blogs. All travel advice, local protocols..."
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Page Banner Upload */}
             <div className="space-y-2">

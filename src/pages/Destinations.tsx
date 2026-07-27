@@ -109,13 +109,13 @@ export default function Destinations() {
         <div className="relative container mx-auto max-w-5xl text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-black tracking-widest uppercase">
             <Compass className="h-4 w-4" />
-            <span>Discover Tropical Paradises</span>
+            <span>{pageData?.pillTitle || "Discover Tropical Paradises"}</span>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
-            Explore Handpicked Destinations
+            {pageData?.title || "Explore Handpicked Destinations"}
           </h1>
           <p className="text-gray-300 max-w-2xl mx-auto font-medium text-base sm:text-lg leading-relaxed">
-            From the emerald jungles of Ubud to the turquoise bays of Nusa Penida, immerse yourself in extraordinary sights across {settings?.siteName || 'Bali'}.
+            {pageData?.subtitle || `From the emerald jungles of Ubud to the turquoise bays of Nusa Penida, immerse yourself in extraordinary sights across ${settings?.siteName || 'Bali'}.`}
           </p>
 
           {/* Search bar */}

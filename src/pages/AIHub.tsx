@@ -264,15 +264,17 @@ export default function AIHub() {
           <div className="max-w-4xl space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-800 rounded-full border border-orange-100/60">
               <Compass className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-orange-800">Verified Travel Advisory Hub</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-orange-800">
+                {pageData?.pillTitle || "Verified Travel Advisory Hub"}
+              </span>
             </div>
             
             <div className="space-y-3">
               <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight leading-none font-sans">
-                Bali Advisory &amp; <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-teal-700">Expert Concierge</span>
+                {pageData?.title || "Bali Advisory & Expert Concierge"}
               </h1>
               <p className="text-gray-500 text-base md:text-lg max-w-2xl font-medium leading-relaxed">
-                The authoritative, zero-bloat handbook. Get trusted Balinese culture rules, transport protocols, and safety tips curated by local operation experts.
+                {pageData?.subtitle || "The authoritative, zero-bloat handbook. Get trusted Balinese culture rules, transport protocols, and safety tips curated by local operation experts."}
               </p>
             </div>
 
@@ -282,9 +284,11 @@ export default function AIHub() {
                 <CheckCircle className="h-5 w-5" />
               </span>
               <div>
-                <h4 className="text-sm font-black text-orange-950 font-sans tracking-tight">Verified Locally &amp; Built for Smart Travel</h4>
+                <h4 className="text-sm font-black text-orange-950 font-sans tracking-tight">
+                  {pageData?.verifiedBadgeTitle || "Verified Locally & Built for Smart Travel"}
+                </h4>
                 <p className="text-xs text-orange-800/80 font-medium leading-relaxed mt-0.5">
-                  Avoid outdated blogs. All travel advice, local protocols, and logs are continuously maintained by our active on-the-ground team of Balinese private drivers and tour managers. Perfect for visitor planning, and structured cleanly for modern search engines.
+                  {pageData?.verifiedBadgeDesc || "Avoid outdated blogs. All travel advice, local protocols, and logs are continuously maintained by our active on-the-ground team of Balinese private drivers and tour managers. Perfect for visitor planning, and structured cleanly for modern search engines."}
                 </p>
               </div>
             </div>

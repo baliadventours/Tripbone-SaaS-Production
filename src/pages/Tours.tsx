@@ -333,13 +333,13 @@ export default function Tours() {
         <div className="container mx-auto px-4 lg:px-8 relative z-10">
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-700 text-[10px] font-black uppercase tracking-widest rounded-full mb-4 shadow-sm border border-orange-100/40">
-              <Compass className="h-3 w-3 animate-spin" style={{ animationDuration: '30s' }} /> Curated Expeditions
+              <Compass className="h-3 w-3 animate-spin" style={{ animationDuration: '30s' }} /> {pageData?.pillTitle || "Curated Expeditions"}
             </span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight mb-4">
-              Choose your adventure
+              {pageData?.title || "Choose your adventure"}
             </h1>
             <p className="text-gray-500 font-medium text-base md:text-lg leading-relaxed max-w-2xl">
-              Explore our curated collection of Bali's most extraordinary expeditions, from majestic peaks to coastal sanctuaries.
+              {pageData?.subtitle || "Explore our curated collection of Bali's most extraordinary expeditions, from majestic peaks to coastal sanctuaries."}
             </p>
           </div>
         </div>

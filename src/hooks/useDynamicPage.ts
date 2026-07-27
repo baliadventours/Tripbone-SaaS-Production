@@ -5,7 +5,7 @@ import { useTenant } from '../lib/TenantContext';
 
 export interface DynamicPageData {
   id?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   heroImage?: string;
   content?: string;
@@ -13,6 +13,33 @@ export interface DynamicPageData {
     title?: string;
     description?: string;
   };
+  layout?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  mapsEmbed?: string;
+  facebook?: string;
+  instagram?: string;
+  youtube?: string;
+  twitter?: string;
+  featuredImages?: string[];
+  showContactForm?: boolean;
+  pillTitle?: string;
+  storyTitle?: string;
+  storyBody?: string;
+  missionText?: string;
+  visionText?: string;
+  experienceBadgeNumber?: string;
+  experienceBadgeTitle?: string;
+  experienceBadgeDesc?: string;
+  coreValuesTitle?: string;
+  coreValuesSubtitle?: string;
+  coreValues?: { title: string; desc: string; icon?: string }[];
+  newsletterTitle?: string;
+  newsletterSubtitle?: string;
+  verifiedBadgeTitle?: string;
+  verifiedBadgeDesc?: string;
 }
 
 export function useDynamicPage(slug: string) {
