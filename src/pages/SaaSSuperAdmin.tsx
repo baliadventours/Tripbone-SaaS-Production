@@ -3904,6 +3904,14 @@ export default function SaaSSuperAdmin() {
                         <option value="live">Live Mode</option>
                       </select>
                     </div>
+
+                    <div className={`p-4 rounded-xl border leading-relaxed text-xs ${isDarkMode ? 'bg-slate-950/40 border-gray-800 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-600'}`}>
+                      <p className="font-semibold text-emerald-400 mb-1">🔗 Creem Webhook URL</p>
+                      Set your Creem webhook URL in Creem Dashboard to:
+                      <div className="font-mono bg-slate-950 p-2 rounded-lg text-[10px] text-emerald-400 mt-1 select-all break-all border border-gray-800/40">
+                        {window.location.origin}/api/billing/webhook
+                      </div>
+                    </div>
                   </div>
                 </div>
 

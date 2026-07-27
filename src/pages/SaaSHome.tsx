@@ -1013,7 +1013,7 @@ export default function SaaSHome() {
         no: 'INV-101',
         invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         dueDate: dueDateVal,
-        amount: activeWorkspace.status === 'trial' ? '$0.00' : `$${planPrice}.00`,
+        amount: `$${planPrice}.00`,
         status: activeWorkspace.status === 'active' ? 'PAID' : activeWorkspace.manualPaymentPending ? 'PENDING' : 'UNPAID',
         plan: planName,
         billingInterval: activeWorkspace.billingInterval || 'monthly',
@@ -4366,8 +4366,11 @@ export default function SaaSHome() {
 
                       {/* Math parsing for breakdown */}
                       {(() => {
-                        const amtStr = paymentModalInvoice.amount || '';
-                        const totalAmt = parseFloat(amtStr.replace(/[^0-9.]/g, '')) || 0;
+                        const planPrice = getPlanPrice(paymentModalInvoice.plan || activeWorkspace?.plan, paymentModalInvoice.billingInterval || activeWorkspace?.billingInterval, plans);
+                        const rawAmtStr = paymentModalInvoice.amount || '';
+                        const parsedRaw = parseFloat(rawAmtStr.replace(/[^0-9.]/g, '')) || 0;
+                        const totalAmt = parsedRaw > 0 ? parsedRaw : planPrice;
+                        const displayTotalStr = `$${totalAmt.toFixed(2)}`;
                         const vatAmt = totalAmt - (totalAmt / 1.11);
                         const baseAmt = totalAmt / 1.11;
 
@@ -4407,7 +4410,7 @@ export default function SaaSHome() {
                             <div className="flex justify-between items-center">
                               <span className="text-xs font-bold text-gray-500">Total in USD</span>
                               <span className={cn("font-black text-base", isDarkMode ? "text-white" : "text-gray-950")}>
-                                {paymentModalInvoice.amount}
+                                {displayTotalStr}
                               </span>
                             </div>
 
