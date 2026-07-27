@@ -253,7 +253,7 @@ export default function AIHub() {
         {faqs.length > 0 && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchemaMarkup) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchemaMarkup).replace(/</g, '\\u003c') }}
           />
         )}
       </Helmet>

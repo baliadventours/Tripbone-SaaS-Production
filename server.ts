@@ -5200,8 +5200,9 @@ export async function createServer() {
 
     const debugTag = `\n    <!-- SEO INJECTED BY SERVER (${seo.status}) - ${new Date().toISOString()} -->\n    <meta name="seo-engine" content="express-ssr-v4" />\n    <meta name="seo-status" content="${seo.status}" />`;
 
-    // Data injection for hydration
-    const dataScript = seo.preloadedData ? `\n    <script id="preloaded-data" type="application/json">${JSON.stringify(seo.preloadedData)}</script>\n    <script>window.__PRELOADED_DATA__ = JSON.parse(document.getElementById('preloaded-data').innerHTML);</script>` : '';
+    // Data injection for hydration (escape < as \u003c to prevent premature HTML script tag closing)
+    const jsonString = JSON.stringify(seo.preloadedData).replace(/</g, '\\u003c');
+    const dataScript = seo.preloadedData ? `\n    <script id="preloaded-data" type="application/json">${jsonString}</script>\n    <script>window.__PRELOADED_DATA__ = JSON.parse(document.getElementById('preloaded-data').innerHTML);</script>` : '';
 
     const preloadTags = safeImage ? `\n    <link rel="preload" as="image" href="${safeImage}" />` : '';
 

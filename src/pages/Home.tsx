@@ -1638,7 +1638,7 @@ export default function Home() {
 
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema).replace(/</g, '\\u003c') }}
         />
         <script
           type="application/ld+json"
@@ -1655,7 +1655,7 @@ export default function Home() {
                 },
                 "query-input": "required name=search_term_string",
               },
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
       </Helmet>
