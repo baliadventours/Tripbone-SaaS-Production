@@ -647,7 +647,8 @@ export default function Home() {
   const getFeaturedToursData = () => {
     const block = builderSettings?.blocks?.find(b => b.id === 'featuredTours');
     if (block?.tourIds && block.tourIds.length > 0) {
-      const selected = tours.filter(t => block.tourIds!.includes(t.id));
+      const tourMap = new Map(tours.map(t => [t.id, t]));
+      const selected = block.tourIds.map(id => tourMap.get(id)).filter((t): t is Tour => !!t);
       if (selected.length > 0) return selected;
     }
     return filteredTours;
@@ -656,7 +657,8 @@ export default function Home() {
   const getGuestFavoritesData = () => {
     const block = builderSettings?.blocks?.find(b => b.id === 'guestFavorites');
     if (block?.tourIds && block.tourIds.length > 0) {
-      const selected = tours.filter(t => block.tourIds!.includes(t.id));
+      const tourMap = new Map(tours.map(t => [t.id, t]));
+      const selected = block.tourIds.map(id => tourMap.get(id)).filter((t): t is Tour => !!t);
       if (selected.length > 0) return selected;
     }
     return favoriteTours;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { useTenant } from '../../lib/TenantContext';
-import { LayoutTemplate, Menu, Save, Loader2, Image as ImageIcon, Plus, Trash2, X, AlertCircle, Upload, LayoutGrid } from 'lucide-react';
+import { LayoutTemplate, Menu, Save, Loader2, Image as ImageIcon, Plus, Trash2, X, AlertCircle, Upload, LayoutGrid, Star, Heart, ArrowUp, ArrowDown, Search, Check, Sparkles } from 'lucide-react';
 import { uploadImage } from '../../lib/imgbb';
 import { cn } from '../../lib/utils';
 
@@ -42,16 +42,231 @@ const DEFAULT_BLOCKS: BlockConfig[] = [
   { id: 'topNav', active: true, design: 'default' },
   { id: 'mainNav', active: true, design: 'default' },
   { id: 'hero', active: true, design: 'slideshow-atv', headline: 'Discover the extraordinary.', subheadline: 'Unforgettable adventures await.' },
-  { id: 'featuredTours', active: true, design: 'default', tourIds: [] },
-  { id: 'guestFavorites', active: true, design: 'default', tourIds: [] },
+  { id: 'featuredTours', active: true, design: 'default', tourIds: [], headline: 'Featured Tours', subheadline: 'Handpicked experiences our guests love most' },
+  { id: 'guestFavorites', active: true, design: 'default', tourIds: [], headline: 'Guest Favorites', subheadline: 'Overwhelmingly positive guest expeditions' },
   { id: 'reviews', active: true, design: 'slider' },
   { id: 'blog', active: true, design: 'carousel' },
   { id: 'footer', active: true, design: 'default' }
 ];
 
+function TourPickerManager({
+  block,
+  toursList,
+  updateBlock,
+  blockType
+}: {
+  block: BlockConfig;
+  toursList: any[];
+  updateBlock: (id: string, updates: Partial<BlockConfig>) => void;
+  blockType: 'featuredTours' | 'guestFavorites';
+}) {
+  const [search, setSearch] = useState('');
+  const selectedIds = block.tourIds || [];
+
+  // Get selected tour objects in exact order
+  const selectedTours = selectedIds
+    .map(id => toursList.find(t => t.id === id))
+    .filter(Boolean);
+
+  // Available tours matching search query
+  const filteredAvailableTours = toursList.filter(t =>
+    t.title?.toLowerCase().includes(search.toLowerCase()) ||
+    t.location?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggleTour = (tourId: string) => {
+    const isSelected = selectedIds.includes(tourId);
+    const nextIds = isSelected
+      ? selectedIds.filter(id => id !== tourId)
+      : [...selectedIds, tourId];
+    updateBlock(block.id, { tourIds: nextIds });
+  };
+
+  const moveTour = (index: number, direction: 'up' | 'down') => {
+    const newIds = [...selectedIds];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newIds.length) return;
+    const temp = newIds[index];
+    newIds[index] = newIds[targetIndex];
+    newIds[targetIndex] = temp;
+    updateBlock(block.id, { tourIds: newIds });
+  };
+
+  const isFeatured = blockType === 'featuredTours';
+  const icon = isFeatured ? <Star className="w-4 h-4 fill-amber-400 text-amber-500" /> : <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />;
+
+  return (
+    <div className="space-y-6">
+      {/* Selected Tours Section */}
+      <div className="bg-gray-50/80 border border-gray-200 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h4 className="font-bold text-gray-900 text-sm">
+              Currently Selected {isFeatured ? 'Featured Tours' : 'Favorite Tours'} ({selectedTours.length})
+            </h4>
+          </div>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => updateBlock(block.id, { tourIds: [] })}
+              className="text-xs font-bold text-red-600 hover:underline"
+            >
+              Clear Selection
+            </button>
+          )}
+        </div>
+
+        {selectedTours.length === 0 ? (
+          <div className="text-center py-6 px-4 border border-dashed border-gray-300 rounded-xl bg-white">
+            <p className="text-xs text-gray-500 font-medium">
+              No specific tours selected. The frontpage will automatically show all {isFeatured ? 'published tours' : 'top rated tours'}.
+            </p>
+            <p className="text-[11px] text-gray-400 mt-1">
+              Select tours from the list below to explicitly pick and re-order what appears on the frontpage.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-gray-500">
+              Use arrow buttons to re-order how tours appear on your frontpage:
+            </p>
+            {selectedTours.map((tour, idx) => (
+              <div
+                key={tour.id}
+                className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-gray-300 transition-all"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-600 shrink-0">
+                    {idx + 1}
+                  </span>
+                  <img
+                    src={tour.featuredImage || tour.gallery?.[0] || 'https://picsum.photos/seed/tour/100/100'}
+                    alt={tour.title}
+                    className="w-12 h-12 object-cover rounded-lg shrink-0 border border-gray-100"
+                  />
+                  <div className="min-w-0">
+                    <h5 className="font-bold text-gray-900 text-xs truncate">{tour.title}</h5>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-500 mt-0.5">
+                      <span>${tour.discountPrice || tour.regularPrice}</span>
+                      {tour.duration && <span>• {tour.duration}</span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => moveTour(idx, 'up')}
+                    disabled={idx === 0}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent text-gray-600"
+                    title="Move Up"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveTour(idx, 'down')}
+                    disabled={idx === selectedTours.length - 1}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent text-gray-600"
+                    title="Move Down"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleTour(tour.id)}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition"
+                    title="Remove"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Available Tours Selector */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+            Available Tours ({toursList.length})
+          </label>
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search tours..."
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        </div>
+
+        <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50/50">
+          {filteredAvailableTours.length === 0 ? (
+            <p className="text-xs text-gray-400 italic text-center py-4">No matching tours found.</p>
+          ) : (
+            filteredAvailableTours.map(tour => {
+              const isSelected = selectedIds.includes(tour.id);
+              return (
+                <div
+                  key={tour.id}
+                  onClick={() => toggleTour(tour.id)}
+                  className={cn(
+                    "flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all",
+                    isSelected
+                      ? "bg-orange-50/80 border-primary shadow-sm"
+                      : "bg-white border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary pointer-events-none"
+                    />
+                    <img
+                      src={tour.featuredImage || tour.gallery?.[0] || 'https://picsum.photos/seed/tour/100/100'}
+                      alt={tour.title}
+                      className="w-10 h-10 object-cover rounded-lg shrink-0 border border-gray-100"
+                    />
+                    <div className="min-w-0">
+                      <div className="font-bold text-gray-900 text-xs truncate">{tour.title}</div>
+                      <div className="text-[10px] text-gray-500 font-medium">
+                        ${tour.discountPrice || tour.regularPrice} {tour.duration ? `• ${tour.duration}` : ''}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-[10px] font-bold transition shrink-0 ml-2",
+                      isSelected
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    )}
+                  >
+                    {isSelected ? '✓ Selected' : '+ Select'}
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WebsiteBuilder() {
   const { tenantId } = useTenant();
-  const [activeTab, setActiveTab] = useState<'blocks' | 'menus' | 'pages'>('blocks');
+  const [activeTab, setActiveTab] = useState<'blocks' | 'tours' | 'menus' | 'pages'>('blocks');
   const [settings, setSettings] = useState<WebsiteBuilderSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -302,21 +517,27 @@ export default function WebsiteBuilder() {
         </button>
       </div>
 
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         <button
-          className={cn("py-4 px-8 font-bold border-b-2 transition-colors", activeTab === 'blocks' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
+          className={cn("py-4 px-6 font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'blocks' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
           onClick={() => setActiveTab('blocks')}
         >
           <div className="flex items-center gap-2"><LayoutTemplate className="w-4 h-4" /> Page Builder (Blocks)</div>
         </button>
         <button
-          className={cn("py-4 px-8 font-bold border-b-2 transition-colors", activeTab === 'menus' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
+          className={cn("py-4 px-6 font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'tours' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
+          onClick={() => setActiveTab('tours')}
+        >
+          <div className="flex items-center gap-2"><Star className="w-4 h-4 text-amber-500 fill-amber-400" /> Featured & Favorite Tours</div>
+        </button>
+        <button
+          className={cn("py-4 px-6 font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'menus' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
           onClick={() => setActiveTab('menus')}
         >
           <div className="flex items-center gap-2"><Menu className="w-4 h-4" /> Custom Menus</div>
         </button>
         <button
-          className={cn("py-4 px-8 font-bold border-b-2 transition-colors", activeTab === 'pages' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
+          className={cn("py-4 px-6 font-bold border-b-2 transition-colors whitespace-nowrap", activeTab === 'pages' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700")}
           onClick={() => setActiveTab('pages')}
         >
           <div className="flex items-center gap-2"><ImageIcon className="w-4 h-4" /> System Page Design</div>
@@ -566,47 +787,12 @@ export default function WebsiteBuilder() {
 
                   {/* Tour Picker for featuredTours and guestFavorites */}
                   {['featuredTours', 'guestFavorites'].includes(block.id) && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                          Select Tours to Display (Leave empty to show all published tours)
-                        </label>
-                        <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-xl p-4 space-y-2 bg-gray-50/50">
-                          {toursList.length === 0 ? (
-                            <p className="text-xs text-gray-400 italic">No tours found. Please create tours first.</p>
-                          ) : (
-                            toursList.map(tour => {
-                              const isChecked = (block.tourIds || []).includes(tour.id);
-                              return (
-                                <label key={tour.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition">
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {
-                                      const currentIds = block.tourIds || [];
-                                      const nextIds = isChecked
-                                        ? currentIds.filter(id => id !== tour.id)
-                                        : [...currentIds, tour.id];
-                                      updateBlock(block.id, { tourIds: nextIds });
-                                    }}
-                                    className="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                  />
-                                  <div className="text-xs">
-                                    <div className="font-bold text-gray-900">{tour.title}</div>
-                                    {tour.duration && <span className="text-gray-400 font-medium">{tour.duration}</span>}
-                                  </div>
-                                </label>
-                              );
-                            })
-                          )}
-                        </div>
-                        {(block.tourIds || []).length > 0 && (
-                          <p className="text-xs text-primary font-semibold mt-2">
-                            {(block.tourIds || []).length} tour(s) selected.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    <TourPickerManager
+                      block={block}
+                      toursList={toursList}
+                      updateBlock={updateBlock}
+                      blockType={block.id as 'featuredTours' | 'guestFavorites'}
+                    />
                   )}
 
                   {/* Menu Picker (Navs only) */}
@@ -629,6 +815,136 @@ export default function WebsiteBuilder() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {activeTab === 'tours' && (
+        <div className="space-y-8 max-w-5xl">
+          <div className="p-6 bg-amber-50/80 border border-amber-200/80 text-amber-900 rounded-2xl flex items-start gap-4 shadow-sm">
+            <Sparkles className="w-6 h-6 shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-lg text-amber-950">Frontpage Tour Selections</h3>
+              <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
+                Choose exactly which tours are showcased as <strong>Featured Tours</strong> and <strong>Guest Favorites</strong> on your frontpage. Select tours, re-order them, or customize section headlines. Click <strong>SAVE CHANGES</strong> at the top when done.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Featured Tours Card */}
+            {(() => {
+              const featBlock = settings?.blocks.find(b => b.id === 'featuredTours') || { id: 'featuredTours', active: true, design: 'default', tourIds: [], headline: 'Featured Tours', subheadline: 'Handpicked experiences our guests love most' };
+              return (
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
+                  <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
+                        <Star className="w-5 h-5 fill-amber-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-gray-900 text-lg">Featured Tours</h3>
+                        <p className="text-xs text-gray-500 font-medium">Displayed in Featured Section on homepage</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => updateBlock('featuredTours', { active: !featBlock.active })}
+                      className={cn("w-12 h-6 rounded-full transition-colors relative", featBlock.active ? 'bg-primary' : 'bg-gray-300')}
+                      title="Toggle active on homepage"
+                    >
+                      <div className={cn("w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform", featBlock.active ? 'left-6' : 'left-0.5')} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Section Headline</label>
+                      <input
+                        type="text"
+                        value={featBlock.headline || ''}
+                        onChange={(e) => updateBlock('featuredTours', { headline: e.target.value })}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="Featured Tours"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Section Subheadline</label>
+                      <input
+                        type="text"
+                        value={featBlock.subheadline || ''}
+                        onChange={(e) => updateBlock('featuredTours', { subheadline: e.target.value })}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="Curated expeditions our guests love most"
+                      />
+                    </div>
+                  </div>
+
+                  <TourPickerManager
+                    block={featBlock}
+                    toursList={toursList}
+                    updateBlock={updateBlock}
+                    blockType="featuredTours"
+                  />
+                </div>
+              );
+            })()}
+
+            {/* Guest Favorites Card */}
+            {(() => {
+              const favBlock = settings?.blocks.find(b => b.id === 'guestFavorites') || { id: 'guestFavorites', active: true, design: 'default', tourIds: [], headline: 'Guest Favorites', subheadline: 'Overwhelmingly positive guest expeditions' };
+              return (
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
+                  <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-rose-100 rounded-xl text-rose-600">
+                        <Heart className="w-5 h-5 fill-rose-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-gray-900 text-lg">Guest Favorites</h3>
+                        <p className="text-xs text-gray-500 font-medium">Displayed in Top Rated / Favorites section</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => updateBlock('guestFavorites', { active: !favBlock.active })}
+                      className={cn("w-12 h-6 rounded-full transition-colors relative", favBlock.active ? 'bg-primary' : 'bg-gray-300')}
+                      title="Toggle active on homepage"
+                    >
+                      <div className={cn("w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform", favBlock.active ? 'left-6' : 'left-0.5')} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Section Headline</label>
+                      <input
+                        type="text"
+                        value={favBlock.headline || ''}
+                        onChange={(e) => updateBlock('guestFavorites', { headline: e.target.value })}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="Guest Favorites"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Section Subheadline</label>
+                      <input
+                        type="text"
+                        value={favBlock.subheadline || ''}
+                        onChange={(e) => updateBlock('guestFavorites', { subheadline: e.target.value })}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="The most loved tours by our explorers"
+                      />
+                    </div>
+                  </div>
+
+                  <TourPickerManager
+                    block={favBlock}
+                    toursList={toursList}
+                    updateBlock={updateBlock}
+                    blockType="guestFavorites"
+                  />
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 

@@ -46,13 +46,18 @@ export default function TopRatedTours() {
     return unsubscribe;
   }, [builderSettings]);
 
+  const guestFavsBlock = builderSettings?.blocks?.find(b => b.id === 'guestFavorites');
+  const headline = guestFavsBlock?.headline || "Guest Favorites";
+  const subheadline = guestFavsBlock?.subheadline || "The most loved tours by our explorers";
+
   const renderContent = () => {
     switch (styleId) {
       case 'airbnb-classic':
       case 'airbnb-fluid':
         return (
           <section className="container mx-auto px-4 py-16 lg:px-8 border-t border-gray-100 mt-16">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">What guests are raving about</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{headline}</h2>
+            {subheadline && <p className="text-sm text-gray-500 mb-8">{subheadline}</p>}
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {tours.slice(0, 4).map((tour, index) => (
                 <TourCard key={tour.id} tour={tour} index={index} variant="minimal" />
@@ -69,9 +74,9 @@ export default function TopRatedTours() {
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
                 <div>
                   <span className="text-primary font-black text-[10px] uppercase tracking-widest">Highly Rated</span>
-                  <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter mt-4">Explorer Picks</h2>
+                  <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter mt-4">{headline}</h2>
                 </div>
-                <p className="max-w-xs text-gray-400 font-medium leading-relaxed">Top-rated tours vetted by thousands of satisfied adventourists.</p>
+                <p className="max-w-xs text-gray-400 font-medium leading-relaxed">{subheadline}</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {tours.map((tour, index) => (
@@ -88,8 +93,8 @@ export default function TopRatedTours() {
           <section className="container mx-auto px-4 py-24 lg:px-8 border-y border-gray-100">
             <div className="grid lg:grid-cols-[1fr,3fr] gap-16">
               <div className="sticky top-24 h-fit">
-                <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase mb-6 leading-none">Curated <br /> Favorites</h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-300">Selection 2024</p>
+                <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase mb-6 leading-none">{headline}</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">{subheadline}</p>
               </div>
               <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
                 {tours.slice(0, 6).map((tour, index) => (
@@ -106,7 +111,8 @@ export default function TopRatedTours() {
           <section className="py-24 bg-[#fdfcfb]">
             <div className="container mx-auto px-4">
                <div className="text-center mb-16">
-                  <span className="font-serif italic text-amber-600 text-lg">The Guest Favorites</span>
+                  <span className="font-serif italic text-amber-600 text-lg">{headline}</span>
+                  {subheadline && <p className="text-xs text-amber-800/80 mt-2 italic">{subheadline}</p>}
                   <div className="h-px w-24 bg-amber-200 mx-auto mt-4" />
                </div>
                <div className="grid gap-16 sm:grid-cols-2">
@@ -137,7 +143,8 @@ export default function TopRatedTours() {
              <div className="bg-gray-900 rounded-[3rem] p-12 md:p-20 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/10 -skew-x-12" />
                 <div className="relative z-10">
-                   <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-12">Performance <br /> Leaderboard</h2>
+                   <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">{headline}</h2>
+                   <p className="text-sm text-gray-400 mb-12">{subheadline}</p>
                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                       {tours.slice(0, 4).map((tour, index) => (
                          <div key={tour.id} className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl hover:bg-white/10 transition-all">
@@ -165,8 +172,8 @@ export default function TopRatedTours() {
                 <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
                 <span className="text-gray-400 text-sm font-bold tracking-widest">Top rated experiences</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none">Guest Favorites</h2>
-              <p className="mt-4 text-gray-500 font-medium text-lg">The most loved tours by our explorers</p>
+              <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none">{headline}</h2>
+              <p className="mt-4 text-gray-500 font-medium text-lg">{subheadline}</p>
             </div>
 
             <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
