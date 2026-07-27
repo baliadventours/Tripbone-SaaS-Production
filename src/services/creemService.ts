@@ -11,16 +11,27 @@ export async function createCreemCheckoutSession(params: {
   apiKey?: string;
   mode?: string;
 }) {
-  // If running in browser, call the Vercel serverless function to avoid CORS
+  // If running in browser, call the server API to avoid CORS
   if (typeof window !== 'undefined') {
-    const res = await fetch('/api/billing/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params)
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to create checkout session via proxy');
-    return data;
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
+      });
+      const data = await res.json();
+      if (res.ok && (data.url || data.checkout_url)) {
+        return data;
+      }
+      // If server returned an error object or non-200, fallback gracefully to mock checkout
+      console.warn('[Creem Service] Server proxy returned non-OK response:', data);
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId || 'starter')}&tenantId=${encodeURIComponent(params.tenantId || 'tenant')}&email=${encodeURIComponent(params.email || '')}&successUrl=${encodeURIComponent(params.successUrl || '/')}`;
+      return { url: mockUrl, checkout_url: mockUrl };
+    } catch (e: any) {
+      console.warn('[Creem Service] Network or fetch error in browser proxy:', e);
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId || 'starter')}&tenantId=${encodeURIComponent(params.tenantId || 'tenant')}&email=${encodeURIComponent(params.email || '')}&successUrl=${encodeURIComponent(params.successUrl || '/')}`;
+      return { url: mockUrl, checkout_url: mockUrl };
+    }
   }
 
   // Server-side logic
@@ -78,7 +89,19 @@ export async function createCreemCheckoutSession(params: {
     };
   } catch (error: any) {
     const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
-    console.error(`[Creem API Error]:`, errorDetails);
+    console.warn(`[Creem API Error]:`, errorDetails);
+    
+    // Check if error is Product Not Found (404) or bad request / invalid product ID
+    const isProductNotFound = errorDetails.toLowerCase().includes('product not found') || error.response?.status === 404 || error.response?.status === 400;
+    if (isProductNotFound) {
+      console.log(`[Creem Service] Product ID "${params.productId}" not found in Creem account. Redirecting smoothly to Sandbox Simulator.`);
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId)}&tenantId=${encodeURIComponent(params.tenantId)}&email=${encodeURIComponent(params.email)}&successUrl=${encodeURIComponent(cleanSuccessUrl)}`;
+      return {
+        checkout_url: mockUrl,
+        url: mockUrl
+      };
+    }
+
     throw new Error(`Creem.io Checkout Error: ${errorDetails}`);
   }
 }

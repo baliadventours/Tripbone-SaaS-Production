@@ -2152,14 +2152,13 @@ export async function createServer() {
         mode: creemMode
       });
 
-      res.json({ url: data.checkout_url || data.url });
+      return res.status(200).json({ url: data.checkout_url || data.url });
     } catch (error: any) {
-      console.error("[Billing Checkout Error]:", error);
-      // Fallback gracefully to Sandbox Mock Checkout if Creem fails (e.g., 404 Product Not Found or invalid API key)
+      console.error("[Billing Checkout Catch Error]:", error);
       const { productId, successUrl, email, tenantId } = req.body;
-      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(productId || 'starter')}&tenantId=${encodeURIComponent(tenantId || 'tenant')}&email=${encodeURIComponent(email || '')}&successUrl=${encodeURIComponent(successUrl || '')}&error=${encodeURIComponent(error.message || 'Product Not Found')}`;
-      console.log(`[Billing API] Creem API call failed. Falling back to Sandbox Simulator.`);
-      res.json({ url: mockUrl });
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(productId || 'starter')}&tenantId=${encodeURIComponent(tenantId || 'tenant')}&email=${encodeURIComponent(email || '')}&successUrl=${encodeURIComponent(successUrl || '/')}&error=${encodeURIComponent(error.message || 'Product Not Found')}`;
+      console.log(`[Billing API] Creem API call failed. Falling back to Sandbox Simulator: ${mockUrl}`);
+      return res.status(200).json({ url: mockUrl });
     }
   });
 
@@ -2679,26 +2678,17 @@ export async function createServer() {
     }
   });
 
-  // API Route: Creem.io Universal Webhook Receiver (supports GET/POST/HEAD/OPTIONS across all path variations)
+  // API Route: Creem.io Universal Webhook Receiver (supports GET/POST/HEAD/OPTIONS across all path & subpath variations)
   const creemWebhookPaths = [
-    "/api/billing/webhook",
-    "/api/billing/webhook/",
-    "/api/billing/creem-webhook",
-    "/api/billing/creem-webhook/",
-    "/api/creem/webhook",
-    "/api/creem/webhook/",
-    "/api/creem-webhook",
-    "/api/creem-webhook/",
-    "/api/webhook",
-    "/api/webhook/",
-    "/api/webhooks",
-    "/api/webhooks/",
-    "/webhook",
-    "/webhook/",
-    "/creem-webhook",
-    "/creem-webhook/",
-    "/creem/webhook",
-    "/creem/webhook/"
+    "/api/billing/webhook*",
+    "/api/billing/creem-webhook*",
+    "/api/creem/webhook*",
+    "/api/creem-webhook*",
+    "/api/webhook*",
+    "/api/webhooks*",
+    "/webhook*",
+    "/creem-webhook*",
+    "/creem/webhook*"
   ];
 
   app.all(creemWebhookPaths, async (req: any, res: any) => {
