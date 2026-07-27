@@ -10,8 +10,8 @@ interface LazySectionProps {
 export default function LazySection({ 
   children, 
   fallback = <div className="h-40 animate-pulse bg-gray-50 rounded-3xl" />,
-  threshold = 0.1,
-  rootMargin = '200px'
+  threshold = 0,
+  rootMargin = '400px'
 }: LazySectionProps) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);

@@ -53,8 +53,8 @@ export default function ElfsightWidget({ embedCode, className = '' }: ElfsightWi
   }
 
   return (
-    <div className={`w-full flex justify-center py-4 ${className}`}>
-      <div className={`${appIdClass} w-full`} data-elfsight-app-lazy />
+    <div className={`w-full flex justify-center py-2 sm:py-4 ${className}`}>
+      <div className={`${appIdClass} w-full min-h-[120px]`} />
     </div>
   );
 }
