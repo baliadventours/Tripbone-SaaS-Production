@@ -2481,230 +2481,128 @@ export default function SaaSSuperAdmin() {
           </div>
         </div>
 
-        {/* Metric Cards Banner Row 1 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-          {/* Card 1: Total */}
-          <div className={`p-6 rounded-3xl border flex flex-col justify-between text-left ${
-            isDarkMode 
-              ? 'bg-slate-900/40 border-gray-800' 
-              : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isDarkMode ? 'bg-slate-800 text-gray-300' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <Building className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Total</span>
-            </div>
-            <div>
-              <span className={`text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {stats.totalTenants || 15}
-              </span>
-              <p className="text-[11px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">Total Workspaces</p>
-              <div className="flex items-center space-x-1.5 mt-1 text-xs text-slate-400">
-                <CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="font-medium">registered</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: MRR */}
-          <div className={`p-6 rounded-3xl border flex flex-col justify-between text-left ${
-            isDarkMode 
-              ? 'bg-slate-900/40 border-gray-800' 
-              : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isDarkMode ? 'bg-slate-800 text-gray-300' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <DollarSign className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Mrr</span>
-            </div>
-            <div>
-              <span className={`text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                ${(stats.totalMRR || 4046).toLocaleString()}
-              </span>
-              <p className="text-[11px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">Platform MRR</p>
-              <div className="flex items-center space-x-1.5 mt-1 text-xs text-slate-400">
-                <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="font-medium">/mo recurring</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Active */}
-          <div className={`p-6 rounded-3xl border flex flex-col justify-between text-left ${
-            isDarkMode 
-              ? 'bg-slate-900/40 border-gray-800' 
-              : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isDarkMode ? 'bg-slate-800 text-gray-300' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <CheckCircle className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Active</span>
-            </div>
-            <div>
-              <span className={`text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {stats.activeTenants || 6}
-              </span>
-              <p className="text-[11px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">Active Accounts</p>
-              <div className="flex items-center space-x-1.5 mt-1 text-xs text-slate-400">
-                <CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" style={{ color: brandColor }} />
-                <span className="font-medium">{stats.avgUsage || 40}% of total</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Suspended */}
-          <div className={`p-6 rounded-3xl border flex flex-col justify-between text-left ${
-            isDarkMode 
-              ? 'bg-slate-900/40 border-gray-800' 
-              : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isDarkMode ? 'bg-slate-800 text-gray-300' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Suspended</span>
-            </div>
-            <div>
-              <span className={`text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {stats.suspendedTenants || 3}
-              </span>
-              <p className="text-[11px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">Suspended Sites</p>
-              <div className="flex items-center space-x-1.5 mt-1 text-xs text-slate-400">
-                <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="font-medium">locked</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Tab content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Subheading */}
-            <div className="flex items-center justify-between mb-2">
-              <h3 className={`text-base font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Command Center</h3>
-              <div className="flex items-center space-x-2 text-xs font-semibold text-gray-400 font-mono">
-                <span className="relative flex h-2 w-2">
+            {/* Top Minimalist Status Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200/50 dark:border-white/5">
+              <div className="flex items-center space-x-3">
+                <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
-                <span>Live • Updated just now</span>
+                <span className={`text-xs font-bold uppercase tracking-wider font-mono ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                  System Operational • All Core Services Live
+                </span>
+              </div>
+              <div className="text-xs text-gray-400 font-mono font-medium hidden sm:block">
+                SaaS Command Center
               </div>
             </div>
 
-            {/* Row 2 Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-              {/* Today's Revenue */}
-              <div className={`p-6 rounded-3xl border text-left ${
-                isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-              }`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <span className="text-[9px] font-black text-gray-400 tracking-widest font-mono uppercase">Today's Revenue</span>
-                </div>
-                <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  ${stats.todayRevenue > 0 ? stats.todayRevenue.toLocaleString() : '0.00'}
-                </p>
-                <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wide">Based on active signups</p>
-              </div>
-
-              {/* This Month Revenue */}
-              <div className={`p-6 rounded-3xl border text-left ${
-                isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-              }`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                    <LineChart className="w-5 h-5" />
-                  </div>
-                  <span className="text-[9px] font-black text-gray-400 tracking-widest font-mono uppercase">This Month Revenue</span>
-                </div>
-                <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  ${(stats.totalMRR || 4046).toLocaleString()}
-                </p>
-                <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wide">Total MRR subscription value</p>
-              </div>
-
-              {/* Pending Support Tickets */}
-              <div className={`p-6 rounded-3xl border text-left ${
-                isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-              }`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                    <HelpCircle className="w-5 h-5" />
-                  </div>
-                  <span className="text-[9px] font-black text-gray-400 tracking-widest font-mono uppercase">Pending Tickets</span>
-                </div>
-                <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  {stats.pendingTicketsCount || 0}
-                </p>
-                <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wide">
-                  {stats.urgentTicketsCount || 0} require urgent response
-                </p>
-              </div>
-
-              {/* Latest Workspace */}
-              <div className={`p-6 rounded-3xl border text-left ${
-                isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
-              }`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                    <Building className="w-5 h-5" />
-                  </div>
-                  <span className="text-[9px] font-black text-gray-400 tracking-widest font-mono uppercase">Latest Workspace</span>
-                </div>
-                {tenants.length > 0 ? (
-                  <>
-                    <p className={`text-md font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`} title={tenants.slice().sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0]?.companyName}>
-                      {tenants.slice().sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0]?.companyName}
+            {/* Main 2-Column Minimalist Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              
+              {/* LEFT COLUMN */}
+              <div className="space-y-6">
+                
+                {/* 2x2 KPI Cards Grid */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  {/* Card 1: Total Workspaces */}
+                  <div className={`p-4 sm:p-5 rounded-2xl border text-left transition-all ${
+                    isDarkMode ? 'bg-slate-900/40 border-gray-800 hover:border-gray-700' : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        isDarkMode ? 'bg-slate-800 text-indigo-400' : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        <Building className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Workspaces</span>
+                    </div>
+                    <p className={`text-2xl sm:text-3xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {stats.totalTenants || 15}
                     </p>
-                    <p className="text-xs text-gray-400 mt-2 font-bold uppercase tracking-wide">
-                      Provisioned {tenants.slice().sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0]?.createdAt ? new Date(tenants.slice().sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0]?.createdAt).toLocaleDateString() : '7/16/2026'}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>None</p>
-                    <p className="text-xs text-gray-400 mt-2 font-bold uppercase tracking-wide">Ready for onboarding</p>
-                  </>
-                )}
-              </div>
-            </div>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium mt-1">Total registered accounts</p>
+                  </div>
 
-            {/* Split layout Row 3 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column: Latest Activity */}
-              <div className="lg:col-span-2">
-                <div className={`border rounded-3xl overflow-hidden h-full ${
-                  isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
+                  {/* Card 2: MRR */}
+                  <div className={`p-4 sm:p-5 rounded-2xl border text-left transition-all ${
+                    isDarkMode ? 'bg-slate-900/40 border-gray-800 hover:border-gray-700' : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        isDarkMode ? 'bg-slate-800 text-emerald-400' : 'bg-slate-100 text-emerald-600'
+                      }`}>
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">MRR</span>
+                    </div>
+                    <p className={`text-2xl sm:text-3xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      ${(stats.totalMRR || 4046).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium mt-1">Monthly recurring revenue</p>
+                  </div>
+
+                  {/* Card 3: Active Accounts */}
+                  <div className={`p-4 sm:p-5 rounded-2xl border text-left transition-all ${
+                    isDarkMode ? 'bg-slate-900/40 border-gray-800 hover:border-gray-700' : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        isDarkMode ? 'bg-slate-800 text-sky-400' : 'bg-slate-100 text-sky-600'
+                      }`}>
+                        <CheckCircle className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Active</span>
+                    </div>
+                    <p className={`text-2xl sm:text-3xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {stats.activeTenants || 6}
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium mt-1">{stats.avgUsage || 40}% active utilization</p>
+                  </div>
+
+                  {/* Card 4: Today's Revenue */}
+                  <div className={`p-4 sm:p-5 rounded-2xl border text-left transition-all ${
+                    isDarkMode ? 'bg-slate-900/40 border-gray-800 hover:border-gray-700' : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        isDarkMode ? 'bg-slate-800 text-amber-400' : 'bg-slate-100 text-amber-600'
+                      }`}>
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-black text-gray-400 tracking-widest font-mono uppercase">Today</span>
+                    </div>
+                    <p className={`text-2xl sm:text-3xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      ${stats.todayRevenue > 0 ? stats.todayRevenue.toLocaleString() : '0.00'}
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium mt-1">Today's new signups</p>
+                  </div>
+                </div>
+
+                {/* Recent Activity Card */}
+                <div className={`border rounded-2xl overflow-hidden ${
+                  isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-200/80 shadow-2xs'
                 }`}>
-                  <div className={`p-6 border-b flex items-center justify-between text-left ${isDarkMode ? 'border-gray-800' : 'border-slate-100'}`}>
-                    <h3 className={`font-black text-sm tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      Latest Platform Activity
-                    </h3>
+                  <div className={`p-4 sm:p-5 border-b flex items-center justify-between text-left ${isDarkMode ? 'border-gray-800' : 'border-slate-100'}`}>
+                    <div>
+                      <h3 className={`font-black text-sm tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        Recent Workspace Activity
+                      </h3>
+                      <p className="text-[10px] text-gray-400 font-medium mt-0.5">Latest registrations & tenant events</p>
+                    </div>
                     <button 
                       onClick={() => setActiveTab('workspaces')}
-                      className="text-xs font-black text-gray-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center space-x-1 uppercase tracking-wider"
+                      className="text-xs font-bold text-indigo-500 hover:text-indigo-600 transition-colors flex items-center space-x-1"
                     >
-                      <span>View all</span>
+                      <span>View All</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className={`divide-y ${isDarkMode ? 'divide-gray-800/50' : 'divide-slate-100'}`}>
+                  <div className={`divide-y ${isDarkMode ? 'divide-gray-800/60' : 'divide-slate-100'}`}>
                     {tenants.length === 0 ? (
-                      <div className="p-12 text-center text-xs text-gray-500 font-medium">No registered workspace activity.</div>
+                      <div className="p-8 text-center text-xs text-gray-500 font-medium">No registered workspace activity.</div>
                     ) : (
                       tenants.slice()
                         .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
@@ -2712,30 +2610,30 @@ export default function SaaSSuperAdmin() {
                         .map((t) => {
                           const timeStr = t.createdAt ? new Date(t.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Jul 16, 08:38 PM';
                           return (
-                            <div key={t.id} className={`p-5 flex items-center justify-between transition-colors ${
-                              isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/50'
+                            <div key={t.id} className={`p-4 flex items-center justify-between transition-colors ${
+                              isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/60'
                             }`}>
-                              <div className="flex items-center space-x-4 overflow-hidden">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                                  isDarkMode ? 'bg-slate-800 text-indigo-400' : 'bg-slate-100 text-slate-500'
+                              <div className="flex items-center space-x-3 overflow-hidden">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                  isDarkMode ? 'bg-slate-800 text-indigo-400' : 'bg-slate-100 text-slate-600'
                                 }`}>
                                   <Shield className="w-4 h-4" />
                                 </div>
                                 <div className="text-left overflow-hidden">
-                                  <p className={`text-xs font-semibold truncate ${isDarkMode ? 'text-gray-200' : 'text-slate-900'}`}>
-                                    New tenant registered: <span className="font-extrabold">{t.companyName || 'Unnamed Brand'}</span>
+                                  <p className={`text-xs font-bold truncate ${isDarkMode ? 'text-gray-200' : 'text-slate-900'}`}>
+                                    {t.companyName || 'Unnamed Brand'}
                                   </p>
                                   <p className="text-[10px] text-gray-400 font-medium truncate mt-0.5">
-                                    {timeStr} • Automatically provisioned workspace ({t.plan || 'starter'}-lifetime)
+                                    {timeStr} • {t.plan || 'starter'} tier
                                   </p>
                                 </div>
                               </div>
                               <button 
                                 onClick={() => { setSelectedTenant(t); setTenantModalTab('overview'); setIsTenantModalOpen(true); }} 
-                                className={`px-3 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                                className={`px-2.5 py-1 border rounded-lg text-[10px] font-bold transition-all ${
                                   isDarkMode 
                                     ? 'border-gray-800 text-gray-300 hover:bg-slate-800 hover:text-white' 
-                                    : 'border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-xs'
+                                    : 'border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                 }`}
                               >
                                 Manage
@@ -2746,27 +2644,31 @@ export default function SaaSSuperAdmin() {
                     )}
                   </div>
                 </div>
+
               </div>
 
-              {/* Right Column: Trend Chart and Quick Actions */}
+              {/* RIGHT COLUMN */}
               <div className="space-y-6">
-                {/* MRR Trend Card */}
-                <div className={`p-6 rounded-3xl border ${
-                  isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
+                
+                {/* MRR Revenue Trend Chart */}
+                <div className={`p-4 sm:p-5 rounded-2xl border text-left ${
+                  isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-200/80 shadow-2xs'
                 }`}>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className={`font-black text-sm tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      MRR Trend
-                    </h3>
-                    <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold font-mono ${
-                      isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className={`font-black text-sm tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        MRR Growth Trajectory
+                      </h3>
+                      <p className="text-[10px] text-gray-400 font-medium mt-0.5">Revenue growth over the past 6 months</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-1 rounded-md font-bold font-mono ${
+                      isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
                     }`}>
-                      Last 6 mo
+                      +26% YoY
                     </span>
                   </div>
 
-                  {/* Line Chart / Area Chart using Recharts */}
-                  <div className="h-44 w-full -mx-4">
+                  <div className="h-44 w-full -mx-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart 
                         data={[
@@ -2787,16 +2689,16 @@ export default function SaaSSuperAdmin() {
                         </defs>
                         <XAxis 
                           dataKey="name" 
-                          stroke={isDarkMode ? '#475569' : '#cbd5e1'} 
+                          stroke={isDarkMode ? '#475569' : '#94a3b8'} 
                           fontSize={9}
-                          fontFamily="monospace"
+                          fontFamily="sans-serif"
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis 
-                          stroke={isDarkMode ? '#475569' : '#cbd5e1'} 
+                          stroke={isDarkMode ? '#475569' : '#94a3b8'} 
                           fontSize={9}
-                          fontFamily="monospace"
+                          fontFamily="sans-serif"
                           tickLine={false}
                           axisLine={false}
                           tickFormatter={(v) => `$${(v/1000).toFixed(1)}k`}
@@ -2807,7 +2709,7 @@ export default function SaaSSuperAdmin() {
                             borderColor: isDarkMode ? '#334155' : '#e2e8f0',
                             fontSize: '10px',
                             borderRadius: '8px',
-                            fontFamily: 'monospace'
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
                           }}
                           formatter={(value) => [`$${value}`, 'MRR']}
                         />
@@ -2815,7 +2717,7 @@ export default function SaaSSuperAdmin() {
                           type="monotone" 
                           dataKey="value" 
                           stroke={brandColor} 
-                          strokeWidth={2.5} 
+                          strokeWidth={2} 
                           fillOpacity={1} 
                           fill="url(#colorValue)" 
                         />
@@ -2823,65 +2725,92 @@ export default function SaaSSuperAdmin() {
                     </ResponsiveContainer>
                   </div>
 
-                  {/* MRR stats row */}
-                  <div className={`grid grid-cols-3 gap-2 pt-4 border-t mt-4 text-center ${
+                  {/* Chart Summary Stats */}
+                  <div className={`grid grid-cols-3 gap-2 pt-3 border-t mt-3 text-center ${
                     isDarkMode ? 'border-gray-800' : 'border-slate-100'
                   }`}>
                     <div>
-                      <span className={`block text-md font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      <span className={`block text-xs font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                         ${((stats.totalMRR || 4046)/1000).toFixed(1)}k
                       </span>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Current</span>
+                      <span className="text-[9px] text-gray-400 font-medium">Current</span>
                     </div>
                     <div>
-                      <span className={`block text-md font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      <span className={`block text-xs font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                         $3.2k
                       </span>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Last Mo.</span>
+                      <span className="text-[9px] text-gray-400 font-medium">Last Month</span>
                     </div>
                     <div>
-                      <span className="block text-md font-black text-emerald-500">
+                      <span className="block text-xs font-black text-emerald-500">
                         +26%
                       </span>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Growth</span>
+                      <span className="text-[9px] text-gray-400 font-medium">Growth</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick Actions Card */}
-                <div className={`p-6 rounded-3xl border text-left ${
-                  isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
+                {/* Support & Operational Status Tile */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className={`p-4 rounded-2xl border text-left ${
+                    isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-200/80 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <HelpCircle className="w-4 h-4 text-amber-500" />
+                      <span className="text-[10px] font-bold text-gray-400 font-mono uppercase">Helpdesk</span>
+                    </div>
+                    <p className={`text-xl sm:text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {stats.pendingTicketsCount || 0}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {stats.urgentTicketsCount || 0} urgent tickets
+                    </p>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl border text-left ${
+                    isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-200/80 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <ShieldAlert className="w-4 h-4 text-rose-500" />
+                      <span className="text-[10px] font-bold text-gray-400 font-mono uppercase">Suspended</span>
+                    </div>
+                    <p className={`text-xl sm:text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {stats.suspendedTenants || 3}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Locked workspaces</p>
+                  </div>
+                </div>
+
+                {/* Quick Operations Panel */}
+                <div className={`p-4 sm:p-5 rounded-2xl border text-left ${
+                  isDarkMode ? 'bg-slate-900/40 border-gray-800' : 'bg-white border-slate-200/80 shadow-2xs'
                 }`}>
-                  <h3 className={`font-black text-sm tracking-tight mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                    Quick Actions
+                  <h3 className={`font-black text-sm tracking-tight mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                    Quick Operations
                   </h3>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <button 
                       onClick={() => setIsManualCustomerModalOpen(true)}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-2xl border text-xs font-semibold text-left transition-all ${
+                      className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs font-semibold text-left transition-all ${
                         isDarkMode 
                           ? 'border-gray-800 hover:bg-slate-800 text-gray-300 hover:text-white' 
-                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-2xs'
+                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900'
                       }`}
                     >
-                      <div className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 shrink-0">
-                        <Plus className="w-4 h-4" />
-                      </div>
-                      <span>Provision Workspace</span>
+                      <Plus className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="truncate">Add Workspace</span>
                     </button>
 
                     <button 
                       onClick={() => setActiveTab('announcements')}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-2xl border text-xs font-semibold text-left transition-all ${
+                      className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs font-semibold text-left transition-all ${
                         isDarkMode 
                           ? 'border-gray-800 hover:bg-slate-800 text-gray-300 hover:text-white' 
-                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-2xs'
+                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900'
                       }`}
                     >
-                      <div className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 shrink-0">
-                        <Megaphone className="w-4 h-4" />
-                      </div>
-                      <span>Send Announcement</span>
+                      <Megaphone className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span className="truncate">Announcement</span>
                     </button>
 
                     <button 
@@ -2894,36 +2823,32 @@ export default function SaaSSuperAdmin() {
                         downloadAnchor.click();
                         downloadAnchor.remove();
                       }}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-2xl border text-xs font-semibold text-left transition-all ${
+                      className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs font-semibold text-left transition-all ${
                         isDarkMode 
                           ? 'border-gray-800 hover:bg-slate-800 text-gray-300 hover:text-white' 
-                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-2xs'
+                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900'
                       }`}
                     >
-                      <div className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 shrink-0">
-                        <Download className="w-4 h-4" />
-                      </div>
-                      <span>Export Report</span>
+                      <Download className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="truncate">Export Report</span>
                     </button>
 
                     <button 
-                      onClick={() => {
-                        setActiveTab('workspaces');
-                      }}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-2xl border text-xs font-semibold text-left transition-all ${
+                      onClick={() => setActiveTab('workspaces')}
+                      className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs font-semibold text-left transition-all ${
                         isDarkMode 
                           ? 'border-gray-800 hover:bg-slate-800 text-gray-300 hover:text-white' 
-                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-2xs'
+                          : 'border-slate-100 hover:bg-slate-50 text-slate-700 hover:text-slate-900'
                       }`}
                     >
-                      <div className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 shrink-0">
-                        <ShieldAlert className="w-4 h-4" />
-                      </div>
-                      <span>Review Suspended</span>
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span className="truncate">Suspended</span>
                     </button>
                   </div>
                 </div>
+
               </div>
+
             </div>
           </div>
         )}
