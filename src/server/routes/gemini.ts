@@ -238,14 +238,15 @@ The output MUST be in valid JSON format according to the schema provided.`,
 // API Route: Generate Blog Post Data (Public/Admin proxy)
 router.post("/generate-blog", async (req, res) => {
   try {
-    const { prompt, apiKey, tenantId } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: "Missing required field: prompt" });
+    const { prompt, topic, audience, tone, language, isSaaS, apiKey, tenantId } = req.body;
+    const finalPrompt = prompt || topic || (topic ? `Write an article on: ${topic}` : null);
+    if (!finalPrompt) {
+      return res.status(400).json({ error: "Missing required field: prompt or topic" });
     }
 
     // Call Creem Moderation API to comply with AI Wrapper policies
     try {
-      await moderateCreemContent(prompt);
+      await moderateCreemContent(finalPrompt);
     } catch (modErr: any) {
       console.warn("[Moderation blocked prompt]:", modErr.message);
       return res.status(400).json({ error: "Prompt blocked by moderation policy." });
@@ -267,11 +268,25 @@ router.post("/generate-blog", async (req, res) => {
       }
     });
 
-    const response = await generateContentWithFallback(ai, {
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: `You are a professional travel blogger and SEO expert writing for "Bali Adventours".
+    const isSaaSSite = isSaaS || (finalPrompt.toLowerCase().includes('saas') || finalPrompt.toLowerCase().includes('tour operator') || finalPrompt.toLowerCase().includes('booking'));
+
+    const systemInstruction = isSaaSSite
+      ? `You are an expert SaaS content writer and B2B marketing specialist writing for "Tripbone", an all-in-one AI tour operator management system and booking platform.
+Your task is to write high-quality, engaging, insightful, and SEO-optimized articles for tour operators, travel agencies, and activity providers.
+
+TOPIC: ${finalPrompt}
+AUDIENCE: ${audience || 'Tour Operators & Travel Agencies'}
+TONE: ${tone || 'Authoritative, engaging, professional'}
+LANGUAGE: ${language || 'English'}
+
+VOICE & STYLE:
+- Authoritative, clear, actionable, and encouraging.
+- Focus on real operational insights, business growth, booking conversion, and modern technology.
+- Use proper HTML formatting inside the 'content' field (h2, h3, p, ul, li, strong) for rich readability.
+- The article should be thorough, informative, and around 500-800 words.
+
+The output MUST be in valid JSON format including title, excerpt, full HTML content, category, and tags.`
+      : `You are a professional travel blogger and SEO expert writing for "Bali Adventours".
 Your task is to write high-quality, engaging, and SEO-optimized blog posts about Bali and travel.
 
 VOICE & STYLE:
@@ -281,7 +296,13 @@ VOICE & STYLE:
 - Use proper HTML formatting inside the 'content' field (h2, h3, p, ul, li) for readability.
 - The content should be at least 600-800 words long.
 
-The output MUST be in valid JSON format including title, excerpt, full HTML content, category, and tags.`,
+The output MUST be in valid JSON format including title, excerpt, full HTML content, category, and tags.`;
+
+    const response = await generateContentWithFallback(ai, {
+      model: "gemini-3.5-flash",
+      contents: finalPrompt,
+      config: {
+        systemInstruction,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -289,7 +310,7 @@ The output MUST be in valid JSON format including title, excerpt, full HTML cont
             title: { type: Type.STRING, description: "Captivating SEO-friendly blog title" },
             excerpt: { type: Type.STRING, description: "A short, intriguing 2-sentence summary to encourage clicks" },
             content: { type: Type.STRING, description: "Full blog post content with HTML tags (h2, h3, p, ul, li)" },
-            category: { type: Type.STRING, description: "Best matching category (e.g., Adventure, Culture, Food, Guide, News)" },
+            category: { type: Type.STRING, description: "Best matching category (e.g., Adventure, Culture, Software, Guide, News)" },
             tags: { 
               type: Type.ARRAY, 
               items: { type: Type.STRING },

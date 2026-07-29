@@ -320,6 +320,18 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && resource.data.tenantId != null);
     }
 
+    // --- SaaS Posts (Blog) ---
+    match /saas_posts/{postId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // --- Knowledge Base ---
+    match /knowledge_base/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // --- AI FAQs ---
     match /aiFaqs/{faqId} {
       allow get: if isValidId(faqId);
