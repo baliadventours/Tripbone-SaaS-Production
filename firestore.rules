@@ -387,11 +387,18 @@ service cloud.firestore {
       allow create: if true; // Publicly accessible to collect leads via AI Planner
     }
 
-    // --- Inventory ---
+    // --- Inventory & Logistics Catalog ---
     match /inventory/{inventoryId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if isAdmin();
+      allow read, write: if true;
+    }
+
+    match /inventory_items/{itemId} {
+      allow read, write: if true;
+    }
+
+    // --- Customer Proposals ---
+    match /proposals/{proposalId} {
+      allow read, write: if true;
     }
 
     // --- Support Tickets ---

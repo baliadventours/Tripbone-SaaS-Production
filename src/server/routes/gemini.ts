@@ -336,6 +336,149 @@ The output MUST be in valid JSON format including title, excerpt, full HTML cont
   }
 });
 
+// API Route: Generate Custom Tour Proposal (SaaS Admin Tool)
+router.post("/generate-proposal", async (req, res) => {
+  try {
+    const { 
+      guestName, 
+      email, 
+      phone, 
+      nationality, 
+      paxCount, 
+      durationDays, 
+      selectedItems, 
+      marginPercentage, 
+      baseSubtotal, 
+      totalPrice, 
+      specialNotes,
+      currency,
+      apiKey, 
+      tenantId 
+    } = req.body;
+
+    if (!guestName || !selectedItems || !Array.isArray(selectedItems)) {
+      return res.status(400).json({ error: "Missing required fields: guestName and selectedItems" });
+    }
+
+    try {
+      await moderateCreemContent(JSON.stringify({ guestName, nationality, selectedItems, specialNotes }));
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked proposal prompt]:", modErr.message);
+      return res.status(400).json({ error: "Proposal input blocked by moderation policy." });
+    }
+
+    const tenantApiKey = await resolveTenantGeminiKey(tenantId);
+    const finalKey = tenantApiKey || apiKey?.trim() || process.env.GEMINI_API_KEY?.trim();
+    if (!finalKey) {
+      return res.status(400).json({ error: "Gemini API Key is not configured on the server." });
+    }
+
+    const { GoogleGenAI, Type } = await import("@google/genai");
+    const ai = new GoogleGenAI({
+      apiKey: finalKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+
+    const itemsSummary = selectedItems.map((item: any, idx: number) => 
+      `- Item ${idx + 1}: ${item.name} | Category: ${item.type} | Price: ${item.price} ${currency || 'IDR'} (${item.priceType}) | Qty: ${item.quantity} | Day: ${item.day || 'General'}`
+    ).join('\n');
+
+    const promptText = `
+Generate a luxurious, highly professional travel itinerary and booking proposal for our client.
+
+GUEST DETAILS:
+- Name: ${guestName}
+- Email: ${email || 'N/A'}
+- Phone/WhatsApp: ${phone || 'N/A'}
+- Nationality: ${nationality || 'International Guest'}
+- Group Size: ${paxCount || 1} Person(s)
+- Duration: ${durationDays || 1} Day(s)
+- Special Requests/Notes: ${specialNotes || 'None'}
+
+INVENTORY & LOGISTIC ITEMS SELECTED FOR THIS TRIP:
+${itemsSummary}
+
+PRICING STRUCTURE (INCLUDED IN PROPOSAL):
+- Calculated Total Package Price: ${currency || 'IDR'} ${Number(totalPrice || 0).toLocaleString()} (Includes taxes & service charges)
+
+INSTRUCTIONS FOR AI:
+1. Craft an elegant, welcoming proposal title and client greeting personalized to ${guestName}.
+2. Synthesize the selected inventory items into a cohesive, day-by-day rich narrative itinerary (${durationDays || 1} Day(s)).
+3. Detail clear Inclusions and Exclusions based on the inventory items provided.
+4. Add 3-4 valuable travel tips for a seamless experience in Bali/Indonesia.
+5. Provide a warm closing call-to-action note inviting them to confirm the proposal.
+`;
+
+    const response = await generateContentWithFallback(ai, {
+      model: "gemini-3.5-flash",
+      contents: promptText,
+      config: {
+        systemInstruction: `You are an elite travel designer and tour operator manager at Tripbone Tour Operations.
+You excel at writing captivating, transparent, and polished travel proposals for international and VIP guests.
+Outputs MUST be in structured JSON conforming to the requested schema.`,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            proposalTitle: { type: Type.STRING, description: "Catchy, elegant title for the proposal" },
+            welcomeMessage: { type: Type.STRING, description: "Personalized welcome greeting for the guest" },
+            itineraryNarrative: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  dayNumber: { type: Type.NUMBER, description: "Day number (1, 2, 3...)" },
+                  title: { type: Type.STRING, description: "Day title e.g. Arrival & East Bali Cultural Tour" },
+                  summary: { type: Type.STRING, description: "Engaging 2-3 sentence overview of the day's experience" },
+                  activities: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING },
+                    description: "Detailed breakdown of activities, logistics, or highlights for the day"
+                  }
+                },
+                required: ["dayNumber", "title", "summary", "activities"]
+              }
+            },
+            inclusions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "List of all included items based on the inventory"
+            },
+            exclusions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "Standard or specific exclusions (e.g. personal expenses, flights, tipping)"
+            },
+            importantTips: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "Useful travel tips for the guest"
+            },
+            closingNotes: { type: Type.STRING, description: "Closing call to action for booking confirmation" }
+          },
+          required: ["proposalTitle", "welcomeMessage", "itineraryNarrative", "inclusions", "exclusions", "importantTips", "closingNotes"]
+        }
+      }
+    });
+
+    const resultText = response.text || "{}";
+    const parsedData = JSON.parse(resultText);
+
+    res.json({
+      success: true,
+      data: parsedData
+    });
+
+  } catch (error: any) {
+    console.error("Error generating proposal:", error);
+    res.status(500).json({ error: error.message || "Failed to generate proposal" });
+  }
+});
+
 // API Route: Generate Itinerary (Public/Admin proxy)
 router.post("/generate-itinerary", async (req, res) => {
   try {

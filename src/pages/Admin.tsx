@@ -171,6 +171,7 @@ import ImportBooking from '../components/Admin/ImportBooking';
 import TicketManager from '../components/Admin/TicketManager';
 import GoogleAnalytics from './Dashboard/GoogleAnalytics';
 import AIHubManager from '../components/Admin/AIHubManager';
+import ProposalGenerator from '../components/Admin/ProposalGenerator';
 
 type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
@@ -13059,7 +13060,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           )}
           {activeMenu === 'ai-hub' && (
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-               <AIHubManager />
+               <ProposalGenerator isDarkMode={isDarkMode} tenantId={currentTenant?.id} />
             </div>
           )}
           {(['users', 'users-admins', 'users-suppliers', 'users-agents', 'users-customers'] as MenuId[]).includes(activeMenu) && (
