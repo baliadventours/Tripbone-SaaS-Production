@@ -63,7 +63,8 @@ import {
   Upload,
   Eye,
   Printer,
-  FileText
+  FileText,
+  ArrowUpDown
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -253,6 +254,7 @@ export default function SaaSSuperAdmin() {
   // Transactions tracking states
   const [txSearch, setTxSearch] = useState('');
   const [txStatusFilter, setTxStatusFilter] = useState('all');
+  const [txSortOrder, setTxSortOrder] = useState<'latest' | 'oldest' | 'amount-desc' | 'amount-asc' | 'no-desc' | 'no-asc' | 'status'>('latest');
   const [txSubTab, setTxSubTab] = useState<'bookings' | 'invoices'>('invoices');
   const [viewingInvoice, setViewingInvoice] = useState<any>(null);
 
@@ -4551,6 +4553,22 @@ export default function SaaSSuperAdmin() {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+
+                  <select
+                    value={txSortOrder}
+                    onChange={(e) => setTxSortOrder(e.target.value as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer ${
+                      isDarkMode ? 'bg-slate-950 border-gray-805 text-white' : 'bg-gray-50 border-gray-200 text-gray-955'
+                    }`}
+                  >
+                    <option value="latest">Sort: Latest Invoice (Default)</option>
+                    <option value="oldest">Sort: Oldest Invoice</option>
+                    <option value="amount-desc">Sort: Amount (High to Low)</option>
+                    <option value="amount-asc">Sort: Amount (Low to High)</option>
+                    <option value="no-desc">Sort: Invoice ID (High to Low)</option>
+                    <option value="no-asc">Sort: Invoice ID (Low to High)</option>
+                    <option value="status">Sort: Status</option>
+                  </select>
                 </div>
               </div>
 
@@ -4582,7 +4600,42 @@ export default function SaaSSuperAdmin() {
                           return matchesStatus && matchesSearch;
                         });
 
-                        if (filtered.length === 0) {
+                        const parseAmt = (val: any) => {
+                          if (typeof val === 'number') return val;
+                          if (!val) return 0;
+                          const num = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
+                          return isNaN(num) ? 0 : num;
+                        };
+
+                        const parseNum = (inv: any) => {
+                          const str = String(inv.no || inv.id || '');
+                          const m = str.match(/\d+/);
+                          return m ? parseInt(m[0], 10) : 0;
+                        };
+
+                        const sorted = [...filtered].sort((a, b) => {
+                          const dateA = new Date(a.createdAt || a.invoiceDate || 0).getTime();
+                          const dateB = new Date(b.createdAt || b.invoiceDate || 0).getTime();
+
+                          if (txSortOrder === 'latest') {
+                            return dateB - dateA;
+                          } else if (txSortOrder === 'oldest') {
+                            return dateA - dateB;
+                          } else if (txSortOrder === 'amount-desc') {
+                            return parseAmt(b.amount) - parseAmt(a.amount);
+                          } else if (txSortOrder === 'amount-asc') {
+                            return parseAmt(a.amount) - parseAmt(b.amount);
+                          } else if (txSortOrder === 'no-desc') {
+                            return parseNum(b) - parseNum(a);
+                          } else if (txSortOrder === 'no-asc') {
+                            return parseNum(a) - parseNum(b);
+                          } else if (txSortOrder === 'status') {
+                            return String(a.status || '').localeCompare(String(b.status || ''));
+                          }
+                          return dateB - dateA;
+                        });
+
+                        if (sorted.length === 0) {
                           return (
                             <tr>
                               <td colSpan={6} className="py-8 text-center text-xs text-gray-500">
@@ -4592,7 +4645,7 @@ export default function SaaSSuperAdmin() {
                           );
                         }
 
-                        return filtered.map((inv) => {
+                        return sorted.map((inv) => {
                           const matchedTenant = tenants.find(t => t.id === inv.tenantId);
                           const isLifetime = inv.billingInterval === 'lifetime' || matchedTenant?.billingInterval === 'lifetime' || String(inv.dueDate || '').toLowerCase().includes('lifetime');
 

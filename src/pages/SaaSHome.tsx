@@ -19,7 +19,7 @@ import {
   User, Settings, Key, Receipt, Copy, Plus, MessageSquare, LogOut,
   HelpCircle, EyeOff, ChevronRight, AlertTriangle, AlertCircle, X, Megaphone,
   Map, UserCheck, Briefcase, FileText, Image, Bell, Sliders, ChevronDown,
-  LifeBuoy, Terminal, Clock, Moon, Sun, BookOpen, Tag, Gift
+  LifeBuoy, Terminal, Clock, Moon, Sun, BookOpen, Tag, Gift, ArrowUpDown
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -31,6 +31,7 @@ export default function SaaSHome() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [closedAnnouncements, setClosedAnnouncements] = useState<string[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoiceSort, setInvoiceSort] = useState<'latest' | 'oldest' | 'amount-desc' | 'amount-asc' | 'no-desc' | 'no-asc' | 'status'>('latest');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(true);
   const [step, setStep] = useState(1); // 1 = Main/Dashboard/Auth, 2 = Website Setup, 3 = Website Info, 4 = Business Address
@@ -1033,8 +1034,42 @@ export default function SaaSHome() {
   const getDynamicInvoices = useMemo(() => {
     if (!activeWorkspace) return [];
     const dbInvoices = invoices.filter(inv => inv.tenantId === activeWorkspace.id);
-    return dbInvoices.sort((a,b) => new Date(b.createdAt || b.invoiceDate || 0).getTime() - new Date(a.createdAt || a.invoiceDate || 0).getTime());
-  }, [activeWorkspace, invoices]);
+
+    const parseAmt = (val: any) => {
+      if (typeof val === 'number') return val;
+      if (!val) return 0;
+      const num = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
+      return isNaN(num) ? 0 : num;
+    };
+
+    const parseNum = (inv: any) => {
+      const str = String(inv.no || inv.id || '');
+      const m = str.match(/\d+/);
+      return m ? parseInt(m[0], 10) : 0;
+    };
+
+    return [...dbInvoices].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.invoiceDate || 0).getTime();
+      const dateB = new Date(b.createdAt || b.invoiceDate || 0).getTime();
+
+      if (invoiceSort === 'latest') {
+        return dateB - dateA;
+      } else if (invoiceSort === 'oldest') {
+        return dateA - dateB;
+      } else if (invoiceSort === 'amount-desc') {
+        return parseAmt(b.amount) - parseAmt(a.amount);
+      } else if (invoiceSort === 'amount-asc') {
+        return parseAmt(a.amount) - parseAmt(b.amount);
+      } else if (invoiceSort === 'no-desc') {
+        return parseNum(b) - parseNum(a);
+      } else if (invoiceSort === 'no-asc') {
+        return parseNum(a) - parseNum(b);
+      } else if (invoiceSort === 'status') {
+        return String(a.status || '').localeCompare(String(b.status || ''));
+      }
+      return dateB - dateA;
+    });
+  }, [activeWorkspace, invoices, invoiceSort]);
 
   useEffect(() => {
     if (!activeWorkspace) {
@@ -3203,10 +3238,37 @@ export default function SaaSHome() {
                     "border rounded-2xl p-6 shadow-xs h-fit",
                     isDarkMode ? "bg-[#111928] border-slate-800" : "bg-white border-gray-200"
                   )}>
-                    <h2 className={cn("text-sm font-bold mb-6 flex items-center space-x-2", isDarkMode ? "text-white" : "text-gray-950")}>
-                      <Receipt className="w-5 h-5 text-[#00b272]" />
-                      <span>Invoice</span>
-                    </h2>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                      <h2 className={cn("text-sm font-bold flex items-center space-x-2", isDarkMode ? "text-white" : "text-gray-950")}>
+                        <Receipt className="w-5 h-5 text-[#00b272]" />
+                        <span>Invoice</span>
+                      </h2>
+
+                      <div className="flex items-center space-x-2">
+                        <span className={cn("text-xs font-semibold flex items-center gap-1", isDarkMode ? "text-slate-400" : "text-gray-500")}>
+                          <ArrowUpDown className="w-3.5 h-3.5" />
+                          <span>Sort by:</span>
+                        </span>
+                        <select
+                          value={invoiceSort}
+                          onChange={(e) => setInvoiceSort(e.target.value as any)}
+                          className={cn(
+                            "px-2.5 py-1.5 rounded-xl text-xs font-medium border focus:outline-none transition-colors cursor-pointer",
+                            isDarkMode 
+                              ? "bg-slate-900 border-slate-700 text-slate-200 focus:border-indigo-500" 
+                              : "bg-gray-50 border-gray-200 text-gray-800 focus:border-indigo-500"
+                          )}
+                        >
+                          <option value="latest">Latest Invoice (Default)</option>
+                          <option value="oldest">Oldest Invoice</option>
+                          <option value="amount-desc">Amount: High to Low</option>
+                          <option value="amount-asc">Amount: Low to High</option>
+                          <option value="no-desc">Invoice ID: High to Low</option>
+                          <option value="no-asc">Invoice ID: Low to High</option>
+                          <option value="status">Status</option>
+                        </select>
+                      </div>
+                    </div>
 
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs font-mono">
