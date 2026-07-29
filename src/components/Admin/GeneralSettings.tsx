@@ -366,15 +366,30 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
             </h3>
             <div className="space-y-4">
               {(activeTab === 'all' || activeTab === 'company-info' || activeTab === 'website') && (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Site Name</label>
-                  <input 
-                    type="text" 
-                    value={settings?.siteName}
-                    onChange={(e) => setSettings(s => s ? {...s, siteName: e.target.value} : null)}
-                    className="w-full bg-gray-50 border-none rounded-[12px] px-4 py-3 text-sm focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Site Name</label>
+                    <input 
+                      type="text" 
+                      value={settings?.siteName}
+                      onChange={(e) => setSettings(s => s ? {...s, siteName: e.target.value} : null)}
+                      className="w-full bg-gray-50 border-none rounded-[12px] px-4 py-3 text-sm focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1 flex items-center justify-between">
+                      <span>Primary Destination / Region</span>
+                      <span className="text-[10px] text-gray-400 font-normal lowercase">(e.g. Lombok, Tokyo, Bali)</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      value={settings?.destinationRegion || ''}
+                      onChange={(e) => setSettings(s => s ? {...s, destinationRegion: e.target.value} : null)}
+                      placeholder="e.g. Lombok, Tokyo, Bali, Paris"
+                      className="w-full bg-gray-50 border-none rounded-[12px] px-4 py-3 text-sm focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </>
               )}
             {(activeTab === 'all' || activeTab === 'domain') && tenantId && (
               <div className="space-y-4 pt-1">

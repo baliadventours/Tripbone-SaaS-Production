@@ -317,13 +317,15 @@ export default function Tours() {
     });
   }, [tours, searchTerm, selectedCategory, selectedLocation, priceRange, sortBy, categoryMap, locationMap]);
 
-  const pageTitle = formatPageTitle('All Adventure Tours', settings?.siteName || 'Bali Adventours', settings?.pageTitleFormat);
+  const destinationRegionName = settings?.destinationRegion || (locations.length > 0 ? locations[0].name : 'All Districts');
+
+  const pageTitle = formatPageTitle('All Adventure Tours', settings?.siteName || 'Tripbone', settings?.pageTitleFormat);
 
   return (
     <div className="min-h-screen bg-white">
       <Helmet>
         <title>{pageTitle}</title>
-        <meta name="description" content="Browse our complete list of adventure tours in Bali. Filter by activity type, location and price to find your perfect expedition." />
+        <meta name="description" content={`Browse our complete list of adventure tours in ${settings?.destinationRegion || 'our top destinations'}. Filter by activity type, location and price to find your perfect expedition.`} />
       </Helmet>
 
       {/* Page Header */}
@@ -339,7 +341,7 @@ export default function Tours() {
               {pageData?.title || "Choose your adventure"}
             </h1>
             <p className="text-gray-500 font-medium text-base md:text-lg leading-relaxed max-w-2xl">
-              {pageData?.subtitle || "Explore our curated collection of Bali's most extraordinary expeditions, from majestic peaks to coastal sanctuaries."}
+              {pageData?.subtitle || `Explore our curated collection of ${settings?.destinationRegion || 'featured'} most extraordinary expeditions, from majestic peaks to coastal sanctuaries.`}
             </p>
           </div>
         </div>
@@ -394,7 +396,11 @@ export default function Tours() {
                     onChange={(e) => setSelectedLocation(e.target.value)}
                     className="w-full appearance-none bg-white hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl py-2.5 pl-3.5 pr-10 text-xs font-black text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:bg-white focus:border-primary/30 transition-all shadow-sm"
                   >
-                    <option value="all">Across Bali (All Districts)</option>
+                    <option value="all">
+                      {settings?.destinationRegion 
+                        ? `Across ${settings.destinationRegion} (All Districts)` 
+                        : 'All Destinations (All Districts)'}
+                    </option>
                     {locations.map(loc => (
                       <option key={loc.id} value={loc.id}>{loc.name}</option>
                     ))}

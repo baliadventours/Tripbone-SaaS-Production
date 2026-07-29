@@ -471,6 +471,7 @@ export interface SiteSettings {
   bodyFont: string;
   headingFont: string;
   currency: string;
+  destinationRegion?: string;
   customDomain?: string;
   heroYoutubeUrl?: string;
   heroImage?: string;
