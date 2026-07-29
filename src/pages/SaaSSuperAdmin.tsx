@@ -4578,11 +4578,12 @@ export default function SaaSSuperAdmin() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className={`border-b text-xs font-semibold ${isDarkMode ? 'border-gray-800 bg-slate-900/50 text-gray-400' : 'border-gray-200 bg-gray-50/80 text-gray-600'}`}>
-                        <th className="py-3 px-4">Invoice ID</th>
+                        <th className="py-3 px-4">IN ID</th>
                         <th className="py-3 px-4">Tenant</th>
                         <th className="py-3 px-4">Active Package</th>
                         <th className="py-3 px-4">Due Date</th>
                         <th className="py-3 px-4 text-right">Amount</th>
+                        <th className="py-3 px-4 text-center">Status</th>
                         <th className="py-3 px-4 text-center">Action</th>
                       </tr>
                     </thead>
@@ -4638,7 +4639,7 @@ export default function SaaSSuperAdmin() {
                         if (sorted.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={6} className="py-8 text-center text-xs text-gray-500">
+                              <td colSpan={7} className="py-8 text-center text-xs text-gray-500">
                                 No operator invoices found matching the criteria.
                               </td>
                             </tr>
@@ -4666,7 +4667,7 @@ export default function SaaSSuperAdmin() {
 
                           return (
                             <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                              <td className="py-3.5 px-4 font-bold">
+                              <td className="py-3.5 px-4 font-bold font-mono">
                                 <button
                                   onClick={() => setViewingInvoice(inv)}
                                   className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
@@ -4704,21 +4705,20 @@ export default function SaaSSuperAdmin() {
                                 {inv.amount || '$0.00'}
                               </td>
                               <td className="py-3.5 px-4 text-center">
-                                <div className="flex items-center justify-end space-x-1 flex-wrap gap-1">
-                                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase mr-1 ${
-                                    inv.status === 'PAID'
-                                      ? 'bg-emerald-500/10 text-emerald-500'
-                                      : inv.status === 'PENDING'
-                                        ? 'bg-amber-500/10 text-amber-500 animate-pulse'
-                                        : inv.status === 'CANCELLED'
-                                          ? 'bg-gray-500/10 text-gray-400'
-                                          : 'bg-rose-500/10 text-rose-500'
-                                  }`}
-                                  title={`Status: ${inv.status || 'UNPAID'}`}
-                                  >
-                                    {inv.status || 'UNPAID'}
-                                  </span>
-
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                  inv.status === 'PAID'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                    : inv.status === 'PENDING'
+                                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 animate-pulse'
+                                      : inv.status === 'CANCELLED'
+                                        ? 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                                }`}>
+                                  {inv.status || 'UNPAID'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <div className="flex items-center justify-center space-x-1.5 flex-wrap gap-1">
                                   <button
                                     onClick={() => setViewingInvoice(inv)}
                                     className="p-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"

@@ -3277,10 +3277,11 @@ export default function SaaSHome() {
                             "border-b uppercase tracking-wider text-[10px] pb-3",
                             isDarkMode ? "border-slate-800 text-slate-400" : "border-gray-200 text-gray-400"
                           )}>
-                            <th className="pb-3 font-semibold">Invoice ID</th>
+                            <th className="pb-3 font-semibold">IN ID</th>
                             <th className="pb-3 font-semibold">Active Package</th>
                             <th className="pb-3 font-semibold">Due Date</th>
                             <th className="pb-3 font-semibold">Amount</th>
+                            <th className="pb-3 font-semibold text-center">Status</th>
                             <th className="pb-3 font-semibold text-right">Action</th>
                           </tr>
                         </thead>
@@ -3290,7 +3291,7 @@ export default function SaaSHome() {
                         )}>
                           {getDynamicInvoices.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="py-8 text-center text-gray-500 font-sans">
+                              <td colSpan={6} className="py-8 text-center text-gray-500 font-sans">
                                 No invoice history found for this workspace.
                               </td>
                             </tr>
@@ -3319,21 +3320,22 @@ export default function SaaSHome() {
                                     )}
                                   </td>
                                   <td className="py-4 font-bold text-gray-900 dark:text-white">{invoice.amount || '$0.00'}</td>
+                                  <td className="py-4 text-center">
+                                    <span className={cn(
+                                      "px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider inline-flex items-center",
+                                      invoice.status === 'PAID'
+                                        ? isDarkMode ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/60" : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                        : invoice.status === 'PENDING'
+                                          ? isDarkMode ? "bg-amber-950/40 text-amber-400 border-amber-900/60 animate-pulse" : "bg-amber-50 text-amber-700 border-amber-200 animate-pulse"
+                                          : invoice.status === 'CANCELLED'
+                                            ? isDarkMode ? "bg-gray-800 text-gray-400 border-gray-700" : "bg-gray-100 text-gray-500 border-gray-200"
+                                            : isDarkMode ? "bg-rose-950/40 text-rose-400 border-rose-900/60" : "bg-rose-50 text-rose-700 border-rose-200"
+                                    )}>
+                                      {invoice.status || 'UNPAID'}
+                                    </span>
+                                  </td>
                                   <td className="py-4 text-right">
                                     <div className="flex items-center justify-end space-x-2">
-                                      <span className={cn(
-                                        "px-2 py-0.5 rounded border text-[10px] font-bold uppercase mr-1",
-                                        invoice.status === 'PAID'
-                                          ? isDarkMode ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/60" : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                          : invoice.status === 'PENDING'
-                                            ? isDarkMode ? "bg-amber-950/40 text-amber-400 border-amber-900/60" : "bg-amber-50 text-amber-700 border-amber-100"
-                                            : invoice.status === 'CANCELLED'
-                                              ? isDarkMode ? "bg-gray-800 text-gray-400 border-gray-700" : "bg-gray-100 text-gray-500 border-gray-200"
-                                              : isDarkMode ? "bg-orange-950/40 text-orange-400 border-orange-900/60" : "bg-orange-50 text-orange-700 border-orange-100"
-                                      )}>
-                                        {invoice.status || 'UNPAID'}
-                                      </span>
-
                                       {(invoice.status === 'UNPAID' || invoice.status === 'PENDING') && (
                                         <>
                                           <button
