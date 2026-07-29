@@ -628,6 +628,7 @@ export interface Tenant {
   id: string;
   companyName: string;
   slug: string;
+  isSaaS?: boolean;
   customDomain?: string;
   logo?: string;
   favicon?: string;

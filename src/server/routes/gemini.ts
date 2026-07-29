@@ -729,7 +729,7 @@ Example:
 // API Route: AI Blog Post Generator
 router.post("/generate-blog", async (req, res) => {
   try {
-    const { topic, audience, tone, language, tenantId } = req.body;
+    const { topic, audience, tone, language, tenantId, isSaaS } = req.body;
     if (!topic || typeof topic !== 'string') {
       return res.status(400).json({ error: "Missing required field: topic" });
     }
@@ -750,29 +750,37 @@ router.post("/generate-blog", async (req, res) => {
     const { GoogleGenAI, Type } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey: finalKey });
 
+    const systemContext = isSaaS 
+      ? `You are an expert SaaS content strategist, B2B technology writer, and SEO specialist for 'Tripbone' (app.tripbone.com) — a modern, zero-commission, multi-tenant tour operator booking and reservation platform.
+Write high-converting, deeply informative, and authoritative B2B SaaS articles for tour operators, travel agencies, DMCs, and experience providers.
+Topics include comparisons (e.g., FareHarbor alternatives, Bokun alternatives), 'Why Tripbone', guides to choosing tour booking systems, direct booking growth tactics, and automated booking management.
+Output MUST be valid JSON matching the schema.`
+      : "You are an expert travel, SaaS, and tourism blog writer and SEO specialist. Output MUST be valid JSON matching the schema.";
+
     const prompt = `Write a high-quality, SEO-optimized, engaging blog article based on the following instructions.
 
 TOPIC: "${topic}"
-TARGET AUDIENCE: ${audience || "Tour Operators, Travel Agencies, and Enthusiasts"}
+TARGET AUDIENCE: ${audience || (isSaaS ? "Tour Operators & Travel Agencies" : "Tour Operators, Travel Agencies, and Enthusiasts")}
 TONE OF VOICE: ${tone || "Engaging, Professional, and Authoritative"}
 LANGUAGE: ${language || "English"}
+${isSaaS ? "BRAND FOCUS: Tripbone Tour Operator Booking & Management System" : ""}
 
 REQUIREMENTS:
 1. "title": A catchy, high-CTR blog headline.
-2. "slug": Clean URL-friendly slug (e.g. "top-10-travel-trends-2026").
+2. "slug": Clean URL-friendly slug (e.g. "fareharbor-alternatives-2026-tripbone").
 3. "excerpt": A 2-sentence captivating summary/hook.
-4. "category": A single relevant category (e.g. "Industry Insights", "Operator Guide", "Travel Tips", "AI & Tech", "Destination Guide").
+4. "category": A single relevant category (e.g. "Comparisons & Software", "Platform Guide", "Operator Tips", "Growth Strategies", "Industry Insights").
 5. "content": The complete, comprehensive blog article formatted in clean HTML. Use <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote> tags. Make it deeply informative, readable, and structured with 4-6 detailed sections. Do NOT include <html>, <head>, or <body> tags.
 6. "author": A professional author name/title (e.g. "Tripbone Editorial Team" or "Travel Tech Specialist").
 7. "readTime": Estimated reading time (e.g. "5 min read").
-8. "coverImageQuery": 2-3 English search keywords suitable for finding a relevant high-resolution cover photo on Unsplash (e.g. "tropical ocean adventure").
+8. "coverImageQuery": 2-3 English search keywords suitable for finding a relevant high-resolution cover photo on Unsplash.
 9. "seoKeywords": An array of 5-8 relevant SEO keywords.`;
 
     const response = await generateContentWithFallback(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
-        systemInstruction: "You are an expert travel, SaaS, and tourism blog writer and SEO specialist. Output MUST be valid JSON matching the schema.",
+        systemInstruction: systemContext,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

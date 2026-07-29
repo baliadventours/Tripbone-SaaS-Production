@@ -12,6 +12,7 @@ import SmartImage from '../components/SmartImage';
 import { Helmet } from 'react-helmet-async';
 import { generateBlogSchema } from '../lib/seoUtils';
 import { useSettings } from '../lib/SettingsContext';
+import { useTenant } from '../lib/TenantContext';
 
 function splitHtmlContent(html: string): [string, string] {
   if (!html) return ['', ''];
@@ -84,17 +85,32 @@ export default function BlogPostDetail() {
     ]
   };
 
+  const { isMaster, tenantId, tenant } = useTenant();
+  const isSaaSBlog = isMaster || !tenantId || tenant?.isSaaS || tenantId === 'global';
+
   useEffect(() => {
     const fetchPost = async () => {
       if (!slug) return;
       
-      const q = query(
-        collection(db, 'posts'),
+      const primaryCollection = isSaaSBlog ? 'saas_posts' : 'posts';
+      let q = query(
+        collection(db, primaryCollection),
         where('slug', '==', slug),
         limit(1)
       );
 
-      const querySnapshot = await getDocs(q);
+      let querySnapshot = await getDocs(q);
+
+      // Fallback check in posts if not found in saas_posts
+      if (querySnapshot.empty && isSaaSBlog) {
+        q = query(
+          collection(db, 'posts'),
+          where('slug', '==', slug),
+          limit(1)
+        );
+        querySnapshot = await getDocs(q);
+      }
+
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
         const data = doc.data();
@@ -106,8 +122,9 @@ export default function BlogPostDetail() {
     };
 
     const fetchSidebarData = async () => {
+      const targetCollection = isSaaSBlog ? 'saas_posts' : 'posts';
       const q = query(
-        collection(db, 'posts'),
+        collection(db, targetCollection),
         where('status', 'in', ['published', 'active'])
       );
       const snapshot = await getDocs(q);
@@ -135,7 +152,7 @@ export default function BlogPostDetail() {
     fetchPost();
     fetchSidebarData();
     window.scrollTo(0, 0);
-  }, [slug]);
+  }, [slug, isSaaSBlog]);
 
   useEffect(() => {
     const fetchRelatedTours = async () => {

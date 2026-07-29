@@ -7,6 +7,7 @@ import { Link, useLocation } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSettings } from '../lib/SettingsContext';
+import { useTenant } from '../lib/TenantContext';
 import { Helmet } from 'react-helmet-async';
 import { formatPageTitle } from '../lib/seoUtils';
 import { useDynamicPage } from '../hooks/useDynamicPage';
@@ -15,8 +16,14 @@ import SmartImage from '../components/SmartImage';
 
 export default function BlogArchive() {
   const { settings } = useSettings();
+  const { isMaster, tenantId, tenant } = useTenant();
   const { pageData } = useDynamicPage('blog');
-  const pageTitle = formatPageTitle('Travel Stories', settings?.siteName || 'Bali Adventours', settings?.pageTitleFormat);
+  const isSaaSBlog = isMaster || !tenantId || tenant?.isSaaS || tenantId === 'global';
+  const pageTitle = formatPageTitle(
+    isSaaSBlog ? 'Tripbone Platform Blog & Updates' : 'Travel Stories', 
+    settings?.siteName || (isSaaSBlog ? 'Tripbone' : 'Bali Adventours'), 
+    settings?.pageTitleFormat
+  );
   
   const themeMode = settings?.themeMode || 'default';
   const styleId = themeMode === 'custom' ? settings?.sectionStyles?.blogPage : 'default';
@@ -52,10 +59,20 @@ export default function BlogArchive() {
     : posts.filter(post => post.category === selectedCategory);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'posts'),
+    const targetCollection = isSaaSBlog ? 'saas_posts' : 'posts';
+    
+    let q = query(
+      collection(db, targetCollection),
       where('status', 'in', ['published', 'active'])
     );
+
+    if (!isSaaSBlog && tenantId) {
+      q = query(
+        collection(db, 'posts'),
+        where('tenantId', '==', tenantId),
+        where('status', 'in', ['published', 'active'])
+      );
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
@@ -78,7 +95,7 @@ export default function BlogArchive() {
     });
 
     return unsubscribe;
-  }, []);
+  }, [isSaaSBlog, tenantId]);
 
   if (loading) {
     return (
