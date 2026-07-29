@@ -226,6 +226,8 @@ function AppContent() {
                 <Route path="/pricing" element={<SaaSPricing />} />
                 <Route path="/about" element={<SaaSAbout />} />
                 <Route path="/contact" element={<SaaSContact />} />
+                <Route path="/blog" element={<BlogArchive />} />
+                <Route path="/blog/:slug" element={<BlogPostDetail />} />
                 <Route path="/terms" element={<SaaSTerms />} />
                 <Route path="/privacy" element={<SaaSPrivacy />} />
                 <Route path="/cookies" element={<SaasCookies />} />

@@ -61,13 +61,13 @@ import {
   Copy,
   FileSpreadsheet,
   Upload,
-  Eye,
   Printer,
   FileText,
   ArrowUpDown
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
+import SaaSBlogManager from '../components/SaaS/SaaSBlogManager';
 import { MailjetTester } from '../components/Admin/MailjetTester';
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -117,7 +117,7 @@ export default function SaaSSuperAdmin() {
     'operators' | 'end_users' | 'demo_leads' |
     'packages' | 'transactions' | 'coupons' | 'invoices' |
     'tickets' | 'announcements' |
-    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase'
+    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase' | 'blogs'
   >('overview');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -2130,6 +2130,7 @@ export default function SaaSSuperAdmin() {
           <div className="space-y-0.5">
             {renderSidebarItem('tickets', 'Helpdesk Tickets', MessageSquare, true, stats.pendingTicketsCount || 3)}
             {renderSidebarItem('announcements', 'Global Announcements', Megaphone)}
+            {renderSidebarItem('blogs', 'Blog & AI Writer', FileText)}
           </div>
         )}
       </div>
@@ -2437,6 +2438,7 @@ export default function SaaSSuperAdmin() {
                activeTab === 'integrations' ? 'Payment Gateways & Integrations' :
                activeTab === 'tickets' ? 'Helpdesk Tickets' :
                activeTab === 'announcements' ? 'Global Announcements' :
+               activeTab === 'blogs' ? 'Blog & AI Content Generator' :
                activeTab === 'branding' ? 'Platform Settings & Branding' :
                activeTab === 'security' ? 'Admin Security & Roles' :
                'Audit Logs & Operations'}
@@ -4306,6 +4308,9 @@ export default function SaaSSuperAdmin() {
         {activeTab === 'mailjet' && (
           <MailjetTester isDarkMode={isDarkMode} />
         )}
+        {activeTab === 'blogs' && (
+          <SaaSBlogManager isDarkMode={isDarkMode} />
+        )}
         {activeTab === 'workspaces' && (
           <div className={`border rounded-2xl overflow-hidden ${isDarkMode ? 'border-gray-800 bg-slate-900/40' : 'border-gray-200 bg-white shadow-sm'}`}>
             <div className={`p-6 border-b flex items-center justify-between ${isDarkMode ? 'border-gray-800 bg-slate-900/60' : 'border-gray-200 bg-white'}`}>
@@ -4646,7 +4651,7 @@ export default function SaaSSuperAdmin() {
                           );
                         }
 
-                        return sorted.map((inv) => {
+                        return sorted.map((inv, idx) => {
                           const matchedTenant = tenants.find(t => t.id === inv.tenantId);
                           const isLifetime = inv.billingInterval === 'lifetime' || matchedTenant?.billingInterval === 'lifetime' || String(inv.dueDate || '').toLowerCase().includes('lifetime');
 
@@ -4665,9 +4670,13 @@ export default function SaaSSuperAdmin() {
                           const planFormatted = formatPlanName(inv.plan || matchedTenant?.plan, packages, invInterval);
                           const planColor = getPackageTextColor(inv.plan || matchedTenant?.plan || '', planFormatted);
 
+                          const rowBg = idx % 2 === 0
+                            ? (isDarkMode ? 'bg-[#111928]' : 'bg-white')
+                            : (isDarkMode ? 'bg-slate-800/50' : 'bg-gray-100/90');
+
                           return (
-                            <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                              <td className="py-3.5 px-4 font-bold font-mono">
+                            <tr key={inv.id} className={`text-xs ${rowBg} hover:opacity-90 transition-colors border-none`}>
+                              <td className="py-3.5 px-4 font-bold font-mono border-none">
                                 <button
                                   onClick={() => setViewingInvoice(inv)}
                                   className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
@@ -6752,9 +6761,14 @@ export default function SaaSSuperAdmin() {
                   .col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
                   .col-value { font-size: 14px; font-weight: 600; color: #0f172a; }
                   .col-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
-                  table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
-                  th { background: #f8fafc; text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; border-bottom: 1px solid #e2e8f0; }
-                  td { padding: 16px; font-size: 13px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+                  table { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: none; }
+                  th { background: #f8fafc; text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; border: none; }
+                  td { padding: 16px; font-size: 13px; color: #334155; border: none; }
+                  tbody tr:nth-child(1) { background-color: #ffffff; }
+                  tbody tr:nth-child(2) { background-color: #f3f4f6; }
+                  tbody tr:nth-child(3) { background-color: #ffffff; }
+                  tbody tr:nth-child(4) { background-color: #f3f4f6; }
+                  tbody tr:nth-child(5) { background-color: #ffffff; }
                   .text-right { text-align: right; }
                   .total-row { font-weight: 800; font-size: 16px; color: #0f172a; }
                   .footer { border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 11px; color: #94a3b8; text-align: center; }
@@ -6908,29 +6922,29 @@ export default function SaaSSuperAdmin() {
                 </div>
 
                 {/* Line Item Table */}
-                <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs">
+                <div className="rounded-xl overflow-hidden shadow-xs">
+                  <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-gray-100 dark:bg-slate-800/80 text-gray-500 uppercase font-mono text-[10px]">
                       <tr>
-                        <th className="py-3 px-4">Item</th>
-                        <th className="py-3 px-4">Billing Cycle</th>
-                        <th className="py-3 px-4 text-right">Amount</th>
+                        <th className="py-3 px-4 border-none">Item</th>
+                        <th className="py-3 px-4 border-none">Billing Cycle</th>
+                        <th className="py-3 px-4 text-right border-none">Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800 font-medium">
-                      <tr>
-                        <td className="py-3.5 px-4">
+                    <tbody className="font-medium">
+                      <tr className="bg-white dark:bg-slate-900 border-none">
+                        <td className="py-3.5 px-4 border-none">
                           <span className="font-bold text-gray-900 dark:text-white block">{planName}</span>
                           <span className="text-[11px] text-gray-500">SaaS Platform Operator Subscription License</span>
                         </td>
-                        <td className="py-3.5 px-4 uppercase font-mono text-gray-600 dark:text-gray-400">{viewingInvoice.billingInterval || matchedTenant?.billingInterval || 'monthly'}</td>
-                        <td className="py-3.5 px-4 text-right font-extrabold text-gray-900 dark:text-white">{viewingInvoice.amount || '$0.00'}</td>
+                        <td className="py-3.5 px-4 uppercase font-mono text-gray-600 dark:text-gray-400 border-none">{viewingInvoice.billingInterval || matchedTenant?.billingInterval || 'monthly'}</td>
+                        <td className="py-3.5 px-4 text-right font-extrabold text-gray-900 dark:text-white border-none">{viewingInvoice.amount || '$0.00'}</td>
                       </tr>
                     </tbody>
-                    <tfoot className="bg-gray-50 dark:bg-slate-800/30 border-t border-gray-200 dark:border-slate-800 font-bold">
-                      <tr>
-                        <td colSpan={2} className="py-3 px-4 text-right text-gray-500 uppercase text-[10px]">Total Amount</td>
-                        <td className="py-3 px-4 text-right text-sm text-sky-600 dark:text-sky-400 font-black">{viewingInvoice.amount || '$0.00'}</td>
+                    <tfoot className="bg-gray-100/90 dark:bg-slate-800/50 font-bold">
+                      <tr className="border-none">
+                        <td colSpan={2} className="py-3 px-4 text-right text-gray-500 uppercase text-[10px] border-none">Total Amount</td>
+                        <td className="py-3 px-4 text-right text-sm text-sky-600 dark:text-sky-400 font-black border-none">{viewingInvoice.amount || '$0.00'}</td>
                       </tr>
                     </tfoot>
                   </table>

@@ -20,10 +20,8 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
 
   // Determine effective interval
   const effectiveInterval = getEffectiveInterval(planInput, intervalInput);
-  const intervalLabel = effectiveInterval === 'lifetime' ? 'Lifetime' : effectiveInterval === 'annual' ? 'Annual' : 'Monthly';
 
-  // Direct match in packagesList
-  let matchedName = '';
+  // Direct match in packagesList - return exact package name if specified by admin
   if (packagesList && packagesList.length > 0 && raw) {
     const matched = packagesList.find(p =>
       (p.id === raw ||
@@ -42,14 +40,26 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
       (p.name && p.name.toLowerCase() === lower)
     );
     if (matched && matched.name) {
-      matchedName = matched.name;
+      return matched.name;
     }
   }
 
-  let baseName = matchedName || raw;
+  // Preserve 'Annually' if explicitly present in raw input or interval input
+  const isAnnually = lower.includes('annually') || (intervalInput || '').toLowerCase() === 'annually';
+  const intervalLabel = effectiveInterval === 'lifetime' ? 'Lifetime' : isAnnually ? 'Annually' : effectiveInterval === 'annual' ? 'Annual' : 'Monthly';
+
+  // If raw input already contains full plan name like "Starter Annually" or "Starter Annual"
+  if (raw && (lower.includes('annually') || lower.includes('annual') || lower.includes('monthly') || lower.includes('lifetime') || lower.includes('yearly'))) {
+    // Title-case raw string properly
+    return raw
+      .split(/[\s\-_]+/)
+      .filter(Boolean)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
 
   // Clean base name by removing trailing/embedded interval words and "plan"
-  baseName = baseName
+  let baseName = raw
     .replace(/\b(plan|monthly|annually|annual|yearly|lifetime)\b/gi, '')
     .replace(/[\(\)\-_]+/g, ' ')
     .trim();
@@ -188,10 +198,14 @@ export function getNextBillingDate(tenant: any): string {
   return nextBilling.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-export function generateInvoiceNumber(inv: any, tenantIndexOrId?: number | string, allTenants?: any[]): string {
+export function generateInvoiceNumber(inv: any, tenantIndexOrId?: number | string | any, allTenants?: any[]): string {
   if (inv && inv.no && typeof inv.no === 'string' && inv.no !== 'INV-101' && inv.no !== 'INV-00' && inv.no.trim() !== '') {
     return inv.no.startsWith('INV-') ? inv.no : `INV-${inv.no}`;
   }
+
+  const actualTenantId = (typeof tenantIndexOrId === 'object' && tenantIndexOrId !== null) 
+    ? (tenantIndexOrId.id || tenantIndexOrId.tenantId) 
+    : tenantIndexOrId;
 
   if (allTenants && Array.isArray(allTenants) && allTenants.length > 0 && inv && inv.tenantId) {
     const sortedTenants = [...allTenants].sort((a, b) => {
@@ -205,14 +219,14 @@ export function generateInvoiceNumber(inv: any, tenantIndexOrId?: number | strin
     }
   }
 
-  if (typeof tenantIndexOrId === 'number') {
-    return `INV-${1001 + tenantIndexOrId}`;
+  if (typeof actualTenantId === 'number') {
+    return `INV-${1001 + actualTenantId}`;
   }
 
-  if (typeof tenantIndexOrId === 'string') {
+  if (typeof actualTenantId === 'string') {
     let hash = 0;
-    for (let i = 0; i < tenantIndexOrId.length; i++) {
-      hash = (hash << 5) - hash + tenantIndexOrId.charCodeAt(i);
+    for (let i = 0; i < actualTenantId.length; i++) {
+      hash = (hash << 5) - hash + actualTenantId.charCodeAt(i);
       hash |= 0;
     }
     const offset = Math.abs(hash) % 900;

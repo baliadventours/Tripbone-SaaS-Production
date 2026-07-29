@@ -372,22 +372,24 @@ export interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  content: string; // Markdown supported
+  content: string; // Markdown / HTML supported
   excerpt: string;
-  featuredImage: string;
+  featuredImage?: string;
+  coverImage?: string;
   category: string;
   tags: string[];
   author: string;
+  readTime?: string;
   seo?: {
     title: string;
     description: string;
     keywords?: string;
     ogImage?: string;
   };
-  status: 'draft' | 'published';
-  publishedAt: any;
+  status: 'draft' | 'published' | 'active';
+  publishedAt?: any;
   createdAt: any;
-  updatedAt: any;
+  updatedAt?: any;
 }
 
 export interface EmailTemplate {

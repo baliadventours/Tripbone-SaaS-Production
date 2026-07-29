@@ -47,6 +47,10 @@ export async function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Mount Gemini Router for AI blog generator and concierge endpoints
+  app.use("/api/gemini", geminiRouter);
+  app.use("/api", geminiRouter);
+
   // Redirect /index.html and /app.html to / for SEO duplicate content prevention
   app.use((req, res, next) => {
     if (req.path === '/index.html' || req.path === '/app.html') {

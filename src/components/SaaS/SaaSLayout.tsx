@@ -164,6 +164,7 @@ export default function SaaSLayout() {
 
               <Link to="/pricing" className="hover:text-brand transition-colors py-8">Pricing</Link>
               <Link to="/directory" className="hover:text-brand transition-colors py-8">Directory</Link>
+              <Link to="/blog" className="hover:text-brand transition-colors py-8">Blog</Link>
               <Link to="/about" className="hover:text-brand transition-colors py-8">Company</Link>
               <Link to="/contact" className="hover:text-brand transition-colors py-8">Contact</Link>
             </nav>
@@ -234,6 +235,7 @@ export default function SaaSLayout() {
               <h4 className="text-white font-bold mb-6">Company</h4>
               <ul className="space-y-4 text-sm">
                 <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
+                <li><Link to="/blog" className="hover:text-white transition-colors">Blog / Updates</Link></li>
                 <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
                 <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><button onClick={handleLoginClick} className="hover:text-white transition-colors">{user ? 'Dashboard' : 'Log In'}</button></li>

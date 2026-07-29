@@ -726,6 +726,90 @@ Example:
   }
 });
 
+// API Route: AI Blog Post Generator
+router.post("/generate-blog", async (req, res) => {
+  try {
+    const { topic, audience, tone, language, tenantId } = req.body;
+    if (!topic || typeof topic !== 'string') {
+      return res.status(400).json({ error: "Missing required field: topic" });
+    }
+
+    try {
+      await moderateCreemContent(topic);
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked blog topic]:", modErr.message);
+      return res.status(400).json({ error: "Topic blocked by moderation policy." });
+    }
+
+    const tenantApiKey = await resolveTenantGeminiKey(tenantId);
+    const finalKey = tenantApiKey || process.env.GEMINI_API_KEY?.trim();
+    if (!finalKey) {
+      return res.status(400).json({ error: "Gemini API Key is not configured on the server." });
+    }
+
+    const { GoogleGenAI, Type } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey: finalKey });
+
+    const prompt = `Write a high-quality, SEO-optimized, engaging blog article based on the following instructions.
+
+TOPIC: "${topic}"
+TARGET AUDIENCE: ${audience || "Tour Operators, Travel Agencies, and Enthusiasts"}
+TONE OF VOICE: ${tone || "Engaging, Professional, and Authoritative"}
+LANGUAGE: ${language || "English"}
+
+REQUIREMENTS:
+1. "title": A catchy, high-CTR blog headline.
+2. "slug": Clean URL-friendly slug (e.g. "top-10-travel-trends-2026").
+3. "excerpt": A 2-sentence captivating summary/hook.
+4. "category": A single relevant category (e.g. "Industry Insights", "Operator Guide", "Travel Tips", "AI & Tech", "Destination Guide").
+5. "content": The complete, comprehensive blog article formatted in clean HTML. Use <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote> tags. Make it deeply informative, readable, and structured with 4-6 detailed sections. Do NOT include <html>, <head>, or <body> tags.
+6. "author": A professional author name/title (e.g. "Tripbone Editorial Team" or "Travel Tech Specialist").
+7. "readTime": Estimated reading time (e.g. "5 min read").
+8. "coverImageQuery": 2-3 English search keywords suitable for finding a relevant high-resolution cover photo on Unsplash (e.g. "tropical ocean adventure").
+9. "seoKeywords": An array of 5-8 relevant SEO keywords.`;
+
+    const response = await generateContentWithFallback(ai, {
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "You are an expert travel, SaaS, and tourism blog writer and SEO specialist. Output MUST be valid JSON matching the schema.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            slug: { type: Type.STRING },
+            excerpt: { type: Type.STRING },
+            category: { type: Type.STRING },
+            content: { type: Type.STRING },
+            author: { type: Type.STRING },
+            readTime: { type: Type.STRING },
+            coverImageQuery: { type: Type.STRING },
+            seoKeywords: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          },
+          required: ["title", "slug", "excerpt", "category", "content", "author", "readTime", "coverImageQuery"]
+        }
+      }
+    });
+
+    let text = response.text || "";
+    if (text.includes("```json")) {
+      text = text.split("```json")[1].split("```")[0].trim();
+    } else if (text.includes("```")) {
+      text = text.split("```")[1].split("```")[0].trim();
+    }
+
+    const result = JSON.parse(text);
+    res.json(result);
+  } catch (error: any) {
+    console.error("[Generate Blog Server Error]:", error);
+    res.status(500).json({ error: error.message || "Failed to generate blog article" });
+  }
+});
+
 // API Route: Chatbot Endpoint
 router.post("/chatbot", async (req, res) => {
   try {
