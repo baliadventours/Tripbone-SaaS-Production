@@ -132,25 +132,35 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Load Inventory from Firestore
   useEffect(() => {
     const invRef = collection(db, 'inventory_items');
-    const unsubscribe = onSnapshot(invRef, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed default inventory items
-        console.log("[ProposalGenerator]: Seeding default inventory items...");
-        const defaultItems = [
-          { name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Entrance ticket to Gates of Heaven Lempuyang' },
-          { name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Includes driver, petrol, and parking for 10 hours' },
-          { name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Hotel', price: 1200000, priceType: 'Per room', description: 'Luxurious resort stay with daily breakfast included' },
-          { name: 'Lunch at Bebek Tepi Sawah', type: 'Food', price: 150000, priceType: 'Per person', description: 'Crispy duck set lunch overlooking rice paddies' },
-          { name: 'Private Licensed English Tour Guide', type: 'Guide', price: 400000, priceType: 'Per day', description: 'Professional licensed tour guide for full day' },
-          { name: 'Traditional Balinese Barong Dance Ticket', type: 'Ticket', price: 150000, priceType: 'Per person', description: 'Cultural dance show entry ticket in Batubulan' }
-        ];
+    const defaultSeedItems = [
+      { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Entrance ticket to Gates of Heaven Lempuyang' },
+      { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Includes driver, petrol, and parking for 10 hours' },
+      { id: 'seed-3', name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Hotel', price: 1200000, priceType: 'Per room', description: 'Luxurious resort stay with daily breakfast included' },
+      { id: 'seed-4', name: 'Lunch at Bebek Tepi Sawah', type: 'Food', price: 150000, priceType: 'Per person', description: 'Crispy duck set lunch overlooking rice paddies' },
+      { id: 'seed-5', name: 'Private Licensed English Tour Guide', type: 'Guide', price: 400000, priceType: 'Per day', description: 'Professional licensed tour guide for full day' },
+      { id: 'seed-6', name: 'Traditional Balinese Barong Dance Ticket', type: 'Ticket', price: 150000, priceType: 'Per person', description: 'Cultural dance show entry ticket in Batubulan' }
+    ];
 
-        for (const item of defaultItems) {
-          await addDoc(collection(db, 'inventory_items'), {
-            ...item,
-            createdAt: serverTimestamp()
-          });
-        }
+    const unsubscribe = onSnapshot(invRef, (snapshot) => {
+      if (!snapshot || snapshot.empty) {
+        console.log("[ProposalGenerator]: No inventory in DB, using default seed catalog...");
+        setInventoryList(defaultSeedItems);
+        setLoadingInventory(false);
+
+        // Background seed attempt
+        (async () => {
+          try {
+            for (const item of defaultSeedItems) {
+              const { id, ...data } = item;
+              await addDoc(collection(db, 'inventory_items'), {
+                ...data,
+                createdAt: serverTimestamp()
+              });
+            }
+          } catch (e) {
+            console.warn("Background seed ignored:", e);
+          }
+        })();
         return;
       }
 
@@ -162,7 +172,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       setInventoryList(items);
       setLoadingInventory(false);
     }, (err) => {
-      console.error("Error loading inventory items:", err);
+      console.error("Error loading inventory items, falling back to default seed:", err);
+      setInventoryList(defaultSeedItems);
       setLoadingInventory(false);
     });
 

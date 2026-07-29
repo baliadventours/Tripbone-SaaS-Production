@@ -84,6 +84,8 @@ const TENANT_SPECIFIC_COLLECTIONS = [
   'supportTickets',
   'popups',
   'inventory',
+  'inventory_items',
+  'proposals',
   'aiFaqs',
   'aiTips',
   'tourLabels',
