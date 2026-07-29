@@ -131,7 +131,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
   // Load Inventory from Firestore
   useEffect(() => {
-    const invRef = collection(db, 'inventory_items');
     const defaultSeedItems = [
       { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Entrance ticket to Gates of Heaven Lempuyang' },
       { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Includes driver, petrol, and parking for 10 hours' },
@@ -141,67 +140,98 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       { id: 'seed-6', name: 'Traditional Balinese Barong Dance Ticket', type: 'Ticket', price: 150000, priceType: 'Per person', description: 'Cultural dance show entry ticket in Batubulan' }
     ];
 
-    const unsubscribe = onSnapshot(invRef, (snapshot) => {
-      if (!snapshot || snapshot.empty) {
-        console.log("[ProposalGenerator]: No inventory in DB, using default seed catalog...");
+    let unsubscribe = () => {};
+    try {
+      const invRef = collection(db, 'inventory_items');
+      unsubscribe = onSnapshot(invRef, (snapshot) => {
+        if (!snapshot || snapshot.empty) {
+          console.log("[ProposalGenerator]: No inventory in DB, using default seed catalog...");
+          setInventoryList(defaultSeedItems);
+          setLoadingInventory(false);
+
+          // Background seed attempt
+          (async () => {
+            try {
+              for (const item of defaultSeedItems) {
+                const { id, ...data } = item;
+                await addDoc(collection(db, 'inventory_items'), {
+                  ...data,
+                  createdAt: serverTimestamp()
+                });
+              }
+            } catch (e) {
+              console.warn("Background seed ignored:", e);
+            }
+          })();
+          return;
+        }
+
+        const items = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          name: docSnap.data().name || 'Untitled Item',
+          type: docSnap.data().type || 'Extra',
+          price: Number(docSnap.data().price) || 0,
+          priceType: docSnap.data().priceType || 'Flat rate',
+          description: docSnap.data().description || ''
+        })) as InventoryItem[];
+
+        setInventoryList(items);
+        setLoadingInventory(false);
+      }, (err) => {
+        console.error("Error loading inventory items, falling back to default seed:", err);
         setInventoryList(defaultSeedItems);
         setLoadingInventory(false);
-
-        // Background seed attempt
-        (async () => {
-          try {
-            for (const item of defaultSeedItems) {
-              const { id, ...data } = item;
-              await addDoc(collection(db, 'inventory_items'), {
-                ...data,
-                createdAt: serverTimestamp()
-              });
-            }
-          } catch (e) {
-            console.warn("Background seed ignored:", e);
-          }
-        })();
-        return;
-      }
-
-      const items = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as InventoryItem[];
-
-      setInventoryList(items);
-      setLoadingInventory(false);
-    }, (err) => {
-      console.error("Error loading inventory items, falling back to default seed:", err);
+      });
+    } catch (e) {
+      console.error("Error subscribing to inventory snapshot:", e);
       setInventoryList(defaultSeedItems);
       setLoadingInventory(false);
-    });
+    }
 
-    return unsubscribe;
+    return () => {
+      try { unsubscribe(); } catch (_) {}
+    };
   }, []);
 
   // Load Saved Proposals from Firestore
   useEffect(() => {
-    const propRef = collection(db, 'proposals');
-    const unsubscribe = onSnapshot(propRef, (snapshot) => {
-      const proposals = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as Proposal[];
+    let unsubscribe = () => {};
+    try {
+      const propRef = collection(db, 'proposals');
+      unsubscribe = onSnapshot(propRef, (snapshot) => {
+        if (!snapshot) return;
+        const proposals = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          proposalTitle: docSnap.data().proposalTitle || 'Saved Proposal',
+          guestName: docSnap.data().guestName || 'Guest',
+          paxCount: docSnap.data().paxCount || 1,
+          durationDays: docSnap.data().durationDays || 1,
+          totalPrice: docSnap.data().totalPrice || 0,
+          currency: docSnap.data().currency || 'IDR',
+          ...docSnap.data()
+        })) as Proposal[];
 
-      setSavedProposals(proposals);
-    }, (err) => {
-      console.error("Error loading proposals:", err);
-    });
+        setSavedProposals(proposals);
+      }, (err) => {
+        console.error("Error loading proposals:", err);
+      });
+    } catch (e) {
+      console.error("Error subscribing to proposals snapshot:", e);
+    }
 
-    return unsubscribe;
+    return () => {
+      try { unsubscribe(); } catch (_) {}
+    };
   }, []);
 
   // Filtered inventory list
   const filteredInventory = useMemo(() => {
-    return inventoryList.filter(item => {
-      const matchesCategory = inventoryCategoryFilter === 'all' || item.type.toLowerCase() === inventoryCategoryFilter.toLowerCase();
-      const matchesSearch = !inventorySearch || item.name.toLowerCase().includes(inventorySearch.toLowerCase());
+    return (inventoryList || []).filter(item => {
+      if (!item) return false;
+      const typeStr = (item.type || 'Extra').toLowerCase();
+      const nameStr = (item.name || '').toLowerCase();
+      const matchesCategory = inventoryCategoryFilter === 'all' || typeStr === inventoryCategoryFilter.toLowerCase();
+      const matchesSearch = !inventorySearch || nameStr.includes(inventorySearch.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   }, [inventoryList, inventoryCategoryFilter, inventorySearch]);
@@ -437,8 +467,9 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     setTimeout(() => setCopySuccess(false), 2500);
   };
 
-  const getCategoryBadgeClass = (type: string) => {
-    switch (type.toLowerCase()) {
+  const getCategoryBadgeClass = (type?: string) => {
+    const safeType = (type || 'extra').toLowerCase();
+    switch (safeType) {
       case 'ticket': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
       case 'transport': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
       case 'hotel': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
@@ -448,8 +479,9 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
   };
 
-  const getCategoryIcon = (type: string) => {
-    switch (type.toLowerCase()) {
+  const getCategoryIcon = (type?: string) => {
+    const safeType = (type || 'extra').toLowerCase();
+    switch (safeType) {
       case 'ticket': return <TicketIcon className="w-3.5 h-3.5" />;
       case 'transport': return <Car className="w-3.5 h-3.5" />;
       case 'hotel': return <Building2 className="w-3.5 h-3.5" />;
