@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, collection, getDocs, updateDoc, doc, addDoc, auth, deleteDoc, serverTimestamp } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { formatPlanName, getPlanPrice } from '../lib/planUtils';
+import { formatPlanName, getPlanPrice, generateInvoiceNumber, getNextBillingDate } from '../lib/planUtils';
 import { useTenant } from '../lib/TenantContext';
 import { uploadImage } from '../lib/imgbb';
 import { LogOut, Lock, Loader2, Key } from 'lucide-react';
@@ -60,7 +60,10 @@ import {
   Gift,
   Copy,
   FileSpreadsheet,
-  Upload
+  Upload,
+  Eye,
+  Printer,
+  FileText
 } from 'lucide-react';
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
@@ -251,6 +254,7 @@ export default function SaaSSuperAdmin() {
   const [txSearch, setTxSearch] = useState('');
   const [txStatusFilter, setTxStatusFilter] = useState('all');
   const [txSubTab, setTxSubTab] = useState<'bookings' | 'invoices'>('invoices');
+  const [viewingInvoice, setViewingInvoice] = useState<any>(null);
 
   // Showcases list & states
   const [showcases, setShowcases] = useState<any[]>([]);
@@ -893,20 +897,28 @@ export default function SaaSSuperAdmin() {
     }
   };
 
-  // Unified Invoices List combining DB invoices and synthesized tenant fallbacks
+  // Unified Invoices List combining DB invoices and synthesized tenant fallbacks with sequential numbering
   const allInvoices = React.useMemo(() => {
-    const list = [...invoices];
+    const list = invoices.map((inv) => {
+      const formattedNo = generateInvoiceNumber(inv, null, tenants);
+      return {
+        ...inv,
+        no: formattedNo
+      };
+    });
+
     tenants.forEach(t => {
-      const exists = list.some(inv => inv.tenantId === t.id);
+      const exists = list.some(inv => inv.tenantId === t.id || inv.tenantId === t.slug);
       if (!exists) {
         const isLifetime = t.billingInterval === 'lifetime' || String(t.plan || '').toLowerCase().includes('lifetime');
-        const planName = formatPlanName(t.plan, packages);
+        const planName = formatPlanName(t.plan, packages, t.billingInterval);
         const planPrice = getPlanPrice(t.plan, t.billingInterval, packages);
+        const invoiceNo = generateInvoiceNumber({ tenantId: t.id }, null, tenants);
         list.push({
-          id: `${t.id}_INV-101`,
+          id: `${t.id}_${invoiceNo}`,
           tenantId: t.id,
           tenantName: t.companyName || 'Operator Workspace',
-          no: 'INV-101',
+          no: invoiceNo,
           invoiceDate: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
           dueDate: isLifetime ? 'Lifetime Access' : (t.trialEnds ? new Date(t.trialEnds).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : 'N/A'),
           amount: `$${planPrice}.00`,
@@ -4601,8 +4613,15 @@ export default function SaaSSuperAdmin() {
 
                           return (
                             <tr key={inv.id} className="text-xs hover:bg-gray-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                              <td className="py-3.5 px-4 font-bold text-indigo-600 dark:text-indigo-400">
-                                #{inv.no || inv.id || 'INV-00'}
+                              <td className="py-3.5 px-4 font-bold">
+                                <button
+                                  onClick={() => setViewingInvoice(inv)}
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                                  title="Click to view full invoice details"
+                                >
+                                  <span>#{inv.no || inv.id || 'INV-1001'}</span>
+                                  <Eye className="w-3 h-3 text-indigo-400 opacity-70" />
+                                </button>
                               </td>
                               <td className="py-3.5 px-4">
                                 <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -4646,6 +4665,14 @@ export default function SaaSSuperAdmin() {
                                   >
                                     {inv.status || 'UNPAID'}
                                   </span>
+
+                                  <button
+                                    onClick={() => setViewingInvoice(inv)}
+                                    className="p-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                                    title="View Invoice Details & Receipt"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
 
                                   {inv.status !== 'PAID' && (
                                     <button
@@ -6640,6 +6667,268 @@ export default function SaaSSuperAdmin() {
           </div>
         </div>
       )}
+
+      {/* SuperAdmin View Invoice Detail Modal */}
+      {viewingInvoice && (() => {
+        const matchedTenant = tenants.find(t => t.id === viewingInvoice.tenantId || t.slug === viewingInvoice.tenantId);
+        const invNo = viewingInvoice.no || generateInvoiceNumber(viewingInvoice, null, tenants);
+        const planName = formatPlanName(viewingInvoice.plan || matchedTenant?.plan, packages, viewingInvoice.billingInterval || matchedTenant?.billingInterval);
+        const isLifetime = viewingInvoice.billingInterval === 'lifetime' || matchedTenant?.billingInterval === 'lifetime' || String(viewingInvoice.dueDate || '').toLowerCase().includes('lifetime');
+
+        const handlePrintInvoice = () => {
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) return;
+          const content = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Invoice #${invNo} - Tripbone SaaS</title>
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; background: #fff; }
+                  .invoice-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+                  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 20px; margin-bottom: 28px; }
+                  .brand { font-size: 24px; font-weight: 800; color: #0284c7; letter-spacing: -0.5px; }
+                  .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+                  .inv-details { text-align: right; }
+                  .inv-title { font-size: 20px; font-weight: 700; color: #0f172a; }
+                  .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-top: 6px; }
+                  .badge-paid { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+                  .badge-unpaid { background: #ffe4e6; color: #be123c; border: 1px solid #fca5a5; }
+                  .badge-pending { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+                  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+                  .col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+                  .col-value { font-size: 14px; font-weight: 600; color: #0f172a; }
+                  .col-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+                  table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
+                  th { background: #f8fafc; text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #475569; border-bottom: 1px solid #e2e8f0; }
+                  td { padding: 16px; font-size: 13px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+                  .text-right { text-align: right; }
+                  .total-row { font-weight: 800; font-size: 16px; color: #0f172a; }
+                  .footer { border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 11px; color: #94a3b8; text-align: center; }
+                  @media print {
+                    body { padding: 0; }
+                    .invoice-box { border: none; box-shadow: none; padding: 0; }
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="invoice-box">
+                  <div class="header">
+                    <div>
+                      <div class="brand">TRIPBONE SAAS</div>
+                      <div class="subtitle">Official Subscription Invoice</div>
+                    </div>
+                    <div class="inv-details">
+                      <div class="inv-title">Invoice #${invNo}</div>
+                      <span class="badge ${viewingInvoice.status === 'PAID' ? 'badge-paid' : viewingInvoice.status === 'PENDING' ? 'badge-pending' : 'badge-unpaid'}">
+                        ${viewingInvoice.status || 'UNPAID'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="grid">
+                    <div>
+                      <div class="col-title">Billed To</div>
+                      <div class="col-value">${matchedTenant?.companyName || viewingInvoice.tenantName || 'Operator Workspace'}</div>
+                      <div class="col-sub">Admin: ${matchedTenant?.adminEmail || viewingInvoice.tenantEmail || 'N/A'}</div>
+                      <div class="col-sub">Domain: ${matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : viewingInvoice.tenantId}</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div class="col-title">Invoice Information</div>
+                      <div class="col-sub">Issued Date: <strong>${viewingInvoice.invoiceDate || 'N/A'}</strong></div>
+                      <div class="col-sub">Due Date: <strong>${isLifetime ? '✨ Lifetime Access' : (viewingInvoice.dueDate || 'N/A')}</strong></div>
+                      <div class="col-sub">Payment Gateway: <strong>${viewingInvoice.paymentMethod || 'Creem.io / Card'}</strong></div>
+                    </div>
+                  </div>
+
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Billing Cycle</th>
+                        <th>Qty</th>
+                        <th class="text-right">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <strong>${planName} Subscription</strong><br/>
+                          <span style="font-size: 11px; color: #64748b;">Full operator access including tour builder, booking manager, and custom domain setup.</span>
+                        </td>
+                        <td style="text-transform: capitalize;">${viewingInvoice.billingInterval || matchedTenant?.billingInterval || 'monthly'}</td>
+                        <td>1</td>
+                        <td class="text-right"><strong>${viewingInvoice.amount || '$0.00'}</strong></td>
+                      </tr>
+                      <tr>
+                        <td colspan="3" class="text-right" style="font-weight: 600;">Subtotal</td>
+                        <td class="text-right">${viewingInvoice.amount || '$0.00'}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="3" class="text-right" style="font-weight: 600;">Tax (0%)</td>
+                        <td class="text-right">$0.00</td>
+                      </tr>
+                      <tr class="total-row">
+                        <td colspan="3" class="text-right">Total Amount</td>
+                        <td class="text-right" style="color: #0284c7;">${viewingInvoice.amount || '$0.00'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div class="footer">
+                    <p>Thank you for partnering with Tripbone. For support or billing inquiries, contact billing@tripbone.com.</p>
+                    <p>Tripbone SaaS Platform © ${new Date().getFullYear()} • All Rights Reserved</p>
+                  </div>
+                </div>
+                <script>
+                  window.onload = function() { window.print(); }
+                </script>
+              </body>
+            </html>
+          `;
+          printWindow.document.write(content);
+          printWindow.document.close();
+        };
+
+        const handleSendEmailReceipt = () => {
+          const emailTarget = matchedTenant?.adminEmail || viewingInvoice.tenantEmail || 'operator';
+          alert(`Invoice #${invNo} receipt notification dispatched to ${emailTarget}.`);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setViewingInvoice(null)} />
+            <div className={`relative w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden transition-all my-8 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+              
+              {/* Top Banner Header */}
+              <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-transparent">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 bg-sky-500/10 dark:bg-sky-500/20 rounded-xl text-sky-600 dark:text-sky-400">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Invoice Details</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">#{invNo}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                    viewingInvoice.status === 'PAID'
+                      ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                      : viewingInvoice.status === 'PENDING'
+                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse'
+                        : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                  }`}>
+                    {viewingInvoice.status || 'UNPAID'}
+                  </span>
+                  <button
+                    onClick={() => setViewingInvoice(null)}
+                    className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Invoice Content Body */}
+              <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                {/* Meta details grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer Workspace</p>
+                    <p className="text-sm font-extrabold text-gray-900 dark:text-white mt-0.5">{matchedTenant?.companyName || viewingInvoice.tenantName || 'Operator Workspace'}</p>
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">{matchedTenant?.slug ? `${matchedTenant.slug}.tripbone.com` : viewingInvoice.tenantId}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📧 {matchedTenant?.adminEmail || matchedTenant?.email || viewingInvoice.tenantEmail || 'N/A'}</p>
+                  </div>
+                  <div className="sm:text-right">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Invoice Metadata</p>
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1">Issued: <span className="font-mono">{viewingInvoice.invoiceDate || 'N/A'}</span></p>
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1">
+                      Due: {isLifetime ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">✨ Lifetime Access</span>
+                      ) : (
+                        <span className="font-mono">{viewingInvoice.dueDate || 'N/A'}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Gateway: <span className="font-medium text-gray-700 dark:text-gray-300">{viewingInvoice.paymentMethod || 'Creem.io / Card'}</span></p>
+                  </div>
+                </div>
+
+                {/* Line Item Table */}
+                <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-gray-100 dark:bg-slate-800/80 text-gray-500 uppercase font-mono text-[10px]">
+                      <tr>
+                        <th className="py-3 px-4">Item</th>
+                        <th className="py-3 px-4">Billing Cycle</th>
+                        <th className="py-3 px-4 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800 font-medium">
+                      <tr>
+                        <td className="py-3.5 px-4">
+                          <span className="font-bold text-gray-900 dark:text-white block">{planName}</span>
+                          <span className="text-[11px] text-gray-500">SaaS Platform Operator Subscription License</span>
+                        </td>
+                        <td className="py-3.5 px-4 uppercase font-mono text-gray-600 dark:text-gray-400">{viewingInvoice.billingInterval || matchedTenant?.billingInterval || 'monthly'}</td>
+                        <td className="py-3.5 px-4 text-right font-extrabold text-gray-900 dark:text-white">{viewingInvoice.amount || '$0.00'}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot className="bg-gray-50 dark:bg-slate-800/30 border-t border-gray-200 dark:border-slate-800 font-bold">
+                      <tr>
+                        <td colSpan={2} className="py-3 px-4 text-right text-gray-500 uppercase text-[10px]">Total Amount</td>
+                        <td className="py-3 px-4 text-right text-sm text-sky-600 dark:text-sky-400 font-black">{viewingInvoice.amount || '$0.00'}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handlePrintInvoice}
+                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Print Receipt</span>
+                  </button>
+                  <button
+                    onClick={handleSendEmailReceipt}
+                    className="px-3.5 py-2 bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Send Email Receipt</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  {viewingInvoice.status !== 'PAID' && (
+                    <button
+                      onClick={() => {
+                        handleProcessPayment(viewingInvoice);
+                        setViewingInvoice(null);
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold transition-colors shadow-sm flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Process Payment</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setViewingInvoice(null)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

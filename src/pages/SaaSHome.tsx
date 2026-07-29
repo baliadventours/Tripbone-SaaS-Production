@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db, collection, getDocs, addDoc, setDoc, updateDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
 import { getDoc, onSnapshot } from 'firebase/firestore';
-import { formatPlanName, getPlanPrice, getNextBillingDate, getEffectiveInterval } from '../lib/planUtils';
+import { formatPlanName, getPlanPrice, getNextBillingDate, getEffectiveInterval, generateInvoiceNumber } from '../lib/planUtils';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useTenant } from '../lib/TenantContext';
 import { Helmet } from 'react-helmet-async';
@@ -979,7 +979,8 @@ export default function SaaSHome() {
     const existingInvoices = invoices.filter(inv => inv.tenantId === activeWsId);
 
     if (existingInvoices.length === 0) {
-      const invId = `${activeWsId}_INV-101`;
+      const generatedNo = generateInvoiceNumber({ tenantId: activeWsId }, activeWorkspace, tenants);
+      const invId = `${activeWsId}_${generatedNo}`;
       const createdDate = activeWorkspace.createdAt ? new Date(activeWorkspace.createdAt) : new Date();
       const trialEndsDate = activeWorkspace.trialEnds ? new Date(activeWorkspace.trialEnds) : new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
       const planName = formatPlanName(activeWorkspace.plan, plans, activeWorkspace.billingInterval);
@@ -992,7 +993,7 @@ export default function SaaSHome() {
         id: invId,
         tenantId: activeWsId,
         tenantName: activeWorkspace.companyName || 'Operator Workspace',
-        no: 'INV-101',
+        no: generatedNo,
         invoiceDate: createdDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         dueDate: dueDateVal,
         amount: `$${planPrice}.00`,
@@ -1007,7 +1008,7 @@ export default function SaaSHome() {
         console.error("Error auto-seeding invoice:", err);
       });
     }
-  }, [activeWorkspace, invoices, loadingTenants, plans]);
+  }, [activeWorkspace, invoices, loadingTenants, plans, tenants]);
 
   // Auto-repair effect for existing tenants that have lifetime plans/invoices missing billingInterval
   useEffect(() => {
@@ -1017,7 +1018,8 @@ export default function SaaSHome() {
       if (isDianaOr1999 && t.billingInterval !== 'lifetime') {
         console.log(`[Auto-Repair] Repairing workspace ${t.id} (${t.companyName}) billingInterval to lifetime`);
         setDoc(doc(db, 'tenants', t.id), { billingInterval: 'lifetime' }, { merge: true }).catch(console.error);
-        const invId = `${t.id}_INV-101`;
+        const generatedNo = generateInvoiceNumber({ tenantId: t.id }, t, tenants);
+        const invId = `${t.id}_${generatedNo}`;
         setDoc(doc(db, 'invoices', invId), {
           plan: 'Business Lifetime',
           billingInterval: 'lifetime',

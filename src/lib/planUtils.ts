@@ -187,3 +187,37 @@ export function getNextBillingDate(tenant: any): string {
   
   return nextBilling.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+export function generateInvoiceNumber(inv: any, tenantIndexOrId?: number | string, allTenants?: any[]): string {
+  if (inv && inv.no && typeof inv.no === 'string' && inv.no !== 'INV-101' && inv.no !== 'INV-00' && inv.no.trim() !== '') {
+    return inv.no.startsWith('INV-') ? inv.no : `INV-${inv.no}`;
+  }
+
+  if (allTenants && Array.isArray(allTenants) && allTenants.length > 0 && inv && inv.tenantId) {
+    const sortedTenants = [...allTenants].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateA - dateB;
+    });
+    const idx = sortedTenants.findIndex(t => t.id === inv.tenantId || t.slug === inv.tenantId);
+    if (idx !== -1) {
+      return `INV-${1001 + idx}`;
+    }
+  }
+
+  if (typeof tenantIndexOrId === 'number') {
+    return `INV-${1001 + tenantIndexOrId}`;
+  }
+
+  if (typeof tenantIndexOrId === 'string') {
+    let hash = 0;
+    for (let i = 0; i < tenantIndexOrId.length; i++) {
+      hash = (hash << 5) - hash + tenantIndexOrId.charCodeAt(i);
+      hash |= 0;
+    }
+    const offset = Math.abs(hash) % 900;
+    return `INV-${1001 + offset}`;
+  }
+
+  return 'INV-1001';
+}

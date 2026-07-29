@@ -910,13 +910,19 @@ export async function createServer() {
       await safeSetDoc('tenants', tenantId, newTenantData);
 
       // Create initial invoice
-      const initialInvoiceId = `${tenantId}_INV-101`;
+      let tenantCount = 1;
+      try {
+        const existingTenantsSnap = await db.collection('tenants').get();
+        tenantCount = existingTenantsSnap.docs.length || 1;
+      } catch (e) {}
+      const generatedInvoiceNo = `INV-${1000 + tenantCount}`;
+      const initialInvoiceId = `${tenantId}_${generatedInvoiceNo}`;
       const isLifetimePlan = effectiveInterval === 'lifetime';
       await safeSetDoc('invoices', initialInvoiceId, {
         id: initialInvoiceId,
         tenantId: tenantId,
         tenantName: companyName,
-        no: 'INV-101',
+        no: generatedInvoiceNo,
         invoiceDate: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         dueDate: isLifetimePlan ? 'Lifetime Access' : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
         amount: `$${planPrice}.00`,
