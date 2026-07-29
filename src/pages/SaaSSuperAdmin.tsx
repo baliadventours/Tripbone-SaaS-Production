@@ -68,6 +68,7 @@ import {
 import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
 import SaaSBlogManager from '../components/SaaS/SaaSBlogManager';
+import SaaSKnowledgeBase from '../components/SaaS/SaaSKnowledgeBase';
 import { MailjetTester } from '../components/Admin/MailjetTester';
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -117,7 +118,7 @@ export default function SaaSSuperAdmin() {
     'operators' | 'end_users' | 'demo_leads' |
     'packages' | 'transactions' | 'coupons' | 'invoices' |
     'tickets' | 'announcements' |
-    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase' | 'blogs'
+    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase' | 'blogs' | 'knowledge_base'
   >('overview');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -145,6 +146,7 @@ export default function SaaSSuperAdmin() {
     network: true,
     customers: false,
     billing: false,
+    content: true,
     support: false,
     system: false
   });
@@ -2116,6 +2118,25 @@ export default function SaaSSuperAdmin() {
         )}
       </div>
 
+      {/* CONTENT */}
+      <div className="space-y-0.5">
+        {!collapsed ? (
+          <button onClick={() => toggleMenu('content')} className="w-full flex items-center justify-between px-4 py-2 mt-2 group">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors">Content</p>
+            {expandedMenus.content ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+        ) : (
+          <hr className="my-2 border-gray-200 dark:border-white/5" />
+        )}
+        {(expandedMenus.content || collapsed) && (
+          <div className="space-y-0.5">
+            {renderSidebarItem('blogs', 'Blog', FileText)}
+            {renderSidebarItem('announcements', 'Announcement & Promotion', Megaphone)}
+            {renderSidebarItem('knowledge_base', 'Knowledge Base', BookOpen)}
+          </div>
+        )}
+      </div>
+
       {/* SUPPORT */}
       <div className="space-y-0.5">
         {!collapsed ? (
@@ -2129,8 +2150,6 @@ export default function SaaSSuperAdmin() {
         {(expandedMenus.support || collapsed) && (
           <div className="space-y-0.5">
             {renderSidebarItem('tickets', 'Helpdesk Tickets', MessageSquare, true, stats.pendingTicketsCount || 3)}
-            {renderSidebarItem('announcements', 'Global Announcements', Megaphone)}
-            {renderSidebarItem('blogs', 'Blog & AI Writer', FileText)}
           </div>
         )}
       </div>
@@ -5250,6 +5269,10 @@ export default function SaaSSuperAdmin() {
           </div>
         )}
 
+        {activeTab === 'knowledge_base' && (
+          <SaaSKnowledgeBase isDarkMode={isDarkMode} isSuperAdmin={true} />
+        )}
+
         {activeTab === 'tickets' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Tickets List */}
@@ -6747,7 +6770,7 @@ export default function SaaSSuperAdmin() {
                 <title>Invoice #${invNo} - Tripbone SaaS</title>
                 <style>
                   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; background: #fff; }
-                  .invoice-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+                  .invoice-box { border: none; border-radius: 0; padding: 32px; box-shadow: none; }
                   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 20px; margin-bottom: 28px; }
                   .brand { font-size: 24px; font-weight: 800; color: #0284c7; letter-spacing: -0.5px; }
                   .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; font-weight: 600; }
@@ -6865,7 +6888,7 @@ export default function SaaSSuperAdmin() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setViewingInvoice(null)} />
-            <div className={`relative w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden transition-all my-8 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+            <div className={`relative w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden transition-all my-8 ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}`}>
               
               {/* Top Banner Header */}
               <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-transparent">
@@ -6900,7 +6923,7 @@ export default function SaaSSuperAdmin() {
               {/* Invoice Content Body */}
               <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
                 {/* Meta details grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800/80">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800/50">
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer Workspace</p>
                     <p className="text-sm font-extrabold text-gray-900 dark:text-white mt-0.5">{matchedTenant?.companyName || viewingInvoice.tenantName || 'Operator Workspace'}</p>

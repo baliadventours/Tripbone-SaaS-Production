@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { db, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, serverTimestamp } from '../../lib/firebase';
 import { 
   Search, BookOpen, CreditCard, Mail, MessageSquare, Settings, 
   Globe, Sliders, Check, Copy, ExternalLink, AlertCircle, 
-  Calendar, Ticket, Percent, Image, FileCode, ChevronRight, HelpCircle
+  Calendar, Ticket, Percent, Image, FileCode, ChevronRight, HelpCircle,
+  Plus, Edit3, Trash2, X, Save, Loader2, Sparkles
 } from 'lucide-react';
 
 interface Article {
@@ -10,16 +12,32 @@ interface Article {
   title: string;
   description: string;
   category: string;
-  icon: React.ComponentType<any>;
-  content: React.ReactNode;
+  icon?: any;
+  iconName?: string;
+  content: any; // React.ReactNode or HTML string
 }
 
-export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean }) {
+interface SaaSKnowledgeBaseProps {
+  isDarkMode: boolean;
+  isSuperAdmin?: boolean;
+}
+
+export default function SaaSKnowledgeBase({ isDarkMode, isSuperAdmin = false }: SaaSKnowledgeBaseProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeArticleId, setActiveArticleId] = useState<string>('site-management');
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
+  // Firestore articles state
+  const [dbArticles, setDbArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Editor Modal state
+  const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Partial<Article> | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Categories
   const categories = [
     { id: 'all', name: 'All Categories' },
     { id: 'site', name: 'Site Management' },
@@ -34,6 +52,103 @@ export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean 
     setCopiedText(id);
     setTimeout(() => setCopiedText(null), 2000);
   };
+
+  // Real-time listener for Firestore `knowledge_base`
+  useEffect(() => {
+    const kbRef = collection(db, 'knowledge_base');
+    const unsubscribe = onSnapshot(kbRef, async (snapshot) => {
+      if (snapshot.empty) {
+        // Auto-seed default guides into Firestore knowledge_base
+        console.log("[KnowledgeBase]: Seeding initial guides into knowledge_base...");
+        const defaultGuides = [
+          {
+            docId: 'site-management',
+            title: 'Site Management & Backoffice Operations',
+            description: 'Step-by-step guide on creating tours, managing pricing packages, discount coupons, and handling customer bookings.',
+            category: 'site',
+            iconName: 'Sliders',
+            content: `
+              <div class="space-y-6 text-sm leading-relaxed">
+                <div class="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                  <h4 class="font-bold text-blue-600 dark:text-blue-400 text-xs uppercase tracking-wider">Accessing Your Backoffice</h4>
+                  <p class="text-xs text-gray-600 dark:text-gray-300 mt-1">To manage your operational website, go to your <strong>My Site</strong> menu in this console and click the <strong>Admin Console ↗</strong> button to log in securely.</p>
+                </div>
+                <h3>1. Creating & Editing Tours</h3>
+                <p>Navigate to <strong>Tour Manager</strong> inside your tenant dashboard. Click <strong>Add New Tour</strong> to set up tour titles, galleries, itineraries, and rates.</p>
+                <h3>2. Handling Customer Bookings</h3>
+                <p>Track all guest reservations under your <strong>Bookings Queue</strong>. View guest manifests, issue instant PDF vouchers, and confirm payments.</p>
+              </div>
+            `
+          },
+          {
+            docId: 'payment-gateways',
+            title: 'Payment Integration Setup Guide',
+            description: 'Configure automated payment processors like Stripe, PayPal, Midtrans, or set up manual Bank Transfer guides.',
+            category: 'payment',
+            iconName: 'CreditCard',
+            content: `
+              <div class="space-y-6 text-sm leading-relaxed">
+                <p class="text-gray-600 dark:text-gray-300 font-medium">Tripbone supports multiple payment integrations to collect automated bookings instantly.</p>
+                <div class="border border-indigo-500/20 bg-indigo-500/5 rounded-2xl p-6 space-y-3">
+                  <h3 class="text-base font-black text-indigo-600 dark:text-indigo-400">Stripe Integration</h3>
+                  <p class="text-xs text-gray-600 dark:text-gray-300">Retrieve Publishable Key and Secret Key from Stripe Dashboard. Enter them in Payment Settings to enable credit card payments.</p>
+                </div>
+              </div>
+            `
+          },
+          {
+            docId: 'domain-seo',
+            title: 'Custom Domain Setup & SEO Guidelines',
+            description: 'Connect your own domain name (e.g. youragency.com) and optimize tour pages for Google search visibility.',
+            category: 'domain',
+            iconName: 'Globe',
+            content: `
+              <div class="space-y-6 text-sm leading-relaxed">
+                <h3>Connecting Your Custom Domain</h3>
+                <p>Go to <strong>Settings &rarr; Domain Setup</strong>. Point your CNAME record to <code>cname.tripbone.com</code>. SSL certificates will be auto-provisioned!</p>
+              </div>
+            `
+          }
+        ];
+
+        for (const guide of defaultGuides) {
+          await addDoc(collection(db, 'knowledge_base'), {
+            title: guide.title,
+            description: guide.description,
+            category: guide.category,
+            iconName: guide.iconName,
+            content: guide.content,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+        return;
+      }
+
+      const loaded = snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          title: data.title || 'Untitled Article',
+          description: data.description || '',
+          category: data.category || 'site',
+          iconName: data.iconName || 'BookOpen',
+          content: data.content || ''
+        } as Article;
+      });
+
+      setDbArticles(loaded);
+      setLoading(false);
+      if (loaded.length > 0 && !activeArticleId) {
+        setActiveArticleId(loaded[0].id);
+      }
+    }, (err) => {
+      console.error("[KB Listener Error]:", err);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const articles: Article[] = useMemo(() => [
     {
@@ -527,18 +642,123 @@ export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean 
     }
   ], [copiedText]);
 
+  // Merged articles combining default static ones and Firestore dbArticles
+  const allArticles: Article[] = useMemo(() => {
+    const formattedDb = dbArticles.map(a => {
+      let IconComponent = BookOpen;
+      if (a.iconName === 'Sliders') IconComponent = Sliders;
+      if (a.iconName === 'CreditCard') IconComponent = CreditCard;
+      if (a.iconName === 'Mail') IconComponent = Mail;
+      if (a.iconName === 'MessageSquare') IconComponent = MessageSquare;
+      if (a.iconName === 'Globe') IconComponent = Globe;
+      if (a.iconName === 'Settings') IconComponent = Settings;
+
+      return {
+        ...a,
+        icon: IconComponent,
+        content: typeof a.content === 'string' ? (
+          <div className="space-y-4 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: a.content }} />
+        ) : a.content
+      };
+    });
+
+    const defaultFiltered = articles.filter(def => !formattedDb.some(d => d.id === def.id));
+    return [...formattedDb, ...defaultFiltered];
+  }, [dbArticles, articles]);
+
   const filteredArticles = useMemo(() => {
-    return articles.filter(art => {
+    return allArticles.filter(art => {
       const matchesCategory = selectedCategory === 'all' || art.category === selectedCategory;
-      const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            art.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !searchQuery || 
+        art.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        art.description.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [articles, selectedCategory, searchQuery]);
+  }, [allArticles, selectedCategory, searchQuery]);
 
   const activeArticle = useMemo(() => {
-    return articles.find(art => art.id === activeArticleId) || articles[0];
-  }, [articles, activeArticleId]);
+    return allArticles.find(art => art.id === activeArticleId) || allArticles[0] || articles[0];
+  }, [allArticles, activeArticleId]);
+
+  // CRUD Functions for SuperAdmin
+  const handleOpenCreateModal = () => {
+    setEditingArticle({
+      title: '',
+      description: '',
+      category: 'site',
+      iconName: 'BookOpen',
+      content: '<h3>Article Header</h3>\n<p>Enter comprehensive instructions and steps here...</p>'
+    });
+    setIsEditingModalOpen(true);
+  };
+
+  const handleOpenEditModal = (art: Article) => {
+    const dbMatch = dbArticles.find(d => d.id === art.id);
+    let rawContent = '';
+    if (dbMatch && typeof dbMatch.content === 'string') {
+      rawContent = dbMatch.content;
+    } else if (typeof art.content === 'string') {
+      rawContent = art.content;
+    } else {
+      rawContent = `<h3>${art.title}</h3>\n<p>${art.description}</p>`;
+    }
+
+    setEditingArticle({
+      id: art.id,
+      title: art.title,
+      description: art.description,
+      category: art.category,
+      iconName: art.iconName || 'BookOpen',
+      content: rawContent
+    });
+    setIsEditingModalOpen(true);
+  };
+
+  const handleDeleteArticle = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this Knowledge Base article?")) return;
+    try {
+      await deleteDoc(doc(db, 'knowledge_base', id));
+      alert("Article deleted from Knowledge Base.");
+    } catch (err: any) {
+      alert("Error deleting article: " + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleSaveArticle = async () => {
+    if (!editingArticle?.title?.trim()) {
+      alert("Article title is required.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const artData = {
+        title: editingArticle.title.trim(),
+        description: editingArticle.description || '',
+        category: editingArticle.category || 'site',
+        iconName: editingArticle.iconName || 'BookOpen',
+        content: editingArticle.content || '',
+        updatedAt: serverTimestamp()
+      };
+
+      if (editingArticle.id && dbArticles.some(d => d.id === editingArticle.id)) {
+        await updateDoc(doc(db, 'knowledge_base', editingArticle.id), artData);
+      } else {
+        await addDoc(collection(db, 'knowledge_base'), {
+          ...artData,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      setIsEditingModalOpen(false);
+      setEditingArticle(null);
+    } catch (err: any) {
+      console.error("[Save KB Error]:", err);
+      alert("Failed to save KB article: " + (err.message || 'Unknown error'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -559,9 +779,9 @@ export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean 
           </p>
         </div>
         
-        {/* Live Search bar */}
-        <div className="w-full md:w-72 shrink-0 relative z-10">
-          <div className="relative">
+        {/* Controls Bar: Search & SuperAdmin Add Article Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto relative z-10">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -575,6 +795,16 @@ export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean 
               }`}
             />
           </div>
+
+          {isSuperAdmin && (
+            <button
+              onClick={handleOpenCreateModal}
+              className="px-4 py-2.5 bg-[#00b272] hover:bg-[#009e64] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add KB Article</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -659,11 +889,33 @@ export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean 
             isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-150 shadow-sm'
           }`}>
             <div className="border-b border-gray-200/20 pb-5 space-y-2">
-              <div className="flex items-center space-x-2 text-xs text-gray-400">
-                <span className="capitalize">{activeArticle.category} Integration</span>
-                <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                <span className="font-bold text-[#005ea6]">Setup Guide</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-xs text-gray-400">
+                  <span className="capitalize">{activeArticle.category} Integration</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="font-bold text-[#005ea6]">Setup Guide</span>
+                </div>
+
+                {isSuperAdmin && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleOpenEditModal(activeArticle)}
+                      className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg transition-colors flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit Guide</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteArticle(activeArticle.id)}
+                      className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-lg transition-colors flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
               </div>
+
               <h1 className={`text-xl md:text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 {activeArticle.title}
               </h1>
@@ -701,6 +953,139 @@ export default function SaaSKnowledgeBase({ isDarkMode }: { isDarkMode: boolean 
           </div>
         </div>
       </div>
+
+      {/* Editor Modal for SuperAdmin */}
+      {isEditingModalOpen && editingArticle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsEditingModalOpen(false)} />
+          <div className={`relative w-full max-w-3xl rounded-3xl border shadow-2xl p-6 md:p-8 space-y-6 overflow-hidden my-8 ${
+            isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+          }`}>
+            <div className="flex items-center justify-between border-b border-gray-200/20 pb-4">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-[#00b272]/20 text-[#00b272] rounded-xl">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-bold">
+                  {editingArticle.id ? 'Edit Knowledge Base Guide' : 'Create Knowledge Base Guide'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditingModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Guide Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Setting Up Automated WhatsApp Reminders"
+                  value={editingArticle.title || ''}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#0b101b] border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                  <select
+                    value={editingArticle.category || 'site'}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value })}
+                    className={`w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none cursor-pointer ${
+                      isDarkMode ? 'bg-[#0b101b] border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                    }`}
+                  >
+                    <option value="site">Site Management</option>
+                    <option value="payment">Payment Gateways</option>
+                    <option value="emails">Email Automation</option>
+                    <option value="whatsapp">WhatsApp Automations</option>
+                    <option value="domain">Custom Domains & SEO</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Icon Representation</label>
+                  <select
+                    value={editingArticle.iconName || 'BookOpen'}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, iconName: e.target.value })}
+                    className={`w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl border focus:outline-none cursor-pointer ${
+                      isDarkMode ? 'bg-[#0b101b] border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                    }`}
+                  >
+                    <option value="BookOpen">Book Open (Default)</option>
+                    <option value="Sliders">Sliders (Site Controls)</option>
+                    <option value="CreditCard">Credit Card (Payments)</option>
+                    <option value="Mail">Mail (Email Setup)</option>
+                    <option value="MessageSquare">Message Square (WhatsApp)</option>
+                    <option value="Globe">Globe (Domain & Web)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Short Description</label>
+                <input
+                  type="text"
+                  placeholder="Summarize what users will learn in this guide..."
+                  value={editingArticle.description || ''}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, description: e.target.value })}
+                  className={`w-full px-3.5 py-2 text-xs font-medium rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#0b101b] border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Guide Content (HTML / Rich Text)</label>
+                <textarea
+                  rows={10}
+                  placeholder="<h3>Header</h3><p>Step-by-step instructions...</p>"
+                  value={editingArticle.content || ''}
+                  onChange={(e) => setEditingArticle({ ...editingArticle, content: e.target.value })}
+                  className={`w-full px-3.5 py-3 text-xs font-mono rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-emerald-400' : 'bg-slate-100 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 border-t border-gray-200/20 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsEditingModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveArticle}
+                disabled={isSaving}
+                className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#00b272] hover:bg-[#009e64] text-white shadow-md transition-all flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Guide</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
