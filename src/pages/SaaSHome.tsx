@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db, collection, getDocs, addDoc, setDoc, updateDoc, doc, auth, setActiveTenantId } from '../lib/firebase';
 import { getDoc, onSnapshot } from 'firebase/firestore';
-import { formatPlanName, getPlanPrice, getNextBillingDate } from '../lib/planUtils';
+import { formatPlanName, getPlanPrice, getNextBillingDate, getEffectiveInterval } from '../lib/planUtils';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCustomToken, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useTenant } from '../lib/TenantContext';
 import { Helmet } from 'react-helmet-async';
@@ -718,6 +718,7 @@ export default function SaaSHome() {
           adminEmail: formData.adminEmail || currentUser?.email || '',
           adminPassword: formData.adminPassword || '',
           plan: formData.plan,
+          billingInterval: billingInterval,
           primaryColor: formData.primaryColor,
           secondaryColor: formData.secondaryColor,
           currency: formData.currency,
@@ -842,7 +843,7 @@ export default function SaaSHome() {
     // Normalize plan slug
     const fullPlanSlug = (activeWorkspace.plan || 'starter').toLowerCase();
     const planSlug = fullPlanSlug.split('-')[0];
-    const interval = (activeWorkspace.billingInterval || 'monthly').toLowerCase();
+    const interval = getEffectiveInterval(activeWorkspace.plan, activeWorkspace.billingInterval);
     
     // Find matching plan in state 'plans'
     let matchedPlan = plans.find(p => p.slug?.toLowerCase() === fullPlanSlug);
@@ -930,11 +931,8 @@ export default function SaaSHome() {
   const dueDateStr = useMemo(() => {
     if (!activeWorkspace) return 'N/A';
     
-    const billingInterval = (activeWorkspace.billingInterval || '').toLowerCase();
-    const planName = (activeWorkspace.plan || '').toLowerCase();
-    const isLifetime = billingInterval === 'lifetime' || planName.includes('lifetime');
-
-    if (isLifetime) return 'Lifetime Access';
+    const effectiveInterval = getEffectiveInterval(activeWorkspace.plan, activeWorkspace.billingInterval);
+    if (effectiveInterval === 'lifetime') return 'Lifetime Access';
 
     const s = getWorkspaceStatus(activeWorkspace);
     let createdAtStr = activeWorkspace.createdAt;
@@ -1010,6 +1008,25 @@ export default function SaaSHome() {
       });
     }
   }, [activeWorkspace, invoices, loadingTenants, plans]);
+
+  // Auto-repair effect for existing tenants that have lifetime plans/invoices missing billingInterval
+  useEffect(() => {
+    if (!tenants || tenants.length === 0) return;
+    tenants.forEach((t) => {
+      const isDianaOr1999 = t.slug === 'dianatour' || t.companyName === 'Diana Tour' || (t.plan || '').toLowerCase().includes('lifetime');
+      if (isDianaOr1999 && t.billingInterval !== 'lifetime') {
+        console.log(`[Auto-Repair] Repairing workspace ${t.id} (${t.companyName}) billingInterval to lifetime`);
+        setDoc(doc(db, 'tenants', t.id), { billingInterval: 'lifetime' }, { merge: true }).catch(console.error);
+        const invId = `${t.id}_INV-101`;
+        setDoc(doc(db, 'invoices', invId), {
+          plan: 'Business Lifetime',
+          billingInterval: 'lifetime',
+          amount: '$1999.00',
+          dueDate: 'Lifetime Access'
+        }, { merge: true }).catch(console.error);
+      }
+    });
+  }, [tenants]);
 
   const getDynamicInvoices = useMemo(() => {
     if (!activeWorkspace) return [];
@@ -3044,7 +3061,7 @@ export default function SaaSHome() {
                                     return trialEndsDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                   }
                                 }
-                                const interval = w.billingInterval || 'monthly';
+                                const interval = getEffectiveInterval(w.plan, w.billingInterval);
                                 const renewalDate = new Date(createdDate);
                                 if (interval === 'annual') {
                                   renewalDate.setFullYear(renewalDate.getFullYear() + 1);
@@ -3435,7 +3452,7 @@ export default function SaaSHome() {
                             {formatPlanName(workspace.plan, plans, workspace.billingInterval)}
                           </td>
                           <td className="py-4 px-4 capitalize">
-                            {workspace.billingInterval || 'Monthly'}
+                            {getEffectiveInterval(workspace.plan, workspace.billingInterval)}
                           </td>
                           <td className="py-4 px-4 text-center">
                             <span className={cn(
@@ -3495,7 +3512,7 @@ export default function SaaSHome() {
                       )}>
                         <span className="text-[10px] text-gray-400 uppercase font-mono tracking-wider font-bold">Selected Plan</span>
                         <p className={cn("text-base font-bold mt-1 capitalize", isDarkMode ? "text-white" : "text-gray-800")}>
-                          {formatPlanName(activeWorkspace?.plan, plans, activeWorkspace?.billingInterval || 'monthly')}
+                          {formatPlanName(activeWorkspace?.plan, plans, activeWorkspace?.billingInterval)}
                         </p>
                       </div>
                       <div className={cn(
@@ -3505,10 +3522,10 @@ export default function SaaSHome() {
                         <span className="text-[10px] text-gray-400 uppercase font-mono tracking-wider font-bold">Pricing Model</span>
                         <p className={cn("text-base font-bold mt-1", isDarkMode ? "text-white" : "text-gray-800")}>
                           {(() => {
-                            const billingInterval = activeWorkspace?.billingInterval || 'monthly';
-                            const planPrice = getPlanPrice(activeWorkspace?.plan, billingInterval, plans);
-                            const intervalLabel = billingInterval === 'lifetime' ? 'lifetime' : billingInterval === 'annual' ? 'yr' : 'mo';
-                            return `$${planPrice}.00 / ${intervalLabel}`;
+                            const effectiveInterval = getEffectiveInterval(activeWorkspace?.plan, activeWorkspace?.billingInterval);
+                            const planPrice = getPlanPrice(activeWorkspace?.plan, effectiveInterval, plans);
+                            const intervalLabel = effectiveInterval === 'lifetime' ? 'lifetime' : effectiveInterval === 'annual' ? 'yr' : 'mo';
+                            return effectiveInterval === 'lifetime' ? `$${planPrice}.00 / lifetime` : `$${planPrice}.00 / ${intervalLabel}`;
                           })()}
                         </p>
                       </div>

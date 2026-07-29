@@ -1,26 +1,39 @@
+export function getEffectiveInterval(planInput?: string, intervalInput?: string): 'lifetime' | 'annual' | 'monthly' {
+  const planLower = (planInput || '').toLowerCase();
+  const intLower = (intervalInput || '').toLowerCase();
+
+  if (planLower.includes('lifetime') || intLower === 'lifetime' || intLower.includes('lifetime')) {
+    return 'lifetime';
+  }
+  if (planLower.includes('annual') || planLower.includes('annually') || planLower.includes('yearly') ||
+      intLower === 'annual' || intLower === 'annually' || intLower === 'yearly' || intLower.includes('annual') || intLower.includes('yearly')) {
+    return 'annual';
+  }
+  return 'monthly';
+}
+
 export function formatPlanName(planInput?: string, packagesList: any[] = [], intervalInput?: string): string {
   if (!planInput && !intervalInput) return 'Starter Monthly';
 
   const raw = (planInput || '').trim();
   const lower = raw.toLowerCase();
 
-  // 1. Determine Interval Label
-  let intervalLabel = '';
-  if (intervalInput) {
-    const rawInt = intervalInput.trim().toLowerCase();
-    if (rawInt === 'annual' || rawInt === 'annually' || rawInt === 'yearly') intervalLabel = 'Annual';
-    else if (rawInt === 'lifetime') intervalLabel = 'Lifetime';
-    else intervalLabel = 'Monthly';
-  } else {
-    if (lower.includes('lifetime')) intervalLabel = 'Lifetime';
-    else if (lower.includes('annual') || lower.includes('yearly') || lower.includes('annually')) intervalLabel = 'Annual';
-    else intervalLabel = 'Monthly';
-  }
+  // Determine effective interval
+  const effectiveInterval = getEffectiveInterval(planInput, intervalInput);
+  const intervalLabel = effectiveInterval === 'lifetime' ? 'Lifetime' : effectiveInterval === 'annual' ? 'Annual' : 'Monthly';
 
-  // 2. Direct match in packagesList
+  // Direct match in packagesList
   let matchedName = '';
   if (packagesList && packagesList.length > 0 && raw) {
     const matched = packagesList.find(p =>
+      (p.id === raw ||
+      p.slug?.toLowerCase() === lower ||
+      p.productId === raw ||
+      p.creemProductId === raw ||
+      p.creem_product_id === raw ||
+      (p.name && p.name.toLowerCase() === lower)) &&
+      (p.interval || 'monthly').toLowerCase() === effectiveInterval
+    ) || packagesList.find(p =>
       p.id === raw ||
       p.slug?.toLowerCase() === lower ||
       p.productId === raw ||
@@ -64,27 +77,28 @@ export function formatPlanName(planInput?: string, packagesList: any[] = [], int
   return `${baseName} ${intervalLabel}`;
 }
 
-export function getPlanPrice(planInput?: string, interval: string = 'monthly', packagesList: any[] = []): number {
+export function getPlanPrice(planInput?: string, intervalInput: string = 'monthly', packagesList: any[] = []): number {
   if (!planInput) return 49;
   const raw = planInput.trim();
   const lower = raw.toLowerCase();
 
-  const normInterval = (interval || 'monthly').toLowerCase();
-  const isAnnual = normInterval === 'annual' || normInterval === 'annually' || normInterval === 'yearly';
-  const isLifetime = normInterval === 'lifetime';
+  const effectiveInterval = getEffectiveInterval(planInput, intervalInput);
+  const isAnnual = effectiveInterval === 'annual';
+  const isLifetime = effectiveInterval === 'lifetime';
   const targetIntervalStr = isLifetime ? 'lifetime' : isAnnual ? 'annual' : 'monthly';
 
   if (packagesList && packagesList.length > 0) {
-    // 1. Direct match by ID, slug, or productId / creemProductId
-    const matchedDirect = packagesList.find(p =>
-      p.id === raw ||
+    // 1. Direct match with matching interval
+    const matchedDirectWithInterval = packagesList.find(p =>
+      (p.id === raw ||
       p.slug?.toLowerCase() === lower ||
       p.productId === raw ||
       p.creemProductId === raw ||
-      p.creem_product_id === raw
+      p.creem_product_id === raw) &&
+      (p.interval || 'monthly').toLowerCase() === targetIntervalStr
     );
-    if (matchedDirect && typeof matchedDirect.price === 'number') {
-      return matchedDirect.price;
+    if (matchedDirectWithInterval && typeof matchedDirectWithInterval.price === 'number') {
+      return matchedDirectWithInterval.price;
     }
 
     // 2. Clean base match + interval match
@@ -102,7 +116,19 @@ export function getPlanPrice(planInput?: string, interval: string = 'monthly', p
       return matchedExact.price;
     }
 
-    // 3. Any match by cleanBase
+    // 3. Direct match
+    const matchedDirect = packagesList.find(p =>
+      p.id === raw ||
+      p.slug?.toLowerCase() === lower ||
+      p.productId === raw ||
+      p.creemProductId === raw ||
+      p.creem_product_id === raw
+    );
+    if (matchedDirect && typeof matchedDirect.price === 'number') {
+      return matchedDirect.price;
+    }
+
+    // 4. Any match by cleanBase
     const matchedBase = packagesList.find(p =>
       cleanBase &&
       (p.slug?.toLowerCase().includes(cleanBase) || p.name?.toLowerCase().includes(cleanBase))
@@ -143,8 +169,8 @@ export function getNextBillingDate(tenant: any): string {
     return 'N/A';
   }
   
-  const billingInterval = tenant.billingInterval || 'monthly';
-  if (billingInterval === 'lifetime') return 'Never (Lifetime)';
+  const effectiveInterval = getEffectiveInterval(tenant.plan, tenant.billingInterval);
+  if (effectiveInterval === 'lifetime') return 'Never (Lifetime)';
   
   const now = new Date();
   let nextBilling = new Date(createdDate);
@@ -152,7 +178,7 @@ export function getNextBillingDate(tenant: any): string {
   let safetyCounter = 0;
   while (nextBilling <= now && safetyCounter < 100) {
     safetyCounter++;
-    if (billingInterval === 'annual' || billingInterval === 'annually' || billingInterval === 'yearly') {
+    if (effectiveInterval === 'annual') {
       nextBilling.setFullYear(nextBilling.getFullYear() + 1);
     } else {
       nextBilling.setMonth(nextBilling.getMonth() + 1);

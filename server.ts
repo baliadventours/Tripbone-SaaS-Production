@@ -22,6 +22,7 @@ import { handleChatbotRequest } from "./src/services/chatbotHandler.js";
 import { fallbackHtmlTemplate } from "./src/indexHtmlFallback.js";
 import { createCreemCheckoutSession, moderateCreemContent } from "./src/services/creemService.js";
 import { sendWelcomeEmail, sendVerificationEmail, sendPaymentSuccessEmail, sendPaymentDueEmail, sendEmail } from "./src/services/mailjetService.js";
+import { getEffectiveInterval, formatPlanName, getPlanPrice } from "./src/lib/planUtils.js";
 import crypto from "crypto";
 
 dotenv.config();
@@ -744,6 +745,7 @@ export async function createServer() {
         adminEmail,
         adminPassword,
         plan,
+        billingInterval,
         primaryColor,
         secondaryColor,
         currency,
@@ -751,6 +753,10 @@ export async function createServer() {
         phone,
         address
       } = req.body;
+
+      const effectiveInterval = getEffectiveInterval(plan, billingInterval);
+      const formattedPlanName = formatPlanName(plan, [], effectiveInterval);
+      const planPrice = getPlanPrice(plan, effectiveInterval, []);
 
       let finalAdminEmail = adminEmail;
       let finalAdminName = adminName;
@@ -887,6 +893,7 @@ export async function createServer() {
         companyName: companyName,
         slug: slug,
         plan: plan || 'starter',
+        billingInterval: effectiveInterval,
         status: 'trial',
         trialEnds: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         primaryColor: primaryColor || '#4f46e5',
@@ -901,6 +908,24 @@ export async function createServer() {
         emailVerified: false
       };
       await safeSetDoc('tenants', tenantId, newTenantData);
+
+      // Create initial invoice
+      const initialInvoiceId = `${tenantId}_INV-101`;
+      const isLifetimePlan = effectiveInterval === 'lifetime';
+      await safeSetDoc('invoices', initialInvoiceId, {
+        id: initialInvoiceId,
+        tenantId: tenantId,
+        tenantName: companyName,
+        no: 'INV-101',
+        invoiceDate: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+        dueDate: isLifetimePlan ? 'Lifetime Access' : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+        amount: `$${planPrice}.00`,
+        status: 'UNPAID',
+        plan: formattedPlanName,
+        billingInterval: effectiveInterval,
+        paymentMethod: 'Card / Sandbox Gate',
+        createdAt: new Date().toISOString()
+      });
 
       // 3. Create Settings document
       const settingsData = {
@@ -1171,7 +1196,7 @@ export async function createServer() {
               Hello ${finalAdminName || adminName || 'Workspace Admin'},
             </p>
             <p style="font-size: 15px; color: #1e293b; line-height: 1.6; margin: 0 0 20px 0;">
-              Congratulations! Your new tour operator portal <strong>${companyName}</strong> has been successfully provisioned and activated under the <strong>${plan || 'growth'}</strong> plan tier.
+              Congratulations! Your new tour operator portal <strong>${companyName}</strong> has been successfully provisioned and activated under the <strong>${formattedPlanName}</strong> plan tier.
             </p>
             <p style="font-size: 15px; color: #1e293b; line-height: 1.6; margin: 0 0 15px 0;">
               You can access your dedicated workspace and start managing your tours, packages, and custom page content using the button below:
@@ -1204,7 +1229,7 @@ export async function createServer() {
               </tr>
               <tr>
                 <td style="font-size: 14px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0;">Plan Tier</td>
-                <td style="font-size: 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${plan || 'growth'}</td>
+                <td style="font-size: 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0;">${formattedPlanName}</td>
               </tr>
               <tr>
                 <td style="font-size: 14px; font-weight: 600; color: #64748b;">Workspace URL</td>
@@ -2119,12 +2144,13 @@ export async function createServer() {
   // API Route: Creem.io Subscription Checkout Session
   app.post("/api/billing/checkout", async (req: any, res: any) => {
     try {
-      const { productId, successUrl, email, tenantId } = req.body;
+      const { productId, successUrl, email, tenantId, billingInterval, interval } = req.body;
       if (!productId || !successUrl || !email || !tenantId) {
         return res.status(400).json({ error: "Missing required parameters (productId, successUrl, email, tenantId)" });
       }
 
-      console.log(`[Billing API] Creating Creem checkout for tenant: ${tenantId}, product: ${productId}`);
+      const reqInterval = getEffectiveInterval(productId, billingInterval || interval);
+      console.log(`[Billing API] Creating Creem checkout for tenant: ${tenantId}, product: ${productId}, interval: ${reqInterval}`);
 
       let targetProductId = productId;
       let creemApiKey = process.env.CREEM_API_KEY || process.env.CREEM_KEY || "";
@@ -2154,15 +2180,27 @@ export async function createServer() {
               const p = doc.data();
               const pSlug = (p.slug || '').toLowerCase();
               const pName = (p.name || '').toLowerCase();
+              const pInterval = (p.interval || 'monthly').toLowerCase();
               const reqProd = targetProductId.toLowerCase();
-              if (doc.id === targetProductId || pSlug === reqProd || pSlug.includes(reqProd) || pName.includes(reqProd)) {
+              if ((doc.id === targetProductId || pSlug === reqProd || pSlug.includes(reqProd) || pName.includes(reqProd)) && pInterval === reqInterval) {
                 matchedPlanData = p;
               }
             });
+            if (!matchedPlanData) {
+              plansSnap.forEach(doc => {
+                const p = doc.data();
+                const pSlug = (p.slug || '').toLowerCase();
+                const pName = (p.name || '').toLowerCase();
+                const reqProd = targetProductId.toLowerCase();
+                if (doc.id === targetProductId || pSlug === reqProd || pSlug.includes(reqProd) || pName.includes(reqProd)) {
+                  matchedPlanData = p;
+                }
+              });
+            }
             if (matchedPlanData) {
               const realProdId = matchedPlanData.productId || matchedPlanData.creemProductId || matchedPlanData.creem_product_id;
               if (realProdId) {
-                console.log(`[Billing API] Resolved plan slug "${targetProductId}" to Creem Product ID "${realProdId}"`);
+                console.log(`[Billing API] Resolved plan slug "${targetProductId}" (${reqInterval}) to Creem Product ID "${realProdId}"`);
                 targetProductId = realProdId;
               }
             }
@@ -2567,7 +2605,11 @@ export async function createServer() {
 
   // API Route: Sandbox Mock Checkout Simulator (when CREEM_API_KEY is not configured)
   app.get("/api/billing/mock-checkout", async (req: any, res: any) => {
-    const { productId, tenantId, email, successUrl } = req.query;
+    const { productId, tenantId, email, successUrl, billingInterval, interval } = req.query;
+    const effectiveInterval = getEffectiveInterval(productId, billingInterval || interval);
+    const planName = formatPlanName(productId, [], effectiveInterval);
+    const planPrice = getPlanPrice(productId, effectiveInterval, []);
+    const priceDisplay = effectiveInterval === 'lifetime' ? `$${planPrice}.00 / Lifetime Access` : `$${planPrice}.00 / ${effectiveInterval}`;
     
     const html = `
 <!DOCTYPE html>
@@ -2616,8 +2658,12 @@ export async function createServer() {
                     <span class="font-semibold text-white font-mono-custom text-xs">${email}</span>
                 </div>
                 <div class="flex justify-between py-1 border-b border-slate-800/60">
-                    <span class="text-slate-400">Subscription Plan ID</span>
-                    <span class="font-semibold text-white font-mono-custom text-xs">${productId}</span>
+                    <span class="text-slate-400">Selected Plan</span>
+                    <span class="font-semibold text-emerald-400 font-mono-custom text-xs">${planName}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-800/60">
+                    <span class="text-slate-400">Total Price</span>
+                    <span class="font-extrabold text-white font-mono-custom text-xs">${priceDisplay}</span>
                 </div>
                 <div class="flex justify-between py-1">
                     <span class="text-slate-400">Checkout Mode</span>
@@ -2638,6 +2684,7 @@ export async function createServer() {
                 <input type="hidden" name="tenantId" value="${tenantId || ''}">
                 <input type="hidden" name="email" value="${email || ''}">
                 <input type="hidden" name="successUrl" value="${successUrl || ''}">
+                <input type="hidden" name="billingInterval" value="${effectiveInterval}">
                 <input type="hidden" name="actionType" value="success">
 
                 <button type="submit" class="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-2xl text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 cursor-pointer">
@@ -2664,8 +2711,13 @@ export async function createServer() {
   // API Route: Handle sandbox Mock checkout activation
   app.post("/api/billing/mock-checkout/activate", async (req: any, res: any) => {
     try {
-      const { productId, tenantId, email, successUrl, actionType } = req.body;
-      console.log(`[Mock Checkout Sandbox] Activating subscription for tenant: ${tenantId}, plan: ${productId}`);
+      const { productId, tenantId, email, successUrl, actionType, billingInterval, interval } = req.body;
+      const effectiveInterval = getEffectiveInterval(productId, billingInterval || interval);
+      const planName = formatPlanName(productId, [], effectiveInterval);
+      const planPrice = getPlanPrice(productId, effectiveInterval, []);
+      const isLifetime = effectiveInterval === 'lifetime';
+
+      console.log(`[Mock Checkout Sandbox] Activating subscription for tenant: ${tenantId}, plan: ${productId} (${effectiveInterval})`);
       
       if (actionType === 'success' && tenantId) {
         getAdminApp();
@@ -2677,6 +2729,7 @@ export async function createServer() {
             manualPaymentPending: false,
             subscriptionId: `sub_mock_${Math.random().toString(36).substring(2, 10)}`,
             plan: activePlan,
+            billingInterval: effectiveInterval,
             updatedAt: new Date().toISOString()
           });
 
@@ -2687,10 +2740,11 @@ export async function createServer() {
             tenantId: tenantId,
             no: 'INV-101',
             invoiceDate: nowStr,
-            dueDate: nowStr,
-            amount: activePlan.toLowerCase().includes('business') ? '$199.00' : activePlan.toLowerCase().includes('pro') ? '$99.00' : '$49.00',
+            dueDate: isLifetime ? 'Lifetime Access' : nowStr,
+            amount: `$${planPrice}.00`,
             status: 'PAID',
-            plan: activePlan,
+            plan: planName,
+            billingInterval: effectiveInterval,
             paymentMethod: 'Creem.io Sandbox Card',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()

@@ -8,9 +8,11 @@ export async function createCreemCheckoutSession(params: {
   successUrl: string;
   email: string;
   tenantId: string;
+  billingInterval?: string;
   apiKey?: string;
   mode?: string;
 }) {
+  const intervalVal = params.billingInterval || 'monthly';
   // If running in browser, call the server API to avoid CORS
   if (typeof window !== 'undefined') {
     try {
@@ -25,11 +27,11 @@ export async function createCreemCheckoutSession(params: {
       }
       // If server returned an error object or non-200, fallback gracefully to mock checkout
       console.warn('[Creem Service] Server proxy returned non-OK response:', data);
-      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId || 'starter')}&tenantId=${encodeURIComponent(params.tenantId || 'tenant')}&email=${encodeURIComponent(params.email || '')}&successUrl=${encodeURIComponent(params.successUrl || '/')}`;
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId || 'starter')}&tenantId=${encodeURIComponent(params.tenantId || 'tenant')}&email=${encodeURIComponent(params.email || '')}&successUrl=${encodeURIComponent(params.successUrl || '/')}&billingInterval=${encodeURIComponent(intervalVal)}`;
       return { url: mockUrl, checkout_url: mockUrl };
     } catch (e: any) {
       console.warn('[Creem Service] Network or fetch error in browser proxy:', e);
-      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId || 'starter')}&tenantId=${encodeURIComponent(params.tenantId || 'tenant')}&email=${encodeURIComponent(params.email || '')}&successUrl=${encodeURIComponent(params.successUrl || '/')}`;
+      const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId || 'starter')}&tenantId=${encodeURIComponent(params.tenantId || 'tenant')}&email=${encodeURIComponent(params.email || '')}&successUrl=${encodeURIComponent(params.successUrl || '/')}&billingInterval=${encodeURIComponent(intervalVal)}`;
       return { url: mockUrl, checkout_url: mockUrl };
     }
   }
@@ -53,7 +55,7 @@ export async function createCreemCheckoutSession(params: {
 
   if (isFallback) {
     console.log(`[Creem Service] No valid CREEM_API_KEY configured. Falling back to Sandbox Mock Checkout.`);
-    const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId)}&tenantId=${encodeURIComponent(params.tenantId)}&email=${encodeURIComponent(params.email)}&successUrl=${encodeURIComponent(cleanSuccessUrl)}`;
+    const mockUrl = `/api/billing/mock-checkout?productId=${encodeURIComponent(params.productId)}&tenantId=${encodeURIComponent(params.tenantId)}&email=${encodeURIComponent(params.email)}&successUrl=${encodeURIComponent(cleanSuccessUrl)}&billingInterval=${encodeURIComponent(intervalVal)}`;
     return {
       checkout_url: mockUrl,
       url: mockUrl
