@@ -51,7 +51,8 @@ import {
   Hotel,
   XCircle,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  RotateCcw
 } from 'lucide-react';
 
 export interface InventoryItem {
@@ -281,13 +282,69 @@ const PRESET_TERMS = [
   "Quoted prices in IDR/USD are valid for 30 days from proposal date."
 ];
 
+export const INC_EXC_CATEGORIES = [
+  { id: 'all', label: 'All Items' },
+  { id: 'Transportation', label: '🚗 Transport & Vehicles' },
+  { id: 'Admissions & Tickets', label: '🎫 Admissions & Tickets' },
+  { id: 'Meals & Refreshments', label: '🍽️ Meals & Refreshments' },
+  { id: 'Guiding & Staff', label: '👨‍✈️ Guiding & Staff' },
+  { id: 'Accommodations', label: '🏨 Accommodations' },
+  { id: 'Fees & Taxes', label: '🏷️ Fees & Taxes' },
+  { id: 'Insurance & Personal', label: '🛡️ Insurance & Personal' },
+  { id: 'General & Services', label: '📋 General & Services' },
+];
+
+export function detectIncExcCategory(text: string): string {
+  const lower = (text || '').toLowerCase();
+  if (lower.includes('car') || lower.includes('vehicle') || lower.includes('transfer') || lower.includes('flight') || lower.includes('transport') || lower.includes('pickup') || lower.includes('driver')) return 'Transportation';
+  if (lower.includes('ticket') || lower.includes('entrance') || lower.includes('temple') || lower.includes('show') || lower.includes('attraction')) return 'Admissions & Tickets';
+  if (lower.includes('lunch') || lower.includes('dinner') || lower.includes('meal') || lower.includes('water') || lower.includes('food') || lower.includes('beverage') || lower.includes('drink') || lower.includes('alcoholic')) return 'Meals & Refreshments';
+  if (lower.includes('guide') || lower.includes('staff') || lower.includes('coordinator') || lower.includes('gratuities') || lower.includes('tipping')) return 'Guiding & Staff';
+  if (lower.includes('hotel') || lower.includes('resort') || lower.includes('room') || lower.includes('stay') || lower.includes('villa') || lower.includes('accommodation')) return 'Accommodations';
+  if (lower.includes('tax') || lower.includes('toll') || lower.includes('fee') || lower.includes('parking') || lower.includes('service') || lower.includes('deposit') || lower.includes('refund')) return 'Fees & Taxes';
+  if (lower.includes('insurance') || lower.includes('personal') || lower.includes('souvenir') || lower.includes('shopping') || lower.includes('health') || lower.includes('medical')) return 'Insurance & Personal';
+  return 'General & Services';
+}
+
+export function getIncExcCategoryBadgeClass(category: string): string {
+  switch (category) {
+    case 'Transportation':
+      return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+    case 'Admissions & Tickets':
+      return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+    case 'Meals & Refreshments':
+      return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+    case 'Guiding & Staff':
+      return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+    case 'Accommodations':
+      return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
+    case 'Fees & Taxes':
+      return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+    case 'Insurance & Personal':
+      return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20';
+    default:
+      return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20';
+  }
+}
+
 interface ProposalGeneratorProps {
   isDarkMode?: boolean;
   tenantId?: string;
 }
 
 export default function ProposalGenerator({ isDarkMode = false, tenantId }: ProposalGeneratorProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'create' | 'inventory' | 'history'>('create');
+  const [activeSubTab, setActiveSubTab] = useState<'create' | 'inventory' | 'inclusions_exclusions' | 'history'>('create');
+
+  // Inclusions, Exclusions & Terms Manager State
+  const [incExcManagerTab, setIncExcManagerTab] = useState<'inclusions' | 'exclusions' | 'terms'>('inclusions');
+  const [incExcSearch, setIncExcSearch] = useState('');
+  const [incExcCategoryFilter, setIncExcCategoryFilter] = useState('all');
+  const [isIncExcModalOpen, setIsIncExcModalOpen] = useState(false);
+  const [editingIncExcItem, setEditingIncExcItem] = useState<{
+    type: 'inclusions' | 'exclusions' | 'terms';
+    index?: number;
+    text: string;
+  } | null>(null);
 
   // Company / Tenant Branding Information State
   const [companyName, setCompanyName] = useState('Smart Bali Tours & Travel');
@@ -551,6 +608,167 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       try { unsubscribe(); } catch (_) {}
     };
   }, []);
+
+  // Live sync master inclusions/exclusions/terms from Firestore preset_data
+  useEffect(() => {
+    let unsubscribe = () => {};
+    try {
+      const presetRef = doc(db, 'settings', 'preset_data');
+      unsubscribe = onSnapshot(presetRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data.inclusions) && data.inclusions.length > 0) {
+            setMasterInclusions(data.inclusions);
+          }
+          if (Array.isArray(data.exclusions) && data.exclusions.length > 0) {
+            setMasterExclusions(data.exclusions);
+          }
+          if (Array.isArray(data.terms) && data.terms.length > 0) {
+            setMasterTerms(data.terms);
+          }
+        }
+      }, (err) => {
+        console.warn("Preset data live fetch notice:", err);
+      });
+    } catch (e) {
+      console.warn("Error setting preset_data listener:", e);
+    }
+    return () => { try { unsubscribe(); } catch (_) {} };
+  }, []);
+
+  // Manager Helper Handlers for Inclusions, Exclusions & Terms
+  const handleOpenAddIncExc = (type: 'inclusions' | 'exclusions' | 'terms') => {
+    setEditingIncExcItem({ type, text: '' });
+    setIsIncExcModalOpen(true);
+  };
+
+  const handleOpenEditIncExc = (type: 'inclusions' | 'exclusions' | 'terms', index: number, currentText: string) => {
+    setEditingIncExcItem({ type, index, text: currentText });
+    setIsIncExcModalOpen(true);
+  };
+
+  const handleSaveIncExcModal = () => {
+    if (!editingIncExcItem || !editingIncExcItem.text.trim()) {
+      alert("Please enter valid item text.");
+      return;
+    }
+
+    const { type, index, text } = editingIncExcItem;
+    const cleanText = text.trim();
+
+    let list = type === 'inclusions' 
+      ? [...masterInclusions] 
+      : type === 'exclusions' 
+      ? [...masterExclusions] 
+      : [...masterTerms];
+
+    if (index !== undefined && index >= 0 && index < list.length) {
+      const oldText = list[index];
+      list[index] = cleanText;
+      if (type === 'inclusions') {
+        setSelectedInclusions(prev => prev.map(item => item === oldText ? cleanText : item));
+      } else if (type === 'exclusions') {
+        setSelectedExclusions(prev => prev.map(item => item === oldText ? cleanText : item));
+      } else if (type === 'terms') {
+        setSelectedTerms(prev => prev.map(item => item === oldText ? cleanText : item));
+      }
+    } else {
+      if (!list.includes(cleanText)) {
+        list.push(cleanText);
+      }
+      if (type === 'inclusions' && !selectedInclusions.includes(cleanText)) {
+        setSelectedInclusions(prev => [...prev, cleanText]);
+      } else if (type === 'exclusions' && !selectedExclusions.includes(cleanText)) {
+        setSelectedExclusions(prev => [...prev, cleanText]);
+      } else if (type === 'terms' && !selectedTerms.includes(cleanText)) {
+        setSelectedTerms(prev => [...prev, cleanText]);
+      }
+    }
+
+    if (type === 'inclusions') setMasterInclusions(list);
+    else if (type === 'exclusions') setMasterExclusions(list);
+    else setMasterTerms(list);
+
+    savePresetData(type, list);
+    setIsIncExcModalOpen(false);
+    setEditingIncExcItem(null);
+  };
+
+  const handleMoveIncExcItem = (type: 'inclusions' | 'exclusions' | 'terms', index: number, direction: 'up' | 'down') => {
+    let list = type === 'inclusions' ? [...masterInclusions] : type === 'exclusions' ? [...masterExclusions] : [...masterTerms];
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+
+    if (type === 'inclusions') setMasterInclusions(list);
+    else if (type === 'exclusions') setMasterExclusions(list);
+    else setMasterTerms(list);
+
+    savePresetData(type, list);
+  };
+
+  const handleDeleteIncExcItem = (type: 'inclusions' | 'exclusions' | 'terms', index: number) => {
+    let list = type === 'inclusions' ? [...masterInclusions] : type === 'exclusions' ? [...masterExclusions] : [...masterTerms];
+    const itemToDelete = list[index];
+
+    if (!window.confirm(`Are you sure you want to delete this ${type.slice(0, -1)}: "${itemToDelete}"?`)) return;
+
+    const updated = list.filter((_, i) => i !== index);
+
+    if (type === 'inclusions') {
+      setMasterInclusions(updated);
+      setSelectedInclusions(prev => prev.filter(i => i !== itemToDelete));
+    } else if (type === 'exclusions') {
+      setMasterExclusions(updated);
+      setSelectedExclusions(prev => prev.filter(i => i !== itemToDelete));
+    } else {
+      setMasterTerms(updated);
+      setSelectedTerms(prev => prev.filter(i => i !== itemToDelete));
+    }
+
+    savePresetData(type, updated);
+  };
+
+  const handleResetToDefaults = (type: 'inclusions' | 'exclusions' | 'terms') => {
+    if (!window.confirm(`Reset all ${type} back to default factory list? This will overwrite custom edits.`)) return;
+
+    let defaults = type === 'inclusions' ? [...PRESET_INCLUSIONS] : type === 'exclusions' ? [...PRESET_EXCLUSIONS] : [...PRESET_TERMS];
+
+    if (type === 'inclusions') {
+      setMasterInclusions(defaults);
+      setSelectedInclusions(defaults.slice(0, 5));
+    } else if (type === 'exclusions') {
+      setMasterExclusions(defaults);
+      setSelectedExclusions(defaults.slice(0, 4));
+    } else {
+      setMasterTerms(defaults);
+      setSelectedTerms(defaults.slice(0, 5));
+    }
+
+    savePresetData(type, defaults);
+  };
+
+  const currentIncExcList = useMemo(() => {
+    if (incExcManagerTab === 'inclusions') return masterInclusions;
+    if (incExcManagerTab === 'exclusions') return masterExclusions;
+    return masterTerms;
+  }, [incExcManagerTab, masterInclusions, masterExclusions, masterTerms]);
+
+  const filteredIncExcItems = useMemo(() => {
+    return currentIncExcList.map((text, originalIndex) => ({
+      text,
+      originalIndex,
+      category: detectIncExcCategory(text)
+    })).filter(item => {
+      const searchLower = incExcSearch.toLowerCase().trim();
+      const matchesSearch = !searchLower || item.text.toLowerCase().includes(searchLower) || item.category.toLowerCase().includes(searchLower);
+      const matchesCategory = incExcCategoryFilter === 'all' || item.category === incExcCategoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [currentIncExcList, incExcSearch, incExcCategoryFilter]);
 
   // Filtered and sorted inventory list
   const filteredInventory = useMemo(() => {
@@ -1418,6 +1636,18 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
               >
                 <Package className="w-4 h-4" />
                 <span>Inventory Catalog ({inventoryList.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('inclusions_exclusions')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+                  activeSubTab === 'inclusions_exclusions'
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Inclusions & Exclusions ({masterInclusions.length + masterExclusions.length})</span>
               </button>
 
               <button
@@ -3265,6 +3495,254 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         </div>
       )}
 
+      {/* SUB-TAB: GLOBAL INCLUSIONS & EXCLUSIONS MANAGER */}
+      {activeSubTab === 'inclusions_exclusions' && (
+        <div className="p-6 rounded-3xl border shadow-xs space-y-6 bg-white dark:bg-[#111928] border-gray-200 dark:border-slate-800">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+            <div>
+              <h2 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-orange-500" />
+                <span>Global Inclusions, Exclusions & Terms Manager</span>
+              </h2>
+              <p className="text-xs text-gray-500">
+                Manage master inclusions, exclusions, terms and conditions used across all proposal templates and day-by-day itineraries.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleResetToDefaults(incExcManagerTab)}
+                className="px-3.5 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 font-bold text-xs flex items-center space-x-1.5 cursor-pointer transition-colors"
+                title="Reset current list to default presets"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Defaults</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenAddIncExc(incExcManagerTab)}
+                className={`px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md transition-colors ${
+                  incExcManagerTab === 'inclusions' 
+                    ? 'bg-emerald-600 hover:bg-emerald-700' 
+                    : incExcManagerTab === 'exclusions' 
+                    ? 'bg-rose-600 hover:bg-rose-700' 
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add New {incExcManagerTab === 'inclusions' ? 'Inclusion' : incExcManagerTab === 'exclusions' ? 'Exclusion' : 'Term'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Section / Bank Toggles */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => { setIncExcManagerTab('inclusions'); setIncExcCategoryFilter('all'); }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                incExcManagerTab === 'inclusions'
+                  ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-400 shadow-xs'
+                  : isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white' : 'bg-slate-50 border-gray-200 text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`p-2.5 rounded-xl ${incExcManagerTab === 'inclusions' ? 'bg-emerald-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-500'}`}>
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black">Inclusions Bank</h3>
+                  <p className="text-[10px] opacity-75">What is covered in package</p>
+                </div>
+              </div>
+              <span className="text-lg font-black">{masterInclusions.length}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setIncExcManagerTab('exclusions'); setIncExcCategoryFilter('all'); }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                incExcManagerTab === 'exclusions'
+                  ? 'bg-rose-500/10 border-rose-500 text-rose-700 dark:text-rose-400 shadow-xs'
+                  : isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white' : 'bg-slate-50 border-gray-200 text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`p-2.5 rounded-xl ${incExcManagerTab === 'exclusions' ? 'bg-rose-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-500'}`}>
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black">Exclusions Bank</h3>
+                  <p className="text-[10px] opacity-75">What client pays separately</p>
+                </div>
+              </div>
+              <span className="text-lg font-black">{masterExclusions.length}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setIncExcManagerTab('terms'); setIncExcCategoryFilter('all'); }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                incExcManagerTab === 'terms'
+                  ? 'bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-400 shadow-xs'
+                  : isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white' : 'bg-slate-50 border-gray-200 text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`p-2.5 rounded-xl ${incExcManagerTab === 'terms' ? 'bg-amber-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-500'}`}>
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black">Terms & Conditions</h3>
+                  <p className="text-[10px] opacity-75">Deposit & cancellation rules</p>
+                </div>
+              </div>
+              <span className="text-lg font-black">{masterTerms.length}</span>
+            </button>
+          </div>
+
+          {/* Search & Category Toolbar */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-gray-200/80 dark:border-slate-800 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder={`Search ${incExcManagerTab}...`}
+                value={incExcSearch}
+                onChange={(e) => setIncExcSearch(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2 text-xs rounded-xl border focus:outline-none transition-all ${
+                  isDarkMode 
+                    ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-orange-500' 
+                    : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-orange-500'
+                }`}
+              />
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none pt-1 border-t border-gray-200/60 dark:border-slate-800/80">
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1">Filter Tag:</span>
+              {INC_EXC_CATEGORIES.map(cat => (
+                <button
+                  key={`inc-cat-pill-${cat.id}`}
+                  type="button"
+                  onClick={() => setIncExcCategoryFilter(cat.id)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold cursor-pointer whitespace-nowrap transition-all ${
+                    incExcCategoryFilter === cat.id
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : isDarkMode 
+                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' 
+                        : 'bg-white text-slate-700 border border-gray-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Items List */}
+          <div className="space-y-2">
+            {filteredIncExcItems.length === 0 ? (
+              <div className="py-12 text-center text-xs text-gray-400 border border-dashed border-gray-200 dark:border-slate-800 rounded-2xl">
+                No items found matching search filter in {incExcManagerTab}.
+              </div>
+            ) : (
+              filteredIncExcItems.map((item) => {
+                const isSelectedInProposal = 
+                  incExcManagerTab === 'inclusions' ? selectedInclusions.includes(item.text) :
+                  incExcManagerTab === 'exclusions' ? selectedExclusions.includes(item.text) :
+                  selectedTerms.includes(item.text);
+
+                return (
+                  <div
+                    key={`mgr-item-${item.originalIndex}`}
+                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-xs hover:border-orange-500/50 ${
+                      isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/70 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <span className="text-xs font-black text-gray-400 shrink-0 w-6 text-center">
+                        #{item.originalIndex + 1}
+                      </span>
+
+                      {/* Move Up / Down Buttons */}
+                      <div className="flex items-center space-x-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveIncExcItem(incExcManagerTab, item.originalIndex, 'up')}
+                          disabled={item.originalIndex === 0}
+                          className={`p-1 rounded-lg border text-xs ${
+                            item.originalIndex === 0
+                              ? 'opacity-30 cursor-not-allowed border-gray-200 dark:border-slate-800 text-gray-400'
+                              : 'border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer'
+                          }`}
+                          title="Move Up in Master List"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveIncExcItem(incExcManagerTab, item.originalIndex, 'down')}
+                          disabled={item.originalIndex === currentIncExcList.length - 1}
+                          className={`p-1 rounded-lg border text-xs ${
+                            item.originalIndex === currentIncExcList.length - 1
+                              ? 'opacity-30 cursor-not-allowed border-gray-200 dark:border-slate-800 text-gray-400'
+                              : 'border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer'
+                          }`}
+                          title="Move Down in Master List"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Category Badge */}
+                      <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold border shrink-0 ${getIncExcCategoryBadgeClass(item.category)}`}>
+                        {item.category}
+                      </span>
+
+                      {/* Text */}
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white leading-relaxed min-w-0 flex-1">
+                        {item.text}
+                      </p>
+                    </div>
+
+                    {/* Status Badge & Action Controls */}
+                    <div className="flex items-center space-x-2 shrink-0">
+                      {isSelectedInProposal && (
+                        <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Active in Proposal
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditIncExc(incExcManagerTab, item.originalIndex, item.text)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                        title="Edit Item"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteIncExcItem(incExcManagerTab, item.originalIndex)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                        title="Delete Item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
       {/* SUB-TAB 3: SAVED PROPOSALS HISTORY */}
       {activeSubTab === 'history' && (
         <div className="p-6 rounded-3xl border shadow-xs space-y-6 bg-white dark:bg-[#111928] border-gray-200 dark:border-slate-800">
@@ -3712,6 +4190,73 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 Done Picking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INCLUSIONS / EXCLUSIONS / TERMS EDIT MODAL */}
+      {isIncExcModalOpen && editingIncExcItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className={`w-full max-w-lg p-6 rounded-3xl border shadow-2xl space-y-4 ${
+            isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+          }`}>
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-extrabold flex items-center space-x-2">
+                <span>
+                  {editingIncExcItem.index !== undefined ? 'Edit' : 'Add New'} {editingIncExcItem.type === 'inclusions' ? 'Inclusion' : editingIncExcItem.type === 'exclusions' ? 'Exclusion' : 'Term & Condition'}
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsIncExcModalOpen(false)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Item Text / Description *
+                </label>
+                <textarea
+                  rows={3}
+                  value={editingIncExcItem.text}
+                  onChange={(e) => setEditingIncExcItem({ ...editingIncExcItem, text: e.target.value })}
+                  placeholder={`Enter ${editingIncExcItem.type} details...`}
+                  className={`w-full p-3 text-xs font-medium rounded-xl border focus:outline-none focus:border-orange-500 ${
+                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              {editingIncExcItem.text && (
+                <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/20 text-xs flex items-center justify-between">
+                  <span className="text-gray-500 font-bold">Auto-Detected Category Tag:</span>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${getIncExcCategoryBadgeClass(detectIncExcCategory(editingIncExcItem.text))}`}>
+                    {detectIncExcCategory(editingIncExcItem.text)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-gray-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsIncExcModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveIncExcModal}
+                className="px-5 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 shadow-sm cursor-pointer"
+              >
+                Save Item
               </button>
             </div>
           </div>
