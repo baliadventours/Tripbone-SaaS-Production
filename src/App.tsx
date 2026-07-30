@@ -53,6 +53,7 @@ const AIPlanner = lazy(() => import('./pages/AIPlanner'));
 const AIHub = lazy(() => import('./pages/AIHub'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const ProposalView = lazy(() => import('./pages/ProposalView'));
 
 const SaaSHome = lazy(() => import('./pages/SaaSHome'));
 const SaaSSuperAdmin = lazy(() => import('./pages/SaaSSuperAdmin'));
@@ -177,8 +178,10 @@ function AppContent() {
     };
   }, []);
   
+  const isProposal = location.pathname.startsWith('/proposal/');
+
   // Hide main nav components on certain pages
-  const hideMainLayout = isAdmin || isSupplier || isAgent || isAuth;
+  const hideMainLayout = isAdmin || isSupplier || isAgent || isAuth || isProposal;
   const hideMobileNav = hideMainLayout || isTourDetail || isCheckout;
   const hideFooter = hideMainLayout || isDashboard;
 
@@ -341,6 +344,7 @@ function AppContent() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/planner" element={<AIPlanner />} />
+            <Route path="/proposal/:id" element={<ProposalView />} />
             <Route path="/ai-hub" element={<AIHub />} />
             <Route path="/price-list" element={<PriceList />} />
             <Route path="/contact" element={<Contact />} />

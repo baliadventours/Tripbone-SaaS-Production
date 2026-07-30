@@ -52,7 +52,8 @@ import {
   XCircle,
   ArrowUp,
   ArrowDown,
-  RotateCcw
+  RotateCcw,
+  ExternalLink
 } from 'lucide-react';
 
 export interface InventoryItem {
@@ -522,6 +523,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // AI Generation & Output state
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [generatedProposal, setGeneratedProposal] = useState<Proposal | null>(null);
+  const [activeProposalId, setActiveProposalId] = useState<string | null>(null);
+  const [copiedProposalLink, setCopiedProposalLink] = useState(false);
   const [savedProposals, setSavedProposals] = useState<Proposal[]>([]);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isSavingProposal, setIsSavingProposal] = useState(false);
@@ -1378,11 +1381,11 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   };
 
   // Save proposal to Firestore
-  const handleSaveProposalToDb = async () => {
-    if (!generatedProposal) return;
+  const handleSaveProposalToDb = async (): Promise<string | null> => {
+    if (!generatedProposal) return null;
     setIsSavingProposal(true);
     try {
-      await addDoc(collection(db, 'proposals'), {
+      const docRef = await addDoc(collection(db, 'proposals'), {
         ...generatedProposal,
         companyName,
         companyLogo,
@@ -1392,9 +1395,14 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         companyWebsite,
         createdAt: serverTimestamp()
       });
+      const newId = docRef.id;
+      setActiveProposalId(newId);
+      setGeneratedProposal(prev => prev ? { ...prev, id: newId } : null);
       alert("Proposal saved to history successfully!");
+      return newId;
     } catch (err: any) {
       alert("Failed to save proposal: " + err.message);
+      return null;
     } finally {
       setIsSavingProposal(false);
     }
@@ -1500,6 +1508,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     };
 
     setGeneratedProposal(normalizedProposal);
+    setActiveProposalId(p.id || null);
 
     // Populate builder inputs so user can modify or generate variations
     if (p.guestName) setGuestName(p.guestName);
@@ -1527,6 +1536,31 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
     setIsSendingEmail(true);
     try {
+      let currentId = activeProposalId || generatedProposal?.id;
+
+      // Ensure proposal is saved in Firestore so it gets a unique ID before emailing
+      if (!currentId && generatedProposal) {
+        try {
+          const docRef = await addDoc(collection(db, 'proposals'), {
+            ...generatedProposal,
+            companyName,
+            companyLogo,
+            companyEmail,
+            companyPhone,
+            companyAddress,
+            companyWebsite,
+            createdAt: serverTimestamp()
+          });
+          currentId = docRef.id;
+          setActiveProposalId(currentId);
+          setGeneratedProposal(prev => prev ? { ...prev, id: currentId } : null);
+        } catch (saveErr) {
+          console.warn("Pre-email proposal save skipped:", saveErr);
+        }
+      }
+
+      const proposalUrl = currentId ? `${window.location.origin}/proposal/${currentId}` : undefined;
+
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
       const activeTenantId = getActiveTenantId();
@@ -1539,7 +1573,10 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         },
         body: JSON.stringify({
           to: customerEmailInput.trim(),
-          proposal: generatedProposal,
+          proposal: { ...generatedProposal, id: currentId },
+          proposalId: currentId,
+          proposalUrl,
+          origin: window.location.origin,
           companyName,
           companyEmail,
           companyPhone,
@@ -1551,12 +1588,13 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       if (!res.ok) {
         throw new Error(data.error || 'Failed to send email');
       }
-      alert(`Success! Tour proposal email has been dispatched to ${customerEmailInput.trim()}`);
+      alert(`Success! Official tour proposal with interactive web link has been dispatched to ${customerEmailInput.trim()}`);
       setIsEmailModalOpen(false);
     } catch (err: any) {
       console.error("Email send error:", err);
       const subject = encodeURIComponent(emailSubjectInput || `Official Tour Proposal: ${generatedProposal?.proposalTitle}`);
-      const body = encodeURIComponent(`Dear ${generatedProposal?.guestName},\n\nPlease review your official tour proposal from ${companyName}.\n\nTotal Package: ${generatedProposal?.currency} ${generatedProposal?.totalPrice?.toLocaleString()}\n\nBest regards,\n${companyName}\n${companyEmail}`);
+      const link = activeProposalId || generatedProposal?.id ? `\n\nInteractive Proposal Web Link: ${window.location.origin}/proposal/${activeProposalId || generatedProposal?.id}` : '';
+      const body = encodeURIComponent(`Dear ${generatedProposal?.guestName},\n\nPlease review your official tour proposal from ${companyName}.${link}\n\nTotal Package: ${generatedProposal?.currency} ${generatedProposal?.totalPrice?.toLocaleString()}\n\nBest regards,\n${companyName}\n${companyEmail}`);
       if (window.confirm(`Server notice: ${err.message}. Would you like to launch your mail client instead?`)) {
         window.open(`mailto:${customerEmailInput.trim()}?subject=${subject}&body=${body}`, '_blank');
         setIsEmailModalOpen(false);
@@ -2819,6 +2857,22 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   </button>
 
                   <button
+                    onClick={async () => {
+                      let pId = activeProposalId || generatedProposal?.id;
+                      if (!pId) {
+                        pId = await handleSaveProposalToDb();
+                      }
+                      if (pId) {
+                        window.open(`/proposal/${pId}`, '_blank');
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>View Live Link</span>
+                  </button>
+
+                  <button
                     onClick={handleCopyWhatsAppMessage}
                     className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md"
                   >
@@ -3957,9 +4011,38 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   • Sender Agency: <strong>{companyName} ({companyEmail})</strong>
                 </p>
                 <p className="text-indigo-700 dark:text-indigo-300">
-                  • Sends a full responsive HTML proposal with day-by-day itinerary, logistics, investment breakdown, and inclusions.
+                  • Sends full HTML proposal & attaches a direct link to the interactive web proposal.
                 </p>
               </div>
+
+              {(activeProposalId || generatedProposal?.id) && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-amber-700 dark:text-amber-400 flex items-center space-x-1.5">
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>Interactive Web Link Attached</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const pId = activeProposalId || generatedProposal?.id;
+                        if (pId) {
+                          navigator.clipboard.writeText(`${window.location.origin}/proposal/${pId}`);
+                          setCopiedProposalLink(true);
+                          setTimeout(() => setCopiedProposalLink(false), 2000);
+                        }
+                      }}
+                      className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedProposalLink ? 'Copied!' : 'Copy Link'}</span>
+                    </button>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300 font-mono text-[11px] truncate bg-white dark:bg-slate-800 p-2 rounded-xl border border-gray-200 dark:border-slate-700">
+                    {`${window.location.origin}/proposal/${activeProposalId || generatedProposal?.id}`}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end space-x-3 pt-2">

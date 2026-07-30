@@ -9,12 +9,14 @@ export function buildProposalEmailHtml(params: {
   companyWebsite?: string;
   senderName?: string;
   senderEmail?: string;
+  proposalUrl?: string;
 }) {
   const p = params.proposal || {};
   const cName = params.companyName || params.senderName || 'Smart Bali Tours & Travel';
   const cEmail = params.companyEmail || params.senderEmail || 'info@smartbalitours.com';
   const cPhone = params.companyPhone || '+62 812-3456-7890';
   const cWeb = params.companyWebsite || 'www.smartbalitours.com';
+  const proposalUrl = params.proposalUrl || p.proposalUrl || '';
 
   // Construct Day-by-Day HTML
   let itineraryHtml = '';
@@ -121,6 +123,27 @@ export function buildProposalEmailHtml(params: {
             <div style="font-size: 28px; font-weight: 900; margin-top: 4px; color: #ffffff;">${p.currency || 'IDR'} ${Number(p.totalPrice || 0).toLocaleString()}</div>
             <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">All taxes, vehicle charters, tickets & guide fees included</div>
           </div>
+
+          <!-- Interactive Proposal Web Link Callout -->
+          ${proposalUrl ? `
+            <div style="margin-top: 28px; text-align: center; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 2px solid #ea580c; padding: 24px 20px; border-radius: 16px; box-shadow: 0 4px 14px rgba(234,88,12,0.15);">
+              <div style="font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #c2410c; margin-bottom: 6px;">
+                🌐 ONLINE INTERACTIVE PROPOSAL & ITINERARY
+              </div>
+              <h3 style="margin: 0 0 8px 0; font-size: 17px; font-weight: 900; color: #7c2d12;">
+                View Your Professional Interactive Proposal
+              </h3>
+              <p style="font-size: 13px; color: #9a3412; margin: 0 0 16px 0; line-height: 1.5; font-weight: 500;">
+                Click below to view your interactive day-by-day itinerary, inclusions, package terms, and accept your proposal directly online.
+              </p>
+              <a href="${proposalUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: #ffffff; text-decoration: none; font-weight: 900; font-size: 14px; padding: 14px 32px; border-radius: 9999px; box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35); text-transform: uppercase; letter-spacing: 0.5px;">
+                Open Interactive Web Proposal &rarr;
+              </a>
+              <div style="margin-top: 14px; font-size: 11px; color: #9a3412; word-break: break-all;">
+                Direct link: <a href="${proposalUrl}" target="_blank" style="color: #ea580c; font-weight: bold; text-decoration: underline;">${proposalUrl}</a>
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Terms & Conditions -->
           ${termsHtml ? `

@@ -354,10 +354,13 @@ export async function createServer() {
 
       console.log(`[API /api/send-proposal-email] Dispatching proposal email to ${targetEmail} via handleSendEmail pipeline`);
 
+      const origin = req.headers.origin || (req.headers.referer ? req.headers.referer.replace(/\/$/, '') : null) || `https://${req.headers.host}`;
+
       const result = await handleSendEmail({
         ...req.body,
         to: targetEmail,
-        type: 'proposal'
+        type: 'proposal',
+        origin
       }, authHeader);
 
       console.log(`[API /api/send-proposal-email] Proposal email sent successfully to ${targetEmail}`);

@@ -154,14 +154,44 @@ export async function handleSendEmail(reqBody: any, authHeader?: string) {
         to = targetEmail;
 
         const { companyName, companyEmail, companyPhone, companyWebsite, proposal } = reqBody;
+        const pObj = proposal || reqBody;
+        let proposalId = reqBody.proposalId || pObj.proposalId || pObj.id;
+        let proposalUrl = reqBody.proposalUrl || pObj.proposalUrl;
+
+        if (!proposalId) {
+          try {
+            const dbAdmin = getAdminDb();
+            if (dbAdmin) {
+              const docRef = await dbAdmin.collection('proposals').add({
+                ...pObj,
+                companyName: companyName || config.senderName,
+                companyEmail: companyEmail || config.senderEmail,
+                companyPhone: companyPhone || config.supportPhone,
+                companyWebsite: companyWebsite || config.tenantUrl,
+                createdAt: new Date()
+              });
+              proposalId = docRef.id;
+              console.log(`[Email Handler] Saved proposal to Firestore with ID: ${proposalId}`);
+            }
+          } catch (pErr: any) {
+            console.warn("[Email Handler] Firestore proposal auto-save failed:", pErr.message || pErr);
+          }
+        }
+
+        if (!proposalUrl && proposalId) {
+          const origin = (reqBody.origin || 'https://ais-dev-gueyp6lq66x3mljvag7bro-49253860877.asia-east1.run.app').replace(/\/$/, '');
+          proposalUrl = `${origin}/proposal/${proposalId}`;
+        }
+
         const { emailSubject, emailHtml } = buildProposalEmailHtml({
-          proposal: proposal || reqBody,
+          proposal: pObj,
           companyName,
           companyEmail,
           companyPhone,
           companyWebsite,
           senderName: config.senderName,
-          senderEmail: config.senderEmail
+          senderEmail: config.senderEmail,
+          proposalUrl
         });
 
         subject = requestedSubject || emailSubject;
