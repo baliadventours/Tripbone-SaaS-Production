@@ -60,21 +60,27 @@
 
 @layer utilities {
   @media print {
-    /* Hide all elements in the body by default when printing */
-    body * {
-      visibility: hidden !important;
+    /* Reset html, body, and all app root wrappers so overflow doesn't clip multi-page printing */
+    html, body, #root, main, div {
+      overflow: visible !important;
+      height: auto !important;
+      max-height: none !important;
+      min-height: 0 !important;
+      position: static !important;
+      background: #ffffff !important;
+      color: #000000 !important;
     }
 
-    /* Show only .print-container and its descendants */
-    .print-container, .print-container * {
-      visibility: visible !important;
+    /* Explicitly hide non-printable UI components */
+    nav, header, footer, aside, .no-print, .actions-area, button:not(.print-include), input:not(.print-include), select:not(.print-include) {
+      display: none !important;
     }
 
-    /* Position the printable proposal container at the top left */
+    /* Print container formatting */
     .print-container {
-      position: absolute !important;
-      left: 0 !important;
-      top: 0 !important;
+      display: block !important;
+      visibility: visible !important;
+      position: static !important;
       width: 100% !important;
       max-width: 100% !important;
       margin: 0 !important;
@@ -83,18 +89,7 @@
       border: none !important;
       background: #ffffff !important;
       color: #000000 !important;
-    }
-
-    /* Explicitly hide non-printable UI components */
-    nav, header, footer, aside, .no-print, .actions-area {
-      display: none !important;
-    }
-
-    /* Reset layout for print */
-    body {
-      background: white !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      overflow: visible !important;
     }
 
     .print-only {
@@ -140,7 +135,7 @@
       page-break-inside: avoid;
     }
 
-    /* Adjust layout to fit one page */
+    /* Adjust layout to fit print width */
     .lg\:grid-cols-\[1\.5fr_1fr\] {
       grid-template-columns: 1fr !important;
     }
