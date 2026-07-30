@@ -47,7 +47,9 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronsDown,
-  ChevronsUp
+  ChevronsUp,
+  Hotel,
+  XCircle
 } from 'lucide-react';
 
 export interface InventoryItem {
@@ -251,16 +253,63 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Catalog Sub-tab State
   const [catalogSubTab, setCatalogSubTab] = useState<'inventory' | 'inclusions' | 'exclusions'>('inventory');
 
-  // Unified Drag State
+  // Unified Drag State across 6 categories
   const [draggedCatalogItem, setDraggedCatalogItem] = useState<{
     kind: 'inventory' | 'inclusion' | 'exclusion';
     data: InventoryItem | string;
   } | null>(null);
-  const [activeDropZone, setActiveDropZone] = useState<{ day: number; target: 'itinerary' | 'inclusion' | 'exclusion' } | null>(null);
+  const [activeDropZone, setActiveDropZone] = useState<{ 
+    day: number; 
+    target: 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion' 
+  } | null>(null);
 
   // Legacy Drag State compatibility
   const [draggedInventoryItem, setDraggedInventoryItem] = useState<InventoryItem | null>(null);
   const [activeDropDay, setActiveDropDay] = useState<number | null>(null);
+
+  // Category Expand / Collapse Box State for Inventory Catalog Sidebar
+  const [collapsedCatalogCategories, setCollapsedCatalogCategories] = useState<Record<string, boolean>>({
+    itinerary: false,
+    transport: false,
+    accommodation: false,
+    food: false,
+    inclusion: false,
+    exclusion: false,
+  });
+
+  // Category Expand / Collapse Box State for Day-by-Day Builder
+  const [collapsedDaySections, setCollapsedDaySections] = useState<Record<string, boolean>>({});
+
+  const toggleCatalogCategoryCollapse = (catId: string) => {
+    setCollapsedCatalogCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
+  };
+
+  const expandAllCatalogCategories = () => {
+    setCollapsedCatalogCategories({
+      itinerary: false,
+      transport: false,
+      accommodation: false,
+      food: false,
+      inclusion: false,
+      exclusion: false,
+    });
+  };
+
+  const collapseAllCatalogCategories = () => {
+    setCollapsedCatalogCategories({
+      itinerary: true,
+      transport: true,
+      accommodation: true,
+      food: true,
+      inclusion: true,
+      exclusion: true,
+    });
+  };
+
+  const toggleDaySectionCollapse = (dayNum: number, sectionId: string) => {
+    const key = `d${dayNum}-${sectionId}`;
+    setCollapsedDaySections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Collapse / Expand Day State for Builder & Document Preview
   const [collapsedBuilderDays, setCollapsedBuilderDays] = useState<Record<number, boolean>>({});
@@ -684,20 +733,18 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     setDraggedCatalogItem({ kind: 'exclusion', data: text });
   };
 
-  const handleDropToDayZone = (e: React.DragEvent, targetDay: number, targetZone: 'itinerary' | 'inclusion' | 'exclusion') => {
+  const handleDropToDayZone = (
+    e: React.DragEvent, 
+    targetDay: number, 
+    targetZone: 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion'
+  ) => {
     e.preventDefault();
     setActiveDropZone(null);
     setActiveDropDay(null);
 
     // If drag source exists
     if (draggedCatalogItem) {
-      if (targetZone === 'itinerary') {
-        if (draggedCatalogItem.kind === 'inventory') {
-          addItemToDay(draggedCatalogItem.data as InventoryItem, targetDay);
-        } else if (typeof draggedCatalogItem.data === 'string') {
-          handleAddDayInclusion(targetDay, draggedCatalogItem.data);
-        }
-      } else if (targetZone === 'inclusion') {
+      if (targetZone === 'inclusion') {
         if (typeof draggedCatalogItem.data === 'string') {
           handleAddDayInclusion(targetDay, draggedCatalogItem.data);
         } else {
@@ -708,6 +755,12 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
           handleAddDayExclusion(targetDay, draggedCatalogItem.data);
         } else {
           handleAddDayExclusion(targetDay, (draggedCatalogItem.data as InventoryItem).name);
+        }
+      } else {
+        if (draggedCatalogItem.kind === 'inventory') {
+          addItemToDay(draggedCatalogItem.data as InventoryItem, targetDay);
+        } else if (typeof draggedCatalogItem.data === 'string') {
+          handleAddDayInclusion(targetDay, draggedCatalogItem.data);
         }
       }
       setDraggedCatalogItem(null);
@@ -1062,26 +1115,83 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
   };
 
+  const getCategoryKey = (type?: string): 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion' => {
+    const safeType = (type || '').toLowerCase();
+    if (['transport', 'car', 'boat', 'transfer', 'driver', 'flight'].includes(safeType)) return 'transport';
+    if (['hotel', 'villa', 'resort', 'stay', 'accommodation', 'room'].includes(safeType)) return 'accommodation';
+    if (['food', 'dining', 'meal', 'restaurant', 'breakfast', 'lunch', 'dinner'].includes(safeType)) return 'food';
+    if (['inclusion', 'included', 'permit'].includes(safeType)) return 'inclusion';
+    if (['exclusion', 'excluded'].includes(safeType)) return 'exclusion';
+    return 'itinerary';
+  };
+
+  const CATEGORY_SECTIONS = [
+    { 
+      id: 'itinerary', 
+      label: 'Itinerary (Activities & Attractions)', 
+      icon: Compass, 
+      color: 'orange',
+      badgeClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
+    },
+    { 
+      id: 'transport', 
+      label: 'Transportation', 
+      icon: Car, 
+      color: 'blue',
+      badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+    },
+    { 
+      id: 'accommodation', 
+      label: 'Accommodation', 
+      icon: Hotel, 
+      color: 'purple',
+      badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+    },
+    { 
+      id: 'food', 
+      label: 'Food & Dining', 
+      icon: Utensils, 
+      color: 'amber',
+      badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+    },
+    { 
+      id: 'inclusion', 
+      label: 'Inclusion', 
+      icon: CheckCircle2, 
+      color: 'emerald',
+      badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+    },
+    { 
+      id: 'exclusion', 
+      label: 'Exclusion', 
+      icon: XCircle, 
+      color: 'rose',
+      badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+    },
+  ] as const;
+
   const getCategoryBadgeClass = (type?: string) => {
-    const safeType = (type || 'extra').toLowerCase();
-    switch (safeType) {
-      case 'ticket': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+    const key = getCategoryKey(type);
+    switch (key) {
+      case 'itinerary': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
       case 'transport': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'hotel': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-      case 'food': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-      case 'guide': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+      case 'accommodation': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+      case 'food': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+      case 'inclusion': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+      case 'exclusion': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
       default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
     }
   };
 
   const getCategoryIcon = (type?: string) => {
-    const safeType = (type || 'extra').toLowerCase();
-    switch (safeType) {
-      case 'ticket': return <TicketIcon className="w-3.5 h-3.5" />;
+    const key = getCategoryKey(type);
+    switch (key) {
+      case 'itinerary': return <Compass className="w-3.5 h-3.5" />;
       case 'transport': return <Car className="w-3.5 h-3.5" />;
-      case 'hotel': return <Building2 className="w-3.5 h-3.5" />;
+      case 'accommodation': return <Hotel className="w-3.5 h-3.5" />;
       case 'food': return <Utensils className="w-3.5 h-3.5" />;
-      case 'guide': return <User className="w-3.5 h-3.5" />;
+      case 'inclusion': return <CheckCircle2 className="w-3.5 h-3.5" />;
+      case 'exclusion': return <XCircle className="w-3.5 h-3.5" />;
       default: return <Package className="w-3.5 h-3.5" />;
     }
   };
@@ -1492,237 +1602,286 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                         </div>
 
                         {!isBuilderCollapsed && (
-                          <>
+                          <div className="space-y-3 pt-1">
+                            {CATEGORY_SECTIONS.map((section) => {
+                              const SectionIcon = section.icon;
+                              const sectionKey = `d${dayNum}-${section.id}`;
+                              const isSectionCollapsed = !!collapsedDaySections[sectionKey];
 
-                        {/* Drop Zone 1: Itinerary (Inventory Manager Items) */}
-                        <div
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setActiveDropZone({ day: dayNum, target: 'itinerary' });
-                          }}
-                          onDragLeave={() => setActiveDropZone(null)}
-                          onDrop={(e) => handleDropToDayZone(e, dayNum, 'itinerary')}
-                          className={`p-4 rounded-2xl border-2 transition-all space-y-2.5 ${
-                            activeDropZone?.day === dayNum && activeDropZone.target === 'itinerary'
-                              ? 'border-dashed border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30'
-                              : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 flex items-center space-x-1.5">
-                              <Compass className="w-3.5 h-3.5" />
-                              <span>Itinerary Logistics (Drag from Inventory Catalog)</span>
-                            </span>
-                          </div>
-
-                          {itemsInThisDay.length === 0 ? (
-                            <div className="p-4 border-2 border-dashed border-gray-200 dark:border-slate-800/80 rounded-xl text-center flex flex-col items-center justify-center text-gray-400">
-                              <GripVertical className="w-4 h-4 mb-1 opacity-50" />
-                              <p className="text-xs font-semibold">Drag & Drop inventory items here for Day {dayNum}</p>
-                              <p className="text-[10px] text-gray-400">or click "+ D{dayNum}" on any inventory item in catalog</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {itemsInThisDay.map((item, lineIdx) => {
-                                const globalIdx = selectedLineItems.findIndex(i => i === item);
-
+                              if (section.id === 'inclusion') {
                                 return (
                                   <div
-                                    key={`line-item-${dayNum}-${lineIdx}`}
-                                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${
-                                      isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-gray-200'
+                                    key={`day-${dayNum}-sec-inclusion`}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      setActiveDropZone({ day: dayNum, target: 'inclusion' });
+                                    }}
+                                    onDragLeave={() => setActiveDropZone(null)}
+                                    onDrop={(e) => handleDropToDayZone(e, dayNum, 'inclusion')}
+                                    className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
+                                      activeDropZone?.day === dayNum && activeDropZone.target === 'inclusion'
+                                        ? 'border-dashed border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30'
+                                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
                                     }`}
                                   >
-                                    <div className="flex items-center space-x-2 shrink-0">
-                                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
-                                        {getCategoryIcon(item.type)}
-                                        <span>{item.type}</span>
-                                      </span>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleDaySectionCollapse(dayNum, 'inclusion')}
+                                          className="p-1 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 cursor-pointer"
+                                        >
+                                          {isSectionCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          <span>Inclusion ({currentInclusions.length})</span>
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-gray-400">Drag inclusion here or type below</span>
                                     </div>
 
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                        {item.name}
-                                      </p>
-                                      <p className="text-[10px] text-gray-500">
-                                        {currency} {Number(item.price).toLocaleString()} / {item.priceType}
-                                      </p>
-                                    </div>
+                                    {!isSectionCollapsed && (
+                                      <>
+                                        <div className="space-y-1.5 min-h-[40px]">
+                                          {currentInclusions.length === 0 ? (
+                                            <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
+                                              No inclusions added for Day {dayNum}. Drag from catalog or type below.
+                                            </p>
+                                          ) : (
+                                            currentInclusions.map((incText, incIdx) => (
+                                              <div key={`day-inc-chip-${incIdx}`} className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-semibold flex items-center justify-between">
+                                                <span className="truncate pr-2">✓ {incText}</span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleRemoveDayInclusion(dayNum, incIdx)}
+                                                  className="text-red-400 hover:text-red-600 shrink-0"
+                                                >
+                                                  <X className="w-3.5 h-3.5" />
+                                                </button>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
 
-                                    {/* Qty Counter */}
-                                    <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg p-1 border border-gray-200 dark:border-slate-700">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity - 1)}
-                                        className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
-                                      >
-                                        -
-                                      </button>
-                                      <span className="w-5 text-center text-xs font-bold">
-                                        {item.quantity}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity + 1)}
-                                        className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-
-                                    <div className="text-right shrink-0">
-                                      <p className="text-xs font-black text-gray-900 dark:text-white">
-                                        {currency} {item.subtotal.toLocaleString()}
-                                      </p>
-                                    </div>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveLineItem(globalIdx)}
-                                      className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                        <div className="flex items-center space-x-1.5 pt-1">
+                                          <input
+                                            type="text"
+                                            placeholder={`Add inclusion for Day ${dayNum}...`}
+                                            value={dayInclusionInputs[dayNum] || ''}
+                                            onChange={(e) => setDayInclusionInputs({ ...dayInclusionInputs, [dayNum]: e.target.value })}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
+                                            className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
+                                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                                            }`}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
+                                            className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                              }
 
-                        {/* Drop Zone 2 & 3: Inclusion & Exclusion Side-by-Side for Day */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {/* Day Inclusion Dropzone */}
-                          <div
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setActiveDropZone({ day: dayNum, target: 'inclusion' });
-                            }}
-                            onDragLeave={() => setActiveDropZone(null)}
-                            onDrop={(e) => handleDropToDayZone(e, dayNum, 'inclusion')}
-                            className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
-                              activeDropZone?.day === dayNum && activeDropZone.target === 'inclusion'
-                                ? 'border-dashed border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30'
-                                : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Day {dayNum} Inclusions</span>
-                              </span>
-                              <span className="text-[10px] text-gray-400">Drag from Inclusions Bank</span>
-                            </div>
+                              if (section.id === 'exclusion') {
+                                return (
+                                  <div
+                                    key={`day-${dayNum}-sec-exclusion`}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      setActiveDropZone({ day: dayNum, target: 'exclusion' });
+                                    }}
+                                    onDragLeave={() => setActiveDropZone(null)}
+                                    onDrop={(e) => handleDropToDayZone(e, dayNum, 'exclusion')}
+                                    className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
+                                      activeDropZone?.day === dayNum && activeDropZone.target === 'exclusion'
+                                        ? 'border-dashed border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/30'
+                                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleDaySectionCollapse(dayNum, 'exclusion')}
+                                          className="p-1 rounded bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 cursor-pointer"
+                                        >
+                                          {isSectionCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <span className="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
+                                          <XCircle className="w-3.5 h-3.5" />
+                                          <span>Exclusion ({currentExclusions.length})</span>
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-gray-400">Drag exclusion here or type below</span>
+                                    </div>
 
-                            <div className="space-y-1.5 min-h-[50px]">
-                              {currentInclusions.length === 0 ? (
-                                <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
-                                  Drag inclusion item here or type below
-                                </p>
-                              ) : (
-                                currentInclusions.map((incText, incIdx) => (
-                                  <div key={`day-inc-chip-${incIdx}`} className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-semibold flex items-center justify-between">
-                                    <span className="truncate pr-2">✓ {incText}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveDayInclusion(dayNum, incIdx)}
-                                      className="text-red-400 hover:text-red-600 shrink-0"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
+                                    {!isSectionCollapsed && (
+                                      <>
+                                        <div className="space-y-1.5 min-h-[40px]">
+                                          {currentExclusions.length === 0 ? (
+                                            <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
+                                              No exclusions added for Day {dayNum}. Drag from catalog or type below.
+                                            </p>
+                                          ) : (
+                                            currentExclusions.map((excText, excIdx) => (
+                                              <div key={`day-exc-chip-${excIdx}`} className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center justify-between">
+                                                <span className="truncate pr-2">✕ {excText}</span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleRemoveDayExclusion(dayNum, excIdx)}
+                                                  className="text-red-400 hover:text-red-600 shrink-0"
+                                                >
+                                                  <X className="w-3.5 h-3.5" />
+                                                </button>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center space-x-1.5 pt-1">
+                                          <input
+                                            type="text"
+                                            placeholder={`Add exclusion for Day ${dayNum}...`}
+                                            value={dayExclusionInputs[dayNum] || ''}
+                                            onChange={(e) => setDayExclusionInputs({ ...dayExclusionInputs, [dayNum]: e.target.value })}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
+                                            className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
+                                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                                            }`}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
+                                            className="px-2.5 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
-                                ))
-                              )}
-                            </div>
+                                );
+                              }
 
-                            {/* Direct Input for Day Inclusion */}
-                            <div className="flex items-center space-x-1.5 pt-1">
-                              <input
-                                type="text"
-                                placeholder={`Add inclusion for Day ${dayNum}...`}
-                                value={dayInclusionInputs[dayNum] || ''}
-                                onChange={(e) => setDayInclusionInputs({ ...dayInclusionInputs, [dayNum]: e.target.value })}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
-                                className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
-                                  isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
-                                className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                              >
-                                + Add
-                              </button>
-                            </div>
-                          </div>
+                              // Line item category sections (Itinerary, Transportation, Accommodation, Food & Dining)
+                              const categoryItems = itemsInThisDay.filter(item => getCategoryKey(item.type) === section.id);
 
-                          {/* Day Exclusion Dropzone */}
-                          <div
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setActiveDropZone({ day: dayNum, target: 'exclusion' });
-                            }}
-                            onDragLeave={() => setActiveDropZone(null)}
-                            onDrop={(e) => handleDropToDayZone(e, dayNum, 'exclusion')}
-                            className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
-                              activeDropZone?.day === dayNum && activeDropZone.target === 'exclusion'
-                                ? 'border-dashed border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/30'
-                                : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
-                                <X className="w-3.5 h-3.5" />
-                                <span>Day {dayNum} Exclusions</span>
-                              </span>
-                              <span className="text-[10px] text-gray-400">Drag from Exclusions Bank</span>
-                            </div>
-
-                            <div className="space-y-1.5 min-h-[50px]">
-                              {currentExclusions.length === 0 ? (
-                                <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
-                                  Drag exclusion item here or type below
-                                </p>
-                              ) : (
-                                currentExclusions.map((excText, excIdx) => (
-                                  <div key={`day-exc-chip-${excIdx}`} className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center justify-between">
-                                    <span className="truncate pr-2">✕ {excText}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveDayExclusion(dayNum, excIdx)}
-                                      className="text-red-400 hover:text-red-600 shrink-0"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
+                              return (
+                                <div
+                                  key={`day-${dayNum}-sec-${section.id}`}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setActiveDropZone({ day: dayNum, target: section.id });
+                                  }}
+                                  onDragLeave={() => setActiveDropZone(null)}
+                                  onDrop={(e) => handleDropToDayZone(e, dayNum, section.id)}
+                                  className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
+                                    activeDropZone?.day === dayNum && activeDropZone.target === section.id
+                                      ? 'border-dashed border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30'
+                                      : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleDaySectionCollapse(dayNum, section.id)}
+                                        className="p-1 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 cursor-pointer"
+                                      >
+                                        {isSectionCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                      </button>
+                                      <span className="text-xs font-extrabold uppercase tracking-wider flex items-center space-x-1.5">
+                                        <SectionIcon className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>{section.label} ({categoryItems.length})</span>
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-gray-400">Drag & Drop inventory here</span>
                                   </div>
-                                ))
-                              )}
-                            </div>
 
-                            {/* Direct Input for Day Exclusion */}
-                            <div className="flex items-center space-x-1.5 pt-1">
-                              <input
-                                type="text"
-                                placeholder={`Add exclusion for Day ${dayNum}...`}
-                                value={dayExclusionInputs[dayNum] || ''}
-                                onChange={(e) => setDayExclusionInputs({ ...dayExclusionInputs, [dayNum]: e.target.value })}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
-                                className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
-                                  isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
-                                className="px-2.5 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer"
-                              >
-                                + Add
-                              </button>
-                            </div>
+                                  {!isSectionCollapsed && (
+                                    categoryItems.length === 0 ? (
+                                      <div className="p-3 border border-dashed border-gray-200 dark:border-slate-800 rounded-xl text-center text-gray-400">
+                                        <p className="text-[11px]">No {section.label} items assigned to Day {dayNum}</p>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        {categoryItems.map((item, lineIdx) => {
+                                          const globalIdx = selectedLineItems.findIndex(i => i === item);
+
+                                          return (
+                                            <div
+                                              key={`line-item-${dayNum}-${section.id}-${lineIdx}`}
+                                              className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${
+                                                isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-gray-200'
+                                              }`}
+                                            >
+                                              <div className="flex items-center space-x-2 shrink-0">
+                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
+                                                  {getCategoryIcon(item.type)}
+                                                  <span>{item.type}</span>
+                                                </span>
+                                              </div>
+
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                                  {item.name}
+                                                </p>
+                                                <p className="text-[10px] text-gray-500">
+                                                  {currency} {Number(item.price).toLocaleString()} / {item.priceType}
+                                                </p>
+                                              </div>
+
+                                              {/* Qty Counter */}
+                                              <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg p-1 border border-gray-200 dark:border-slate-700">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity - 1)}
+                                                  className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                                >
+                                                  -
+                                                </button>
+                                                <span className="w-5 text-center text-xs font-bold">
+                                                  {item.quantity}
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity + 1)}
+                                                  className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                                >
+                                                  +
+                                                </button>
+                                              </div>
+
+                                              <div className="text-right shrink-0">
+                                                <p className="text-xs font-black text-gray-900 dark:text-white">
+                                                  {currency} {item.subtotal.toLocaleString()}
+                                                </p>
+                                              </div>
+
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveLineItem(globalIdx)}
+                                                className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
-                        </>
                         )}
                       </div>
                     );
@@ -2191,16 +2350,16 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   )}
                 </div>
 
-                {/* Sub-tab 1: Inventory Catalog */}
+                {/* Sub-tab 1: Categorized Inventory Catalog with Expand & Collapse Boxes */}
                 {catalogSubTab === 'inventory' && (
                   <div className="space-y-3">
-                    {/* Search & Filter */}
+                    {/* Search & Global Expand/Collapse controls */}
                     <div className="space-y-2">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                         <input
                           type="text"
-                          placeholder="Search inventory items..."
+                          placeholder="Search inventory across categories..."
                           value={inventorySearch}
                           onChange={(e) => setInventorySearch(e.target.value)}
                           className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
@@ -2209,81 +2368,135 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                         />
                       </div>
 
-                      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-                        {['all', 'ticket', 'transport', 'hotel', 'food', 'guide'].map(cat => (
+                      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
+                        <span>Categorized Inventory ({inventoryList.length})</span>
+                        <div className="flex items-center space-x-2">
                           <button
-                            key={`cat-filter-${cat}`}
-                            onClick={() => setInventoryCategoryFilter(cat)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize whitespace-nowrap cursor-pointer ${
-                              inventoryCategoryFilter === cat 
-                                ? 'bg-orange-600 text-white' 
-                                : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
-                            }`}
+                            type="button"
+                            onClick={expandAllCatalogCategories}
+                            className="text-orange-600 dark:text-orange-400 font-bold hover:underline cursor-pointer"
                           >
-                            {cat}
+                            Expand All
                           </button>
-                        ))}
+                          <span>•</span>
+                          <button
+                            type="button"
+                            onClick={collapseAllCatalogCategories}
+                            className="text-gray-500 font-bold hover:underline cursor-pointer"
+                          >
+                            Collapse All
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Draggable Catalog Items List */}
-                    <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
-                      {loadingInventory ? (
-                        <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center space-x-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Loading inventory items...</span>
-                        </div>
-                      ) : filteredInventory.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-gray-400">
-                          No inventory items found. Click + to create one.
-                        </div>
-                      ) : (
-                        filteredInventory.map((item) => (
+                    {/* Categorized Expand & Collapse Boxes */}
+                    <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                      {CATEGORY_SECTIONS.map((sec) => {
+                        const SecIcon = sec.icon;
+                        const isCollapsed = !!collapsedCatalogCategories[sec.id];
+                        const secItems = filteredInventory.filter(item => getCategoryKey(item.type) === sec.id);
+
+                        return (
                           <div
-                            key={`inv-card-${item.id}`}
-                            draggable={true}
-                            onDragStart={() => handleDragStartItem(item)}
-                            className={`p-3 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-md ${
-                              isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-orange-500/50' : 'bg-slate-50 border-gray-200 hover:border-orange-500/50'
+                            key={`cat-box-${sec.id}`}
+                            className={`rounded-2xl border transition-all overflow-hidden ${
+                              isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/80 border-gray-200'
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center space-x-2 min-w-0">
-                                <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                    {item.name}
-                                  </p>
-                                  <div className="flex items-center space-x-2 mt-0.5">
-                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
-                                      {item.type}
-                                    </span>
-                                    <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400">
-                                      {currency} {Number(item.price).toLocaleString()}
-                                    </span>
-                                  </div>
-                                </div>
+                            {/* Accordion Box Header */}
+                            <div
+                              onClick={() => toggleCatalogCategoryCollapse(sec.id)}
+                              className="w-full p-3 flex items-center justify-between cursor-pointer select-none hover:bg-orange-500/5 transition-colors"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="p-1 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300">
+                                  {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                                </span>
+                                <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center space-x-1.5">
+                                  <SecIcon className="w-3.5 h-3.5 text-orange-500" />
+                                  <span>{sec.label}</span>
+                                </span>
                               </div>
+
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${sec.badgeClass}`}>
+                                {secItems.length}
+                              </span>
                             </div>
 
-                            {/* Quick Day Dropdown/Buttons */}
-                            <div className="mt-2.5 pt-2 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                              <span className="text-gray-400">Assign to:</span>
-                              <div className="flex items-center gap-1 overflow-x-auto">
-                                {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
-                                  <button
-                                    key={`quick-add-d${dIdx + 1}`}
-                                    onClick={() => addItemToDay(item, dIdx + 1)}
-                                    className="px-1.5 py-0.5 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold cursor-pointer"
-                                  >
-                                    +D{dIdx + 1}
-                                  </button>
-                                ))}
+                            {/* Accordion Content */}
+                            {!isCollapsed && (
+                              <div className="p-3 pt-0 border-t border-gray-200/50 dark:border-slate-800/80 space-y-2 mt-1">
+                                {loadingInventory ? (
+                                  <div className="py-4 text-center text-xs text-gray-400 flex items-center justify-center space-x-2">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Loading...</span>
+                                  </div>
+                                ) : secItems.length === 0 ? (
+                                  <div className="py-3 text-center text-[11px] text-gray-400 italic">
+                                    No items in {sec.label}. Click + below to create.
+                                  </div>
+                                ) : (
+                                  secItems.map((item) => (
+                                    <div
+                                      key={`inv-card-${item.id}`}
+                                      draggable={true}
+                                      onDragStart={() => handleDragStartItem(item)}
+                                      className={`p-2.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-xs ${
+                                        isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:border-orange-500/50' : 'bg-white border-gray-200 hover:border-orange-500/50'
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-center space-x-2 min-w-0">
+                                          <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                          <div className="min-w-0">
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                              {item.name}
+                                            </p>
+                                            <div className="flex items-center space-x-2 mt-0.5">
+                                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
+                                                {item.type}
+                                              </span>
+                                              <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400">
+                                                {currency} {Number(item.price).toLocaleString()}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Quick Assign to Day Buttons */}
+                                      <div className="mt-2 pt-1.5 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                                        <span className="text-gray-400">Assign:</span>
+                                        <div className="flex items-center gap-1 overflow-x-auto">
+                                          {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
+                                            <button
+                                              key={`quick-add-d${dIdx + 1}`}
+                                              onClick={() => addItemToDay(item, dIdx + 1)}
+                                              className="px-1.5 py-0.5 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold cursor-pointer"
+                                            >
+                                              +D{dIdx + 1}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={handleOpenAddInventory}
+                                  className="w-full py-1.5 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500 transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Add Item to {sec.label}</span>
+                                </button>
                               </div>
-                            </div>
+                            )}
                           </div>
-                        ))
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
