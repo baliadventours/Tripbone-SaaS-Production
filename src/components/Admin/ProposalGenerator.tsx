@@ -129,6 +129,8 @@ export interface Proposal {
   totalPrice: number;
   currency: string;
   selectedItems: ProposalLineItem[];
+  dayInclusions?: Record<number, string[]>;
+  dayExclusions?: Record<number, string[]>;
   welcomeMessage: string;
   itineraryNarrative: ItineraryDayNarrative[];
   inclusions: string[];
@@ -212,7 +214,29 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Itinerary Line Items (Day assigned)
   const [selectedLineItems, setSelectedLineItems] = useState<ProposalLineItem[]>([]);
 
-  // Drag State for Day Dropping
+  // Master Data Banks for Inclusions & Exclusions
+  const [masterInclusions, setMasterInclusions] = useState<string[]>([...PRESET_INCLUSIONS]);
+  const [masterExclusions, setMasterExclusions] = useState<string[]>([...PRESET_EXCLUSIONS]);
+  const [newMasterInclusionInput, setNewMasterInclusionInput] = useState('');
+  const [newMasterExclusionInput, setNewMasterExclusionInput] = useState('');
+
+  // Per-Day Inclusions & Exclusions State
+  const [dayInclusions, setDayInclusions] = useState<Record<number, string[]>>({});
+  const [dayExclusions, setDayExclusions] = useState<Record<number, string[]>>({});
+  const [dayInclusionInputs, setDayInclusionInputs] = useState<Record<number, string>>({});
+  const [dayExclusionInputs, setDayExclusionInputs] = useState<Record<number, string>>({});
+
+  // Catalog Sub-tab State
+  const [catalogSubTab, setCatalogSubTab] = useState<'inventory' | 'inclusions' | 'exclusions'>('inventory');
+
+  // Unified Drag State
+  const [draggedCatalogItem, setDraggedCatalogItem] = useState<{
+    kind: 'inventory' | 'inclusion' | 'exclusion';
+    data: InventoryItem | string;
+  } | null>(null);
+  const [activeDropZone, setActiveDropZone] = useState<{ day: number; target: 'itinerary' | 'inclusion' | 'exclusion' } | null>(null);
+
+  // Legacy Drag State compatibility
   const [draggedInventoryItem, setDraggedInventoryItem] = useState<InventoryItem | null>(null);
   const [activeDropDay, setActiveDropDay] = useState<number | null>(null);
 
@@ -401,6 +425,76 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
   };
 
+  // Master Data Banks Handlers
+  const handleAddMasterInclusion = () => {
+    if (!newMasterInclusionInput.trim()) return;
+    const text = newMasterInclusionInput.trim();
+    if (!masterInclusions.includes(text)) {
+      setMasterInclusions(prev => [...prev, text]);
+    }
+    if (!selectedInclusions.includes(text)) {
+      setSelectedInclusions(prev => [...prev, text]);
+    }
+    setNewMasterInclusionInput('');
+  };
+
+  const handleDeleteMasterInclusion = (text: string) => {
+    setMasterInclusions(prev => prev.filter(item => item !== text));
+    setSelectedInclusions(prev => prev.filter(item => item !== text));
+  };
+
+  const handleAddMasterExclusion = () => {
+    if (!newMasterExclusionInput.trim()) return;
+    const text = newMasterExclusionInput.trim();
+    if (!masterExclusions.includes(text)) {
+      setMasterExclusions(prev => [...prev, text]);
+    }
+    if (!selectedExclusions.includes(text)) {
+      setSelectedExclusions(prev => [...prev, text]);
+    }
+    setNewMasterExclusionInput('');
+  };
+
+  const handleDeleteMasterExclusion = (text: string) => {
+    setMasterExclusions(prev => prev.filter(item => item !== text));
+    setSelectedExclusions(prev => prev.filter(item => item !== text));
+  };
+
+  // Day-specific Inclusions & Exclusions Handlers
+  const handleAddDayInclusion = (dayNum: number, text: string) => {
+    if (!text || !text.trim()) return;
+    const clean = text.trim();
+    setDayInclusions(prev => ({
+      ...prev,
+      [dayNum]: [...(prev[dayNum] || []), clean]
+    }));
+    setDayInclusionInputs(prev => ({ ...prev, [dayNum]: '' }));
+  };
+
+  const handleRemoveDayInclusion = (dayNum: number, index: number) => {
+    setDayInclusions(prev => ({
+      ...prev,
+      [dayNum]: (prev[dayNum] || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddDayExclusion = (dayNum: number, text: string) => {
+    if (!text || !text.trim()) return;
+    const clean = text.trim();
+    setDayExclusions(prev => ({
+      ...prev,
+      [dayNum]: [...(prev[dayNum] || []), clean]
+    }));
+    setDayExclusionInputs(prev => ({ ...prev, [dayNum]: '' }));
+  };
+
+  const handleRemoveDayExclusion = (dayNum: number, index: number) => {
+    setDayExclusions(prev => ({
+      ...prev,
+      [dayNum]: (prev[dayNum] || []).filter((_, i) => i !== index)
+    }));
+  };
+
   // Assign item to Day handler (Click or Drag & Drop)
   const addItemToDay = (inv: InventoryItem, targetDay: number) => {
     let defaultQty = 1;
@@ -424,15 +518,56 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Drag & drop handlers
   const handleDragStartItem = (inv: InventoryItem) => {
     setDraggedInventoryItem(inv);
+    setDraggedCatalogItem({ kind: 'inventory', data: inv });
   };
 
-  const handleDropToDay = (e: React.DragEvent, targetDay: number) => {
+  const handleDragStartInclusion = (text: string) => {
+    setDraggedCatalogItem({ kind: 'inclusion', data: text });
+  };
+
+  const handleDragStartExclusion = (text: string) => {
+    setDraggedCatalogItem({ kind: 'exclusion', data: text });
+  };
+
+  const handleDropToDayZone = (e: React.DragEvent, targetDay: number, targetZone: 'itinerary' | 'inclusion' | 'exclusion') => {
     e.preventDefault();
+    setActiveDropZone(null);
     setActiveDropDay(null);
+
+    // If drag source exists
+    if (draggedCatalogItem) {
+      if (targetZone === 'itinerary') {
+        if (draggedCatalogItem.kind === 'inventory') {
+          addItemToDay(draggedCatalogItem.data as InventoryItem, targetDay);
+        } else if (typeof draggedCatalogItem.data === 'string') {
+          handleAddDayInclusion(targetDay, draggedCatalogItem.data);
+        }
+      } else if (targetZone === 'inclusion') {
+        if (typeof draggedCatalogItem.data === 'string') {
+          handleAddDayInclusion(targetDay, draggedCatalogItem.data);
+        } else {
+          handleAddDayInclusion(targetDay, (draggedCatalogItem.data as InventoryItem).name);
+        }
+      } else if (targetZone === 'exclusion') {
+        if (typeof draggedCatalogItem.data === 'string') {
+          handleAddDayExclusion(targetDay, draggedCatalogItem.data);
+        } else {
+          handleAddDayExclusion(targetDay, (draggedCatalogItem.data as InventoryItem).name);
+        }
+      }
+      setDraggedCatalogItem(null);
+      setDraggedInventoryItem(null);
+      return;
+    }
+
     if (draggedInventoryItem) {
       addItemToDay(draggedInventoryItem, targetDay);
       setDraggedInventoryItem(null);
     }
+  };
+
+  const handleDropToDay = (e: React.DragEvent, targetDay: number) => {
+    handleDropToDayZone(e, targetDay, 'itinerary');
   };
 
   const handleRemoveLineItem = (index: number) => {
@@ -462,8 +597,12 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
   const handleAddCustomInclusion = () => {
     if (!customInclusionInput.trim()) return;
-    if (!selectedInclusions.includes(customInclusionInput.trim())) {
-      setSelectedInclusions(prev => [...prev, customInclusionInput.trim()]);
+    const text = customInclusionInput.trim();
+    if (!selectedInclusions.includes(text)) {
+      setSelectedInclusions(prev => [...prev, text]);
+    }
+    if (!masterInclusions.includes(text)) {
+      setMasterInclusions(prev => [...prev, text]);
     }
     setCustomInclusionInput('');
   };
@@ -477,8 +616,12 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
   const handleAddCustomExclusion = () => {
     if (!customExclusionInput.trim()) return;
-    if (!selectedExclusions.includes(customExclusionInput.trim())) {
-      setSelectedExclusions(prev => [...prev, customExclusionInput.trim()]);
+    const text = customExclusionInput.trim();
+    if (!selectedExclusions.includes(text)) {
+      setSelectedExclusions(prev => [...prev, text]);
+    }
+    if (!masterExclusions.includes(text)) {
+      setMasterExclusions(prev => [...prev, text]);
     }
     setCustomExclusionInput('');
   };
@@ -581,6 +724,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         totalPrice,
         currency,
         selectedItems: updatedLineItems,
+        dayInclusions: dayInclusions,
+        dayExclusions: dayExclusions,
         welcomeMessage: proposalData.welcomeMessage || `Dear ${guestName}, thank you for choosing us! We are thrilled to present your personalized holiday itinerary.`,
         itineraryNarrative: itineraryNarrativeObj,
         inclusions: selectedInclusions.length > 0 ? selectedInclusions : (proposalData.inclusions || []),
@@ -1000,125 +1145,269 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 </div>
 
                 {/* Render Days */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {Array.from({ length: durationDays }, (_, idx) => {
                     const dayNum = idx + 1;
                     const itemsInThisDay = selectedLineItems.filter(i => i.day === dayNum);
                     const daySubtotal = itemsInThisDay.reduce((sum, item) => sum + item.subtotal, 0);
-                    const isOver = activeDropDay === dayNum;
+                    const currentInclusions = dayInclusions[dayNum] || [];
+                    const currentExclusions = dayExclusions[dayNum] || [];
 
                     return (
                       <div
                         key={`day-builder-${dayNum}`}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setActiveDropDay(dayNum);
-                        }}
-                        onDragLeave={() => setActiveDropDay(null)}
-                        onDrop={(e) => handleDropToDay(e, dayNum)}
-                        className={`p-4 rounded-2xl border-2 transition-all relative ${
-                          isOver 
-                            ? 'border-dashed border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30' 
-                            : isDarkMode 
-                              ? 'bg-slate-900/60 border-slate-800' 
-                              : 'bg-slate-50/70 border-gray-200'
+                        className={`p-5 rounded-3xl border-2 transition-all space-y-4 ${
+                          isDarkMode 
+                            ? 'bg-slate-900/60 border-slate-800' 
+                            : 'bg-slate-50/70 border-gray-200'
                         }`}
                       >
                         {/* Day Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <span className="px-2.5 py-1 rounded-lg bg-orange-600 text-white font-black text-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 dark:border-slate-800 pb-3">
+                          <div className="flex items-center space-x-2.5">
+                            <span className="px-3 py-1 rounded-xl bg-orange-600 text-white font-black text-xs uppercase tracking-wider">
                               DAY {dayNum}
                             </span>
                             <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                              {itemsInThisDay.length} item(s) assigned
+                              {itemsInThisDay.length} itinerary item(s) • {currentInclusions.length} inclusion(s) • {currentExclusions.length} exclusion(s)
                             </span>
                           </div>
 
                           <div className="flex items-center space-x-3">
-                            <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400">
+                            <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-3 py-1 rounded-xl">
                               Subtotal: {currency} {daySubtotal.toLocaleString()}
                             </span>
                           </div>
                         </div>
 
-                        {/* Dropped / Added Items in this Day */}
-                        {itemsInThisDay.length === 0 ? (
-                          <div className="p-6 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-xl text-center flex flex-col items-center justify-center text-gray-400">
-                            <GripVertical className="w-5 h-5 mb-1 opacity-50" />
-                            <p className="text-xs font-semibold">Drag & Drop inventory items here for Day {dayNum}</p>
-                            <p className="text-[10px] mt-0.5 text-gray-400">or click "+ Day {dayNum}" on any inventory item in catalog</p>
+                        {/* Drop Zone 1: Itinerary (Inventory Manager Items) */}
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setActiveDropZone({ day: dayNum, target: 'itinerary' });
+                          }}
+                          onDragLeave={() => setActiveDropZone(null)}
+                          onDrop={(e) => handleDropToDayZone(e, dayNum, 'itinerary')}
+                          className={`p-4 rounded-2xl border-2 transition-all space-y-2.5 ${
+                            activeDropZone?.day === dayNum && activeDropZone.target === 'itinerary'
+                              ? 'border-dashed border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30'
+                              : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 flex items-center space-x-1.5">
+                              <Compass className="w-3.5 h-3.5" />
+                              <span>Itinerary Logistics (Drag from Inventory Catalog)</span>
+                            </span>
                           </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {itemsInThisDay.map((item, lineIdx) => {
-                              // Find actual global index in selectedLineItems array
-                              const globalIdx = selectedLineItems.findIndex(i => i === item);
 
-                              return (
-                                <div
-                                  key={`line-item-${dayNum}-${lineIdx}`}
-                                  className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
-                                    isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'
-                                  }`}
-                                >
-                                  <div className="flex items-center space-x-2 shrink-0">
-                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
-                                      {getCategoryIcon(item.type)}
-                                      <span>{item.type}</span>
-                                    </span>
-                                  </div>
+                          {itemsInThisDay.length === 0 ? (
+                            <div className="p-4 border-2 border-dashed border-gray-200 dark:border-slate-800/80 rounded-xl text-center flex flex-col items-center justify-center text-gray-400">
+                              <GripVertical className="w-4 h-4 mb-1 opacity-50" />
+                              <p className="text-xs font-semibold">Drag & Drop inventory items here for Day {dayNum}</p>
+                              <p className="text-[10px] text-gray-400">or click "+ D{dayNum}" on any inventory item in catalog</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {itemsInThisDay.map((item, lineIdx) => {
+                                const globalIdx = selectedLineItems.findIndex(i => i === item);
 
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                      {item.name}
-                                    </p>
-                                    <p className="text-[10px] text-gray-500">
-                                      {currency} {Number(item.price).toLocaleString()} / {item.priceType}
-                                    </p>
-                                  </div>
-
-                                  {/* Qty Counter */}
-                                  <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg p-1 border border-gray-200 dark:border-slate-700">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity - 1)}
-                                      className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="w-6 text-center text-xs font-bold">
-                                      {item.quantity}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity + 1)}
-                                      className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-
-                                  {/* Item Subtotal */}
-                                  <div className="text-right shrink-0">
-                                    <p className="text-xs font-black text-gray-900 dark:text-white">
-                                      {currency} {item.subtotal.toLocaleString()}
-                                    </p>
-                                  </div>
-
-                                  {/* Delete Button */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveLineItem(globalIdx)}
-                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                return (
+                                  <div
+                                    key={`line-item-${dayNum}-${lineIdx}`}
+                                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${
+                                      isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-gray-200'
+                                    }`}
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              );
-                            })}
+                                    <div className="flex items-center space-x-2 shrink-0">
+                                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
+                                        {getCategoryIcon(item.type)}
+                                        <span>{item.type}</span>
+                                      </span>
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                        {item.name}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500">
+                                        {currency} {Number(item.price).toLocaleString()} / {item.priceType}
+                                      </p>
+                                    </div>
+
+                                    {/* Qty Counter */}
+                                    <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg p-1 border border-gray-200 dark:border-slate-700">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity - 1)}
+                                        className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="w-5 text-center text-xs font-bold">
+                                        {item.quantity}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity + 1)}
+                                        className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+
+                                    <div className="text-right shrink-0">
+                                      <p className="text-xs font-black text-gray-900 dark:text-white">
+                                        {currency} {item.subtotal.toLocaleString()}
+                                      </p>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveLineItem(globalIdx)}
+                                      className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Drop Zone 2 & 3: Inclusion & Exclusion Side-by-Side for Day */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Day Inclusion Dropzone */}
+                          <div
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setActiveDropZone({ day: dayNum, target: 'inclusion' });
+                            }}
+                            onDragLeave={() => setActiveDropZone(null)}
+                            onDrop={(e) => handleDropToDayZone(e, dayNum, 'inclusion')}
+                            className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
+                              activeDropZone?.day === dayNum && activeDropZone.target === 'inclusion'
+                                ? 'border-dashed border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30'
+                                : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Day {dayNum} Inclusions</span>
+                              </span>
+                              <span className="text-[10px] text-gray-400">Drag from Inclusions Bank</span>
+                            </div>
+
+                            <div className="space-y-1.5 min-h-[50px]">
+                              {currentInclusions.length === 0 ? (
+                                <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
+                                  Drag inclusion item here or type below
+                                </p>
+                              ) : (
+                                currentInclusions.map((incText, incIdx) => (
+                                  <div key={`day-inc-chip-${incIdx}`} className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-semibold flex items-center justify-between">
+                                    <span className="truncate pr-2">✓ {incText}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveDayInclusion(dayNum, incIdx)}
+                                      className="text-red-400 hover:text-red-600 shrink-0"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            {/* Direct Input for Day Inclusion */}
+                            <div className="flex items-center space-x-1.5 pt-1">
+                              <input
+                                type="text"
+                                placeholder={`Add inclusion for Day ${dayNum}...`}
+                                value={dayInclusionInputs[dayNum] || ''}
+                                onChange={(e) => setDayInclusionInputs({ ...dayInclusionInputs, [dayNum]: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
+                                className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
+                                  isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
+                                className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer"
+                              >
+                                + Add
+                              </button>
+                            </div>
                           </div>
-                        )}
+
+                          {/* Day Exclusion Dropzone */}
+                          <div
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setActiveDropZone({ day: dayNum, target: 'exclusion' });
+                            }}
+                            onDragLeave={() => setActiveDropZone(null)}
+                            onDrop={(e) => handleDropToDayZone(e, dayNum, 'exclusion')}
+                            className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
+                              activeDropZone?.day === dayNum && activeDropZone.target === 'exclusion'
+                                ? 'border-dashed border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/30'
+                                : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
+                                <X className="w-3.5 h-3.5" />
+                                <span>Day {dayNum} Exclusions</span>
+                              </span>
+                              <span className="text-[10px] text-gray-400">Drag from Exclusions Bank</span>
+                            </div>
+
+                            <div className="space-y-1.5 min-h-[50px]">
+                              {currentExclusions.length === 0 ? (
+                                <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
+                                  Drag exclusion item here or type below
+                                </p>
+                              ) : (
+                                currentExclusions.map((excText, excIdx) => (
+                                  <div key={`day-exc-chip-${excIdx}`} className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center justify-between">
+                                    <span className="truncate pr-2">✕ {excText}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveDayExclusion(dayNum, excIdx)}
+                                      className="text-red-400 hover:text-red-600 shrink-0"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            {/* Direct Input for Day Exclusion */}
+                            <div className="flex items-center space-x-1.5 pt-1">
+                              <input
+                                type="text"
+                                placeholder={`Add exclusion for Day ${dayNum}...`}
+                                value={dayExclusionInputs[dayNum] || ''}
+                                onChange={(e) => setDayExclusionInputs({ ...dayExclusionInputs, [dayNum]: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
+                                className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
+                                  isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
+                                className="px-2.5 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer"
+                              >
+                                + Add
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -1443,114 +1732,328 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 </div>
               </div>
 
-              {/* Draggable Inventory Catalog Sidebar */}
+              {/* Draggable Inventory & Inclusion/Exclusion Catalog Sidebar */}
               <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
                 isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
               }`}>
-                <div className="flex items-center justify-between">
-                  <h3 className={`text-sm font-extrabold flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    <Package className="w-4 h-4 text-orange-500" />
-                    <span>Inventory Catalog</span>
-                  </h3>
-                  <button
-                    onClick={handleOpenAddInventory}
-                    className="p-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 text-xs font-bold cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Search & Filter */}
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search inventory items..."
-                      value={inventorySearch}
-                      onChange={(e) => setInventorySearch(e.target.value)}
-                      className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                {/* Catalog Sub-tabs */}
+                <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setCatalogSubTab('inventory')}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                        catalogSubTab === 'inventory' 
+                          ? 'bg-orange-600 text-white shadow-sm' 
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
-                    />
+                    >
+                      📦 Inventory ({filteredInventory.length})
+                    </button>
+                    <button
+                      onClick={() => setCatalogSubTab('inclusions')}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                        catalogSubTab === 'inclusions' 
+                          ? 'bg-emerald-600 text-white shadow-sm' 
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      ✓ Inclusions
+                    </button>
+                    <button
+                      onClick={() => setCatalogSubTab('exclusions')}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                        catalogSubTab === 'exclusions' 
+                          ? 'bg-rose-600 text-white shadow-sm' 
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      ✕ Exclusions
+                    </button>
                   </div>
 
-                  <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-                    {['all', 'ticket', 'transport', 'hotel', 'food', 'guide'].map(cat => (
-                      <button
-                        key={`cat-filter-${cat}`}
-                        onClick={() => setInventoryCategoryFilter(cat)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize whitespace-nowrap cursor-pointer ${
-                          inventoryCategoryFilter === cat 
-                            ? 'bg-orange-600 text-white' 
-                            : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
+                  {catalogSubTab === 'inventory' && (
+                    <button
+                      onClick={handleOpenAddInventory}
+                      className="p-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 text-xs font-bold cursor-pointer shrink-0"
+                      title="Add inventory item"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
-                {/* Draggable Catalog Items List */}
-                <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
-                  {loadingInventory ? (
-                    <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center space-x-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Loading inventory items...</span>
+                {/* Sub-tab 1: Inventory Catalog */}
+                {catalogSubTab === 'inventory' && (
+                  <div className="space-y-3">
+                    {/* Search & Filter */}
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search inventory items..."
+                          value={inventorySearch}
+                          onChange={(e) => setInventorySearch(e.target.value)}
+                          className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
+                            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                          }`}
+                        />
+                      </div>
+
+                      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+                        {['all', 'ticket', 'transport', 'hotel', 'food', 'guide'].map(cat => (
+                          <button
+                            key={`cat-filter-${cat}`}
+                            onClick={() => setInventoryCategoryFilter(cat)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize whitespace-nowrap cursor-pointer ${
+                              inventoryCategoryFilter === cat 
+                                ? 'bg-orange-600 text-white' 
+                                : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  ) : filteredInventory.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-gray-400">
-                      No inventory items found. Click + to create one.
-                    </div>
-                  ) : (
-                    filteredInventory.map((item) => (
-                      <div
-                        key={`inv-card-${item.id}`}
-                        draggable={true}
-                        onDragStart={() => handleDragStartItem(item)}
-                        className={`p-3 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-md ${
-                          isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-orange-500/50' : 'bg-slate-50 border-gray-200 hover:border-orange-500/50'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center space-x-2 min-w-0">
-                            <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                {item.name}
-                              </p>
-                              <div className="flex items-center space-x-2 mt-0.5">
-                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
-                                  {item.type}
-                                </span>
-                                <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400">
-                                  {currency} {Number(item.price).toLocaleString()}
-                                </span>
+
+                    {/* Draggable Catalog Items List */}
+                    <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+                      {loadingInventory ? (
+                        <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Loading inventory items...</span>
+                        </div>
+                      ) : filteredInventory.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-gray-400">
+                          No inventory items found. Click + to create one.
+                        </div>
+                      ) : (
+                        filteredInventory.map((item) => (
+                          <div
+                            key={`inv-card-${item.id}`}
+                            draggable={true}
+                            onDragStart={() => handleDragStartItem(item)}
+                            className={`p-3 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-md ${
+                              isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-orange-500/50' : 'bg-slate-50 border-gray-200 hover:border-orange-500/50'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center space-x-2 min-w-0">
+                                <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                    {item.name}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-0.5">
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
+                                      {item.type}
+                                    </span>
+                                    <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400">
+                                      {currency} {Number(item.price).toLocaleString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Quick Day Dropdown/Buttons */}
+                            <div className="mt-2.5 pt-2 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                              <span className="text-gray-400">Assign to:</span>
+                              <div className="flex items-center gap-1 overflow-x-auto">
+                                {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
+                                  <button
+                                    key={`quick-add-d${dIdx + 1}`}
+                                    onClick={() => addItemToDay(item, dIdx + 1)}
+                                    className="px-1.5 py-0.5 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold cursor-pointer"
+                                  >
+                                    +D{dIdx + 1}
+                                  </button>
+                                ))}
                               </div>
                             </div>
                           </div>
-                        </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                        {/* Quick Day Dropdown/Buttons */}
-                        <div className="mt-2.5 pt-2 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                          <span className="text-gray-400">Assign to:</span>
-                          <div className="flex items-center gap-1 overflow-x-auto">
-                            {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
+                {/* Sub-tab 2: General Inclusions Data Bank */}
+                {catalogSubTab === 'inclusions' && (
+                  <div className="space-y-3">
+                    {/* Add Master Inclusion Input */}
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Create global inclusion item..."
+                        value={newMasterInclusionInput}
+                        onChange={(e) => setNewMasterInclusionInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddMasterInclusion()}
+                        className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                      <button
+                        onClick={handleAddMasterInclusion}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-gray-400 italic">
+                      💡 Drag any inclusion below onto a specific Day or click +D1, +D2 buttons.
+                    </p>
+
+                    {/* Inclusions List */}
+                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                      {masterInclusions.map((incText, idx) => {
+                        const isGlobalSelected = selectedInclusions.includes(incText);
+
+                        return (
+                          <div
+                            key={`master-inc-${idx}`}
+                            draggable={true}
+                            onDragStart={() => handleDragStartInclusion(incText)}
+                            className={`p-2.5 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-sm ${
+                              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center space-x-2 min-w-0">
+                                <GripVertical className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">
+                                  {incText}
+                                </span>
+                              </div>
                               <button
-                                key={`quick-add-d${dIdx + 1}`}
-                                onClick={() => addItemToDay(item, dIdx + 1)}
-                                className="px-1.5 py-0.5 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold cursor-pointer"
+                                onClick={() => handleDeleteMasterInclusion(incText)}
+                                className="text-gray-400 hover:text-red-500 shrink-0"
                               >
-                                +D{dIdx + 1}
+                                <X className="w-3.5 h-3.5" />
                               </button>
-                            ))}
+                            </div>
+
+                            {/* Actions bar */}
+                            <div className="mt-2 pt-1.5 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                              <button
+                                onClick={() => toggleInclusionPreset(incText)}
+                                className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                                  isGlobalSelected 
+                                    ? 'bg-emerald-600 text-white' 
+                                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                                }`}
+                              >
+                                {isGlobalSelected ? '✓ Global' : '+ Global'}
+                              </button>
+
+                              <div className="flex items-center gap-1 overflow-x-auto">
+                                {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
+                                  <button
+                                    key={`add-inc-d${dIdx + 1}`}
+                                    onClick={() => handleAddDayInclusion(dIdx + 1, incText)}
+                                    className="px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold cursor-pointer"
+                                  >
+                                    +D{dIdx + 1}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-tab 3: General Exclusions Data Bank */}
+                {catalogSubTab === 'exclusions' && (
+                  <div className="space-y-3">
+                    {/* Add Master Exclusion Input */}
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Create global exclusion item..."
+                        value={newMasterExclusionInput}
+                        onChange={(e) => setNewMasterExclusionInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddMasterExclusion()}
+                        className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                      <button
+                        onClick={handleAddMasterExclusion}
+                        className="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-gray-400 italic">
+                      💡 Drag any exclusion below onto a specific Day or click +D1, +D2 buttons.
+                    </p>
+
+                    {/* Exclusions List */}
+                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                      {masterExclusions.map((excText, idx) => {
+                        const isGlobalSelected = selectedExclusions.includes(excText);
+
+                        return (
+                          <div
+                            key={`master-exc-${idx}`}
+                            draggable={true}
+                            onDragStart={() => handleDragStartExclusion(excText)}
+                            className={`p-2.5 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-sm ${
+                              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center space-x-2 min-w-0">
+                                <GripVertical className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">
+                                  {excText}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteMasterExclusion(excText)}
+                                className="text-gray-400 hover:text-red-500 shrink-0"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Actions bar */}
+                            <div className="mt-2 pt-1.5 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                              <button
+                                onClick={() => toggleExclusionPreset(excText)}
+                                className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                                  isGlobalSelected 
+                                    ? 'bg-rose-600 text-white' 
+                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'
+                                }`}
+                              >
+                                {isGlobalSelected ? '✓ Global' : '+ Global'}
+                              </button>
+
+                              <div className="flex items-center gap-1 overflow-x-auto">
+                                {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
+                                  <button
+                                    key={`add-exc-d${dIdx + 1}`}
+                                    onClick={() => handleAddDayExclusion(dIdx + 1, excText)}
+                                    className="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold cursor-pointer"
+                                  >
+                                    +D{dIdx + 1}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1843,29 +2346,54 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                             )}
                           </div>
 
-                          {/* Inclusion Section (Logistics & Selected Inclusions for Day) */}
-                          <div className="space-y-2 pt-2 border-t border-slate-100">
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                                Inclusion
-                              </span>
+                          {/* Inclusion & Exclusion Section for Day */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                            {/* Day Inclusion */}
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
+                                  Included Logistics & Items
+                                </span>
+                              </div>
+                              <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
+                                {dayLogistics.map((item, lIdx) => (
+                                  <li key={`day-inc-item-${lIdx}`} className="flex items-start space-x-1.5">
+                                    <span className="text-emerald-600 font-bold text-xs">✓</span>
+                                    <span className="text-xs text-slate-800 font-bold">{item.name}</span>
+                                  </li>
+                                ))}
+                                {(generatedProposal.dayInclusions?.[day.dayNumber] || []).map((inc, iIdx) => (
+                                  <li key={`day-custom-inc-${iIdx}`} className="flex items-start space-x-1.5">
+                                    <span className="text-emerald-600 font-bold text-xs">✓</span>
+                                    <span className="text-xs text-slate-700">{inc}</span>
+                                  </li>
+                                ))}
+                                {dayLogistics.length === 0 && (!generatedProposal.dayInclusions?.[day.dayNumber] || generatedProposal.dayInclusions[day.dayNumber].length === 0) && (
+                                  <li className="text-[11px] text-slate-400 italic">As specified in global package inclusions</li>
+                                )}
+                              </ul>
                             </div>
-                            <ul className="space-y-1 pl-3 text-xs font-medium text-slate-700">
-                              {dayLogistics.map((item, lIdx) => (
-                                <li key={`day-inc-${lIdx}`} className="flex items-center space-x-2">
-                                  <span className="text-emerald-600 font-bold">✓</span>
-                                  <span className="text-xs text-slate-800 font-bold">{item.name}</span>
-                                  <span className="text-[11px] text-slate-500">({getItemDescription(item)})</span>
-                                </li>
-                              ))}
-                              {generatedProposal.inclusions.map((inc, iIdx) => (
-                                <li key={`gen-inc-${iIdx}`} className="flex items-center space-x-2">
-                                  <span className="text-emerald-600 font-bold">✓</span>
-                                  <span className="text-xs text-slate-700">{inc}</span>
-                                </li>
-                              ))}
-                            </ul>
+
+                            {/* Day Exclusion */}
+                            {(generatedProposal.dayExclusions?.[day.dayNumber] && generatedProposal.dayExclusions[day.dayNumber].length > 0) && (
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-1.5">
+                                  <X className="w-3.5 h-3.5 text-rose-600" />
+                                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
+                                    Day Exclusions
+                                  </span>
+                                </div>
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
+                                  {generatedProposal.dayExclusions[day.dayNumber].map((exc, eIdx) => (
+                                    <li key={`day-custom-exc-${eIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-rose-600 font-bold text-xs">✕</span>
+                                      <span className="text-xs text-slate-700">{exc}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
