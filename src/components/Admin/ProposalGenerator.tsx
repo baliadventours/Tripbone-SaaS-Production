@@ -49,7 +49,9 @@ import {
   ChevronsDown,
   ChevronsUp,
   Hotel,
-  XCircle
+  XCircle,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 export interface InventoryItem {
@@ -344,6 +346,13 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [dayExclusions, setDayExclusions] = useState<Record<number, string[]>>({});
   const [dayInclusionInputs, setDayInclusionInputs] = useState<Record<number, string>>({});
   const [dayExclusionInputs, setDayExclusionInputs] = useState<Record<number, string>>({});
+
+  // Inventory / Attraction Picker Modal State
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
+  const [targetPickerDay, setTargetPickerDay] = useState<number>(1);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerCategoryFilter, setPickerCategoryFilter] = useState<string>('all');
+  const [pickedNotification, setPickedNotification] = useState<string | null>(null);
 
   // Catalog Sub-tab State
   const [catalogSubTab, setCatalogSubTab] = useState<'inventory' | 'inclusions' | 'exclusions'>('inventory');
@@ -840,6 +849,74 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     setSelectedLineItems(prev => [...prev, newLineItem]);
   };
 
+  const handleOpenPickerModal = (dayNum: number) => {
+    setTargetPickerDay(dayNum);
+    setPickerSearch('');
+    setPickerCategoryFilter('all');
+    setIsPickerModalOpen(true);
+  };
+
+  const handlePickItem = (inv: InventoryItem) => {
+    addItemToDay(inv, targetPickerDay);
+    setPickedNotification(`Added "${inv.name}" to Day ${targetPickerDay}`);
+    setTimeout(() => {
+      setPickedNotification(null);
+    }, 2000);
+  };
+
+  const handleMoveItemInDay = (globalIndex: number, direction: 'up' | 'down') => {
+    const currentItem = selectedLineItems[globalIndex];
+    if (!currentItem) return;
+
+    const sameDayIndices: number[] = [];
+    selectedLineItems.forEach((item, idx) => {
+      if (item.day === currentItem.day) {
+        sameDayIndices.push(idx);
+      }
+    });
+
+    const positionInDay = sameDayIndices.indexOf(globalIndex);
+    if (positionInDay === -1) return;
+
+    const targetDayPos = direction === 'up' ? positionInDay - 1 : positionInDay + 1;
+    if (targetDayPos < 0 || targetDayPos >= sameDayIndices.length) return;
+
+    const targetGlobalIndex = sameDayIndices[targetDayPos];
+
+    const updated = [...selectedLineItems];
+    const temp = updated[globalIndex];
+    updated[globalIndex] = updated[targetGlobalIndex];
+    updated[targetGlobalIndex] = temp;
+    setSelectedLineItems(updated);
+  };
+
+  const handleMoveDay = (dayNum: number, direction: 'up' | 'down') => {
+    const targetDayNum = direction === 'up' ? dayNum - 1 : dayNum + 1;
+    if (targetDayNum < 1 || targetDayNum > durationDays) return;
+
+    setSelectedLineItems(prev => prev.map(item => {
+      if (item.day === dayNum) return { ...item, day: targetDayNum };
+      if (item.day === targetDayNum) return { ...item, day: dayNum };
+      return item;
+    }));
+
+    setDayInclusions(prev => {
+      const updated = { ...prev };
+      const tempInc = updated[dayNum] || [];
+      updated[dayNum] = updated[targetDayNum] || [];
+      updated[targetDayNum] = tempInc;
+      return updated;
+    });
+
+    setDayExclusions(prev => {
+      const updated = { ...prev };
+      const tempExc = updated[dayNum] || [];
+      updated[dayNum] = updated[targetDayNum] || [];
+      updated[targetDayNum] = tempExc;
+      return updated;
+    });
+  };
+
   // Drag & drop handlers
   const handleDragStartItem = (inv: InventoryItem) => {
     setDraggedInventoryItem(inv);
@@ -1002,6 +1079,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
           totalPrice,
           currency,
           specialNotes,
+          companyName: companyName || 'Tripbone Tour Operations',
           tenantId
         })
       });
@@ -1441,11 +1519,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       {/* SUB-TAB 1: CREATE PROPOSAL WORKSPACE */}
       {activeSubTab === 'create' && (
         <div className="space-y-8">
-          {/* Main Grid: Form Left (8 Cols) / Sidebar Right (4 Cols) */}
-          <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Left 8 Cols: Guest Details & Interactive Day-by-Day Dropper */}
-            <div className="lg:col-span-8 space-y-6">
+          {/* Main Workspace Container */}
+          <div className="no-print space-y-6 max-w-5xl mx-auto">
               
               {/* Section 1: Guest & Trip Basic Configuration */}
               <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
@@ -1588,11 +1663,19 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                         Day-by-Day Itinerary Builder
                       </h3>
-                      <p className="text-[11px] text-gray-500">Drag inventory items from right panel or drop into target days</p>
+                      <p className="text-[11px] text-gray-500">Click (+ Pick Attraction) on any day to select inventory items or move items up/down</p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPickerModal(1)}
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-orange-600 text-white hover:bg-orange-700 flex items-center space-x-1 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Pick Attraction / Item</span>
+                    </button>
                     <button
                       type="button"
                       onClick={expandAllBuilderDays}
@@ -1651,7 +1734,45 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                             </span>
                           </div>
 
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPickerModal(dayNum)}
+                              className="px-3 py-1 rounded-xl bg-orange-600 text-white font-black text-xs hover:bg-orange-700 flex items-center space-x-1 cursor-pointer shadow-xs transition-colors"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Pick Attraction / Item</span>
+                            </button>
+
+                            <div className="flex items-center space-x-1 border-l border-r border-gray-200 dark:border-slate-800 px-1">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveDay(dayNum, 'up')}
+                                disabled={dayNum === 1}
+                                className={`p-1 rounded-lg border text-xs ${
+                                  dayNum === 1
+                                    ? 'opacity-30 cursor-not-allowed border-gray-200 dark:border-slate-800 text-gray-400'
+                                    : 'border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer'
+                                }`}
+                                title="Move Day Up"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveDay(dayNum, 'down')}
+                                disabled={dayNum === durationDays}
+                                className={`p-1 rounded-lg border text-xs ${
+                                  dayNum === durationDays
+                                    ? 'opacity-30 cursor-not-allowed border-gray-200 dark:border-slate-800 text-gray-400'
+                                    : 'border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer'
+                                }`}
+                                title="Move Day Down"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
                             <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-3 py-1 rounded-xl">
                               Subtotal: {currency} {daySubtotal.toLocaleString()}
                             </span>
@@ -1931,13 +2052,32 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                                                 </p>
                                               </div>
 
-                                              <button
-                                                type="button"
-                                                onClick={() => handleRemoveLineItem(globalIdx)}
-                                                className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                                              >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                              </button>
+                                              <div className="flex items-center space-x-1 shrink-0">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleMoveItemInDay(globalIdx, 'up')}
+                                                  className="p-1 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 cursor-pointer transition-colors"
+                                                  title="Move Item Up"
+                                                >
+                                                  <ArrowUp className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleMoveItemInDay(globalIdx, 'down')}
+                                                  className="p-1 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 cursor-pointer transition-colors"
+                                                  title="Move Item Down"
+                                                >
+                                                  <ArrowDown className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleRemoveLineItem(globalIdx)}
+                                                  className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                                                  title="Remove Item"
+                                                >
+                                                  <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                              </div>
                                             </div>
                                           );
                                         })}
@@ -1947,6 +2087,15 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                                 </div>
                               );
                             })}
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPickerModal(dayNum)}
+                              className="w-full py-2.5 rounded-2xl border-2 border-dashed border-orange-500/40 hover:border-orange-500 bg-orange-500/5 text-orange-600 dark:text-orange-400 font-bold text-xs flex items-center justify-center space-x-2 cursor-pointer transition-all shadow-xs"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>Pick Attraction / Inventory Item for Day {dayNum}</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2267,6 +2416,81 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 </div>
               </div>
 
+              {/* Section 4: Pricing, Margin & Total Investment */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800/80 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-extrabold text-xs">
+                      04
+                    </div>
+                    <h3 className={`text-sm font-extrabold flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <Calculator className="w-4 h-4 text-orange-500" />
+                      <span>Price & Margin Engine</span>
+                    </h3>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <label className="text-xs font-bold text-gray-500">Currency:</label>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-xl border ${
+                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-100 border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="IDR">IDR (Rp)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="AUD">AUD ($)</option>
+                      <option value="SGD">SGD ($)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'}`}>
+                    <span className="text-xs text-gray-500 font-bold block mb-1">Base Logistics Subtotal</span>
+                    <span className="text-lg font-black text-gray-900 dark:text-white">
+                      {currency} {baseSubtotal.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block mt-0.5">{selectedLineItems.length} selected items</span>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-500 font-bold">Agency Margin / Markup</span>
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={marginPercentage}
+                          onChange={(e) => setMarginPercentage(parseFloat(e.target.value) || 0)}
+                          className={`w-14 px-2 py-0.5 text-xs text-center font-black rounded-lg border ${
+                            isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        />
+                        <span className="text-xs font-bold">%</span>
+                      </div>
+                    </div>
+                    <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                      + {currency} {marginAmount.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-emerald-500 block mt-0.5">Estimated Profit</span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-extrabold text-orange-100">Total Investment Price</p>
+                      <p className="text-xl font-black">{currency} {totalPrice.toLocaleString()}</p>
+                      <p className="text-[10px] text-orange-100/80 mt-0.5">Includes taxes & guide fees</p>
+                    </div>
+                    <DollarSign className="w-8 h-8 opacity-80 shrink-0" />
+                  </div>
+                </div>
+              </div>
+
               {/* Special Notes & Generate Trigger Button */}
               <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
                 isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
@@ -2305,515 +2529,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   )}
                 </button>
               </div>
-            </div>
-
-            {/* Right 4 Cols: Draggable Inventory Catalog & Financial Margin Summary */}
-            <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
-              
-              {/* Financial Calculation Box */}
-              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
-                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-              }`}>
-                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800/80 pb-3">
-                  <h3 className={`text-sm font-extrabold flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    <Calculator className="w-4 h-4 text-orange-500" />
-                    <span>Price & Margin Engine</span>
-                  </h3>
-                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
-                    {selectedLineItems.length} items
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-gray-500 dark:text-gray-400 font-medium">Base Logistics Cost:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">
-                      {currency} {baseSubtotal.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center space-x-1">
-                      <span>Agency Margin / Markup:</span>
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={marginPercentage}
-                        onChange={(e) => setMarginPercentage(parseFloat(e.target.value) || 0)}
-                        className={`w-14 px-2 py-1 text-xs text-center font-black rounded-lg border ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-100 border-gray-300 text-gray-900'
-                        }`}
-                      />
-                      <span className="font-bold">%</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold pt-1 border-t border-dashed border-gray-200 dark:border-slate-800">
-                    <span>Estimated Margin Profit:</span>
-                    <span>+ {currency} {marginAmount.toLocaleString()}</span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider font-extrabold">Final Package Price</p>
-                      <p className="text-lg font-black">{currency} {totalPrice.toLocaleString()}</p>
-                    </div>
-                    <DollarSign className="w-7 h-7 opacity-80" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Draggable Inventory & Inclusion/Exclusion Catalog Sidebar */}
-              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
-                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-              }`}>
-                {/* Catalog Sub-tabs */}
-                <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => setCatalogSubTab('inventory')}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                        catalogSubTab === 'inventory' 
-                          ? 'bg-orange-600 text-white shadow-sm' 
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      📦 Inventory ({filteredInventory.length})
-                    </button>
-                    <button
-                      onClick={() => setCatalogSubTab('inclusions')}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                        catalogSubTab === 'inclusions' 
-                          ? 'bg-emerald-600 text-white shadow-sm' 
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      ✓ Inclusions
-                    </button>
-                    <button
-                      onClick={() => setCatalogSubTab('exclusions')}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                        catalogSubTab === 'exclusions' 
-                          ? 'bg-rose-600 text-white shadow-sm' 
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      ✕ Exclusions
-                    </button>
-                  </div>
-
-                  {catalogSubTab === 'inventory' && (
-                    <button
-                      onClick={handleOpenAddInventory}
-                      className="p-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 text-xs font-bold cursor-pointer shrink-0"
-                      title="Add inventory item"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Sub-tab 1: Categorized Inventory Catalog with Expand & Collapse Boxes & Sorting controls */}
-                {catalogSubTab === 'inventory' && (
-                  <div className="space-y-3">
-                    {/* Search & Sorting & Category Filter Controls */}
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {/* Search Input */}
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                          <input
-                            type="text"
-                            placeholder="Search inventory..."
-                            value={inventorySearch}
-                            onChange={(e) => setInventorySearch(e.target.value)}
-                            className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
-                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                            }`}
-                          />
-                        </div>
-
-                        {/* Sort Selector Dropdown */}
-                        <div className="relative">
-                          <select
-                            value={inventorySortMethod}
-                            onChange={(e) => setInventorySortMethod(e.target.value as any)}
-                            className={`w-full px-3 py-1.5 text-xs rounded-xl border cursor-pointer font-medium ${
-                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                            }`}
-                          >
-                            <option value="default">Sort: Default (Category)</option>
-                            <option value="name-asc">Sort: Name (A to Z)</option>
-                            <option value="name-desc">Sort: Name (Z to A)</option>
-                            <option value="price-asc">Sort: Price (Low to High)</option>
-                            <option value="price-desc">Sort: Price (High to Low)</option>
-                            <option value="type">Sort: Type / Category</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Category Filter Pills */}
-                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
-                        <button
-                          type="button"
-                          onClick={() => setInventoryCategoryFilter('all')}
-                          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold cursor-pointer whitespace-nowrap transition-all ${
-                            inventoryCategoryFilter === 'all'
-                              ? 'bg-orange-600 text-white shadow-xs'
-                              : isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          All ({inventoryList.length})
-                        </button>
-                        {CATEGORY_SECTIONS.map(cat => (
-                          <button
-                            key={`cat-pill-${cat.id}`}
-                            type="button"
-                            onClick={() => setInventoryCategoryFilter(cat.id)}
-                            className={`px-2 py-0.5 rounded-xl text-[10px] font-bold cursor-pointer whitespace-nowrap transition-all ${
-                              inventoryCategoryFilter === cat.id
-                                ? 'bg-orange-600 text-white shadow-xs'
-                                : isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {cat.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
-                        <span>Showing {filteredInventory.length} of {inventoryList.length} Items</span>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            type="button"
-                            onClick={expandAllCatalogCategories}
-                            className="text-orange-600 dark:text-orange-400 font-bold hover:underline cursor-pointer"
-                          >
-                            Expand All
-                          </button>
-                          <span>•</span>
-                          <button
-                            type="button"
-                            onClick={collapseAllCatalogCategories}
-                            className="text-gray-500 font-bold hover:underline cursor-pointer"
-                          >
-                            Collapse All
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Categorized Expand & Collapse Boxes */}
-                    <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-                      {CATEGORY_SECTIONS.map((sec) => {
-                        const SecIcon = sec.icon;
-                        const isCollapsed = !!collapsedCatalogCategories[sec.id];
-                        const secItems = filteredInventory.filter(item => getCategoryKey(item.type) === sec.id);
-
-                        return (
-                          <div
-                            key={`cat-box-${sec.id}`}
-                            className={`rounded-2xl border transition-all overflow-hidden ${
-                              isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/80 border-gray-200'
-                            }`}
-                          >
-                            {/* Accordion Box Header */}
-                            <div
-                              onClick={() => toggleCatalogCategoryCollapse(sec.id)}
-                              className="w-full p-3 flex items-center justify-between cursor-pointer select-none hover:bg-orange-500/5 transition-colors"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <span className="p-1 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300">
-                                  {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-                                </span>
-                                <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center space-x-1.5">
-                                  <SecIcon className="w-3.5 h-3.5 text-orange-500" />
-                                  <span>{sec.label}</span>
-                                </span>
-                              </div>
-
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${sec.badgeClass}`}>
-                                {secItems.length}
-                              </span>
-                            </div>
-
-                            {/* Accordion Content */}
-                            {!isCollapsed && (
-                              <div className="p-3 pt-0 border-t border-gray-200/50 dark:border-slate-800/80 space-y-2 mt-1">
-                                {loadingInventory ? (
-                                  <div className="py-4 text-center text-xs text-gray-400 flex items-center justify-center space-x-2">
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    <span>Loading...</span>
-                                  </div>
-                                ) : secItems.length === 0 ? (
-                                  <div className="py-3 text-center text-[11px] text-gray-400 italic">
-                                    No items in {sec.label}. Click + below to create.
-                                  </div>
-                                ) : (
-                                  secItems.map((item) => (
-                                    <div
-                                      key={`inv-card-${item.id}`}
-                                      draggable={true}
-                                      onDragStart={() => handleDragStartItem(item)}
-                                      className={`p-2.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-xs ${
-                                        isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:border-orange-500/50' : 'bg-white border-gray-200 hover:border-orange-500/50'
-                                      }`}
-                                    >
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                          <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                          <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                              {item.name}
-                                            </p>
-                                            <div className="flex items-center space-x-2 mt-0.5">
-                                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
-                                                {item.type}
-                                              </span>
-                                              <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400">
-                                                {currency} {Number(item.price).toLocaleString()}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        {/* Edit & Delete Action Buttons */}
-                                        <div className="flex items-center space-x-1 shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); handleEditInventory(item); }}
-                                            className="p-1 rounded text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
-                                            title="Edit Item"
-                                          >
-                                            <Edit3 className="w-3 h-3" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteInventory(item.id); }}
-                                            className="p-1 rounded text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
-                                            title="Delete Item"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        </div>
-                                      </div>
-
-                                      {/* Quick Assign to Day Buttons */}
-                                      <div className="mt-2 pt-1.5 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                                        <span className="text-gray-400">Assign:</span>
-                                        <div className="flex items-center gap-1 overflow-x-auto">
-                                          {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
-                                            <button
-                                              key={`quick-add-d${dIdx + 1}`}
-                                              onClick={() => addItemToDay(item, dIdx + 1)}
-                                              className="px-1.5 py-0.5 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold cursor-pointer"
-                                            >
-                                              +D{dIdx + 1}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={handleOpenAddInventory}
-                                  className="w-full py-1.5 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500 transition-colors flex items-center justify-center space-x-1 cursor-pointer"
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <span>Add Item to {sec.label}</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sub-tab 2: General Inclusions Data Bank */}
-                {catalogSubTab === 'inclusions' && (
-                  <div className="space-y-3">
-                    {/* Add Master Inclusion Input */}
-                    <div className="flex space-x-2">
-                      <input
-                        type="text"
-                        placeholder="Create global inclusion item..."
-                        value={newMasterInclusionInput}
-                        onChange={(e) => setNewMasterInclusionInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddMasterInclusion()}
-                        className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
-                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                        }`}
-                      />
-                      <button
-                        onClick={handleAddMasterInclusion}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer shrink-0"
-                      >
-                        + Add
-                      </button>
-                    </div>
-
-                    <p className="text-[10px] text-gray-400 italic">
-                      💡 Drag any inclusion below onto a specific Day or click +D1, +D2 buttons.
-                    </p>
-
-                    {/* Inclusions List */}
-                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                      {masterInclusions.map((incText, idx) => {
-                        const isGlobalSelected = selectedInclusions.includes(incText);
-
-                        return (
-                          <div
-                            key={`master-inc-${idx}`}
-                            draggable={true}
-                            onDragStart={() => handleDragStartInclusion(incText)}
-                            className={`p-2.5 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-sm ${
-                              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center space-x-2 min-w-0">
-                                <GripVertical className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">
-                                  {incText}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteMasterInclusion(incText)}
-                                className="text-gray-400 hover:text-red-500 shrink-0"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Actions bar */}
-                            <div className="mt-2 pt-1.5 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                              <button
-                                onClick={() => toggleInclusionPreset(incText)}
-                                className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                                  isGlobalSelected 
-                                    ? 'bg-emerald-600 text-white' 
-                                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-                                }`}
-                              >
-                                {isGlobalSelected ? '✓ Global' : '+ Global'}
-                              </button>
-
-                              <div className="flex items-center gap-1 overflow-x-auto">
-                                {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
-                                  <button
-                                    key={`add-inc-d${dIdx + 1}`}
-                                    onClick={() => handleAddDayInclusion(dIdx + 1, incText)}
-                                    className="px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold cursor-pointer"
-                                  >
-                                    +D{dIdx + 1}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sub-tab 3: General Exclusions Data Bank */}
-                {catalogSubTab === 'exclusions' && (
-                  <div className="space-y-3">
-                    {/* Add Master Exclusion Input */}
-                    <div className="flex space-x-2">
-                      <input
-                        type="text"
-                        placeholder="Create global exclusion item..."
-                        value={newMasterExclusionInput}
-                        onChange={(e) => setNewMasterExclusionInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddMasterExclusion()}
-                        className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
-                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                        }`}
-                      />
-                      <button
-                        onClick={handleAddMasterExclusion}
-                        className="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer shrink-0"
-                      >
-                        + Add
-                      </button>
-                    </div>
-
-                    <p className="text-[10px] text-gray-400 italic">
-                      💡 Drag any exclusion below onto a specific Day or click +D1, +D2 buttons.
-                    </p>
-
-                    {/* Exclusions List */}
-                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                      {masterExclusions.map((excText, idx) => {
-                        const isGlobalSelected = selectedExclusions.includes(excText);
-
-                        return (
-                          <div
-                            key={`master-exc-${idx}`}
-                            draggable={true}
-                            onDragStart={() => handleDragStartExclusion(excText)}
-                            className={`p-2.5 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-sm ${
-                              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center space-x-2 min-w-0">
-                                <GripVertical className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">
-                                  {excText}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteMasterExclusion(excText)}
-                                className="text-gray-400 hover:text-red-500 shrink-0"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Actions bar */}
-                            <div className="mt-2 pt-1.5 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                              <button
-                                onClick={() => toggleExclusionPreset(excText)}
-                                className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                                  isGlobalSelected 
-                                    ? 'bg-rose-600 text-white' 
-                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'
-                                }`}
-                              >
-                                {isGlobalSelected ? '✓ Global' : '+ Global'}
-                              </button>
-
-                              <div className="flex items-center gap-1 overflow-x-auto">
-                                {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
-                                  <button
-                                    key={`add-exc-d${dIdx + 1}`}
-                                    onClick={() => handleAddDayExclusion(dIdx + 1, excText)}
-                                    className="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold cursor-pointer"
-                                  >
-                                    +D{dIdx + 1}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Generated Proposal Document Display & Revision Mode */}
@@ -3786,6 +3501,217 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                     <span>Send Email Now</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* INVENTORY / ATTRACTION PICKER MODAL */}
+      {isPickerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className={`w-full max-w-4xl max-h-[85vh] rounded-3xl border shadow-2xl flex flex-col overflow-hidden ${
+            isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+          }`}>
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-orange-500 text-white rounded-2xl shadow-sm">
+                  <Compass className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black flex items-center space-x-2">
+                    <span>Pick Attraction / Item for Day {targetPickerDay}</span>
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Select items from inventory by clicking the (+) Add button below
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsPickerModalOpen(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Toast Notification inside Modal */}
+            {pickedNotification && (
+              <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-bold flex items-center space-x-2 shrink-0 animate-in slide-in-from-top duration-150">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{pickedNotification}</span>
+              </div>
+            )}
+
+            {/* Filter & Search Bar */}
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 space-y-3 shrink-0 bg-white dark:bg-slate-900">
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search attractions, transport, hotels..."
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                    className={`w-full pl-9 pr-3.5 py-2 text-xs font-medium rounded-xl border focus:outline-none ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                    }`}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPickerModalOpen(false);
+                      handleOpenAddInventory();
+                    }}
+                    className="px-3 py-2 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 text-xs font-bold flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create New Inventory Item</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setPickerCategoryFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer whitespace-nowrap transition-all ${
+                    pickerCategoryFilter === 'all'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All Items ({inventoryList.length})
+                </button>
+                {CATEGORY_SECTIONS.map(cat => (
+                  <button
+                    key={`picker-cat-${cat.id}`}
+                    type="button"
+                    onClick={() => setPickerCategoryFilter(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer whitespace-nowrap transition-all ${
+                      pickerCategoryFilter === cat.id
+                        ? 'bg-orange-600 text-white shadow-xs'
+                        : isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Items List Grid */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {(() => {
+                const filtered = inventoryList.filter(item => {
+                  const matchesSearch = !pickerSearch || item.name.toLowerCase().includes(pickerSearch.toLowerCase()) || (item.type || '').toLowerCase().includes(pickerSearch.toLowerCase());
+                  const matchesCat = pickerCategoryFilter === 'all' || getCategoryKey(item.type) === pickerCategoryFilter;
+                  return matchesSearch && matchesCat;
+                });
+
+                if (loadingInventory) {
+                  return (
+                    <div className="py-12 text-center text-xs text-gray-400 flex flex-col items-center justify-center space-y-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                      <span>Loading inventory catalog...</span>
+                    </div>
+                  );
+                }
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-12 text-center space-y-3">
+                      <Package className="w-10 h-10 mx-auto text-gray-400 opacity-50" />
+                      <p className="text-xs font-medium text-gray-500">No matching inventory items found.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPickerModalOpen(false);
+                          handleOpenAddInventory();
+                        }}
+                        className="px-4 py-2 bg-orange-600 text-white rounded-xl text-xs font-bold hover:bg-orange-700 transition-colors inline-flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Create New Item</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filtered.map(item => {
+                      const addedCount = selectedLineItems.filter(i => i.day === targetPickerDay && i.inventoryId === item.id).length;
+
+                      return (
+                        <div
+                          key={`modal-item-${item.id}`}
+                          className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                            addedCount > 0 
+                              ? 'border-orange-500/50 bg-orange-500/5 dark:bg-orange-500/10' 
+                              : isDarkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="space-y-1.5 min-w-0 flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
+                                {item.type}
+                              </span>
+                              {addedCount > 0 && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-orange-500 text-white">
+                                  {addedCount} on Day {targetPickerDay}
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                              {item.name}
+                            </h4>
+
+                            {item.description && (
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">
+                                {item.description}
+                              </p>
+                            )}
+
+                            <p className="text-xs font-extrabold text-orange-600 dark:text-orange-400 pt-0.5">
+                              {currency} {Number(item.price).toLocaleString()} <span className="text-[10px] text-gray-400 font-normal">/ {item.priceType}</span>
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handlePickItem(item)}
+                            className="px-3.5 py-2 rounded-xl bg-orange-600 text-white hover:bg-orange-700 font-black text-xs flex items-center space-x-1 cursor-pointer shadow-sm active:scale-95 transition-all shrink-0 mt-1"
+                            title={`Add ${item.name} to Day ${targetPickerDay}`}
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
+              <span className="text-xs font-semibold text-gray-500">
+                Items on Day {targetPickerDay}: {selectedLineItems.filter(i => i.day === targetPickerDay).length} item(s)
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPickerModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Done Picking
               </button>
             </div>
           </div>

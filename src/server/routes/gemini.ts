@@ -353,7 +353,8 @@ router.post("/generate-proposal", async (req, res) => {
       specialNotes,
       currency,
       apiKey, 
-      tenantId 
+      tenantId,
+      companyName
     } = req.body;
 
     if (!guestName || !selectedItems || !Array.isArray(selectedItems)) {
@@ -383,6 +384,8 @@ router.post("/generate-proposal", async (req, res) => {
       }
     });
 
+    const agencyBrand = (companyName || '').trim() || "our tour agency";
+
     const itemsSummary = selectedItems.map((item: any, idx: number) => 
       `- Item ${idx + 1}: ${item.name} | Category: ${item.type} | Price: ${item.price} ${currency || 'IDR'} (${item.priceType}) | Qty: ${item.quantity} | Day: ${item.day || 'General'}`
     ).join('\n');
@@ -406,7 +409,7 @@ PRICING STRUCTURE (INCLUDED IN PROPOSAL):
 - Calculated Total Package Price: ${currency || 'IDR'} ${Number(totalPrice || 0).toLocaleString()} (Includes taxes & service charges)
 
 INSTRUCTIONS FOR AI:
-1. Craft an elegant, welcoming proposal title and client greeting personalized to ${guestName}.
+1. Craft an elegant, welcoming proposal title and client greeting personalized to ${guestName}. In the welcome greeting, say "Welcome to ${agencyBrand}!" or welcome them on behalf of ${agencyBrand}. NEVER mention "Tripbone Tour Operations" or "Tripbone" unless ${agencyBrand} is explicitly "Tripbone".
 2. Synthesize the selected inventory items into a cohesive, day-by-day rich narrative itinerary (${durationDays || 1} Day(s)).
 3. Provide an itemDescriptions array containing an engaging, concise 1-sentence AI description for each inventory/logistic item provided (e.g. for "Lunch at Bebek Tepi Sawah": "A delicious lunch served in a traditional restaurant with rice terrace view", for "Airport Transfer": "Comfortable transfer to the airport with AC car").
 4. Detail clear Inclusions and Exclusions based on the inventory items provided.
@@ -418,8 +421,9 @@ INSTRUCTIONS FOR AI:
       model: "gemini-3.5-flash",
       contents: promptText,
       config: {
-        systemInstruction: `You are an elite travel designer and tour operator manager at Tripbone Tour Operations.
+        systemInstruction: `You are an elite travel designer and tour operator manager at ${agencyBrand}.
 You excel at writing captivating, transparent, and polished travel proposals for international and VIP guests.
+Always welcome guests on behalf of ${agencyBrand}. NEVER mention any other system name like "Tripbone" unless explicitly provided as the brand name.
 Outputs MUST be in structured JSON conforming to the requested schema.`,
         responseMimeType: "application/json",
         responseSchema: {
@@ -1005,137 +1009,6 @@ router.post("/chatbot", async (req, res) => {
   } catch (error: any) {
     console.error("[Server Chatbot API Error]:", error);
     res.status(500).json({ error: error.message || "Failed to process chatbot request" });
-  }
-});
-
-// API Route: Proposal Generator Endpoint
-router.post("/generate-proposal", async (req, res) => {
-  try {
-    const {
-      guestName,
-      email,
-      phone,
-      nationality,
-      paxCount,
-      durationDays,
-      selectedItems,
-      marginPercentage,
-      baseSubtotal,
-      marginAmount,
-      totalPrice,
-      currency,
-      specialNotes,
-      tenantId
-    } = req.body;
-
-    if (!guestName) {
-      return res.status(400).json({ success: false, error: "Guest name is required." });
-    }
-
-    const tenantApiKey = await resolveTenantGeminiKey(tenantId);
-    const apiKey = tenantApiKey || process.env.GEMINI_API_KEY?.trim();
-
-    const itemsSummary = (selectedItems || []).map((i: any) => 
-      `- ${i.name} (${i.type}): ${i.quantity} x ${currency} ${Number(i.price).toLocaleString()} (${i.priceType}) [Day ${i.day || 1}]`
-    ).join("\n");
-
-    const prompt = `Generate an official, highly convincing, beautifully formatted tour & logistics proposal for guest: "${guestName}".
-Guest Details:
-- Pax Count: ${paxCount || 1} Person(s)
-- Duration: ${durationDays || 1} Day(s)
-- Nationality: ${nationality || 'International'}
-- Currency: ${currency || 'IDR'}
-- Total Investment Price: ${currency} ${Number(totalPrice || 0).toLocaleString()} (includes taxes & margins)
-- Special Notes / Preferences: ${specialNotes || 'None'}
-
-Selected Logistics & Inventory Items included in quote:
-${itemsSummary}
-
-Generate JSON output with:
-1. "proposalTitle": Catchy title for this tour package.
-2. "welcomeMessage": Warm, professional 2-3 sentence greeting welcoming the guest.
-3. "itineraryNarrative": Array of objects for each day (${durationDays || 1} days), each with:
-   - "dayNumber": number
-   - "title": string (e.g. "Gates of Heaven & Cultural Discovery")
-   - "summary": detailed narrative of what they will experience on this day
-   - "activities": array of strings listing key highlights/stops
-4. "inclusions": array of string bullet points of what's included in the package
-5. "exclusions": array of string bullet points of standard exclusions (e.g., flight, personal expenses)
-6. "importantTips": array of string helpful tips for the trip
-7. "closingNotes": warm concluding statement encouraging them to confirm booking.`;
-
-    if (!apiKey) {
-      // Fallback structured generator if Gemini API key is not present
-      const mockProposal = {
-        proposalTitle: `${durationDays || 3}-Day Custom Exclusive ${nationality ? nationality + ' Guest ' : ''}Bali Experience`,
-        welcomeMessage: `Dear ${guestName}, thank you for choosing our travel services. We are delighted to present this tailored itinerary designed for ${paxCount || 1} guest(s).`,
-        itineraryNarrative: Array.from({ length: durationDays || 3 }, (_, idx) => ({
-          dayNumber: idx + 1,
-          title: `Day ${idx + 1}: ${idx === 0 ? 'Arrival & Cultural Highlights' : idx === 1 ? 'Scenic Exploration & Adventure' : 'Leisure & Departure'}`,
-          summary: `Enjoy a curated experience featuring your selected inclusions and private transportation.`,
-          activities: (selectedItems || [])
-            .filter((i: any) => (i.day || 1) === idx + 1)
-            .map((i: any) => `Visit / Experience: ${i.name}`)
-        })),
-        inclusions: (selectedItems || []).map((i: any) => `${i.name} (${i.quantity} x ${i.priceType})`),
-        exclusions: ["International airfare", "Personal travel insurance", "Gratuities for guide & driver"],
-        importantTips: ["Bring comfortable footwear and camera", "Sarongs provided for temple visits"],
-        closingNotes: "Please contact our team via WhatsApp or email to finalize your dates."
-      };
-
-      return res.json({ success: true, data: mockProposal });
-    }
-
-    const { GoogleGenAI, Type } = await import("@google/genai");
-    const ai = new GoogleGenAI({ apiKey });
-
-    const response = await generateContentWithFallback(ai, {
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: "You are an expert luxury travel consultant and proposal writer for tour operators in Bali.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            proposalTitle: { type: Type.STRING },
-            welcomeMessage: { type: Type.STRING },
-            itineraryNarrative: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  dayNumber: { type: Type.INTEGER },
-                  title: { type: Type.STRING },
-                  summary: { type: Type.STRING },
-                  activities: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ["dayNumber", "title", "summary", "activities"]
-              }
-            },
-            inclusions: { type: Type.ARRAY, items: { type: Type.STRING } },
-            exclusions: { type: Type.ARRAY, items: { type: Type.STRING } },
-            importantTips: { type: Type.ARRAY, items: { type: Type.STRING } },
-            closingNotes: { type: Type.STRING }
-          },
-          required: ["proposalTitle", "welcomeMessage", "itineraryNarrative", "inclusions", "exclusions", "importantTips", "closingNotes"]
-        }
-      }
-    });
-
-    let text = response.text || "";
-    if (text.includes("```json")) {
-      text = text.split("```json")[1].split("```")[0].trim();
-    } else if (text.includes("```")) {
-      text = text.split("```")[1].split("```")[0].trim();
-    }
-
-    const proposalData = JSON.parse(text);
-    return res.json({ success: true, data: proposalData });
-
-  } catch (error: any) {
-    console.error("[Generate Proposal Error]:", error);
-    res.status(500).json({ success: false, error: error.message || "Failed to generate proposal." });
   }
 });
 

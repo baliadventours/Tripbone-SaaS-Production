@@ -358,10 +358,18 @@ export async function createServer() {
       const config = await resolveEmailConfig(resolvedTenantId);
 
       const p = proposal || {};
-      const cName = companyName || 'Smart Bali Tours & Travel';
-      const cEmail = companyEmail || 'info@smartbalitours.com';
-      const cPhone = companyPhone || '+62 812-3456-7890';
-      const cWeb = companyWebsite || 'www.smartbalitours.com';
+      const cName = companyName || config.senderName || 'Smart Bali Tours & Travel';
+      const cEmail = companyEmail || config.senderEmail || 'info@smartbalitours.com';
+      const cPhone = companyPhone || config.supportPhone || '+62 812-3456-7890';
+      const cWeb = companyWebsite || config.tenantUrl || 'www.smartbalitours.com';
+
+      // Override sender config with tenant-specific sender email and name
+      if (cEmail && cEmail.includes('@')) {
+        config.senderEmail = cEmail;
+      }
+      if (cName) {
+        config.senderName = cName;
+      }
 
       // Construct Day-by-Day HTML
       let itineraryHtml = '';
