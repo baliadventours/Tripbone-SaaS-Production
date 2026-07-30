@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { db, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, serverTimestamp } from '../../lib/firebase';
+import { db, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, serverTimestamp, setDoc, getDoc } from '../../lib/firebase';
 import { 
   Sparkles, 
   Plus, 
@@ -133,8 +133,15 @@ export interface Proposal {
   totalPrice: number;
   currency: string;
   selectedItems: ProposalLineItem[];
+  lineItems?: ProposalLineItem[];
   dayInclusions?: Record<number, string[]>;
   dayExclusions?: Record<number, string[]>;
+  companyName?: string;
+  companyLogo?: string;
+  companyEmail?: string;
+  companyPhone?: string;
+  companyAddress?: string;
+  companyWebsite?: string;
   welcomeMessage: string;
   itineraryNarrative: ItineraryDayNarrative[];
   inclusions: string[];
@@ -218,11 +225,22 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Itinerary Line Items (Day assigned)
   const [selectedLineItems, setSelectedLineItems] = useState<ProposalLineItem[]>([]);
 
-  // Master Data Banks for Inclusions & Exclusions
+  // Master Data Banks for Inclusions, Exclusions & Terms
   const [masterInclusions, setMasterInclusions] = useState<string[]>([...PRESET_INCLUSIONS]);
   const [masterExclusions, setMasterExclusions] = useState<string[]>([...PRESET_EXCLUSIONS]);
+  const [masterTerms, setMasterTerms] = useState<string[]>([...PRESET_TERMS]);
   const [newMasterInclusionInput, setNewMasterInclusionInput] = useState('');
   const [newMasterExclusionInput, setNewMasterExclusionInput] = useState('');
+
+  // Brand config saving state
+  const [isSavingBrand, setIsSavingBrand] = useState(false);
+  const [brandSaveSuccess, setBrandSaveSuccess] = useState(false);
+
+  // Email modal state
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [customerEmailInput, setCustomerEmailInput] = useState('');
+  const [emailSubjectInput, setEmailSubjectInput] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Per-Day Inclusions & Exclusions State
   const [dayInclusions, setDayInclusions] = useState<Record<number, string[]>>({});
@@ -466,39 +484,135 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
   };
 
+  // Brand configuration save handler
+  const handleSaveBrandConfig = async () => {
+    setIsSavingBrand(true);
+    setBrandSaveSuccess(false);
+    try {
+      const config = {
+        companyName,
+        companyLogo,
+        companyEmail,
+        companyPhone,
+        companyAddress,
+        companyWebsite,
+        updatedAt: new Date().toISOString()
+      };
+      localStorage.setItem('brand_config', JSON.stringify(config));
+      await setDoc(doc(db, 'settings', 'brand_config'), config, { merge: true });
+      setBrandSaveSuccess(true);
+      setTimeout(() => setBrandSaveSuccess(false), 4000);
+    } catch (err: any) {
+      console.error("Error saving brand config:", err);
+      // Fallback to local persistence
+      setBrandSaveSuccess(true);
+      setTimeout(() => setBrandSaveSuccess(false), 4000);
+    } finally {
+      setIsSavingBrand(false);
+    }
+  };
+
+  // Preset Data Persistence Helper
+  const savePresetData = async (type: 'inclusions' | 'exclusions' | 'terms', newList: string[]) => {
+    try {
+      localStorage.setItem(`preset_${type}`, JSON.stringify(newList));
+      await setDoc(doc(db, 'settings', 'preset_data'), {
+        [type]: newList,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Notice saving preset data:", err);
+    }
+  };
+
   // Master Data Banks Handlers
   const handleAddMasterInclusion = () => {
     if (!newMasterInclusionInput.trim()) return;
     const text = newMasterInclusionInput.trim();
-    if (!masterInclusions.includes(text)) {
-      setMasterInclusions(prev => [...prev, text]);
-    }
+    const updated = masterInclusions.includes(text) ? masterInclusions : [...masterInclusions, text];
+    setMasterInclusions(updated);
     if (!selectedInclusions.includes(text)) {
       setSelectedInclusions(prev => [...prev, text]);
     }
     setNewMasterInclusionInput('');
+    savePresetData('inclusions', updated);
+  };
+
+  const handleEditPresetInclusion = (index: number, newText: string) => {
+    const oldText = masterInclusions[index];
+    const updated = [...masterInclusions];
+    updated[index] = newText;
+    setMasterInclusions(updated);
+    setSelectedInclusions(prev => prev.map(item => item === oldText ? newText : item));
+    savePresetData('inclusions', updated);
+  };
+
+  const handleDeletePresetInclusion = (index: number) => {
+    const itemToDelete = masterInclusions[index];
+    const updated = masterInclusions.filter((_, i) => i !== index);
+    setMasterInclusions(updated);
+    setSelectedInclusions(prev => prev.filter(item => item !== itemToDelete));
+    savePresetData('inclusions', updated);
   };
 
   const handleDeleteMasterInclusion = (text: string) => {
-    setMasterInclusions(prev => prev.filter(item => item !== text));
+    const updated = masterInclusions.filter(item => item !== text);
+    setMasterInclusions(updated);
     setSelectedInclusions(prev => prev.filter(item => item !== text));
+    savePresetData('inclusions', updated);
   };
 
   const handleAddMasterExclusion = () => {
     if (!newMasterExclusionInput.trim()) return;
     const text = newMasterExclusionInput.trim();
-    if (!masterExclusions.includes(text)) {
-      setMasterExclusions(prev => [...prev, text]);
-    }
+    const updated = masterExclusions.includes(text) ? masterExclusions : [...masterExclusions, text];
+    setMasterExclusions(updated);
     if (!selectedExclusions.includes(text)) {
       setSelectedExclusions(prev => [...prev, text]);
     }
     setNewMasterExclusionInput('');
+    savePresetData('exclusions', updated);
+  };
+
+  const handleEditPresetExclusion = (index: number, newText: string) => {
+    const oldText = masterExclusions[index];
+    const updated = [...masterExclusions];
+    updated[index] = newText;
+    setMasterExclusions(updated);
+    setSelectedExclusions(prev => prev.map(item => item === oldText ? newText : item));
+    savePresetData('exclusions', updated);
+  };
+
+  const handleDeletePresetExclusion = (index: number) => {
+    const itemToDelete = masterExclusions[index];
+    const updated = masterExclusions.filter((_, i) => i !== index);
+    setMasterExclusions(updated);
+    setSelectedExclusions(prev => prev.filter(item => item !== itemToDelete));
+    savePresetData('exclusions', updated);
   };
 
   const handleDeleteMasterExclusion = (text: string) => {
-    setMasterExclusions(prev => prev.filter(item => item !== text));
+    const updated = masterExclusions.filter(item => item !== text);
+    setMasterExclusions(updated);
     setSelectedExclusions(prev => prev.filter(item => item !== text));
+    savePresetData('exclusions', updated);
+  };
+
+  const handleEditPresetTerm = (index: number, newText: string) => {
+    const oldText = masterTerms[index];
+    const updated = [...masterTerms];
+    updated[index] = newText;
+    setMasterTerms(updated);
+    setSelectedTerms(prev => prev.map(item => item === oldText ? newText : item));
+    savePresetData('terms', updated);
+  };
+
+  const handleDeletePresetTerm = (index: number) => {
+    const itemToDelete = masterTerms[index];
+    const updated = masterTerms.filter((_, i) => i !== index);
+    setMasterTerms(updated);
+    setSelectedTerms(prev => prev.filter(item => item !== itemToDelete));
+    savePresetData('terms', updated);
   };
 
   // Day-specific Inclusions & Exclusions Handlers
@@ -767,11 +881,17 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         selectedItems: updatedLineItems,
         dayInclusions: dayInclusions,
         dayExclusions: dayExclusions,
+        companyName,
+        companyLogo,
+        companyEmail,
+        companyPhone,
+        companyAddress,
+        companyWebsite,
         welcomeMessage: proposalData.welcomeMessage || `Dear ${guestName}, thank you for choosing us! We are thrilled to present your personalized holiday itinerary.`,
         itineraryNarrative: itineraryNarrativeObj,
         inclusions: selectedInclusions.length > 0 ? selectedInclusions : (proposalData.inclusions || []),
         exclusions: selectedExclusions.length > 0 ? selectedExclusions : (proposalData.exclusions || []),
-        termsAndConditions: selectedTerms.length > 0 ? selectedTerms : PRESET_TERMS,
+        termsAndConditions: selectedTerms.length > 0 ? selectedTerms : masterTerms,
         importantTips: proposalData.importantTips || ["Comfortable walking shoes recommended", "Please bring a camera and light clothing"],
         closingNotes: proposalData.closingNotes || "We look forward to hosting you in Bali! Please contact us to confirm your travel dates.",
         status: 'Draft'
@@ -795,8 +915,11 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       await addDoc(collection(db, 'proposals'), {
         ...generatedProposal,
         companyName,
-        companyPhone,
+        companyLogo,
         companyEmail,
+        companyPhone,
+        companyAddress,
+        companyWebsite,
         createdAt: serverTimestamp()
       });
       alert("Proposal saved to history successfully!");
@@ -838,6 +961,105 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Print PDF Trigger
   const handlePrintDocument = () => {
     window.print();
+  };
+
+  // Load saved proposal from history with full backward compatibility & normalization to new style
+  const handleLoadProposal = (p: Proposal) => {
+    const normalizedProposal: Proposal = {
+      ...p,
+      proposalTitle: p.proposalTitle || `Custom Tour Proposal for ${p.guestName || 'Guest'}`,
+      guestName: p.guestName || guestName || 'Valued Guest',
+      email: p.email || email,
+      phone: p.phone || phone,
+      nationality: p.nationality || nationality,
+      paxCount: p.paxCount || paxCount || 2,
+      durationDays: p.durationDays || durationDays || 3,
+      totalPrice: p.totalPrice || totalPrice || 0,
+      currency: p.currency || currency || 'IDR',
+      selectedItems: p.selectedItems || p.lineItems || selectedLineItems,
+      companyName: p.companyName || companyName,
+      companyLogo: p.companyLogo || companyLogo,
+      companyEmail: p.companyEmail || companyEmail,
+      companyPhone: p.companyPhone || companyPhone,
+      companyAddress: p.companyAddress || companyAddress,
+      companyWebsite: p.companyWebsite || companyWebsite,
+      welcomeMessage: p.welcomeMessage || `Dear ${p.guestName || 'Guest'}, thank you for choosing us! We are thrilled to present your personalized island itinerary.`,
+      itineraryNarrative: (p.itineraryNarrative && p.itineraryNarrative.length > 0)
+        ? p.itineraryNarrative
+        : Array.from({ length: p.durationDays || 3 }, (_, idx) => {
+            const dayItems = (p.selectedItems || p.lineItems || []).filter((i: any) => i.day === idx + 1);
+            return {
+              dayNumber: idx + 1,
+              title: `Day ${idx + 1}: Custom Tour Highlights`,
+              summary: dayItems.length > 0 
+                ? `Exploration featuring ${dayItems.map((i: any) => i.name).join(', ')}.`
+                : `Full day of personalized activities and tour logistics.`,
+              activities: dayItems.map((i: any) => i.name)
+            };
+          }),
+      inclusions: (p.inclusions && p.inclusions.length > 0) ? p.inclusions : masterInclusions,
+      exclusions: (p.exclusions && p.exclusions.length > 0) ? p.exclusions : masterExclusions,
+      termsAndConditions: (p.termsAndConditions && p.termsAndConditions.length > 0) ? p.termsAndConditions : masterTerms,
+      closingNotes: p.closingNotes || "We look forward to hosting you in Bali!"
+    };
+
+    setGeneratedProposal(normalizedProposal);
+
+    // Populate builder inputs so user can modify or generate variations
+    if (p.guestName) setGuestName(p.guestName);
+    if (p.email) setEmail(p.email);
+    if (p.phone) setPhone(p.phone);
+    if (p.nationality) setNationality(p.nationality);
+    if (p.paxCount) setPaxCount(p.paxCount);
+    if (p.durationDays) setDurationDays(p.durationDays);
+    if (p.selectedItems || p.lineItems) setSelectedLineItems(p.selectedItems || p.lineItems || []);
+    if (p.dayInclusions) setDayInclusions(p.dayInclusions);
+    if (p.dayExclusions) setDayExclusions(p.dayExclusions);
+    if (p.inclusions) setSelectedInclusions(p.inclusions);
+    if (p.exclusions) setSelectedExclusions(p.exclusions);
+    if (p.termsAndConditions) setSelectedTerms(p.termsAndConditions);
+
+    setActiveSubTab('create');
+    setPreviewViewMode('document');
+  };
+
+  // Send proposal via Email Server API handler
+  const handleSendProposalEmail = async () => {
+    if (!customerEmailInput.trim()) {
+      alert("Please enter recipient customer email address.");
+      return;
+    }
+    setIsSendingEmail(true);
+    try {
+      const res = await fetch('/api/send-proposal-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: customerEmailInput.trim(),
+          proposal: generatedProposal,
+          companyName,
+          companyEmail,
+          companyPhone,
+          companyWebsite
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send email');
+      }
+      alert(`Success! Tour proposal email has been dispatched to ${customerEmailInput.trim()}`);
+      setIsEmailModalOpen(false);
+    } catch (err: any) {
+      console.error("Email send error:", err);
+      const subject = encodeURIComponent(emailSubjectInput || `Official Tour Proposal: ${generatedProposal?.proposalTitle}`);
+      const body = encodeURIComponent(`Dear ${generatedProposal?.guestName},\n\nPlease review your official tour proposal from ${companyName}.\n\nTotal Package: ${generatedProposal?.currency} ${generatedProposal?.totalPrice?.toLocaleString()}\n\nBest regards,\n${companyName}\n${companyEmail}`);
+      if (window.confirm(`Server notice: ${err.message}. Would you like to launch your mail client instead?`)) {
+        window.open(`mailto:${customerEmailInput.trim()}?subject=${subject}&body=${body}`, '_blank');
+        setIsEmailModalOpen(false);
+      }
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const getCategoryBadgeClass = (type?: string) => {
@@ -1015,6 +1237,26 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 onChange={(e) => setCompanyWebsite(e.target.value)}
                 className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
               />
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-between pt-3 border-t border-gray-200/50 dark:border-slate-800">
+              <div className="flex items-center space-x-2">
+                {brandSaveSuccess && (
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 animate-in fade-in">
+                    <Check className="w-4 h-4" />
+                    <span>Brand configuration saved successfully!</span>
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveBrandConfig}
+                disabled={isSavingBrand}
+                className="px-5 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 transition-all flex items-center space-x-1.5 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {isSavingBrand ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                <span>Save Brand Configuration</span>
+              </button>
             </div>
           </div>
         )}
@@ -1529,21 +1771,52 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                   {/* Preset Inclusions Chips */}
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_INCLUSIONS.map((preset, i) => {
+                    {masterInclusions.map((preset, i) => {
                       const isSelected = selectedInclusions.includes(preset);
                       return (
-                        <button
+                        <div
                           key={`preset-inc-${i}`}
-                          type="button"
-                          onClick={() => toggleInclusionPreset(preset)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center rounded-lg text-[11px] font-semibold border transition-all ${
                             isSelected 
                               ? 'bg-emerald-600 text-white border-emerald-600' 
                               : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-emerald-500'
                           }`}
                         >
-                          + {preset}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleInclusionPreset(preset)}
+                            className="px-2.5 py-1 text-left cursor-pointer"
+                          >
+                            {isSelected ? '✓ ' : '+ '} {preset}
+                          </button>
+                          <button
+                            type="button"
+                            title="Edit prefilled inclusion"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const updated = prompt("Edit prefilled inclusion item:", preset);
+                              if (updated && updated.trim()) {
+                                handleEditPresetInclusion(i, updated.trim());
+                              }
+                            }}
+                            className="px-1 py-1 opacity-70 hover:opacity-100 hover:text-amber-300 cursor-pointer"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete prefilled inclusion"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete prefilled inclusion "${preset}"?`)) {
+                                handleDeletePresetInclusion(i);
+                              }
+                            }}
+                            className="pr-2 py-1 opacity-70 hover:opacity-100 hover:text-red-300 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1597,21 +1870,52 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                   {/* Preset Exclusions Chips */}
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_EXCLUSIONS.map((preset, i) => {
+                    {masterExclusions.map((preset, i) => {
                       const isSelected = selectedExclusions.includes(preset);
                       return (
-                        <button
+                        <div
                           key={`preset-exc-${i}`}
-                          type="button"
-                          onClick={() => toggleExclusionPreset(preset)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center rounded-lg text-[11px] font-semibold border transition-all ${
                             isSelected 
                               ? 'bg-rose-600 text-white border-rose-600' 
                               : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-rose-500'
                           }`}
                         >
-                          + {preset}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleExclusionPreset(preset)}
+                            className="px-2.5 py-1 text-left cursor-pointer"
+                          >
+                            {isSelected ? '✕ ' : '+ '} {preset}
+                          </button>
+                          <button
+                            type="button"
+                            title="Edit prefilled exclusion"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const updated = prompt("Edit prefilled exclusion item:", preset);
+                              if (updated && updated.trim()) {
+                                handleEditPresetExclusion(i, updated.trim());
+                              }
+                            }}
+                            className="px-1 py-1 opacity-70 hover:opacity-100 hover:text-amber-300 cursor-pointer"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete prefilled exclusion"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete prefilled exclusion "${preset}"?`)) {
+                                handleDeletePresetExclusion(i);
+                              }
+                            }}
+                            className="pr-2 py-1 opacity-70 hover:opacity-100 hover:text-red-300 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1665,21 +1969,52 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                   {/* Preset Terms Chips */}
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_TERMS.map((preset, i) => {
+                    {masterTerms.map((preset, i) => {
                       const isSelected = selectedTerms.includes(preset);
                       return (
-                        <button
+                        <div
                           key={`preset-term-${i}`}
-                          type="button"
-                          onClick={() => toggleTermsPreset(preset)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center rounded-lg text-[11px] font-semibold border transition-all ${
                             isSelected 
                               ? 'bg-amber-600 text-white border-amber-600' 
                               : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-amber-500'
                           }`}
                         >
-                          + {preset}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleTermsPreset(preset)}
+                            className="px-2.5 py-1 text-left cursor-pointer"
+                          >
+                            {isSelected ? '✓ ' : '+ '} {preset}
+                          </button>
+                          <button
+                            type="button"
+                            title="Edit prefilled term"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const updated = prompt("Edit prefilled term rule:", preset);
+                              if (updated && updated.trim()) {
+                                handleEditPresetTerm(i, updated.trim());
+                              }
+                            }}
+                            className="px-1 py-1 opacity-70 hover:opacity-100 hover:text-amber-300 cursor-pointer"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete prefilled term"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete prefilled term rule "${preset}"?`)) {
+                                handleDeletePresetTerm(i);
+                              }
+                            }}
+                            className="pr-2 py-1 opacity-70 hover:opacity-100 hover:text-red-300 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -2168,6 +2503,18 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       <span>Edit & Revise</span>
                     </button>
                   </div>
+
+                  <button
+                    onClick={() => {
+                      setCustomerEmailInput(generatedProposal.email || email || '');
+                      setEmailSubjectInput(`Official Tour Proposal: ${generatedProposal.proposalTitle}`);
+                      setIsEmailModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Send by Email</span>
+                  </button>
 
                   <button
                     onClick={handleCopyWhatsAppMessage}
@@ -2695,11 +3042,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       {p.currency} {Number(p.totalPrice).toLocaleString()}
                     </span>
                     <button
-                      onClick={() => {
-                        setGeneratedProposal(p);
-                        setActiveSubTab('create');
-                        setPreviewViewMode('document');
-                      }}
+                      onClick={() => handleLoadProposal(p)}
                       className="px-3 py-1.5 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 cursor-pointer"
                     >
                       Load & View
@@ -2809,6 +3152,93 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
               >
                 {isSavingInventory ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 <span>Save Item</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Proposal Modal */}
+      {isEmailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-lg p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Mail className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-sm font-extrabold text-gray-900 dark:text-white">
+                  Send Proposal via Email Server
+                </h3>
+              </div>
+              <button onClick={() => setIsEmailModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Customer Recipient Email Address *
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g. guest@example.com"
+                  value={customerEmailInput}
+                  onChange={(e) => setCustomerEmailInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Email Subject Line
+                </label>
+                <input
+                  type="text"
+                  value={emailSubjectInput}
+                  onChange={(e) => setEmailSubjectInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 text-xs space-y-1">
+                <p className="font-bold text-indigo-900 dark:text-indigo-200">Email Delivery Details:</p>
+                <p className="text-indigo-700 dark:text-indigo-300">
+                  • Recipient: <strong>{customerEmailInput || 'Not specified'}</strong>
+                </p>
+                <p className="text-indigo-700 dark:text-indigo-300">
+                  • Sender Agency: <strong>{companyName} ({companyEmail})</strong>
+                </p>
+                <p className="text-indigo-700 dark:text-indigo-300">
+                  • Sends a full responsive HTML proposal with day-by-day itinerary, logistics, investment breakdown, and inclusions.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEmailModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSendProposalEmail}
+                disabled={isSendingEmail || !customerEmailInput.trim()}
+                className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 flex items-center space-x-2 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Sending via Email Server...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Send Email Now</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
