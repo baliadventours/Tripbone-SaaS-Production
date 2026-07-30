@@ -113,6 +113,100 @@ export function getItemDescription(item: { name: string; type?: string; descript
   return 'Premium included logistics service for a seamless travel experience';
 }
 
+export function toRoman(num: number): string {
+  const lookup: Record<string, number> = { M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1 };
+  let roman = '';
+  let n = num;
+  for (const i in lookup) {
+    while (n >= lookup[i]) {
+      roman += i;
+      n -= lookup[i];
+    }
+  }
+  return roman || String(num);
+}
+
+export const getCategoryKey = (type?: string): 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion' => {
+  const safeType = (type || '').toLowerCase();
+  if (['transport', 'car', 'boat', 'transfer', 'driver', 'flight'].includes(safeType)) return 'transport';
+  if (['hotel', 'villa', 'resort', 'stay', 'accommodation', 'room'].includes(safeType)) return 'accommodation';
+  if (['food', 'dining', 'meal', 'restaurant', 'breakfast', 'lunch', 'dinner'].includes(safeType)) return 'food';
+  if (['inclusion', 'included', 'permit'].includes(safeType)) return 'inclusion';
+  if (['exclusion', 'excluded'].includes(safeType)) return 'exclusion';
+  return 'itinerary';
+};
+
+export const CATEGORY_SECTIONS = [
+  { 
+    id: 'itinerary', 
+    label: 'Itinerary (Activities & Attractions)', 
+    icon: Compass, 
+    color: 'orange',
+    badgeClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
+  },
+  { 
+    id: 'transport', 
+    label: 'Transportation', 
+    icon: Car, 
+    color: 'blue',
+    badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+  },
+  { 
+    id: 'accommodation', 
+    label: 'Accommodation', 
+    icon: Hotel, 
+    color: 'purple',
+    badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+  },
+  { 
+    id: 'food', 
+    label: 'Food & Dining', 
+    icon: Utensils, 
+    color: 'amber',
+    badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+  },
+  { 
+    id: 'inclusion', 
+    label: 'Inclusion', 
+    icon: CheckCircle2, 
+    color: 'emerald',
+    badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+  },
+  { 
+    id: 'exclusion', 
+    label: 'Exclusion', 
+    icon: XCircle, 
+    color: 'rose',
+    badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+  },
+] as const;
+
+export const getCategoryBadgeClass = (type?: string) => {
+  const key = getCategoryKey(type);
+  switch (key) {
+    case 'itinerary': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
+    case 'transport': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+    case 'accommodation': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+    case 'food': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+    case 'inclusion': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+    case 'exclusion': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+    default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
+  }
+};
+
+export const getCategoryIcon = (type?: string) => {
+  const key = getCategoryKey(type);
+  switch (key) {
+    case 'itinerary': return <Compass className="w-3.5 h-3.5" />;
+    case 'transport': return <Car className="w-3.5 h-3.5" />;
+    case 'accommodation': return <Hotel className="w-3.5 h-3.5" />;
+    case 'food': return <Utensils className="w-3.5 h-3.5" />;
+    case 'inclusion': return <CheckCircle2 className="w-3.5 h-3.5" />;
+    case 'exclusion': return <XCircle className="w-3.5 h-3.5" />;
+    default: return <Package className="w-3.5 h-3.5" />;
+  }
+};
+
 export interface ItineraryDayNarrative {
   dayNumber: number;
   title: string;
@@ -1165,87 +1259,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       }
     } finally {
       setIsSendingEmail(false);
-    }
-  };
-
-  const getCategoryKey = (type?: string): 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion' => {
-    const safeType = (type || '').toLowerCase();
-    if (['transport', 'car', 'boat', 'transfer', 'driver', 'flight'].includes(safeType)) return 'transport';
-    if (['hotel', 'villa', 'resort', 'stay', 'accommodation', 'room'].includes(safeType)) return 'accommodation';
-    if (['food', 'dining', 'meal', 'restaurant', 'breakfast', 'lunch', 'dinner'].includes(safeType)) return 'food';
-    if (['inclusion', 'included', 'permit'].includes(safeType)) return 'inclusion';
-    if (['exclusion', 'excluded'].includes(safeType)) return 'exclusion';
-    return 'itinerary';
-  };
-
-  const CATEGORY_SECTIONS = [
-    { 
-      id: 'itinerary', 
-      label: 'Itinerary (Activities & Attractions)', 
-      icon: Compass, 
-      color: 'orange',
-      badgeClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
-    },
-    { 
-      id: 'transport', 
-      label: 'Transportation', 
-      icon: Car, 
-      color: 'blue',
-      badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
-    },
-    { 
-      id: 'accommodation', 
-      label: 'Accommodation', 
-      icon: Hotel, 
-      color: 'purple',
-      badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
-    },
-    { 
-      id: 'food', 
-      label: 'Food & Dining', 
-      icon: Utensils, 
-      color: 'amber',
-      badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-    },
-    { 
-      id: 'inclusion', 
-      label: 'Inclusion', 
-      icon: CheckCircle2, 
-      color: 'emerald',
-      badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-    },
-    { 
-      id: 'exclusion', 
-      label: 'Exclusion', 
-      icon: XCircle, 
-      color: 'rose',
-      badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-    },
-  ] as const;
-
-  const getCategoryBadgeClass = (type?: string) => {
-    const key = getCategoryKey(type);
-    switch (key) {
-      case 'itinerary': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
-      case 'transport': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'accommodation': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-      case 'food': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-      case 'inclusion': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-      case 'exclusion': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
-      default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
-    }
-  };
-
-  const getCategoryIcon = (type?: string) => {
-    const key = getCategoryKey(type);
-    switch (key) {
-      case 'itinerary': return <Compass className="w-3.5 h-3.5" />;
-      case 'transport': return <Car className="w-3.5 h-3.5" />;
-      case 'accommodation': return <Hotel className="w-3.5 h-3.5" />;
-      case 'food': return <Utensils className="w-3.5 h-3.5" />;
-      case 'inclusion': return <CheckCircle2 className="w-3.5 h-3.5" />;
-      case 'exclusion': return <XCircle className="w-3.5 h-3.5" />;
-      default: return <Package className="w-3.5 h-3.5" />;
     }
   };
 
@@ -2575,7 +2588,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                                             className="p-1 rounded text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                                             title="Edit Item"
                                           >
-                                            <Pencil className="w-3 h-3" />
+                                            <Edit3 className="w-3 h-3" />
                                           </button>
                                           <button
                                             type="button"
@@ -3651,7 +3664,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                     const parsed = parseFloat(raw);
                     setEditingInventoryItem({
                       ...editingInventoryItem,
-                      price: raw === '' ? '' : (isNaN(parsed) ? 0 : parsed)
+                      price: raw === '' ? ('' as any) : (isNaN(parsed) ? 0 : parsed)
                     });
                   }}
                   className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
