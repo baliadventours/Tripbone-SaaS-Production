@@ -500,8 +500,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   };
 
   const handleSaveInventoryItem = async () => {
-    if (!editingInventoryItem?.name?.trim() || !editingInventoryItem?.price) {
-      alert("Please provide item name and price.");
+    if (!editingInventoryItem?.name?.trim() || editingInventoryItem?.price === undefined || editingInventoryItem?.price === null || isNaN(Number(editingInventoryItem?.price))) {
+      alert("Please provide item name and a valid price (0 is allowed).");
       return;
     }
 
@@ -510,7 +510,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       const data = {
         name: editingInventoryItem.name.trim(),
         type: editingInventoryItem.type || 'Ticket',
-        price: Number(editingInventoryItem.price) || 0,
+        price: Number(editingInventoryItem.price) >= 0 ? Number(editingInventoryItem.price) : 0,
         priceType: editingInventoryItem.priceType || 'Per person',
         description: editingInventoryItem.description || ''
       };
@@ -3330,9 +3330,17 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Base Price (IDR) *</label>
                 <input
                   type="number"
-                  placeholder="100000"
-                  value={editingInventoryItem.price || ''}
-                  onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, price: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  placeholder="0"
+                  value={editingInventoryItem.price !== undefined && editingInventoryItem.price !== null ? editingInventoryItem.price : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const parsed = parseFloat(raw);
+                    setEditingInventoryItem({
+                      ...editingInventoryItem,
+                      price: raw === '' ? '' : (isNaN(parsed) ? 0 : parsed)
+                    });
+                  }}
                   className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                 />
               </div>
