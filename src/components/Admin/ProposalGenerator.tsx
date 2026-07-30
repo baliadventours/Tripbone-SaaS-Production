@@ -43,7 +43,11 @@ import {
   MapPin,
   HelpCircle,
   Eye,
-  Settings
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp
 } from 'lucide-react';
 
 export interface InventoryItem {
@@ -239,6 +243,43 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Legacy Drag State compatibility
   const [draggedInventoryItem, setDraggedInventoryItem] = useState<InventoryItem | null>(null);
   const [activeDropDay, setActiveDropDay] = useState<number | null>(null);
+
+  // Collapse / Expand Day State for Builder & Document Preview
+  const [collapsedBuilderDays, setCollapsedBuilderDays] = useState<Record<number, boolean>>({});
+  const [collapsedDocDays, setCollapsedDocDays] = useState<Record<number, boolean>>({});
+
+  const toggleBuilderDayCollapse = (dayNum: number) => {
+    setCollapsedBuilderDays(prev => ({ ...prev, [dayNum]: !prev[dayNum] }));
+  };
+
+  const expandAllBuilderDays = () => {
+    setCollapsedBuilderDays({});
+  };
+
+  const collapseAllBuilderDays = () => {
+    const allCollapsed: Record<number, boolean> = {};
+    for (let i = 1; i <= durationDays; i++) {
+      allCollapsed[i] = true;
+    }
+    setCollapsedBuilderDays(allCollapsed);
+  };
+
+  const toggleDocDayCollapse = (dayNum: number) => {
+    setCollapsedDocDays(prev => ({ ...prev, [dayNum]: !prev[dayNum] }));
+  };
+
+  const expandAllDocDays = () => {
+    setCollapsedDocDays({});
+  };
+
+  const collapseAllDocDays = () => {
+    if (!generatedProposal) return;
+    const allCollapsed: Record<number, boolean> = {};
+    generatedProposal.itineraryNarrative.forEach(day => {
+      allCollapsed[day.dayNumber] = true;
+    });
+    setCollapsedDocDays(allCollapsed);
+  };
 
   // Inclusions, Exclusions, Terms Selected State
   const [selectedInclusions, setSelectedInclusions] = useState<string[]>([...PRESET_INCLUSIONS.slice(0, 5)]);
@@ -1135,6 +1176,24 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                   <div className="flex items-center space-x-2">
                     <button
+                      type="button"
+                      onClick={expandAllBuilderDays}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center space-x-1 cursor-pointer transition-colors"
+                      title="Expand all days"
+                    >
+                      <ChevronsDown className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Expand All</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={collapseAllBuilderDays}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center space-x-1 cursor-pointer transition-colors"
+                      title="Collapse all days"
+                    >
+                      <ChevronsUp className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Collapse All</span>
+                    </button>
+                    <button
                       onClick={() => setDurationDays(prev => prev + 1)}
                       className="px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 flex items-center space-x-1 cursor-pointer"
                     >
@@ -1152,6 +1211,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                     const daySubtotal = itemsInThisDay.reduce((sum, item) => sum + item.subtotal, 0);
                     const currentInclusions = dayInclusions[dayNum] || [];
                     const currentExclusions = dayExclusions[dayNum] || [];
+                    const isBuilderCollapsed = !!collapsedBuilderDays[dayNum];
 
                     return (
                       <div
@@ -1173,12 +1233,24 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                             </span>
                           </div>
 
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
                             <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-3 py-1 rounded-xl">
                               Subtotal: {currency} {daySubtotal.toLocaleString()}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleBuilderDayCollapse(dayNum)}
+                              className="px-2.5 py-1 rounded-xl bg-gray-200/80 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition-colors cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                              title={isBuilderCollapsed ? "Expand Day" : "Collapse Day"}
+                            >
+                              <span>{isBuilderCollapsed ? "Expand" : "Collapse"}</span>
+                              {isBuilderCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                            </button>
                           </div>
                         </div>
+
+                        {!isBuilderCollapsed && (
+                          <>
 
                         {/* Drop Zone 1: Itinerary (Inventory Manager Items) */}
                         <div
@@ -1408,6 +1480,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                             </div>
                           </div>
                         </div>
+                        </>
+                        )}
                       </div>
                     );
                   })}
@@ -2291,109 +2365,148 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                 {/* Day-by-Day Detailed Itinerary */}
                 <div className="space-y-6 mb-8">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 flex items-center space-x-2">
-                    <Compass className="w-4 h-4 text-orange-500" />
-                    <span>Detailed Day-by-Day Itinerary & Logistics</span>
-                  </h3>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+                      <Compass className="w-4 h-4 text-orange-500" />
+                      <span>Detailed Day-by-Day Itinerary & Logistics</span>
+                    </h3>
+
+                    <div className="no-print flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={expandAllDocDays}
+                        className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center space-x-1 cursor-pointer"
+                        title="Expand all days"
+                      >
+                        <ChevronsDown className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Expand All</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={collapseAllDocDays}
+                        className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center space-x-1 cursor-pointer"
+                        title="Collapse all days"
+                      >
+                        <ChevronsUp className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Collapse All</span>
+                      </button>
+                    </div>
+                  </div>
 
                   <div className="space-y-6">
                     {generatedProposal.itineraryNarrative.map((day) => {
                       const dayLogistics = generatedProposal.selectedItems.filter(i => i.day === day.dayNumber);
+                      const isDocCollapsed = !!collapsedDocDays[day.dayNumber];
 
                       return (
                         <div key={`doc-day-${day.dayNumber}`} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4 print-page-break">
                           {/* Day Header & AI Generated Narrative Description */}
-                          <div className="space-y-1.5 border-b border-slate-100 pb-3">
-                            <div className="flex items-center space-x-2.5">
-                              <span className="px-3 py-1 rounded-xl bg-orange-600 text-white font-black text-xs uppercase tracking-wider">
-                                Day {day.dayNumber}
-                              </span>
-                              <h4 className="text-base font-black text-slate-900">{day.title}</h4>
-                            </div>
-                            <p className="text-xs text-slate-600 leading-relaxed font-medium pt-1">
-                              {day.summary}
-                            </p>
-                          </div>
-
-                          {/* Itinerary (Dragged & Dropped from Inventory Manager) */}
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Compass className="w-3.5 h-3.5 text-orange-500" />
-                              <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                                Itinerary
-                              </span>
-                            </div>
-                            {dayLogistics.length > 0 ? (
-                              <div className="space-y-2.5 pl-3 border-l-2 border-orange-500/80">
-                                {dayLogistics.map((item, lIdx) => (
-                                  <div key={`doc-item-${lIdx}`} className="py-0.5">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-xs font-bold text-slate-900">{item.name}</span>
-                                      {item.quantity > 1 && (
-                                        <span className="text-[10px] font-bold text-slate-500 px-1.5 py-0.2 rounded bg-slate-100">
-                                          ({item.quantity}x)
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-slate-600 font-normal mt-0.5 leading-snug">
-                                      {item.description || getItemDescription(item)}
-                                    </p>
-                                  </div>
-                                ))}
+                          <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                              <div className="flex items-center space-x-2.5">
+                                <span className="px-3 py-1 rounded-xl bg-orange-600 text-white font-black text-xs uppercase tracking-wider">
+                                  Day {day.dayNumber}
+                                </span>
+                                <h4 className="text-base font-black text-slate-900 truncate">{day.title}</h4>
                               </div>
-                            ) : (
-                              <p className="text-[11px] text-slate-400 italic pl-3">Leisure day / flexible self-guided exploration.</p>
-                            )}
+                              <p className="text-xs text-slate-600 leading-relaxed font-medium pt-1">
+                                {day.summary}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleDocDayCollapse(day.dayNumber)}
+                              className="no-print p-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center space-x-1 shrink-0 cursor-pointer transition-colors"
+                              title={isDocCollapsed ? "Expand Day" : "Collapse Day"}
+                            >
+                              <span>{isDocCollapsed ? "Expand" : "Collapse"}</span>
+                              {isDocCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                            </button>
                           </div>
 
-                          {/* Inclusion & Exclusion Section for Day */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                            {/* Day Inclusion */}
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
-                                  Included Logistics & Items
+                          {/* Collapsible Day Body */}
+                          <div className={isDocCollapsed ? "hidden print:block space-y-4" : "space-y-4"}>
+                            {/* Itinerary (Dragged & Dropped from Inventory Manager) */}
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Compass className="w-3.5 h-3.5 text-orange-500" />
+                                <span className="text-xs font-black uppercase tracking-wider text-slate-900">
+                                  Itinerary
                                 </span>
                               </div>
-                              <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
-                                {dayLogistics.map((item, lIdx) => (
-                                  <li key={`day-inc-item-${lIdx}`} className="flex items-start space-x-1.5">
-                                    <span className="text-emerald-600 font-bold text-xs">✓</span>
-                                    <span className="text-xs text-slate-800 font-bold">{item.name}</span>
-                                  </li>
-                                ))}
-                                {(generatedProposal.dayInclusions?.[day.dayNumber] || []).map((inc, iIdx) => (
-                                  <li key={`day-custom-inc-${iIdx}`} className="flex items-start space-x-1.5">
-                                    <span className="text-emerald-600 font-bold text-xs">✓</span>
-                                    <span className="text-xs text-slate-700">{inc}</span>
-                                  </li>
-                                ))}
-                                {dayLogistics.length === 0 && (!generatedProposal.dayInclusions?.[day.dayNumber] || generatedProposal.dayInclusions[day.dayNumber].length === 0) && (
-                                  <li className="text-[11px] text-slate-400 italic">As specified in global package inclusions</li>
-                                )}
-                              </ul>
+                              {dayLogistics.length > 0 ? (
+                                <div className="space-y-2.5 pl-3 border-l-2 border-orange-500/80">
+                                  {dayLogistics.map((item, lIdx) => (
+                                    <div key={`doc-item-${lIdx}`} className="py-0.5">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-xs font-bold text-slate-900">{item.name}</span>
+                                        {item.quantity > 1 && (
+                                          <span className="text-[10px] font-bold text-slate-500 px-1.5 py-0.2 rounded bg-slate-100">
+                                            ({item.quantity}x)
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-[11px] text-slate-600 font-normal mt-0.5 leading-snug">
+                                        {item.description || getItemDescription(item)}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-slate-400 italic pl-3">Leisure day / flexible self-guided exploration.</p>
+                              )}
                             </div>
 
-                            {/* Day Exclusion */}
-                            {(generatedProposal.dayExclusions?.[day.dayNumber] && generatedProposal.dayExclusions[day.dayNumber].length > 0) && (
+                            {/* Inclusion & Exclusion Section for Day */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                              {/* Day Inclusion */}
                               <div className="space-y-1">
                                 <div className="flex items-center space-x-1.5">
-                                  <X className="w-3.5 h-3.5 text-rose-600" />
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
-                                    Day Exclusions
+                                    Included Logistics & Items
                                   </span>
                                 </div>
                                 <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
-                                  {generatedProposal.dayExclusions[day.dayNumber].map((exc, eIdx) => (
-                                    <li key={`day-custom-exc-${eIdx}`} className="flex items-start space-x-1.5">
-                                      <span className="text-rose-600 font-bold text-xs">✕</span>
-                                      <span className="text-xs text-slate-700">{exc}</span>
+                                  {dayLogistics.map((item, lIdx) => (
+                                    <li key={`day-inc-item-${lIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-emerald-600 font-bold text-xs">✓</span>
+                                      <span className="text-xs text-slate-800 font-bold">{item.name}</span>
                                     </li>
                                   ))}
+                                  {(generatedProposal.dayInclusions?.[day.dayNumber] || []).map((inc, iIdx) => (
+                                    <li key={`day-custom-inc-${iIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-emerald-600 font-bold text-xs">✓</span>
+                                      <span className="text-xs text-slate-700">{inc}</span>
+                                    </li>
+                                  ))}
+                                  {dayLogistics.length === 0 && (!generatedProposal.dayInclusions?.[day.dayNumber] || generatedProposal.dayInclusions[day.dayNumber].length === 0) && (
+                                    <li className="text-[11px] text-slate-400 italic">As specified in global package inclusions</li>
+                                  )}
                                 </ul>
                               </div>
-                            )}
+
+                              {/* Day Exclusion */}
+                              {(generatedProposal.dayExclusions?.[day.dayNumber] && generatedProposal.dayExclusions[day.dayNumber].length > 0) && (
+                                <div className="space-y-1">
+                                  <div className="flex items-center space-x-1.5">
+                                    <X className="w-3.5 h-3.5 text-rose-600" />
+                                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
+                                      Day Exclusions
+                                    </span>
+                                  </div>
+                                  <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
+                                    {generatedProposal.dayExclusions[day.dayNumber].map((exc, eIdx) => (
+                                      <li key={`day-custom-exc-${eIdx}`} className="flex items-start space-x-1.5">
+                                        <span className="text-rose-600 font-bold text-xs">✕</span>
+                                        <span className="text-xs text-slate-700">{exc}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
