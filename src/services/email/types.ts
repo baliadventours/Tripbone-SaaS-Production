@@ -6,6 +6,7 @@ export interface EmailConfig {
   senderEmail: string;
   senderName: string;
   adminNotificationEmail: string;
+  replyTo?: string;
   gmailUser?: string;
   gmailAppPassword?: string;
   siteName: string;

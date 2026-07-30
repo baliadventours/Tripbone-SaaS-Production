@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import { getAdminApp, getAdminDb, safeVerifyIdToken, getDocViaRest } from "./firebaseAdmin.js";
 import { emailBaseTemplate, bookingDetailsSection, EMAIL_TEMPLATES } from "./emailTemplates.js";
+import { buildProposalEmailHtml } from "./proposalEmailTemplate.js";
 
 // Import isolated modular components
 import { 
@@ -93,6 +94,10 @@ export async function handleSendEmail(reqBody: any, authHeader?: string) {
       if (decodedToken && !isAdmin && !isSelf) {
          console.log(`[Email Handler] Authenticated user ${decodedToken.email} sharing trip plan with ${to}`);
       }
+    } else if (type === 'proposal' || reqBody.proposal) {
+      if (decodedToken && !isAdmin && !isSelf) {
+         console.log(`[Email Handler] User ${decodedToken.email} sending proposal email to ${to}`);
+      }
     } else if (type === 'test') {
       if (!isAdmin) {
         let debugMsg = "Unauthorized: Only admins can send test emails.";
@@ -125,9 +130,50 @@ export async function handleSendEmail(reqBody: any, authHeader?: string) {
 
     const tenantId = booking?.tenantId || reqBody.tenantId || null;
     const config = await resolveEmailConfig(tenantId);
+
+    // Fallback override to Resend if provider is 'none' or missing but process.env has RESEND_API_KEY
+    if ((config.emailProvider === 'none' || !config.emailApiKey) && process.env.RESEND_API_KEY) {
+      config.emailProvider = 'resend';
+      config.emailApiKey = process.env.RESEND_API_KEY;
+      if (config.senderEmail === 'onboarding@resend.dev') {
+        config.senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+      }
+    }
+
     console.log(`[Email Handler] Provider Config: ${config.emailProvider}, Sender: ${config.senderEmail}, Tenant: ${tenantId}`);
 
+    let proposalReplyTo: string | undefined = undefined;
+
     try {
+      // Handle proposal email type
+      if (type === 'proposal' || reqBody.proposal) {
+        const targetEmail = (to || reqBody.customerEmail || reqBody.proposal?.email || '').trim();
+        if (!targetEmail) {
+          throw new Error("Recipient customer email address is required.");
+        }
+        to = targetEmail;
+
+        const { companyName, companyEmail, companyPhone, companyWebsite, proposal } = reqBody;
+        const { emailSubject, emailHtml } = buildProposalEmailHtml({
+          proposal: proposal || reqBody,
+          companyName,
+          companyEmail,
+          companyPhone,
+          companyWebsite,
+          senderName: config.senderName,
+          senderEmail: config.senderEmail
+        });
+
+        subject = requestedSubject || emailSubject;
+        html = requestedHtml || emailHtml;
+
+        if (companyName) {
+          config.senderName = companyName;
+        }
+        if (companyEmail && companyEmail.includes('@')) {
+          proposalReplyTo = companyEmail;
+        }
+      }
       // Check templates and enable switches
       if (type) {
         const template = EMAIL_TEMPLATES[type];
@@ -649,6 +695,7 @@ export async function handleSendEmail(reqBody: any, authHeader?: string) {
         to: recipientsArray,
         subject,
         html,
+        replyTo: proposalReplyTo,
         attachment
       });
 

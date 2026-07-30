@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { db, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, serverTimestamp, setDoc, getDoc } from '../../lib/firebase';
+import { db, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, serverTimestamp, setDoc, getDoc, auth, getActiveTenantId } from '../../lib/firebase';
 import { 
   Sparkles, 
   Plus, 
@@ -1527,16 +1527,24 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
     setIsSendingEmail(true);
     try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+      const activeTenantId = getActiveTenantId();
+
       const res = await fetch('/api/send-proposal-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           to: customerEmailInput.trim(),
           proposal: generatedProposal,
           companyName,
           companyEmail,
           companyPhone,
-          companyWebsite
+          companyWebsite,
+          tenantId: activeTenantId
         })
       });
       const data = await res.json();

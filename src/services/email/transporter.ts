@@ -1,10 +1,11 @@
 import nodemailer from "nodemailer";
 import { EmailConfig } from "./types.js";
 
-interface SendMailPayload {
+export interface SendMailPayload {
   to: string[];
   subject: string;
   html: string;
+  replyTo?: string;
   attachment?: {
     content: string; // Base64
     filename: string;
@@ -17,7 +18,7 @@ interface SendMailPayload {
  * Sends a pre-compiled and parsed email via the active provider configured in Settings.
  */
 export async function sendEmailViaProvider(config: EmailConfig, payload: SendMailPayload) {
-  const { to: recipientsArray, subject, html, attachment } = payload;
+  const { to: recipientsArray, subject, html, attachment, replyTo } = payload;
 
   if (config.emailProvider === 'none') {
     return { success: true, skipped: true, reason: 'Provider set to none' };
@@ -34,24 +35,32 @@ export async function sendEmailViaProvider(config: EmailConfig, payload: SendMai
     }
   }
 
+  const effectiveReplyTo = replyTo || config.replyTo || config.supportEmail || undefined;
+
   // Resend API
   if (config.emailProvider === 'resend') {
+    const resendPayload: any = {
+      from: `${config.senderName} <${config.senderEmail}>`,
+      to: recipientsArray.length === 1 ? recipientsArray[0] : recipientsArray,
+      subject,
+      html,
+      attachments: attachment ? [{
+        content: attachment.content,
+        filename: attachment.filename,
+      }] : []
+    };
+
+    if (effectiveReplyTo) {
+      resendPayload.reply_to = effectiveReplyTo;
+    }
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.emailApiKey}`,
       },
-      body: JSON.stringify({
-        from: `${config.senderName} <${config.senderEmail}>`,
-        to: recipientsArray.length === 1 ? recipientsArray[0] : recipientsArray,
-        subject,
-        html,
-        attachments: attachment ? [{
-          content: attachment.content,
-          filename: attachment.filename,
-        }] : []
-      }),
+      body: JSON.stringify(resendPayload),
     });
 
     const data = await response.json();
@@ -63,24 +72,30 @@ export async function sendEmailViaProvider(config: EmailConfig, payload: SendMai
 
   // SendGrid API
   if (config.emailProvider === 'sendgrid') {
+    const sendgridPayload: any = {
+      personalizations: [{ to: recipientsArray.map(email => ({ email })) }],
+      from: { email: config.senderEmail, name: config.senderName },
+      subject,
+      content: [{ type: "text/html", value: html }],
+      attachments: attachment ? [{
+        content: attachment.content,
+        filename: attachment.filename,
+        type: attachment.type || "application/pdf",
+        disposition: attachment.disposition || "attachment"
+      }] : []
+    };
+
+    if (effectiveReplyTo) {
+      sendgridPayload.reply_to = { email: effectiveReplyTo };
+    }
+
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.emailApiKey}`,
       },
-      body: JSON.stringify({
-        personalizations: [{ to: recipientsArray.map(email => ({ email })) }],
-        from: { email: config.senderEmail, name: config.senderName },
-        subject,
-        content: [{ type: "text/html", value: html }],
-        attachments: attachment ? [{
-          content: attachment.content,
-          filename: attachment.filename,
-          type: attachment.type || "application/pdf",
-          disposition: attachment.disposition || "attachment"
-        }] : []
-      }),
+      body: JSON.stringify(sendgridPayload),
     });
 
     if (!response.ok) {
@@ -92,22 +107,28 @@ export async function sendEmailViaProvider(config: EmailConfig, payload: SendMai
 
   // Brevo API
   if (config.emailProvider === 'brevo') {
+    const brevoPayload: any = {
+      sender: { name: config.senderName, email: config.senderEmail },
+      to: recipientsArray.map(email => ({ email })),
+      subject: subject,
+      htmlContent: html,
+      attachment: attachment ? [{
+        content: attachment.content,
+        name: attachment.filename
+      }] : []
+    };
+
+    if (effectiveReplyTo) {
+      brevoPayload.replyTo = { email: effectiveReplyTo };
+    }
+
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "api-key": config.emailApiKey,
       },
-      body: JSON.stringify({
-        sender: { name: config.senderName, email: config.senderEmail },
-        to: recipientsArray.map(email => ({ email })),
-        subject: subject,
-        htmlContent: html,
-        attachment: attachment ? [{
-          content: attachment.content,
-          name: attachment.filename
-        }] : []
-      }),
+      body: JSON.stringify(brevoPayload),
     });
 
     if (!response.ok) {
@@ -139,6 +160,7 @@ export async function sendEmailViaProvider(config: EmailConfig, payload: SendMai
       console.log(`[Email Transporter] Sending Gmail SMTP (Port 465 SSL/TLS) from: "${config.senderName}" <${config.gmailUser}> to: ${recipientsArray.join(', ')}`);
       await transporter.sendMail({
         from: `"${config.senderName}" <${config.gmailUser}>`,
+        replyTo: effectiveReplyTo,
         to: recipientsArray.join(', '),
         subject,
         html,
@@ -171,6 +193,7 @@ export async function sendEmailViaProvider(config: EmailConfig, payload: SendMai
       console.log(`[Email Transporter] Sending Gmail SMTP (Port 587 STARTTLS) from: "${config.senderName}" <${config.gmailUser}> to: ${recipientsArray.join(', ')}`);
       await fallbackTransporter.sendMail({
         from: `"${config.senderName}" <${config.gmailUser}>`,
+        replyTo: effectiveReplyTo,
         to: recipientsArray.join(', '),
         subject,
         html,
