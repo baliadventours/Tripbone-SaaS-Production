@@ -60,8 +60,33 @@
 
 @layer utilities {
   @media print {
-    /* Hide specific global components */
-    nav, header, footer, .no-print, .actions-area {
+    /* Hide all elements in the body by default when printing */
+    body * {
+      visibility: hidden !important;
+    }
+
+    /* Show only .print-container and its descendants */
+    .print-container, .print-container * {
+      visibility: visible !important;
+    }
+
+    /* Position the printable proposal container at the top left */
+    .print-container {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    /* Explicitly hide non-printable UI components */
+    nav, header, footer, aside, .no-print, .actions-area {
       display: none !important;
     }
 
@@ -76,10 +101,22 @@
       display: block !important;
     }
 
-    /* Force single page and clean margins */
+    /* Clean margins and page size */
     @page {
       size: A4 portrait;
-      margin: 10mm;
+      margin: 12mm 10mm 12mm 10mm;
+    }
+
+    /* Prevent awkward page breaks inside day blocks */
+    .print-page-break {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    /* Force background colors and colors to print accurately */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
     /* Adjust main container for printing */
@@ -107,7 +144,7 @@
     .lg\:grid-cols-\[1\.5fr_1fr\] {
       grid-template-columns: 1fr !important;
     }
-    
+
     .p-12 {
       padding: 2rem !important;
     }

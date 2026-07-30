@@ -65,6 +65,46 @@ export interface ProposalLineItem {
   quantity: number;
   subtotal: number;
   day: number;
+  description?: string;
+}
+
+export function getItemDescription(item: { name: string; type?: string; description?: string }): string {
+  if (item.description && item.description.trim().length > 5) {
+    return item.description;
+  }
+  
+  const nameLower = (item.name || '').toLowerCase();
+  const typeLower = (item.type || '').toLowerCase();
+
+  if (nameLower.includes('bebek tepi sawah') || nameLower.includes('lunch')) {
+    return 'A delicious lunch served in a traditional restaurant with rice terrace view';
+  }
+  if (nameLower.includes('airport transfer') || (typeLower === 'transport' && nameLower.includes('airport'))) {
+    return 'Comfortable transfer to the airport with AC car';
+  }
+  if (nameLower.includes('maya ubud') || nameLower.includes('hotel') || nameLower.includes('resort')) {
+    return 'Luxurious resort stay surrounded by lush tropical valley greenery';
+  }
+  if (nameLower.includes('lempuyang') || nameLower.includes('temple')) {
+    return 'Spiritual temple entry ticket featuring the iconic Gates of Heaven photo spot';
+  }
+  if (nameLower.includes('barong') || nameLower.includes('dance')) {
+    return 'Traditional Balinese cultural performance ticket showcasing local mythology and music';
+  }
+  if (nameLower.includes('car charter') || nameLower.includes('avanza') || typeLower === 'transport') {
+    return 'Private AC vehicle charter with dedicated driver, petrol, and parking included';
+  }
+  if (typeLower === 'guide') {
+    return 'Licensed English-speaking local expert guide for personalized cultural commentary';
+  }
+  if (typeLower === 'ticket') {
+    return 'Official entry ticket with fast-track access included';
+  }
+  if (typeLower === 'food') {
+    return 'Authentic local dining experience featuring signature Balinese delicacies';
+  }
+
+  return 'Premium included logistics service for a seamless travel experience';
 }
 
 export interface ItineraryDayNarrative {
@@ -199,12 +239,13 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Load Inventory from Firestore
   useEffect(() => {
     const defaultSeedItems: InventoryItem[] = [
-      { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Entrance ticket to Gates of Heaven Lempuyang' },
-      { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Includes driver, petrol, and parking for 10 hours' },
-      { id: 'seed-3', name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Hotel', price: 1200000, priceType: 'Per room', description: 'Luxurious resort stay with daily breakfast included' },
-      { id: 'seed-4', name: 'Lunch at Bebek Tepi Sawah', type: 'Food', price: 150000, priceType: 'Per person', description: 'Crispy duck set lunch overlooking rice paddies' },
-      { id: 'seed-5', name: 'Private Licensed English Tour Guide', type: 'Guide', price: 400000, priceType: 'Per day', description: 'Professional licensed tour guide for full day' },
-      { id: 'seed-6', name: 'Traditional Balinese Barong Dance Ticket', type: 'Ticket', price: 150000, priceType: 'Per person', description: 'Cultural dance show entry ticket in Batubulan' }
+      { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Spiritual temple entry ticket featuring the iconic Gates of Heaven photo spot' },
+      { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Private AC vehicle charter with dedicated driver, petrol, and parking included' },
+      { id: 'seed-3', name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Hotel', price: 1200000, priceType: 'Per room', description: 'Luxurious resort stay surrounded by lush tropical valley greenery' },
+      { id: 'seed-4', name: 'Lunch at Bebek Tepi Sawah', type: 'Food', price: 150000, priceType: 'Per person', description: 'A delicious lunch served in a traditional restaurant with rice terrace view' },
+      { id: 'seed-5', name: 'Private Licensed English Tour Guide', type: 'Guide', price: 400000, priceType: 'Per day', description: 'Licensed English-speaking local expert guide for personalized cultural commentary' },
+      { id: 'seed-6', name: 'Traditional Balinese Barong Dance Ticket', type: 'Ticket', price: 150000, priceType: 'Per person', description: 'Traditional Balinese cultural performance ticket showcasing local mythology and music' },
+      { id: 'seed-7', name: 'Airport Transfer', type: 'Transport', price: 350000, priceType: 'Per car', description: 'Comfortable transfer to the airport with AC car' }
     ];
 
     let unsubscribe = () => {};
@@ -373,7 +414,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       priceType: inv.priceType,
       quantity: defaultQty,
       subtotal: inv.price * defaultQty,
-      day: targetDay
+      day: targetDay,
+      description: inv.description || getItemDescription(inv)
     };
 
     setSelectedLineItems(prev => [...prev, newLineItem]);
@@ -507,6 +549,24 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         activities: selectedLineItems.filter(i => i.day === idx + 1).map(i => i.name)
       }));
 
+      // Map AI-generated item descriptions onto selected items if returned
+      const aiItemDescriptions: Record<string, string> = {};
+      if (Array.isArray(proposalData.itemDescriptions)) {
+        proposalData.itemDescriptions.forEach((descObj: any) => {
+          if (descObj.itemName && descObj.aiDescription) {
+            aiItemDescriptions[descObj.itemName.toLowerCase().trim()] = descObj.aiDescription;
+          }
+        });
+      }
+
+      const updatedLineItems = selectedLineItems.map(item => {
+        const matchAiDesc = aiItemDescriptions[item.name.toLowerCase().trim()];
+        return {
+          ...item,
+          description: matchAiDesc || item.description || getItemDescription(item)
+        };
+      });
+
       const fullProposalObj: Proposal = {
         proposalTitle: proposalData.proposalTitle || `Custom Tour Proposal for ${guestName}`,
         guestName,
@@ -520,7 +580,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         marginAmount,
         totalPrice,
         currency,
-        selectedItems: selectedLineItems,
+        selectedItems: updatedLineItems,
         welcomeMessage: proposalData.welcomeMessage || `Dear ${guestName}, thank you for choosing us! We are thrilled to present your personalized holiday itinerary.`,
         itineraryNarrative: itineraryNarrativeObj,
         inclusions: selectedInclusions.length > 0 ? selectedInclusions : (proposalData.inclusions || []),
@@ -1590,36 +1650,71 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                     {/* Revise Itinerary Days */}
                     <div className="space-y-4">
-                      <h4 className="text-xs font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Itinerary Day Narratives</h4>
-                      {generatedProposal.itineraryNarrative.map((day, dIdx) => (
-                        <div key={`revise-day-${dIdx}`} className="p-4 rounded-2xl border border-gray-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
-                          <div className="flex items-center space-x-3">
-                            <span className="px-2 py-0.5 rounded bg-orange-600 text-white text-xs font-black">DAY {day.dayNumber}</span>
-                            <input
-                              type="text"
-                              value={day.title}
-                              onChange={(e) => {
-                                const newNarrative = [...generatedProposal.itineraryNarrative];
-                                newNarrative[dIdx].title = e.target.value;
-                                setGeneratedProposal({ ...generatedProposal, itineraryNarrative: newNarrative });
-                              }}
-                              className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-                            />
+                      <h4 className="text-xs font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Itinerary Day Narratives & Item Descriptions</h4>
+                      {generatedProposal.itineraryNarrative.map((day, dIdx) => {
+                        const dayItems = generatedProposal.selectedItems.filter(i => i.day === day.dayNumber);
+                        return (
+                          <div key={`revise-day-${dIdx}`} className="p-4 rounded-2xl border border-gray-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="flex items-center space-x-3">
+                              <span className="px-2 py-0.5 rounded bg-orange-600 text-white text-xs font-black">DAY {day.dayNumber}</span>
+                              <input
+                                type="text"
+                                value={day.title}
+                                onChange={(e) => {
+                                  const newNarrative = [...generatedProposal.itineraryNarrative];
+                                  newNarrative[dIdx].title = e.target.value;
+                                  setGeneratedProposal({ ...generatedProposal, itineraryNarrative: newNarrative });
+                                }}
+                                className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                              />
+                            </div>
+                            <div>
+                              <textarea
+                                rows={2}
+                                value={day.summary}
+                                onChange={(e) => {
+                                  const newNarrative = [...generatedProposal.itineraryNarrative];
+                                  newNarrative[dIdx].summary = e.target.value;
+                                  setGeneratedProposal({ ...generatedProposal, itineraryNarrative: newNarrative });
+                                }}
+                                className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                              />
+                            </div>
+
+                            {/* Item Descriptions for Day */}
+                            {dayItems.length > 0 && (
+                              <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-slate-800">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                  Included Logistics Descriptions:
+                                </span>
+                                {dayItems.map((item, itemIdx) => (
+                                  <div key={`revise-item-${itemIdx}`} className="p-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-slate-900 dark:text-white">{item.name}</span>
+                                      <span className="text-[10px] font-medium text-slate-400">{item.type}</span>
+                                    </div>
+                                    <input
+                                      type="text"
+                                      value={item.description || getItemDescription(item)}
+                                      onChange={(e) => {
+                                        const newDesc = e.target.value;
+                                        const updatedItems = generatedProposal.selectedItems.map(si => {
+                                          if (si.name === item.name && si.day === item.day) {
+                                            return { ...si, description: newDesc };
+                                          }
+                                          return si;
+                                        });
+                                        setGeneratedProposal({ ...generatedProposal, selectedItems: updatedItems });
+                                      }}
+                                      className="w-full px-2.5 py-1 text-xs rounded-lg border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <textarea
-                              rows={2}
-                              value={day.summary}
-                              onChange={(e) => {
-                                const newNarrative = [...generatedProposal.itineraryNarrative];
-                                newNarrative[dIdx].summary = e.target.value;
-                                setGeneratedProposal({ ...generatedProposal, itineraryNarrative: newNarrative });
-                              }}
-                              className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     <div>
@@ -1715,14 +1810,25 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                           {/* Included Logistics in Day */}
                           {dayLogistics.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-slate-100">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Included Logistics & Tickets:</span>
-                              <div className="flex flex-wrap gap-2">
+                            <div className="mt-4 pt-3.5 border-t border-slate-100 space-y-2.5">
+                              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                                Included Logistics & Tickets:
+                              </span>
+                              <div className="space-y-3">
                                 {dayLogistics.map((item, lIdx) => (
-                                  <span key={`doc-item-${lIdx}`} className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200 flex items-center space-x-1">
-                                    <Check className="w-3 h-3 text-emerald-600" />
-                                    <span>{item.name} ({item.quantity}x)</span>
-                                  </span>
+                                  <div key={`doc-item-${lIdx}`} className="pl-3.5 border-l-2 border-orange-500/80 py-0.5">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xs font-bold text-slate-900">{item.name}</span>
+                                      {item.quantity > 1 && (
+                                        <span className="text-[10px] font-bold text-slate-500 px-1.5 py-0.2 rounded bg-slate-100">
+                                          ({item.quantity}x)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-slate-600 font-normal mt-0.5 leading-snug">
+                                      {getItemDescription(item)}
+                                    </p>
+                                  </div>
                                 ))}
                               </div>
                             </div>

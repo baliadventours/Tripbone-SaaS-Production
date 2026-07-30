@@ -408,9 +408,10 @@ PRICING STRUCTURE (INCLUDED IN PROPOSAL):
 INSTRUCTIONS FOR AI:
 1. Craft an elegant, welcoming proposal title and client greeting personalized to ${guestName}.
 2. Synthesize the selected inventory items into a cohesive, day-by-day rich narrative itinerary (${durationDays || 1} Day(s)).
-3. Detail clear Inclusions and Exclusions based on the inventory items provided.
-4. Add 3-4 valuable travel tips for a seamless experience in Bali/Indonesia.
-5. Provide a warm closing call-to-action note inviting them to confirm the proposal.
+3. Provide an itemDescriptions array containing an engaging, concise 1-sentence AI description for each inventory/logistic item provided (e.g. for "Lunch at Bebek Tepi Sawah": "A delicious lunch served in a traditional restaurant with rice terrace view", for "Airport Transfer": "Comfortable transfer to the airport with AC car").
+4. Detail clear Inclusions and Exclusions based on the inventory items provided.
+5. Add 3-4 valuable travel tips for a seamless experience in Bali/Indonesia.
+6. Provide a warm closing call-to-action note inviting them to confirm the proposal.
 `;
 
     const response = await generateContentWithFallback(ai, {
@@ -442,6 +443,18 @@ Outputs MUST be in structured JSON conforming to the requested schema.`,
                 },
                 required: ["dayNumber", "title", "summary", "activities"]
               }
+            },
+            itemDescriptions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  itemName: { type: Type.STRING, description: "Matching item name" },
+                  aiDescription: { type: Type.STRING, description: "Concise, descriptive 1-sentence overview of this item" }
+                },
+                required: ["itemName", "aiDescription"]
+              },
+              description: "AI descriptions for each selected logistic/ticket item"
             },
             inclusions: {
               type: Type.ARRAY,
