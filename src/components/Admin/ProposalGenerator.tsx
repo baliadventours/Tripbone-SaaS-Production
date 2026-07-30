@@ -33,7 +33,17 @@ import {
   Share2,
   Tag,
   Clock,
-  ArrowRight
+  ArrowRight,
+  GripVertical,
+  Sliders,
+  ShieldCheck,
+  AlertCircle,
+  FileCheck,
+  Image as ImageIcon,
+  MapPin,
+  HelpCircle,
+  Eye,
+  Settings
 } from 'lucide-react';
 
 export interface InventoryItem {
@@ -54,7 +64,14 @@ export interface ProposalLineItem {
   priceType: string;
   quantity: number;
   subtotal: number;
-  day?: number;
+  day: number;
+}
+
+export interface ItineraryDayNarrative {
+  dayNumber: number;
+  title: string;
+  summary: string;
+  activities: string[];
 }
 
 export interface Proposal {
@@ -73,19 +90,45 @@ export interface Proposal {
   currency: string;
   selectedItems: ProposalLineItem[];
   welcomeMessage: string;
-  itineraryNarrative: {
-    dayNumber: number;
-    title: string;
-    summary: string;
-    activities: string[];
-  }[];
+  itineraryNarrative: ItineraryDayNarrative[];
   inclusions: string[];
   exclusions: string[];
+  termsAndConditions: string[];
   importantTips: string[];
   closingNotes: string;
   status: 'Draft' | 'Sent' | 'Accepted' | 'Confirmed';
   createdAt?: any;
 }
+
+// Preset Global Master Data
+const PRESET_INCLUSIONS = [
+  "Private Deluxe AC Vehicle with Professional Driver",
+  "Licensed English-Speaking Local Tour Guide",
+  "All Attraction & Temple Entrance Tickets",
+  "Complimentary Daily Cold Mineral Water & Refreshments",
+  "Door-to-Door Hotel Pickup and Drop-off",
+  "Authentic Buffet / Set Lunch as Detailed in Itinerary",
+  "Government Taxes, Service Charges & Toll Fees",
+  "Parking Fees & Highway Charges Included"
+];
+
+const PRESET_EXCLUSIONS = [
+  "International & Domestic Airfare Tickets",
+  "Personal Expenses, Shopping & Tipping",
+  "Gratuities for Driver and Tour Guide",
+  "Personal Travel, Health & Medical Insurance",
+  "Alcoholic Beverages & Soft Drinks during Meals",
+  "Hotel Accommodation (Unless Explicitly Specified)"
+];
+
+const PRESET_TERMS = [
+  "50% deposit required upon confirmation to lock reservations.",
+  "Remaining 50% balance payable on Day 1 upon arrival.",
+  "Cancellations 7+ days prior receive a 100% deposit refund.",
+  "Cancellations within 48 hours are non-refundable due to vendor locks.",
+  "Itinerary subject to minor adjustments based on weather and traffic.",
+  "Quoted prices in IDR/USD are valid for 30 days from proposal date."
+];
 
 interface ProposalGeneratorProps {
   isDarkMode?: boolean;
@@ -94,6 +137,15 @@ interface ProposalGeneratorProps {
 
 export default function ProposalGenerator({ isDarkMode = false, tenantId }: ProposalGeneratorProps) {
   const [activeSubTab, setActiveSubTab] = useState<'create' | 'inventory' | 'history'>('create');
+
+  // Company / Tenant Branding Information State
+  const [companyName, setCompanyName] = useState('Smart Bali Tours & Travel');
+  const [companyLogo, setCompanyLogo] = useState('https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=200&q=80');
+  const [companyEmail, setCompanyEmail] = useState('info@smartbalitours.com');
+  const [companyPhone, setCompanyPhone] = useState('+62 812-3456-7890');
+  const [companyAddress, setCompanyAddress] = useState('Jl. Sunset Road No. 88, Seminyak, Kuta, Bali 80361');
+  const [companyWebsite, setCompanyWebsite] = useState('www.smartbalitours.com');
+  const [showBrandConfig, setShowBrandConfig] = useState(false);
 
   // Inventory state
   const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
@@ -117,10 +169,22 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [currency, setCurrency] = useState('IDR');
   const [specialNotes, setSpecialNotes] = useState('');
 
-  // Itinerary Selected Items
+  // Itinerary Line Items (Day assigned)
   const [selectedLineItems, setSelectedLineItems] = useState<ProposalLineItem[]>([]);
-  const [selectedInventoryIdToAdd, setSelectedInventoryIdToAdd] = useState('');
-  const [itemDayToAdd, setItemDayToAdd] = useState<number>(1);
+
+  // Drag State for Day Dropping
+  const [draggedInventoryItem, setDraggedInventoryItem] = useState<InventoryItem | null>(null);
+  const [activeDropDay, setActiveDropDay] = useState<number | null>(null);
+
+  // Inclusions, Exclusions, Terms Selected State
+  const [selectedInclusions, setSelectedInclusions] = useState<string[]>([...PRESET_INCLUSIONS.slice(0, 5)]);
+  const [selectedExclusions, setSelectedExclusions] = useState<string[]>([...PRESET_EXCLUSIONS.slice(0, 4)]);
+  const [selectedTerms, setSelectedTerms] = useState<string[]>([...PRESET_TERMS.slice(0, 5)]);
+
+  // Custom Input States for Inclusions / Exclusions / Terms
+  const [customInclusionInput, setCustomInclusionInput] = useState('');
+  const [customExclusionInput, setCustomExclusionInput] = useState('');
+  const [customTermsInput, setCustomTermsInput] = useState('');
 
   // AI Generation & Output state
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -129,9 +193,12 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [copySuccess, setCopySuccess] = useState(false);
   const [isSavingProposal, setIsSavingProposal] = useState(false);
 
+  // Live Revision / Editing View Mode
+  const [previewViewMode, setPreviewViewMode] = useState<'document' | 'revise'>('document');
+
   // Load Inventory from Firestore
   useEffect(() => {
-    const defaultSeedItems = [
+    const defaultSeedItems: InventoryItem[] = [
       { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Entrance ticket to Gates of Heaven Lempuyang' },
       { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Includes driver, petrol, and parking for 10 hours' },
       { id: 'seed-3', name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Hotel', price: 1200000, priceType: 'Per room', description: 'Luxurious resort stay with daily breakfast included' },
@@ -145,24 +212,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       const invRef = collection(db, 'inventory_items');
       unsubscribe = onSnapshot(invRef, (snapshot) => {
         if (!snapshot || snapshot.empty) {
-          console.log("[ProposalGenerator]: No inventory in DB, using default seed catalog...");
           setInventoryList(defaultSeedItems);
           setLoadingInventory(false);
-
-          // Background seed attempt
-          (async () => {
-            try {
-              for (const item of defaultSeedItems) {
-                const { id, ...data } = item;
-                await addDoc(collection(db, 'inventory_items'), {
-                  ...data,
-                  createdAt: serverTimestamp()
-                });
-              }
-            } catch (e) {
-              console.warn("Background seed ignored:", e);
-            }
-          })();
           return;
         }
 
@@ -178,7 +229,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         setInventoryList(items);
         setLoadingInventory(false);
       }, (err) => {
-        console.error("Error loading inventory items, falling back to default seed:", err);
+        console.error("Error loading inventory items, falling back to seed:", err);
         setInventoryList(defaultSeedItems);
         setLoadingInventory(false);
       });
@@ -277,7 +328,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
   const handleSaveInventoryItem = async () => {
     if (!editingInventoryItem?.name?.trim() || !editingInventoryItem?.price) {
-      alert("Please provide name and price.");
+      alert("Please provide item name and price.");
       return;
     }
 
@@ -309,12 +360,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     }
   };
 
-  // Add Item to Itinerary Line Items
-  const handleAddSelectedInventoryToProposal = () => {
-    if (!selectedInventoryIdToAdd) return;
-    const inv = inventoryList.find(i => i.id === selectedInventoryIdToAdd);
-    if (!inv) return;
-
+  // Assign item to Day handler (Click or Drag & Drop)
+  const addItemToDay = (inv: InventoryItem, targetDay: number) => {
     let defaultQty = 1;
     if (inv.priceType === 'Per person') defaultQty = paxCount || 1;
 
@@ -326,11 +373,24 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       priceType: inv.priceType,
       quantity: defaultQty,
       subtotal: inv.price * defaultQty,
-      day: itemDayToAdd
+      day: targetDay
     };
 
     setSelectedLineItems(prev => [...prev, newLineItem]);
-    setSelectedInventoryIdToAdd('');
+  };
+
+  // Drag & drop handlers
+  const handleDragStartItem = (inv: InventoryItem) => {
+    setDraggedInventoryItem(inv);
+  };
+
+  const handleDropToDay = (e: React.DragEvent, targetDay: number) => {
+    e.preventDefault();
+    setActiveDropDay(null);
+    if (draggedInventoryItem) {
+      addItemToDay(draggedInventoryItem, targetDay);
+      setDraggedInventoryItem(null);
+    }
   };
 
   const handleRemoveLineItem = (index: number) => {
@@ -349,6 +409,51 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       }
       return item;
     }));
+  };
+
+  // Toggle inclusion preset
+  const toggleInclusionPreset = (text: string) => {
+    setSelectedInclusions(prev => 
+      prev.includes(text) ? prev.filter(t => t !== text) : [...prev, text]
+    );
+  };
+
+  const handleAddCustomInclusion = () => {
+    if (!customInclusionInput.trim()) return;
+    if (!selectedInclusions.includes(customInclusionInput.trim())) {
+      setSelectedInclusions(prev => [...prev, customInclusionInput.trim()]);
+    }
+    setCustomInclusionInput('');
+  };
+
+  // Toggle exclusion preset
+  const toggleExclusionPreset = (text: string) => {
+    setSelectedExclusions(prev => 
+      prev.includes(text) ? prev.filter(t => t !== text) : [...prev, text]
+    );
+  };
+
+  const handleAddCustomExclusion = () => {
+    if (!customExclusionInput.trim()) return;
+    if (!selectedExclusions.includes(customExclusionInput.trim())) {
+      setSelectedExclusions(prev => [...prev, customExclusionInput.trim()]);
+    }
+    setCustomExclusionInput('');
+  };
+
+  // Toggle terms preset
+  const toggleTermsPreset = (text: string) => {
+    setSelectedTerms(prev => 
+      prev.includes(text) ? prev.filter(t => t !== text) : [...prev, text]
+    );
+  };
+
+  const handleAddCustomTerms = () => {
+    if (!customTermsInput.trim()) return;
+    if (!selectedTerms.includes(customTermsInput.trim())) {
+      setSelectedTerms(prev => [...prev, customTermsInput.trim()]);
+    }
+    setCustomTermsInput('');
   };
 
   // AI Proposal Generation Call
@@ -393,6 +498,15 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       }
 
       const proposalData = resData.data;
+
+      // Group activities and narratives per day
+      const itineraryNarrativeObj: ItineraryDayNarrative[] = proposalData.itineraryNarrative || Array.from({ length: durationDays }, (_, idx) => ({
+        dayNumber: idx + 1,
+        title: `Day ${idx + 1}: Highlights & Exploration`,
+        summary: `Full day of personalized activities and tour logistics.`,
+        activities: selectedLineItems.filter(i => i.day === idx + 1).map(i => i.name)
+      }));
+
       const fullProposalObj: Proposal = {
         proposalTitle: proposalData.proposalTitle || `Custom Tour Proposal for ${guestName}`,
         guestName,
@@ -407,16 +521,18 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         totalPrice,
         currency,
         selectedItems: selectedLineItems,
-        welcomeMessage: proposalData.welcomeMessage || `Dear ${guestName}, thank you for choosing us!`,
-        itineraryNarrative: proposalData.itineraryNarrative || [],
-        inclusions: proposalData.inclusions || [],
-        exclusions: proposalData.exclusions || [],
-        importantTips: proposalData.importantTips || [],
-        closingNotes: proposalData.closingNotes || "We look forward to hosting you!",
+        welcomeMessage: proposalData.welcomeMessage || `Dear ${guestName}, thank you for choosing us! We are thrilled to present your personalized holiday itinerary.`,
+        itineraryNarrative: itineraryNarrativeObj,
+        inclusions: selectedInclusions.length > 0 ? selectedInclusions : (proposalData.inclusions || []),
+        exclusions: selectedExclusions.length > 0 ? selectedExclusions : (proposalData.exclusions || []),
+        termsAndConditions: selectedTerms.length > 0 ? selectedTerms : PRESET_TERMS,
+        importantTips: proposalData.importantTips || ["Comfortable walking shoes recommended", "Please bring a camera and light clothing"],
+        closingNotes: proposalData.closingNotes || "We look forward to hosting you in Bali! Please contact us to confirm your travel dates.",
         status: 'Draft'
       };
 
       setGeneratedProposal(fullProposalObj);
+      setPreviewViewMode('document');
     } catch (err: any) {
       console.error("AI Proposal Generation Error:", err);
       alert("Error generating proposal: " + (err.message || 'Unknown error'));
@@ -432,6 +548,9 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     try {
       await addDoc(collection(db, 'proposals'), {
         ...generatedProposal,
+        companyName,
+        companyPhone,
+        companyEmail,
         createdAt: serverTimestamp()
       });
       alert("Proposal saved to history successfully!");
@@ -447,7 +566,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     if (!generatedProposal) return;
     const p = generatedProposal;
 
-    let text = `✨ *OFFICIAL TOUR & LOGISTICS PROPOSAL* ✨\n\n`;
+    let text = `✨ *OFFICIAL TOUR PROPOSAL* ✨\n\n`;
     text += `Dear *${p.guestName}*,\n${p.welcomeMessage}\n\n`;
     text += `📌 *Trip Summary:*\n`;
     text += `• Pax: ${p.paxCount} Person(s)\n`;
@@ -459,12 +578,20 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       text += `*Day ${day.dayNumber}: ${day.title}*\n${day.summary}\n`;
     });
 
+    text += `\n✅ *INCLUSIONS:*\n` + p.inclusions.map(i => `• ${i}`).join('\n') + `\n`;
+    text += `\n❌ *EXCLUSIONS:*\n` + p.exclusions.map(i => `• ${i}`).join('\n') + `\n`;
+
     text += `\n💰 *Total Investment:* ${p.currency} ${Number(p.totalPrice).toLocaleString()} (All-Inclusive)\n\n`;
-    text += `Please reply to this message or contact us to confirm your booking! 🌴`;
+    text += `Contact *${companyName}* (${companyPhone} | ${companyEmail}) to lock your dates! 🌴`;
 
     navigator.clipboard.writeText(text);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2500);
+  };
+
+  // Print PDF Trigger
+  const handlePrintDocument = () => {
+    window.print();
   };
 
   const getCategoryBadgeClass = (type?: string) => {
@@ -493,399 +620,681 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
   return (
     <div className="space-y-6">
-      {/* Top Header Banner */}
-      <div className={`p-6 md:p-8 rounded-3xl border shadow-sm relative overflow-hidden transition-all ${
-        isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border-gray-150 text-gray-900'
-      }`}>
+      {/* Printable Area CSS rules */}
+      <style>{`
+        @media print {
+          body {
+            background-color: white !important;
+            color: black !important;
+            font-size: 12px !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 20px !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+            color: black !important;
+          }
+          .print-page-break {
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
+
+      {/* Top Banner & Header */}
+      <div className="no-print p-6 md:p-8 rounded-3xl border shadow-sm relative overflow-hidden transition-all bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border-gray-200 dark:border-slate-800 dark:bg-[#111928] text-gray-900 dark:text-white">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center space-x-2 text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1.5">
               <Sparkles className="w-4 h-4 animate-pulse" />
-              <span>Smart Tour & Logistics Quotation Engine</span>
+              <span>Smart Proposal & Itinerary Builder</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-              Proposal Generator & Inventory Pricing
+              Interactive Proposal Generator
             </h1>
             <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-              Create custom inventory price items (tickets, transport, hotels, food), calculate margin markups, and let AI build gorgeous client proposals in seconds.
+              Drag & drop logistics items into day itineraries, manage inclusions, exclusions & terms, generate AI narrative proposals, and print print-ready PDFs.
             </p>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex items-center p-1.5 rounded-2xl bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shrink-0 self-start md:self-auto">
+          {/* Navigation Controls */}
+          <div className="flex items-center space-x-2 shrink-0">
             <button
-              onClick={() => setActiveSubTab('create')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
-                activeSubTab === 'create'
-                  ? 'bg-orange-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
+              onClick={() => setShowBrandConfig(!showBrandConfig)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 flex items-center space-x-1.5 shadow-xs cursor-pointer"
             >
-              <Calculator className="w-4 h-4" />
-              <span>Create Proposal</span>
+              <Settings className="w-3.5 h-3.5 text-orange-500" />
+              <span>Branding Config</span>
             </button>
 
-            <button
-              onClick={() => setActiveSubTab('inventory')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
-                activeSubTab === 'inventory'
-                  ? 'bg-orange-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <Package className="w-4 h-4" />
-              <span>Inventory Catalog ({inventoryList.length})</span>
-            </button>
+            <div className="flex items-center p-1.5 rounded-2xl bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
+              <button
+                onClick={() => setActiveSubTab('create')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+                  activeSubTab === 'create'
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                <span>Build Proposal</span>
+              </button>
 
-            <button
-              onClick={() => setActiveSubTab('history')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
-                activeSubTab === 'history'
-                  ? 'bg-orange-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>Saved Proposals ({savedProposals.length})</span>
-            </button>
+              <button
+                onClick={() => setActiveSubTab('inventory')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+                  activeSubTab === 'inventory'
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Package className="w-4 h-4" />
+                <span>Inventory Catalog ({inventoryList.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('history')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer ${
+                  activeSubTab === 'history'
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>History ({savedProposals.length})</span>
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Company Branding Settings Expandable Bar */}
+        {showBrandConfig && (
+          <div className="mt-6 pt-6 border-t border-gray-200/50 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
+            <div>
+              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Company Name</label>
+              <input 
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Company Logo URL</label>
+              <input 
+                type="text"
+                value={companyLogo}
+                onChange={(e) => setCompanyLogo(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Contact Email</label>
+              <input 
+                type="text"
+                value={companyEmail}
+                onChange={(e) => setCompanyEmail(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Phone / WhatsApp</label>
+              <input 
+                type="text"
+                value={companyPhone}
+                onChange={(e) => setCompanyPhone(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Company Address</label>
+              <input 
+                type="text"
+                value={companyAddress}
+                onChange={(e) => setCompanyAddress(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Website URL</label>
+              <input 
+                type="text"
+                value={companyWebsite}
+                onChange={(e) => setCompanyWebsite(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* SUB-TAB 1: CREATE PROPOSAL */}
+      {/* SUB-TAB 1: CREATE PROPOSAL WORKSPACE */}
       {activeSubTab === 'create' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Guest Details & Inventory Picker Form (7 Cols) */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Step 1: Guest Information */}
-            <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${
-              isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-            }`}>
-              <div className="flex items-center space-x-2 border-b border-gray-200/20 pb-3">
-                <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-bold text-xs">
-                  01
+        <div className="space-y-8">
+          {/* Main Grid: Form Left (8 Cols) / Sidebar Right (4 Cols) */}
+          <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left 8 Cols: Guest Details & Interactive Day-by-Day Dropper */}
+            <div className="lg:col-span-8 space-y-6">
+              
+              {/* Section 1: Guest & Trip Basic Configuration */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800/80 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-extrabold text-xs">
+                      01
+                    </div>
+                    <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Guest & Trip Configuration
+                    </h3>
+                  </div>
+                  <span className="text-xs font-medium text-gray-400">Step 1 of 3</span>
                 </div>
-                <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Guest & Lead Information
-                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Guest Name *
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Mr. Alex Johnson"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Pax Count (Guests)
+                    </label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        min="1"
+                        value={paxCount}
+                        onChange={(e) => setPaxCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Duration (Days)
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={durationDays}
+                        onChange={(e) => setDurationDays(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Contact Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="email"
+                        placeholder="alex@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Phone / WhatsApp
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="+1 234 567 890"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      Nationality / Origin
+                    </label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Australia"
+                        value={nationality}
+                        onChange={(e) => setNationality(e.target.value)}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Guest Full Name *
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Mr. Alex Johnson"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
+              {/* Section 2: Day-by-Day Interactive Drag & Drop Itinerary Builder */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-5 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800/80 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-extrabold text-xs">
+                      02
+                    </div>
+                    <div>
+                      <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Day-by-Day Itinerary Builder
+                      </h3>
+                      <p className="text-[11px] text-gray-500">Drag inventory items from right panel or drop into target days</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setDurationDays(prev => prev + 1)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Day ({durationDays + 1})</span>
+                    </button>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="email"
-                      placeholder="alex@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                </div>
+                {/* Render Days */}
+                <div className="space-y-4">
+                  {Array.from({ length: durationDays }, (_, idx) => {
+                    const dayNum = idx + 1;
+                    const itemsInThisDay = selectedLineItems.filter(i => i.day === dayNum);
+                    const daySubtotal = itemsInThisDay.reduce((sum, item) => sum + item.subtotal, 0);
+                    const isOver = activeDropDay === dayNum;
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Phone / WhatsApp Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="+61 412 345 678"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                </div>
+                    return (
+                      <div
+                        key={`day-builder-${dayNum}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setActiveDropDay(dayNum);
+                        }}
+                        onDragLeave={() => setActiveDropDay(null)}
+                        onDrop={(e) => handleDropToDay(e, dayNum)}
+                        className={`p-4 rounded-2xl border-2 transition-all relative ${
+                          isOver 
+                            ? 'border-dashed border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30' 
+                            : isDarkMode 
+                              ? 'bg-slate-900/60 border-slate-800' 
+                              : 'bg-slate-50/70 border-gray-200'
+                        }`}
+                      >
+                        {/* Day Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2.5 py-1 rounded-lg bg-orange-600 text-white font-black text-xs">
+                              DAY {dayNum}
+                            </span>
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              {itemsInThisDay.length} item(s) assigned
+                            </span>
+                          </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Nationality / Origin
-                  </label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Australia, USA, Germany..."
-                      value={nationality}
-                      onChange={(e) => setNationality(e.target.value)}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                </div>
+                          <div className="flex items-center space-x-3">
+                            <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400">
+                              Subtotal: {currency} {daySubtotal.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Number of Guests (Pax)
-                  </label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="number"
-                      min={1}
-                      value={paxCount}
-                      onChange={(e) => setPaxCount(Number(e.target.value))}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                </div>
+                        {/* Dropped / Added Items in this Day */}
+                        {itemsInThisDay.length === 0 ? (
+                          <div className="p-6 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-xl text-center flex flex-col items-center justify-center text-gray-400">
+                            <GripVertical className="w-5 h-5 mb-1 opacity-50" />
+                            <p className="text-xs font-semibold">Drag & Drop inventory items here for Day {dayNum}</p>
+                            <p className="text-[10px] mt-0.5 text-gray-400">or click "+ Day {dayNum}" on any inventory item in catalog</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {itemsInThisDay.map((item, lineIdx) => {
+                              // Find actual global index in selectedLineItems array
+                              const globalIdx = selectedLineItems.findIndex(i => i === item);
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Trip Duration (Days)
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="number"
-                      min={1}
-                      value={durationDays}
-                      onChange={(e) => setDurationDays(Number(e.target.value))}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
-                  </div>
+                              return (
+                                <div
+                                  key={`line-item-${dayNum}-${lineIdx}`}
+                                  className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
+                                    isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-2 shrink-0">
+                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
+                                      {getCategoryIcon(item.type)}
+                                      <span>{item.type}</span>
+                                    </span>
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                      {item.name}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500">
+                                      {currency} {Number(item.price).toLocaleString()} / {item.priceType}
+                                    </p>
+                                  </div>
+
+                                  {/* Qty Counter */}
+                                  <div className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg p-1 border border-gray-200 dark:border-slate-700">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity - 1)}
+                                      className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="w-6 text-center text-xs font-bold">
+                                      {item.quantity}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateLineItemQty(globalIdx, item.quantity + 1)}
+                                      className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold bg-white dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+
+                                  {/* Item Subtotal */}
+                                  <div className="text-right shrink-0">
+                                    <p className="text-xs font-black text-gray-900 dark:text-white">
+                                      {currency} {item.subtotal.toLocaleString()}
+                                    </p>
+                                  </div>
+
+                                  {/* Delete Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveLineItem(globalIdx)}
+                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
 
-            {/* Step 2: Select Inventory Items for the Itinerary */}
-            <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${
-              isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-            }`}>
-              <div className="flex items-center justify-between border-b border-gray-200/20 pb-3">
-                <div className="flex items-center space-x-2">
-                  <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-bold text-xs">
-                    02
+              {/* Section 3: Inclusions, Exclusions & Terms Selector (Drag / Preset / Custom) */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-6 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex items-center space-x-2 border-b border-gray-100 dark:border-slate-800/80 pb-3">
+                  <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-extrabold text-xs">
+                    03
                   </div>
                   <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Select Inventory & Logistics Items
+                    Inclusions, Exclusions & Terms Customization
                   </h3>
                 </div>
 
-                <button
-                  onClick={() => setActiveSubTab('inventory')}
-                  className="text-xs font-bold text-orange-600 hover:underline flex items-center space-x-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Manage Catalog</span>
-                </button>
-              </div>
-
-              {/* Add Item Control */}
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-900/60 border border-gray-200/60 dark:border-slate-800 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                  <div className="sm:col-span-7">
-                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">
-                      Pick From Inventory Catalog
+                {/* Inclusions Block */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-900 dark:text-white flex items-center space-x-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Inclusions ({selectedInclusions.length})</span>
                     </label>
-                    <select
-                      value={selectedInventoryIdToAdd}
-                      onChange={(e) => setSelectedInventoryIdToAdd(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs font-semibold rounded-xl border focus:outline-none cursor-pointer ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
-                      }`}
-                    >
-                      <option value="">-- Choose item (Tickets, Hotels, Transport...) --</option>
-                      {inventoryList.map(item => (
-                        <option key={item.id} value={item.id}>
-                          [{item.type}] {item.name} - {currency} {item.price.toLocaleString()} ({item.priceType})
-                        </option>
-                      ))}
-                    </select>
+                    <span className="text-[10px] text-gray-400">Click presets below to toggle</span>
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">
-                      Day #
-                    </label>
+                  {/* Selected Inclusions Tags */}
+                  <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 min-h-[60px]">
+                    {selectedInclusions.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No inclusions selected yet.</p>
+                    ) : (
+                      selectedInclusions.map((item, i) => (
+                        <span key={`inc-${i}`} className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center space-x-1.5">
+                          <span>✓ {item}</span>
+                          <button onClick={() => toggleInclusionPreset(item)} className="hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Preset Inclusions Chips */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_INCLUSIONS.map((preset, i) => {
+                      const isSelected = selectedInclusions.includes(preset);
+                      return (
+                        <button
+                          key={`preset-inc-${i}`}
+                          type="button"
+                          onClick={() => toggleInclusionPreset(preset)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'bg-emerald-600 text-white border-emerald-600' 
+                              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-emerald-500'
+                          }`}
+                        >
+                          + {preset}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Custom Inclusion */}
+                  <div className="flex space-x-2">
                     <input
-                      type="number"
-                      min={1}
-                      max={durationDays}
-                      value={itemDayToAdd}
-                      onChange={(e) => setItemDayToAdd(Number(e.target.value))}
-                      className={`w-full px-3 py-2 text-xs font-bold rounded-xl border focus:outline-none ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+                      type="text"
+                      placeholder="Type custom inclusion item..."
+                      value={customInclusionInput}
+                      onChange={(e) => setCustomInclusionInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddCustomInclusion()}
+                      className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
+                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
                       }`}
                     />
-                  </div>
-
-                  <div className="sm:col-span-3">
                     <button
                       type="button"
-                      onClick={handleAddSelectedInventoryToProposal}
-                      disabled={!selectedInventoryIdToAdd}
-                      className="w-full py-2 px-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1 cursor-pointer"
+                      onClick={handleAddCustomInclusion}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Item</span>
+                      Add Custom
+                    </button>
+                  </div>
+                </div>
+
+                {/* Exclusions Block */}
+                <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-900 dark:text-white flex items-center space-x-1.5">
+                      <X className="w-4 h-4 text-rose-500" />
+                      <span>Exclusions ({selectedExclusions.length})</span>
+                    </label>
+                  </div>
+
+                  {/* Selected Exclusions Tags */}
+                  <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 min-h-[60px]">
+                    {selectedExclusions.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No exclusions selected.</p>
+                    ) : (
+                      selectedExclusions.map((item, i) => (
+                        <span key={`exc-${i}`} className="px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center space-x-1.5">
+                          <span>✕ {item}</span>
+                          <button onClick={() => toggleExclusionPreset(item)} className="hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Preset Exclusions Chips */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_EXCLUSIONS.map((preset, i) => {
+                      const isSelected = selectedExclusions.includes(preset);
+                      return (
+                        <button
+                          key={`preset-exc-${i}`}
+                          type="button"
+                          onClick={() => toggleExclusionPreset(preset)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'bg-rose-600 text-white border-rose-600' 
+                              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-rose-500'
+                          }`}
+                        >
+                          + {preset}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Custom Exclusion */}
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Type custom exclusion item..."
+                      value={customExclusionInput}
+                      onChange={(e) => setCustomExclusionInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddCustomExclusion()}
+                      className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
+                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomExclusion}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 cursor-pointer"
+                    >
+                      Add Custom
+                    </button>
+                  </div>
+                </div>
+
+                {/* Terms & Conditions Block */}
+                <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-900 dark:text-white flex items-center space-x-1.5">
+                      <FileCheck className="w-4 h-4 text-amber-500" />
+                      <span>Terms & Conditions ({selectedTerms.length})</span>
+                    </label>
+                  </div>
+
+                  {/* Selected Terms List */}
+                  <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
+                    {selectedTerms.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No terms specified.</p>
+                    ) : (
+                      selectedTerms.map((term, i) => (
+                        <div key={`term-${i}`} className="flex items-start justify-between gap-2 p-1.5 text-xs text-gray-700 dark:text-gray-300">
+                          <span className="font-semibold">{i + 1}. {term}</span>
+                          <button onClick={() => toggleTermsPreset(term)} className="text-red-500 hover:text-red-700 shrink-0">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Preset Terms Chips */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_TERMS.map((preset, i) => {
+                      const isSelected = selectedTerms.includes(preset);
+                      return (
+                        <button
+                          key={`preset-term-${i}`}
+                          type="button"
+                          onClick={() => toggleTermsPreset(preset)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'bg-amber-600 text-white border-amber-600' 
+                              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:border-amber-500'
+                          }`}
+                        >
+                          + {preset}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Custom Term */}
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Type custom terms & conditions rule..."
+                      value={customTermsInput}
+                      onChange={(e) => setCustomTermsInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddCustomTerms()}
+                      className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none ${
+                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomTerms}
+                      className="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 cursor-pointer"
+                    >
+                      Add Term
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Added Line Items Table */}
-              {selectedLineItems.length === 0 ? (
-                <div className="py-8 text-center border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl">
-                  <Package className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-50" />
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400">No inventory items added to proposal yet</p>
-                  <p className="text-[11px] text-gray-400 mt-1">Select items above to construct the itinerary pricing.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-200/20 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                          <th className="py-2 px-2">Day</th>
-                          <th className="py-2 px-2">Item & Category</th>
-                          <th className="py-2 px-2">Price / Unit</th>
-                          <th className="py-2 px-2 w-20">Qty</th>
-                          <th className="py-2 px-2 text-right">Subtotal</th>
-                          <th className="py-2 px-2 w-8"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200/10 text-xs">
-                        {selectedLineItems.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-gray-500/5 transition-colors">
-                            <td className="py-2.5 px-2 font-black text-orange-600 dark:text-orange-400">
-                              Day {item.day || 1}
-                            </td>
-                            <td className="py-2.5 px-2 font-extrabold text-gray-900 dark:text-white">
-                              <div>{item.name}</div>
-                              <span className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-bold border mt-0.5 ${getCategoryBadgeClass(item.type)}`}>
-                                {getCategoryIcon(item.type)}
-                                <span>{item.type}</span>
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-2 text-gray-600 dark:text-gray-300 font-medium">
-                              {currency} {item.price.toLocaleString()} <span className="text-[10px] text-gray-400">({item.priceType})</span>
-                            </td>
-                            <td className="py-2.5 px-2">
-                              <input
-                                type="number"
-                                min={1}
-                                value={item.quantity}
-                                onChange={(e) => handleUpdateLineItemQty(idx, Number(e.target.value))}
-                                className={`w-16 px-2 py-1 text-xs font-bold rounded-lg border focus:outline-none ${
-                                  isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-100 border-gray-200 text-gray-900'
-                                }`}
-                              />
-                            </td>
-                            <td className="py-2.5 px-2 text-right font-black text-gray-900 dark:text-white">
-                              {currency} {item.subtotal.toLocaleString()}
-                            </td>
-                            <td className="py-2.5 px-2 text-right">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveLineItem(idx)}
-                                className="p-1 text-gray-400 hover:text-rose-500 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Step 3: Profit Margin & Final Settings */}
-            <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${
-              isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-            }`}>
-              <div className="flex items-center space-x-2 border-b border-gray-200/20 pb-3">
-                <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl font-bold text-xs">
-                  03
-                </div>
-                <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Margin Markup & Special Notes
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Special Notes & Generate Trigger Button */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
+              }`}>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Margin Percentage (%) *
-                  </label>
-                  <div className="relative">
-                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="number"
-                      min={0}
-                      max={200}
-                      value={marginPercentage}
-                      onChange={(e) => setMarginPercentage(Number(e.target.value))}
-                      className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-black text-orange-600 dark:text-orange-400 rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'
-                      }`}
-                    />
-                  </div>
-                  <p className="text-[10px] font-medium text-gray-400 mt-1">Operator margin profit added on top of base logistics costs.</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Currency Symbol
-                  </label>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className={`w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none cursor-pointer ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                    }`}
-                  >
-                    <option value="IDR">IDR (Rupiah)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="AUD">AUD (A$)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="SGD">SGD (S$)</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                     Special Notes / Guest Preferences (Optional)
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="e.g. Vegetarian meal options requested, guest prefers early morning tours..."
+                    placeholder="e.g. Guest prefers vegetarian meals, anniversary celebration setup..."
                     value={specialNotes}
                     onChange={(e) => setSpecialNotes(e.target.value)}
                     className={`w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border focus:outline-none ${
@@ -893,447 +1302,667 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                     }`}
                   />
                 </div>
-              </div>
 
-              {/* Generate AI Proposal Action Button */}
-              <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleGenerateAIProposal}
-                  disabled={isGeneratingAI || !guestName.trim() || selectedLineItems.length === 0}
-                  className="w-full py-4 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white text-sm font-black rounded-2xl shadow-lg transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+                  disabled={isGeneratingAI}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white font-black text-sm shadow-lg hover:shadow-orange-500/25 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
                 >
                   {isGeneratingAI ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Synthesizing AI Tour Proposal...</span>
+                      <span>Generating AI Proposal Narrative...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      <span>Generate AI Tour Proposal</span>
+                      <span>Generate Professional Proposal Document</span>
                     </>
                   )}
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Live Price Summary & AI Generated Proposal Preview (5 Cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Live Pricing Breakdown Card */}
-            <div className={`p-6 rounded-3xl border shadow-md space-y-4 ${
-              isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-            }`}>
-              <div className="flex items-center justify-between border-b border-gray-200/20 pb-3">
-                <div className="flex items-center space-x-2">
-                  <Calculator className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                  <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Live Proposal Pricing Breakdown
-                  </h3>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-orange-500/10 text-orange-600">
-                  {currency}
-                </span>
-              </div>
-
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">Base Inventory Cost:</span>
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    {currency} {baseSubtotal.toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Operator Margin (+{marginPercentage}%):
-                  </span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                    + {currency} {marginAmount.toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="border-t border-dashed border-gray-200 dark:border-slate-800 pt-3 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-black text-gray-900 dark:text-white block">
-                      Final Proposal Price
-                    </span>
-                    <span className="text-[10px] text-gray-400">All taxes & fees included</span>
-                  </div>
-                  <span className="text-xl font-black text-orange-600 dark:text-orange-400">
-                    {currency} {totalPrice.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Generated Proposal Preview Screen */}
-            {generatedProposal ? (
-              <div className={`p-6 md:p-8 rounded-3xl border shadow-xl space-y-6 animate-fadeIn ${
-                isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+            {/* Right 4 Cols: Draggable Inventory Catalog & Financial Margin Summary */}
+            <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+              
+              {/* Financial Calculation Box */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
               }`}>
-                {/* Proposal Header Banner */}
-                <div className="border-b border-gray-200/20 pb-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
-                      Official Tour Proposal
-                    </span>
-                    <span className="text-xs font-bold text-gray-400">
-                      {new Date().toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
-                    {generatedProposal.proposalTitle}
-                  </h2>
-
-                  <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-gray-50 dark:bg-slate-900 text-xs font-semibold">
-                    <div><span className="text-gray-400">Guest:</span> {generatedProposal.guestName}</div>
-                    <div><span className="text-gray-400">Pax:</span> {generatedProposal.paxCount} Person(s)</div>
-                    <div><span className="text-gray-400">Duration:</span> {generatedProposal.durationDays} Day(s)</div>
-                    <div><span className="text-gray-400">Origin:</span> {generatedProposal.nationality || 'Guest'}</div>
-                  </div>
-                </div>
-
-                {/* Welcome Message */}
-                <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/15 text-xs text-gray-700 dark:text-gray-300 leading-relaxed italic">
-                  "{generatedProposal.welcomeMessage}"
-                </div>
-
-                {/* Day-by-Day Itinerary Narrative */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">
-                    Day-by-Day Customized Itinerary
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800/80 pb-3">
+                  <h3 className={`text-sm font-extrabold flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <Calculator className="w-4 h-4 text-orange-500" />
+                    <span>Price & Margin Engine</span>
                   </h3>
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                    {selectedLineItems.length} items
+                  </span>
+                </div>
 
-                  <div className="space-y-3">
-                    {generatedProposal.itineraryNarrative.map((day, dIdx) => (
-                      <div key={dIdx} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-900/80 border border-gray-200/60 dark:border-slate-800 space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="px-2 py-0.5 rounded-lg bg-orange-600 text-white text-[10px] font-black">
-                            Day {day.dayNumber}
-                          </span>
-                          <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                            {day.title}
-                          </h4>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                          {day.summary}
-                        </p>
-                        {day.activities && day.activities.length > 0 && (
-                          <ul className="space-y-1 pt-1">
-                            {day.activities.map((act, aIdx) => (
-                              <li key={aIdx} className="text-[11px] text-gray-500 dark:text-gray-400 flex items-start space-x-1.5">
-                                <span className="text-orange-500 font-bold">•</span>
-                                <span>{act}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">Base Logistics Cost:</span>
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {currency} {baseSubtotal.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center space-x-1">
+                      <span>Agency Margin / Markup:</span>
+                    </span>
+                    <div className="flex items-center space-x-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={marginPercentage}
+                        onChange={(e) => setMarginPercentage(parseFloat(e.target.value) || 0)}
+                        className={`w-14 px-2 py-1 text-xs text-center font-black rounded-lg border ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-gray-100 border-gray-300 text-gray-900'
+                        }`}
+                      />
+                      <span className="font-bold">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold pt-1 border-t border-dashed border-gray-200 dark:border-slate-800">
+                    <span>Estimated Margin Profit:</span>
+                    <span>+ {currency} {marginAmount.toLocaleString()}</span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-extrabold">Final Package Price</p>
+                      <p className="text-lg font-black">{currency} {totalPrice.toLocaleString()}</p>
+                    </div>
+                    <DollarSign className="w-7 h-7 opacity-80" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Draggable Inventory Catalog Sidebar */}
+              <div className={`p-6 rounded-3xl border shadow-xs space-y-4 ${
+                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <h3 className={`text-sm font-extrabold flex items-center space-x-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <Package className="w-4 h-4 text-orange-500" />
+                    <span>Inventory Catalog</span>
+                  </h3>
+                  <button
+                    onClick={handleOpenAddInventory}
+                    className="p-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 text-xs font-bold cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Search & Filter */}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search inventory items..."
+                      value={inventorySearch}
+                      onChange={(e) => setInventorySearch(e.target.value)}
+                      className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
+                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                      }`}
+                    />
+                  </div>
+
+                  <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+                    {['all', 'ticket', 'transport', 'hotel', 'food', 'guide'].map(cat => (
+                      <button
+                        key={`cat-filter-${cat}`}
+                        onClick={() => setInventoryCategoryFilter(cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize whitespace-nowrap cursor-pointer ${
+                          inventoryCategoryFilter === cat 
+                            ? 'bg-orange-600 text-white' 
+                            : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        {cat}
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Included Services Checklist */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 space-y-2">
-                    <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Inclusions</span>
-                    </h4>
-                    <ul className="space-y-1 text-[11px] text-gray-600 dark:text-gray-300">
-                      {generatedProposal.inclusions.map((inc, i) => (
-                        <li key={i}>✓ {inc}</li>
-                      ))}
-                    </ul>
-                  </div>
+                {/* Draggable Catalog Items List */}
+                <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+                  {loadingInventory ? (
+                    <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center space-x-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading inventory items...</span>
+                    </div>
+                  ) : filteredInventory.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-gray-400">
+                      No inventory items found. Click + to create one.
+                    </div>
+                  ) : (
+                    filteredInventory.map((item) => (
+                      <div
+                        key={`inv-card-${item.id}`}
+                        draggable={true}
+                        onDragStart={() => handleDragStartItem(item)}
+                        className={`p-3 rounded-2xl border transition-all cursor-grab active:cursor-grabbing hover:shadow-md ${
+                          isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-orange-500/50' : 'bg-slate-50 border-gray-200 hover:border-orange-500/50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                {item.name}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-0.5">
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
+                                  {item.type}
+                                </span>
+                                <span className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400">
+                                  {currency} {Number(item.price).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                  <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/15 space-y-2">
-                    <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center space-x-1">
-                      <X className="w-3.5 h-3.5" />
-                      <span>Exclusions</span>
-                    </h4>
-                    <ul className="space-y-1 text-[11px] text-gray-600 dark:text-gray-300">
-                      {generatedProposal.exclusions.map((exc, e) => (
-                        <li key={e}>✕ {exc}</li>
-                      ))}
-                    </ul>
-                  </div>
+                        {/* Quick Day Dropdown/Buttons */}
+                        <div className="mt-2.5 pt-2 border-t border-gray-200/50 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                          <span className="text-gray-400">Assign to:</span>
+                          <div className="flex items-center gap-1 overflow-x-auto">
+                            {Array.from({ length: Math.min(durationDays, 5) }, (_, dIdx) => (
+                              <button
+                                key={`quick-add-d${dIdx + 1}`}
+                                onClick={() => addItemToDay(item, dIdx + 1)}
+                                className="px-1.5 py-0.5 rounded bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold cursor-pointer"
+                              >
+                                +D{dIdx + 1}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Total Cost Display */}
-                <div className="p-5 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white flex items-center justify-between">
+          {/* Generated Proposal Document Display & Revision Mode */}
+          {generatedProposal && (
+            <div className="space-y-6 pt-6 border-t border-gray-200 dark:border-slate-800">
+              {/* Document Header Controls */}
+              <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900 text-white shadow-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-orange-500 rounded-xl">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-100 block">Total Investment Package</span>
-                    <span className="text-xs text-orange-100">All-Inclusive Tax & Service Included</span>
+                    <h2 className="text-sm font-extrabold">Proposal Document Preview</h2>
+                    <p className="text-xs text-gray-400">Generated for {generatedProposal.guestName}</p>
                   </div>
-                  <span className="text-2xl font-black">
-                    {generatedProposal.currency} {Number(generatedProposal.totalPrice).toLocaleString()}
-                  </span>
                 </div>
 
-                {/* Action Buttons Bar */}
-                <div className="flex flex-wrap gap-2 pt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center p-1 rounded-xl bg-slate-800 border border-slate-700">
+                    <button
+                      onClick={() => setPreviewViewMode('document')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                        previewViewMode === 'document' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Document Preview</span>
+                    </button>
+                    <button
+                      onClick={() => setPreviewViewMode('revise')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                        previewViewMode === 'revise' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit & Revise</span>
+                    </button>
+                  </div>
+
                   <button
                     onClick={handleCopyWhatsAppMessage}
-                    className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm"
+                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md"
                   >
-                    {copySuccess ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    <span>{copySuccess ? "Copied WA Text!" : "Copy WhatsApp Quote"}</span>
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>{copySuccess ? 'Copied!' : 'WhatsApp Text'}</span>
                   </button>
 
                   <button
                     onClick={handleSaveProposalToDb}
                     disabled={isSavingProposal}
-                    className="flex-1 py-2.5 px-3 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm"
+                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md disabled:opacity-50"
                   >
-                    {isSavingProposal ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                    <span>Save to History</span>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{isSavingProposal ? 'Saving...' : 'Save Proposal'}</span>
                   </button>
 
                   <button
-                    onClick={() => window.print()}
-                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1 cursor-pointer"
+                    onClick={handlePrintDocument}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md"
                   >
                     <Printer className="w-4 h-4" />
-                    <span>Print PDF</span>
+                    <span>Print / Export PDF</span>
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className={`p-8 rounded-3xl border text-center space-y-3 ${
-                isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-              }`}>
-                <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center mx-auto">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">
-                  Proposal Preview Workspace
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
-                  Fill in guest details, add items from your inventory, set your profit margin, and click <strong className="text-orange-600 dark:text-orange-400">Generate AI Tour Proposal</strong>.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* SUB-TAB 2: INVENTORY CATALOG MANAGER */}
-      {activeSubTab === 'inventory' && (
-        <div className="space-y-6">
-          <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${
-            isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/20 pb-4">
-              <div>
-                <h3 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Inventory & Logistics Pricing Catalog
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Manage base costs for tickets, transport charters, hotels, dining, and guides.
-                </p>
-              </div>
+              {/* View Mode 1: Edit & Revise Editor Form */}
+              {previewViewMode === 'revise' && (
+                <div className="no-print p-6 rounded-3xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111928] space-y-6">
+                  <div className="flex items-center space-x-2 border-b pb-3 border-gray-200 dark:border-slate-800">
+                    <Edit3 className="w-5 h-5 text-orange-500" />
+                    <h3 className="text-base font-extrabold text-gray-900 dark:text-white">Revise Proposal Content & Itinerary</h3>
+                  </div>
 
-              <button
-                onClick={handleOpenAddInventory}
-                className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Inventory Item</span>
-              </button>
-            </div>
-
-            {/* Filter controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search inventory items by name..."
-                  value={inventorySearch}
-                  onChange={(e) => setInventorySearch(e.target.value)}
-                  className={`w-full pl-9 pr-3.5 py-2 text-xs font-medium rounded-xl border focus:outline-none ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                  }`}
-                />
-              </div>
-
-              <select
-                value={inventoryCategoryFilter}
-                onChange={(e) => setInventoryCategoryFilter(e.target.value)}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl border focus:outline-none cursor-pointer ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                }`}
-              >
-                <option value="all">All Categories</option>
-                <option value="ticket">Ticket</option>
-                <option value="transport">Transport</option>
-                <option value="hotel">Hotel</option>
-                <option value="food">Food</option>
-                <option value="guide">Guide</option>
-                <option value="extra">Extra</option>
-              </select>
-            </div>
-
-            {/* Inventory Items List */}
-            {loadingInventory ? (
-              <div className="py-12 text-center text-gray-400">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                <p className="text-xs font-bold">Loading Inventory Items...</p>
-              </div>
-            ) : filteredInventory.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl">
-                <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-xs font-bold">No inventory items found.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredInventory.map(item => (
-                  <div key={item.id} className={`p-5 rounded-2xl border transition-all space-y-3 ${
-                    isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50/80 border-gray-200'
-                  }`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${getCategoryBadgeClass(item.type)}`}>
-                        {getCategoryIcon(item.type)}
-                        <span>{item.type}</span>
-                      </span>
-
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => handleEditInventory(item)}
-                          className="p-1.5 text-gray-400 hover:text-orange-500 transition-colors"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteInventory(item.id)}
-                          className="p-1.5 text-gray-400 hover:text-rose-500 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Proposal Title</label>
+                      <input
+                        type="text"
+                        value={generatedProposal.proposalTitle}
+                        onChange={(e) => setGeneratedProposal({ ...generatedProposal, proposalTitle: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                      />
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                        {item.name}
-                      </h4>
-                      {item.description && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                          {item.description}
-                        </p>
-                      )}
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Welcome Greeting Message</label>
+                      <textarea
+                        rows={3}
+                        value={generatedProposal.welcomeMessage}
+                        onChange={(e) => setGeneratedProposal({ ...generatedProposal, welcomeMessage: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                      />
                     </div>
 
-                    <div className="border-t border-gray-200/20 pt-2.5 flex items-center justify-between">
-                      <span className="text-[11px] text-gray-400 font-medium">Unit: {item.priceType}</span>
-                      <span className="text-sm font-black text-orange-600 dark:text-orange-400">
-                        {currency} {item.price.toLocaleString()}
-                      </span>
+                    {/* Revise Itinerary Days */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Itinerary Day Narratives</h4>
+                      {generatedProposal.itineraryNarrative.map((day, dIdx) => (
+                        <div key={`revise-day-${dIdx}`} className="p-4 rounded-2xl border border-gray-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
+                          <div className="flex items-center space-x-3">
+                            <span className="px-2 py-0.5 rounded bg-orange-600 text-white text-xs font-black">DAY {day.dayNumber}</span>
+                            <input
+                              type="text"
+                              value={day.title}
+                              onChange={(e) => {
+                                const newNarrative = [...generatedProposal.itineraryNarrative];
+                                newNarrative[dIdx].title = e.target.value;
+                                setGeneratedProposal({ ...generatedProposal, itineraryNarrative: newNarrative });
+                              }}
+                              className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                            />
+                          </div>
+                          <div>
+                            <textarea
+                              rows={2}
+                              value={day.summary}
+                              onChange={(e) => {
+                                const newNarrative = [...generatedProposal.itineraryNarrative];
+                                newNarrative[dIdx].summary = e.target.value;
+                                setGeneratedProposal({ ...generatedProposal, itineraryNarrative: newNarrative });
+                              }}
+                              className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Closing Message</label>
+                      <textarea
+                        rows={2}
+                        value={generatedProposal.closingNotes}
+                        onChange={(e) => setGeneratedProposal({ ...generatedProposal, closingNotes: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                      />
                     </div>
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* View Mode 2: High-Craft Print-Ready Proposal Document (Fits Standard Paper / A4) */}
+              <div className="print-container max-w-4xl mx-auto p-8 md:p-12 bg-white text-slate-900 rounded-3xl shadow-xl border border-gray-200 relative overflow-hidden">
+                
+                {/* Print Branding Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b-2 border-amber-500/30 pb-6">
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={companyLogo}
+                      alt={companyName}
+                      className="w-16 h-16 rounded-2xl object-cover border border-gray-200 shadow-sm"
+                    />
+                    <div>
+                      <h1 className="text-xl font-black text-slate-900 tracking-tight">{companyName}</h1>
+                      <p className="text-xs text-slate-500 font-medium">{companyAddress}</p>
+                      <p className="text-xs text-slate-500 font-medium">Email: {companyEmail} | Phone: {companyPhone}</p>
+                      <p className="text-xs text-amber-600 font-bold">{companyWebsite}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 font-black text-xs uppercase tracking-wider">
+                      Official Tour Proposal
+                    </span>
+                    <p className="text-xs font-bold text-slate-400 mt-2">Ref ID: PRO-BALI-{(Math.floor(Math.random() * 8999) + 1000)}</p>
+                    <p className="text-xs font-medium text-slate-500">Date: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  </div>
+                </div>
+
+                {/* Client Metadata Block */}
+                <div className="my-6 p-6 rounded-2xl bg-slate-50 border border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-4 print-page-break">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Prepared For</span>
+                    <span className="text-sm font-black text-slate-900">{generatedProposal.guestName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pax Count</span>
+                    <span className="text-sm font-black text-slate-900">{generatedProposal.paxCount} Guest(s)</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Duration</span>
+                    <span className="text-sm font-black text-slate-900">{generatedProposal.durationDays} Day(s)</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Package Investment</span>
+                    <span className="text-sm font-black text-orange-600">{generatedProposal.currency} {Number(generatedProposal.totalPrice).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Title & Welcome Message */}
+                <div className="space-y-3 mb-8">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">{generatedProposal.proposalTitle}</h2>
+                  <p className="text-sm text-slate-600 leading-relaxed font-medium italic bg-amber-500/5 p-4 rounded-xl border-l-4 border-amber-500">
+                    "{generatedProposal.welcomeMessage}"
+                  </p>
+                </div>
+
+                {/* Day-by-Day Detailed Itinerary */}
+                <div className="space-y-6 mb-8 print-page-break">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider border-b pb-2 flex items-center space-x-2">
+                    <Compass className="w-4 h-4 text-orange-500" />
+                    <span>Detailed Day-by-Day Itinerary & Logistics</span>
+                  </h3>
+
+                  <div className="space-y-6">
+                    {generatedProposal.itineraryNarrative.map((day) => {
+                      const dayLogistics = generatedProposal.selectedItems.filter(i => i.day === day.dayNumber);
+
+                      return (
+                        <div key={`doc-day-${day.dayNumber}`} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-3 print-page-break">
+                          <div className="flex items-center space-x-3">
+                            <span className="px-3 py-1 rounded-xl bg-orange-600 text-white font-black text-xs">
+                              DAY {day.dayNumber}
+                            </span>
+                            <h4 className="text-base font-bold text-slate-900">{day.title}</h4>
+                          </div>
+
+                          <p className="text-xs text-slate-600 leading-relaxed font-normal">{day.summary}</p>
+
+                          {/* Included Logistics in Day */}
+                          {dayLogistics.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Included Logistics & Tickets:</span>
+                              <div className="flex flex-wrap gap-2">
+                                {dayLogistics.map((item, lIdx) => (
+                                  <span key={`doc-item-${lIdx}`} className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200 flex items-center space-x-1">
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    <span>{item.name} ({item.quantity}x)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Inclusions & Exclusions Side-by-Side Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-8 print-page-break">
+                  <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-800 flex items-center space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Package Inclusions</span>
+                    </h4>
+                    <ul className="space-y-1.5 text-xs font-medium text-slate-700">
+                      {generatedProposal.inclusions.map((inc, i) => (
+                        <li key={`doc-inc-${i}`} className="flex items-start space-x-2">
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span>{inc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-rose-800 flex items-center space-x-2">
+                      <X className="w-4 h-4 text-rose-600" />
+                      <span>Package Exclusions</span>
+                    </h4>
+                    <ul className="space-y-1.5 text-xs font-medium text-slate-700">
+                      {generatedProposal.exclusions.map((exc, i) => (
+                        <li key={`doc-exc-${i}`} className="flex items-start space-x-2">
+                          <span className="text-rose-600 font-bold">✕</span>
+                          <span>{exc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Terms & Conditions */}
+                {generatedProposal.termsAndConditions && generatedProposal.termsAndConditions.length > 0 && (
+                  <div className="my-8 p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 print-page-break">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center space-x-2">
+                      <FileCheck className="w-4 h-4 text-amber-500" />
+                      <span>Terms & Booking Conditions</span>
+                    </h4>
+                    <ol className="list-decimal list-inside space-y-1.5 text-xs font-medium text-slate-600">
+                      {generatedProposal.termsAndConditions.map((term, i) => (
+                        <li key={`doc-term-${i}`}>{term}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Financial Summary Box */}
+                <div className="my-8 p-6 rounded-2xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4 print-page-break">
+                  <div>
+                    <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider block">Total Agreed Price</span>
+                    <p className="text-2xl font-black">{generatedProposal.currency} {Number(generatedProposal.totalPrice).toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Includes all taxes, vehicle charters, tickets & guide services listed above</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-3 py-1.5 rounded-xl bg-orange-600 text-white font-bold text-xs">
+                      All-Inclusive Package
+                    </span>
+                  </div>
+                </div>
+
+                {/* Closing & Dual Signatures Block */}
+                <div className="mt-12 pt-8 border-t border-slate-200 space-y-8 print-page-break">
+                  <p className="text-xs font-medium text-slate-600 text-center italic">
+                    "{generatedProposal.closingNotes}"
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-12 pt-6">
+                    <div className="text-center space-y-12">
+                      <div className="border-b-2 border-slate-300 pb-2">
+                        <p className="text-xs font-extrabold text-slate-900">{companyName}</p>
+                      </div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Authorized Tour Representative</p>
+                    </div>
+
+                    <div className="text-center space-y-12">
+                      <div className="border-b-2 border-slate-300 pb-2">
+                        <p className="text-xs font-extrabold text-slate-900">{generatedProposal.guestName}</p>
+                      </div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Client Acceptance & Approval</p>
+                    </div>
+                  </div>
+                </div>
+
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUB-TAB 2: INVENTORY MANAGEMENT CATALOG */}
+      {activeSubTab === 'inventory' && (
+        <div className="p-6 rounded-3xl border shadow-xs space-y-6 bg-white dark:bg-[#111928] border-gray-200 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+            <div>
+              <h2 className="text-base font-extrabold text-gray-900 dark:text-white">Master Logistics Inventory</h2>
+              <p className="text-xs text-gray-500">Manage entrance tickets, transport car charters, hotel stays, food & guide rates</p>
+            </div>
+            <button
+              onClick={handleOpenAddInventory}
+              className="px-4 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 flex items-center space-x-1.5 cursor-pointer shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Inventory Item</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {inventoryList.map(item => (
+              <div
+                key={`cat-list-${item.id}`}
+                className="p-4 rounded-2xl border border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${getCategoryBadgeClass(item.type)}`}>
+                      {item.type}
+                    </span>
+                    <span className="text-xs font-black text-orange-600 dark:text-orange-400">
+                      IDR {Number(item.price).toLocaleString()}
+                    </span>
+                  </div>
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white">{item.name}</h3>
+                  <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{item.description || 'No description'}</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-slate-800 text-xs">
+                  <span className="text-[10px] font-medium text-gray-400">{item.priceType}</span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleEditInventory(item)}
+                      className="p-1 rounded text-gray-600 hover:text-orange-600 dark:text-gray-400"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteInventory(item.id)}
+                      className="p-1 rounded text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* SUB-TAB 3: SAVED PROPOSALS HISTORY */}
       {activeSubTab === 'history' && (
-        <div className="space-y-6">
-          <div className={`p-6 rounded-3xl border shadow-sm space-y-4 ${
-            isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
-          }`}>
-            <h3 className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Saved Client Proposals History
-            </h3>
+        <div className="p-6 rounded-3xl border shadow-xs space-y-6 bg-white dark:bg-[#111928] border-gray-200 dark:border-slate-800">
+          <div className="border-b border-gray-100 dark:border-slate-800 pb-4">
+            <h2 className="text-base font-extrabold text-gray-900 dark:text-white">Saved Proposals History</h2>
+            <p className="text-xs text-gray-500">View and reload previously generated client proposals</p>
+          </div>
 
+          <div className="space-y-3">
             {savedProposals.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl">
-                <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-xs font-bold">No saved proposals yet.</p>
-                <p className="text-[11px] text-gray-400 mt-1">Generate a proposal and click "Save to History".</p>
+              <div className="py-12 text-center text-xs text-gray-400">
+                No saved proposals yet. Generate and save a proposal to see it here.
               </div>
             ) : (
-              <div className="space-y-3">
-                {savedProposals.map(prop => (
-                  <div key={prop.id} className={`p-5 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                    isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-gray-200'
-                  }`}>
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-600 text-[10px] font-black uppercase">
-                          {prop.currency} {Number(prop.totalPrice).toLocaleString()}
-                        </span>
-                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">
-                          {prop.proposalTitle}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Guest: <strong className="text-gray-700 dark:text-gray-300">{prop.guestName}</strong> ({prop.paxCount} pax, {prop.durationDays} days) | Email: {prop.email || 'N/A'}
-                      </p>
-                    </div>
+              savedProposals.map((p) => (
+                <div
+                  key={`prop-hist-${p.id}`}
+                  className="p-4 rounded-2xl border border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-bold text-gray-900 dark:text-white truncate">{p.proposalTitle}</h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Guest: <span className="font-bold text-gray-700 dark:text-gray-300">{p.guestName}</span> • {p.paxCount} Pax • {p.durationDays} Days
+                    </p>
+                  </div>
 
+                  <div className="flex items-center space-x-3 shrink-0">
+                    <span className="text-xs font-black text-orange-600 dark:text-orange-400">
+                      {p.currency} {Number(p.totalPrice).toLocaleString()}
+                    </span>
                     <button
                       onClick={() => {
-                        setGeneratedProposal(prop);
+                        setGeneratedProposal(p);
                         setActiveSubTab('create');
+                        setPreviewViewMode('document');
                       }}
-                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition-all self-start md:self-auto cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 cursor-pointer"
                     >
-                      View & Print Proposal
+                      Load & View
                     </button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
         </div>
       )}
 
-      {/* EDIT/CREATE INVENTORY MODAL */}
+      {/* Inventory Item Create/Edit Modal */}
       {isInventoryModalOpen && editingInventoryItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsInventoryModalOpen(false)} />
-          <div className={`relative w-full max-w-lg rounded-3xl border shadow-2xl p-6 space-y-5 my-8 ${
-            isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
-          }`}>
-            <div className="flex items-center justify-between border-b border-gray-200/20 pb-3">
-              <h3 className="text-base font-black">
-                {editingInventoryItem.id ? 'Edit Inventory Item' : 'Add New Inventory Item'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-extrabold text-gray-900 dark:text-white">
+                {editingInventoryItem.id ? 'Edit Inventory Item' : 'New Inventory Item'}
               </h3>
               <button onClick={() => setIsInventoryModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-3">
               <div>
-                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Item Name *</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Item Name *</label>
                 <input
                   type="text"
-                  placeholder="e.g. Lempuyang Temple Entrance Ticket"
+                  placeholder="e.g. Lempuyang Entrance Ticket"
                   value={editingInventoryItem.name || ''}
                   onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, name: e.target.value })}
-                  className={`w-full px-3.5 py-2.5 font-bold rounded-xl border focus:outline-none ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                  }`}
+                  className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Category / Type</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Type Category</label>
                   <select
                     value={editingInventoryItem.type || 'Ticket'}
                     onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, type: e.target.value })}
-                    className={`w-full px-3 py-2.5 font-semibold rounded-xl border focus:outline-none cursor-pointer ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                    }`}
+                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                   >
                     <option value="Ticket">Ticket</option>
                     <option value="Transport">Transport</option>
@@ -1345,13 +1974,11 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Unit / Pricing Type</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Price Unit</label>
                   <select
                     value={editingInventoryItem.priceType || 'Per person'}
                     onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, priceType: e.target.value })}
-                    className={`w-full px-3 py-2.5 font-semibold rounded-xl border focus:outline-none cursor-pointer ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                    }`}
+                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                   >
                     <option value="Per person">Per person</option>
                     <option value="Per car">Per car</option>
@@ -1363,37 +1990,33 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Base Price Cost ({currency}) *</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Base Price (IDR) *</label>
                 <input
                   type="number"
                   placeholder="100000"
                   value={editingInventoryItem.price || ''}
-                  onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, price: Number(e.target.value) })}
-                  className={`w-full px-3.5 py-2.5 font-black text-orange-600 dark:text-orange-400 rounded-xl border focus:outline-none ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'
-                  }`}
+                  onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, price: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Description / Inclusions (Optional)</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Description</label>
                 <textarea
                   rows={2}
-                  placeholder="Brief description for AI context..."
+                  placeholder="Additional logistics notes..."
                   value={editingInventoryItem.description || ''}
                   onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, description: e.target.value })}
-                  className={`w-full px-3.5 py-2 font-medium rounded-xl border focus:outline-none ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                  }`}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 border-t border-gray-200/20 pt-4">
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-gray-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsInventoryModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
@@ -1401,9 +2024,10 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 type="button"
                 onClick={handleSaveInventoryItem}
                 disabled={isSavingInventory}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-md transition-all flex items-center space-x-1 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 flex items-center space-x-1 cursor-pointer"
               >
-                {isSavingInventory ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Save Inventory</span>}
+                {isSavingInventory ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Save Item</span>
               </button>
             </div>
           </div>
