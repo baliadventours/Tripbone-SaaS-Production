@@ -207,6 +207,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [loadingInventory, setLoadingInventory] = useState(true);
   const [inventorySearch, setInventorySearch] = useState('');
   const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('all');
+  const [inventorySortMethod, setInventorySortMethod] = useState<'default' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'type'>('default');
 
   // Inventory Modal state
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
@@ -448,17 +449,43 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     };
   }, []);
 
-  // Filtered inventory list
+  // Filtered and sorted inventory list
   const filteredInventory = useMemo(() => {
-    return (inventoryList || []).filter(item => {
+    const filtered = (inventoryList || []).filter(item => {
       if (!item) return false;
       const typeStr = (item.type || 'Extra').toLowerCase();
+      const catKey = getCategoryKey(item.type).toLowerCase();
       const nameStr = (item.name || '').toLowerCase();
-      const matchesCategory = inventoryCategoryFilter === 'all' || typeStr === inventoryCategoryFilter.toLowerCase();
-      const matchesSearch = !inventorySearch || nameStr.includes(inventorySearch.toLowerCase());
+      const descStr = (item.description || '').toLowerCase();
+      
+      const matchesCategory = inventoryCategoryFilter === 'all' || 
+        typeStr === inventoryCategoryFilter.toLowerCase() || 
+        catKey === inventoryCategoryFilter.toLowerCase();
+      
+      const searchLower = inventorySearch.toLowerCase().trim();
+      const matchesSearch = !searchLower || nameStr.includes(searchLower) || descStr.includes(searchLower) || typeStr.includes(searchLower);
       return matchesCategory && matchesSearch;
     });
-  }, [inventoryList, inventoryCategoryFilter, inventorySearch]);
+
+    return [...filtered].sort((a, b) => {
+      if (inventorySortMethod === 'name-asc') {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      if (inventorySortMethod === 'name-desc') {
+        return (b.name || '').localeCompare(a.name || '');
+      }
+      if (inventorySortMethod === 'price-asc') {
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
+      }
+      if (inventorySortMethod === 'price-desc') {
+        return (Number(b.price) || 0) - (Number(a.price) || 0);
+      }
+      if (inventorySortMethod === 'type') {
+        return (a.type || '').localeCompare(b.type || '');
+      }
+      return 0; // default category grouping
+    });
+  }, [inventoryList, inventoryCategoryFilter, inventorySearch, inventorySortMethod]);
 
   // Calculations
   const baseSubtotal = useMemo(() => {
@@ -2376,26 +2403,76 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   )}
                 </div>
 
-                {/* Sub-tab 1: Categorized Inventory Catalog with Expand & Collapse Boxes */}
+                {/* Sub-tab 1: Categorized Inventory Catalog with Expand & Collapse Boxes & Sorting controls */}
                 {catalogSubTab === 'inventory' && (
                   <div className="space-y-3">
-                    {/* Search & Global Expand/Collapse controls */}
+                    {/* Search & Sorting & Category Filter Controls */}
                     <div className="space-y-2">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search inventory across categories..."
-                          value={inventorySearch}
-                          onChange={(e) => setInventorySearch(e.target.value)}
-                          className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
-                            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Search Input */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search inventory..."
+                            value={inventorySearch}
+                            onChange={(e) => setInventorySearch(e.target.value)}
+                            className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border ${
+                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Sort Selector Dropdown */}
+                        <div className="relative">
+                          <select
+                            value={inventorySortMethod}
+                            onChange={(e) => setInventorySortMethod(e.target.value as any)}
+                            className={`w-full px-3 py-1.5 text-xs rounded-xl border cursor-pointer font-medium ${
+                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                            }`}
+                          >
+                            <option value="default">Sort: Default (Category)</option>
+                            <option value="name-asc">Sort: Name (A to Z)</option>
+                            <option value="name-desc">Sort: Name (Z to A)</option>
+                            <option value="price-asc">Sort: Price (Low to High)</option>
+                            <option value="price-desc">Sort: Price (High to Low)</option>
+                            <option value="type">Sort: Type / Category</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Category Filter Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] scrollbar-none">
+                        <button
+                          type="button"
+                          onClick={() => setInventoryCategoryFilter('all')}
+                          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold cursor-pointer whitespace-nowrap transition-all ${
+                            inventoryCategoryFilter === 'all'
+                              ? 'bg-orange-600 text-white shadow-xs'
+                              : isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
-                        />
+                        >
+                          All ({inventoryList.length})
+                        </button>
+                        {CATEGORY_SECTIONS.map(cat => (
+                          <button
+                            key={`cat-pill-${cat.id}`}
+                            type="button"
+                            onClick={() => setInventoryCategoryFilter(cat.id)}
+                            className={`px-2 py-0.5 rounded-xl text-[10px] font-bold cursor-pointer whitespace-nowrap transition-all ${
+                              inventoryCategoryFilter === cat.id
+                                ? 'bg-orange-600 text-white shadow-xs'
+                                : isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5">
-                        <span>Categorized Inventory ({inventoryList.length})</span>
+                        <span>Showing {filteredInventory.length} of {inventoryList.length} Items</span>
                         <div className="flex items-center space-x-2">
                           <button
                             type="button"
@@ -2473,9 +2550,9 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                                       }`}
                                     >
                                       <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-center space-x-2 min-w-0">
+                                        <div className="flex items-center space-x-2 min-w-0 flex-1">
                                           <GripVertical className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                          <div className="min-w-0">
+                                          <div className="min-w-0 flex-1">
                                             <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                                               {item.name}
                                             </p>
@@ -2488,6 +2565,26 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                                               </span>
                                             </div>
                                           </div>
+                                        </div>
+
+                                        {/* Edit & Delete Action Buttons */}
+                                        <div className="flex items-center space-x-1 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleEditInventory(item); }}
+                                            className="p-1 rounded text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                                            title="Edit Item"
+                                          >
+                                            <Pencil className="w-3 h-3" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteInventory(item.id); }}
+                                            className="p-1 rounded text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                                            title="Delete Item"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
                                         </div>
                                       </div>
 
