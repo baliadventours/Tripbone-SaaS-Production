@@ -988,23 +988,49 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     if (!generatedProposal) return;
     const p = generatedProposal;
 
-    let text = `✨ *OFFICIAL TOUR PROPOSAL* ✨\n\n`;
-    text += `Dear *${p.guestName}*,\n${p.welcomeMessage}\n\n`;
-    text += `📌 *Trip Summary:*\n`;
-    text += `• Pax: ${p.paxCount} Person(s)\n`;
-    text += `• Duration: ${p.durationDays} Day(s)\n`;
-    text += `• Nationality: ${p.nationality || 'International'}\n\n`;
+    let text = `✨ *${p.proposalTitle}* ✨\n\n`;
+    text += `${p.welcomeMessage}\n\n`;
 
-    text += `🗓️ *ITINERARY HIGHLIGHTS:*\n`;
+    text += `📌 *Day by day Itinerary:*\n`;
     p.itineraryNarrative.forEach(day => {
-      text += `*Day ${day.dayNumber}: ${day.title}*\n${day.summary}\n`;
+      const dayLogistics = p.selectedItems.filter(i => i.day === day.dayNumber);
+      const dayItineraryItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'itinerary');
+      const dayTransportItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'transport');
+      const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'accommodation');
+      const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'food');
+
+      const dayInclusionsList = [
+        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'inclusion').map(i => i.name),
+        ...(p.dayInclusions?.[day.dayNumber] || [])
+      ];
+
+      const dayExclusionsList = [
+        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'exclusion').map(i => i.name),
+        ...(p.dayExclusions?.[day.dayNumber] || [])
+      ];
+
+      text += `\n*Day ${toRoman(day.dayNumber)}: ${day.title}*\n`;
+      if (day.summary) {
+        text += `${day.summary}\n`;
+      }
+
+      text += `Itinerary:\n` + (dayItineraryItems.length > 0 ? dayItineraryItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Transportation Option:\n` + (dayTransportItems.length > 0 ? dayTransportItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Accommodation:\n` + (dayAccommodationItems.length > 0 ? dayAccommodationItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Dining:\n` + (dayDiningItems.length > 0 ? dayDiningItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Inclusion:\n` + (dayInclusionsList.length > 0 ? dayInclusionsList.map(i => `- ${i}`).join('\n') : `-`) + `\n`;
+      text += `Exclusion:\n` + (dayExclusionsList.length > 0 ? dayExclusionsList.map(i => `- ${i}`).join('\n') : `-`) + `\n`;
     });
 
-    text += `\n✅ *INCLUSIONS:*\n` + p.inclusions.map(i => `• ${i}`).join('\n') + `\n`;
-    text += `\n❌ *EXCLUSIONS:*\n` + p.exclusions.map(i => `• ${i}`).join('\n') + `\n`;
+    text += `\n*What is included:*\n` + p.inclusions.map(i => `- ${i}`).join('\n') + `\n`;
+    text += `\n*What's not included:*\n` + p.exclusions.map(i => `- ${i}`).join('\n') + `\n`;
 
-    text += `\n💰 *Total Investment:* ${p.currency} ${Number(p.totalPrice).toLocaleString()} (All-Inclusive)\n\n`;
-    text += `Contact *${companyName}* (${companyPhone} | ${companyEmail}) to lock your dates! 🌴`;
+    if (p.termsAndConditions && p.termsAndConditions.length > 0) {
+      text += `\n*Terms & Conditions:*\n` + p.termsAndConditions.map(t => `- ${t}`).join('\n') + `\n`;
+    }
+
+    text += `\n💰 *Total Package Investment:* ${p.currency} ${Number(p.totalPrice).toLocaleString()}\n`;
+    text += `Contact *${companyName}* (${companyPhone} | ${companyEmail}) to book! 🌴`;
 
     navigator.clipboard.writeText(text);
     setCopySuccess(true);
@@ -2958,6 +2984,21 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       const dayLogistics = generatedProposal.selectedItems.filter(i => i.day === day.dayNumber);
                       const isDocCollapsed = !!collapsedDocDays[day.dayNumber];
 
+                      const dayItineraryItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'itinerary');
+                      const dayTransportItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'transport');
+                      const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'accommodation');
+                      const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'food');
+
+                      const dayInclusionsList = [
+                        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'inclusion').map(i => i.name),
+                        ...(generatedProposal.dayInclusions?.[day.dayNumber] || [])
+                      ];
+
+                      const dayExclusionsList = [
+                        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'exclusion').map(i => i.name),
+                        ...(generatedProposal.dayExclusions?.[day.dayNumber] || [])
+                      ];
+
                       return (
                         <div key={`doc-day-${day.dayNumber}`} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4 print-page-break">
                           {/* Day Header & AI Generated Narrative Description */}
@@ -2965,7 +3006,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                             <div className="space-y-1.5 min-w-0 flex-1">
                               <div className="flex items-center space-x-2.5">
                                 <span className="px-3 py-1 rounded-xl bg-orange-600 text-white font-black text-xs uppercase tracking-wider">
-                                  Day {day.dayNumber}
+                                  Day {toRoman(day.dayNumber)}
                                 </span>
                                 <h4 className="text-base font-black text-slate-900 truncate">{day.title}</h4>
                               </div>
@@ -2985,86 +3026,145 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                             </button>
                           </div>
 
-                          {/* Collapsible Day Body */}
-                          <div className={isDocCollapsed ? "hidden print:block space-y-4" : "space-y-4"}>
-                            {/* Itinerary (Dragged & Dropped from Inventory Manager) */}
-                            <div className="space-y-2">
-                              <div className="flex items-center space-x-2">
-                                <Compass className="w-3.5 h-3.5 text-orange-500" />
-                                <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                                  Itinerary
-                                </span>
-                              </div>
-                              {dayLogistics.length > 0 ? (
-                                <div className="space-y-2.5 pl-3 border-l-2 border-orange-500/80">
-                                  {dayLogistics.map((item, lIdx) => (
-                                    <div key={`doc-item-${lIdx}`} className="py-0.5">
-                                      <div className="flex items-center space-x-2">
-                                        <span className="text-xs font-bold text-slate-900">{item.name}</span>
-                                        {item.quantity > 1 && (
-                                          <span className="text-[10px] font-bold text-slate-500 px-1.5 py-0.2 rounded bg-slate-100">
-                                            ({item.quantity}x)
-                                          </span>
+                          {/* Collapsible Categorized Day Body */}
+                          <div className={isDocCollapsed ? "hidden print:block space-y-3.5" : "space-y-3.5"}>
+                            {/* 1. Itinerary */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-orange-600 flex items-center space-x-1.5">
+                                <Compass className="w-3.5 h-3.5" />
+                                <span>Itinerary:</span>
+                              </span>
+                              {dayItineraryItems.length > 0 ? (
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
+                                  {dayItineraryItems.map((item, lIdx) => (
+                                    <li key={`day-it-item-${lIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-orange-500 font-bold">•</span>
+                                      <div>
+                                        <span className="font-bold">{item.name}</span>
+                                        {item.description && (
+                                          <p className="text-[11px] text-slate-500 font-normal leading-tight">{item.description}</p>
                                         )}
                                       </div>
-                                      <p className="text-[11px] text-slate-600 font-normal mt-0.5 leading-snug">
-                                        {item.description || getItemDescription(item)}
-                                      </p>
-                                    </div>
+                                    </li>
                                   ))}
-                                </div>
+                                </ul>
                               ) : (
-                                <p className="text-[11px] text-slate-400 italic pl-3">Leisure day / flexible self-guided exploration.</p>
+                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
                               )}
                             </div>
 
-                            {/* Inclusion & Exclusion Section for Day */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                              {/* Day Inclusion */}
-                              <div className="space-y-1">
-                                <div className="flex items-center space-x-1.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
-                                    Included Logistics & Items
-                                  </span>
-                                </div>
-                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
-                                  {dayLogistics.map((item, lIdx) => (
-                                    <li key={`day-inc-item-${lIdx}`} className="flex items-start space-x-1.5">
-                                      <span className="text-emerald-600 font-bold text-xs">✓</span>
-                                      <span className="text-xs text-slate-800 font-bold">{item.name}</span>
+                            {/* 2. Transportation Option */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 flex items-center space-x-1.5">
+                                <Car className="w-3.5 h-3.5" />
+                                <span>Transportation Option:</span>
+                              </span>
+                              {dayTransportItems.length > 0 ? (
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
+                                  {dayTransportItems.map((item, lIdx) => (
+                                    <li key={`day-tr-item-${lIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-blue-500 font-bold">•</span>
+                                      <div>
+                                        <span className="font-bold">{item.name}</span>
+                                        {item.description && (
+                                          <p className="text-[11px] text-slate-500 font-normal leading-tight">{item.description}</p>
+                                        )}
+                                      </div>
                                     </li>
                                   ))}
-                                  {(generatedProposal.dayInclusions?.[day.dayNumber] || []).map((inc, iIdx) => (
-                                    <li key={`day-custom-inc-${iIdx}`} className="flex items-start space-x-1.5">
-                                      <span className="text-emerald-600 font-bold text-xs">✓</span>
-                                      <span className="text-xs text-slate-700">{inc}</span>
-                                    </li>
-                                  ))}
-                                  {dayLogistics.length === 0 && (!generatedProposal.dayInclusions?.[day.dayNumber] || generatedProposal.dayInclusions[day.dayNumber].length === 0) && (
-                                    <li className="text-[11px] text-slate-400 italic">As specified in global package inclusions</li>
-                                  )}
                                 </ul>
-                              </div>
+                              ) : (
+                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
+                              )}
+                            </div>
 
-                              {/* Day Exclusion */}
-                              {(generatedProposal.dayExclusions?.[day.dayNumber] && generatedProposal.dayExclusions[day.dayNumber].length > 0) && (
-                                <div className="space-y-1">
-                                  <div className="flex items-center space-x-1.5">
-                                    <X className="w-3.5 h-3.5 text-rose-600" />
-                                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
-                                      Day Exclusions
-                                    </span>
-                                  </div>
-                                  <ul className="space-y-1 pl-2 text-xs font-medium text-slate-700">
-                                    {generatedProposal.dayExclusions[day.dayNumber].map((exc, eIdx) => (
-                                      <li key={`day-custom-exc-${eIdx}`} className="flex items-start space-x-1.5">
-                                        <span className="text-rose-600 font-bold text-xs">✕</span>
-                                        <span className="text-xs text-slate-700">{exc}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
+                            {/* 3. Accommodation */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-purple-600 flex items-center space-x-1.5">
+                                <Hotel className="w-3.5 h-3.5" />
+                                <span>Accommodation:</span>
+                              </span>
+                              {dayAccommodationItems.length > 0 ? (
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
+                                  {dayAccommodationItems.map((item, lIdx) => (
+                                    <li key={`day-ac-item-${lIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-purple-500 font-bold">•</span>
+                                      <div>
+                                        <span className="font-bold">{item.name}</span>
+                                        {item.description && (
+                                          <p className="text-[11px] text-slate-500 font-normal leading-tight">{item.description}</p>
+                                        )}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
+                              )}
+                            </div>
+
+                            {/* 4. Dining */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 flex items-center space-x-1.5">
+                                <Utensils className="w-3.5 h-3.5" />
+                                <span>Dining:</span>
+                              </span>
+                              {dayDiningItems.length > 0 ? (
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
+                                  {dayDiningItems.map((item, lIdx) => (
+                                    <li key={`day-fd-item-${lIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-amber-500 font-bold">•</span>
+                                      <div>
+                                        <span className="font-bold">{item.name}</span>
+                                        {item.description && (
+                                          <p className="text-[11px] text-slate-500 font-normal leading-tight">{item.description}</p>
+                                        )}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
+                              )}
+                            </div>
+
+                            {/* 5. Inclusion */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 flex items-center space-x-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Inclusion:</span>
+                              </span>
+                              {dayInclusionsList.length > 0 ? (
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
+                                  {dayInclusionsList.map((inc, iIdx) => (
+                                    <li key={`day-inc-${iIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-emerald-600 font-bold">•</span>
+                                      <span>{inc}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
+                              )}
+                            </div>
+
+                            {/* 6. Exclusion */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-rose-600 flex items-center space-x-1.5">
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>Exclusion:</span>
+                              </span>
+                              {dayExclusionsList.length > 0 ? (
+                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
+                                  {dayExclusionsList.map((exc, eIdx) => (
+                                    <li key={`day-exc-${eIdx}`} className="flex items-start space-x-1.5">
+                                      <span className="text-rose-600 font-bold">•</span>
+                                      <span>{exc}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
                               )}
                             </div>
                           </div>
@@ -3074,17 +3174,17 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   </div>
                 </div>
 
-                {/* Inclusions & Exclusions Side-by-Side Grid */}
+                {/* What is included & What's not included Side-by-Side Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-8 print-page-break">
                   <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-3">
                     <h4 className="text-xs font-black uppercase tracking-wider text-emerald-800 flex items-center space-x-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Package Inclusions</span>
+                      <span>What is included:</span>
                     </h4>
                     <ul className="space-y-1.5 text-xs font-medium text-slate-700">
                       {generatedProposal.inclusions.map((inc, i) => (
                         <li key={`doc-inc-${i}`} className="flex items-start space-x-2">
-                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span className="text-emerald-600 font-bold">•</span>
                           <span>{inc}</span>
                         </li>
                       ))}
@@ -3093,13 +3193,13 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
                   <div className="p-5 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-3">
                     <h4 className="text-xs font-black uppercase tracking-wider text-rose-800 flex items-center space-x-2">
-                      <X className="w-4 h-4 text-rose-600" />
-                      <span>Package Exclusions</span>
+                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <span>What's not included:</span>
                     </h4>
                     <ul className="space-y-1.5 text-xs font-medium text-slate-700">
                       {generatedProposal.exclusions.map((exc, i) => (
                         <li key={`doc-exc-${i}`} className="flex items-start space-x-2">
-                          <span className="text-rose-600 font-bold">✕</span>
+                          <span className="text-rose-600 font-bold">•</span>
                           <span>{exc}</span>
                         </li>
                       ))}
