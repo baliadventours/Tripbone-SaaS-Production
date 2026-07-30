@@ -13060,7 +13060,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           )}
           {activeMenu === 'ai-hub' && (
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-               <ProposalGenerator isDarkMode={isDarkMode} tenantId={currentTenant?.id} />
+               <ProposalGenerator tenantId={tenant?.id} />
             </div>
           )}
           {(['users', 'users-admins', 'users-suppliers', 'users-agents', 'users-customers'] as MenuId[]).includes(activeMenu) && (
