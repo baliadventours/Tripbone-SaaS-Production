@@ -1025,99 +1025,204 @@ export default function WebsiteBuilder() {
 
       {activeTab === 'menus' && (
         <div className="space-y-6 max-w-4xl">
-          <div className="p-6 bg-blue-50 text-blue-800 rounded-2xl flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 shrink-0 text-blue-600 mt-1" />
-            <div>
-              <h3 className="font-bold text-lg">Menu Management</h3>
-              <p className="text-sm opacity-90 mt-1">Create menus here, then assign them to specific locations (Top Nav, Main Nav, Footers) in the Page Builder tab.</p>
+          <div className="p-6 bg-blue-50 text-blue-800 rounded-2xl flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 shrink-0 text-blue-600 mt-1" />
+              <div>
+                <h3 className="font-bold text-lg">Menu & Navigation Management</h3>
+                <p className="text-sm opacity-90 mt-1">Customize all header and footer menu titles and links. Assign each menu to a display location (Main Navigation, Top Bar, or Footer Columns).</p>
+              </div>
             </div>
+            <button
+              onClick={() => {
+                const defaultMenus: CustomMenu[] = [
+                  {
+                    id: `menu_main_${Date.now()}`,
+                    name: 'Main Header Navigation',
+                    location: 'main-nav',
+                    links: [
+                      { label: 'Home', url: '/' },
+                      { label: 'Tours', url: '/tours' },
+                      { label: 'AI Planner', url: '/planner' },
+                      { label: 'Blog', url: '/blog' },
+                      { label: 'About', url: '/about' },
+                      { label: 'Contact', url: '/contact' }
+                    ]
+                  },
+                  {
+                    id: `menu_f1_${Date.now()}`,
+                    name: 'Destinations',
+                    location: 'footer-1',
+                    links: [
+                      { label: 'All Tours & Journeys', url: '/tours' },
+                      { label: 'Explore Regions & Villages', url: '/destinations' }
+                    ]
+                  },
+                  {
+                    id: `menu_f2_${Date.now()}`,
+                    name: 'Customer Support',
+                    location: 'footer-2',
+                    links: [
+                      { label: 'Help & Contact Center', url: '/contact' },
+                      { label: 'Track My Booking', url: '/track-booking' },
+                      { label: 'Smart Travel Advisory & FAQ', url: '/ai-hub' }
+                    ]
+                  },
+                  {
+                    id: `menu_f3_${Date.now()}`,
+                    name: 'Company',
+                    location: 'footer-3',
+                    links: [
+                      { label: 'Our Story & Philosophy', url: '/about' },
+                      { label: 'Travel Blog & Journals', url: '/blog' },
+                      { label: 'AI Planner', url: '/planner' }
+                    ]
+                  }
+                ];
+                if (settings) {
+                  setSettings({ ...settings, menus: defaultMenus });
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs whitespace-nowrap shadow-sm transition"
+            >
+              Load Default Menus
+            </button>
           </div>
           
-          <button 
-            onClick={() => {
-              const newMenu: CustomMenu = { id: `menu_${Date.now()}`, name: 'New Custom Menu', location: 'none', links: [] };
-              if (settings) setSettings({ ...settings, menus: [...settings.menus, newMenu] });
-            }}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg text-sm transition flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Create New Menu
-          </button>
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => {
+                const newMenu: CustomMenu = { id: `menu_${Date.now()}`, name: 'New Menu', location: 'none', links: [] };
+                if (settings) setSettings({ ...settings, menus: [...settings.menus, newMenu] });
+              }}
+              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Add Custom Menu
+            </button>
+            <span className="text-xs font-semibold text-gray-500">
+              {settings?.menus?.length || 0} Menus Configured
+            </span>
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {settings?.menus.map(menu => (
-              <div key={menu.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <input
-                    type="text"
-                    value={menu.name}
-                    onChange={(e) => {
-                      const updated = settings.menus.map(m => m.id === menu.id ? { ...m, name: e.target.value } : m);
-                      setSettings({ ...settings, menus: updated });
-                    }}
-                    className="text-xl font-black bg-transparent border-none outline-none border-b-2 border-transparent focus:border-primary px-0 py-1"
-                    placeholder="Menu Name"
-                  />
+              <div key={menu.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1">Menu Title</label>
+                    <input
+                      type="text"
+                      value={menu.name}
+                      onChange={(e) => {
+                        const updated = settings.menus.map(m => m.id === menu.id ? { ...m, name: e.target.value } : m);
+                        setSettings({ ...settings, menus: updated });
+                      }}
+                      className="text-lg font-black bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 w-full focus:bg-white focus:border-primary outline-none transition-all"
+                      placeholder="e.g. Header Navigation or Destinations"
+                    />
+                  </div>
+
+                  <div className="w-full sm:w-64">
+                    <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mb-1">Display Location</label>
+                    <select
+                      value={menu.location || 'none'}
+                      onChange={(e) => {
+                        const updated = settings.menus.map(m => m.id === menu.id ? { ...m, location: e.target.value as any } : m);
+                        setSettings({ ...settings, menus: updated });
+                      }}
+                      className="bg-gray-50 border border-gray-200 text-gray-800 font-bold text-xs rounded-xl px-3 py-2 w-full focus:bg-white focus:border-primary outline-none transition-all"
+                    >
+                      <option value="main-nav">Main Navigation (Header)</option>
+                      <option value="top-nav">Top Bar (Header)</option>
+                      <option value="footer-1">Footer Column 1</option>
+                      <option value="footer-2">Footer Column 2</option>
+                      <option value="footer-3">Footer Column 3</option>
+                      <option value="footer-bottom">Footer Bottom Links</option>
+                      <option value="none">Unassigned / Custom Block</option>
+                    </select>
+                  </div>
+
                   <button 
                     onClick={() => {
-                      if(confirm('Delete this menu?')) {
+                      if(confirm(`Delete menu "${menu.name}"?`)) {
                         setSettings({ ...settings, menus: settings.menus.filter(m => m.id !== menu.id) });
                       }
                     }}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition self-end sm:self-center"
+                    title="Delete Menu"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
                 
-                <div className="space-y-2 mb-4">
-                  <label className="block text-xs font-bold text-gray-700 uppercase">Links</label>
-                  {menu.links.map((link, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <input 
-                        type="text" 
-                        value={link.label}
-                        onChange={(e) => {
-                          const newLinks = [...menu.links];
-                          newLinks[idx].label = e.target.value;
-                          const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
-                          setSettings({ ...settings, menus: updated });
-                        }}
-                        className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder="Link Label (e.g. About Us)" 
-                      />
-                      <input 
-                        type="text" 
-                        value={link.url}
-                        onChange={(e) => {
-                          const newLinks = [...menu.links];
-                          newLinks[idx].url = e.target.value;
-                          const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
-                          setSettings({ ...settings, menus: updated });
-                        }}
-                        className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder="URL (e.g. /about)" 
-                      />
-                      <button onClick={() => {
-                        const newLinks = menu.links.filter((_, i) => i !== idx);
+                <div className="space-y-3 pt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Menu Links ({menu.links.length})</label>
+                    <button 
+                      onClick={() => {
+                        const newLinks = [...menu.links, { label: 'New Link', url: '/' }];
                         const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
                         setSettings({ ...settings, menus: updated });
-                      }} className="p-2 text-gray-400 hover:text-red-500 transition"><X className="w-4 h-4" /></button>
+                      }}
+                      className="text-primary font-bold text-xs hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Link Item
+                    </button>
+                  </div>
+
+                  {menu.links.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-xs text-gray-400">
+                      No links added yet. Click "+ Add Link Item" above.
                     </div>
-                  ))}
-                  <button 
-                    onClick={() => {
-                      const newLinks = [...menu.links, { label: '', url: '' }];
-                      const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
-                      setSettings({ ...settings, menus: updated });
-                    }}
-                    className="text-primary font-bold text-sm hover:underline mt-2 flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Add Link
-                  </button>
+                  ) : (
+                    <div className="space-y-2">
+                      {menu.links.map((link, idx) => (
+                        <div key={idx} className="flex gap-2 items-center bg-gray-50/70 p-2 rounded-xl border border-gray-100">
+                          <input 
+                            type="text" 
+                            value={link.label}
+                            onChange={(e) => {
+                              const newLinks = [...menu.links];
+                              newLinks[idx].label = e.target.value;
+                              const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
+                              setSettings({ ...settings, menus: updated });
+                            }}
+                            className="flex-1 p-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold" 
+                            placeholder="Label (e.g. AI Planner)" 
+                          />
+                          <input 
+                            type="text" 
+                            value={link.url}
+                            onChange={(e) => {
+                              const newLinks = [...menu.links];
+                              newLinks[idx].url = e.target.value;
+                              const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
+                              setSettings({ ...settings, menus: updated });
+                            }}
+                            className="flex-1 p-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold" 
+                            placeholder="URL (e.g. /planner)" 
+                          />
+                          <button 
+                            onClick={() => {
+                              const newLinks = menu.links.filter((_, i) => i !== idx);
+                              const updated = settings.menus.map(m => m.id === menu.id ? { ...m, links: newLinks } : m);
+                              setSettings({ ...settings, menus: updated });
+                            }} 
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             {settings?.menus.length === 0 && (
-              <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
-                No custom menus created yet.
+              <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                <p className="font-bold text-gray-600 mb-1">No custom menus created yet</p>
+                <p className="text-xs text-gray-400 mb-4">Click "Load Default Menus" above to quickly edit default Header & Footer menu titles.</p>
               </div>
             )}
           </div>

@@ -37,6 +37,16 @@ export default function Header() {
         return menu.links;
       }
     }
+    // Also check location matching if menuId not explicitly assigned on block
+    if (builderSettings?.menus && builderSettings.menus.length > 0) {
+      const locTarget = blockId === 'mainNav' ? 'main-nav' : (blockId === 'topNav' ? 'top-nav' : null);
+      if (locTarget) {
+        const found = builderSettings.menus.find(m => m.location === locTarget);
+        if (found && found.links && found.links.length > 0) {
+          return found.links;
+        }
+      }
+    }
     return null;
   };
 
@@ -208,7 +218,7 @@ export default function Header() {
                      <Link key={idx} to={link.url} className="px-3 py-1 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-all">{link.label}</Link>
                    ))
                  ) : (
-                   <Link to="/planner" className="px-3 py-1 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-all">Smart Planner</Link>
+                   <Link to="/planner" className="px-3 py-1 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-all">AI Planner</Link>
                  )}
               </div>
             </div>
@@ -427,7 +437,7 @@ export default function Header() {
                   <>
                     <Link to="/" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Index</Link>
                     <Link to="/tours" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "bg-white text-gray-900" : "bg-white text-gray-900 shadow-sm border border-gray-100")}>Expeditions</Link>
-                    <Link to="/planner" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Planner</Link>
+                    <Link to="/planner" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>AI Planner</Link>
                     <Link to="/blog" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>News</Link>
                   </>
                 )}
@@ -624,7 +634,7 @@ export default function Header() {
                   <Link to="/tours" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Tours</Link>
                   <Link to="/planner" className="relative text-sm font-black text-primary hover:text-orange-700 transition-colors flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
-                    Plan Your Trip
+                    AI Planner
                     <span className="absolute -top-3 -right-6 bg-orange-500 text-[8px] text-white px-1.5 py-0.5 rounded-full animate-pulse uppercase tracking-widest">New</span>
                   </Link>
                   <Link to="/blog" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Blog</Link>

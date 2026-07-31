@@ -23,13 +23,48 @@ export default function Footer() {
     return null;
   };
 
+  const getFooterColumnMenus = () => {
+    if (!builderSettings?.menus || builderSettings.menus.length === 0) return null;
+    const f1 = builderSettings.menus.find(m => m.location === 'footer-1');
+    const f2 = builderSettings.menus.find(m => m.location === 'footer-2');
+    const f3 = builderSettings.menus.find(m => m.location === 'footer-3');
+    if (f1 || f2 || f3) {
+      return [f1, f2, f3].filter(Boolean);
+    }
+    return null;
+  };
+
   const footerLinks = getFooterLinks();
+  const columnMenus = getFooterColumnMenus();
 
   const themeMode = settings?.themeMode || 'default';
   // Custom or fallback directly to Airbnb style for cohesive visual alignment with traveler views
   const styleId = themeMode === 'custom' ? (settings?.sectionStyles?.footer || 'airbnb-classic') : 'airbnb-classic';
 
   const renderLinkColumns = () => {
+    if (columnMenus && columnMenus.length > 0) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 pb-12 border-b border-gray-200/50">
+          {columnMenus.map((menu, colIdx) => (
+            <div key={menu?.id || colIdx}>
+              <h3 className="font-extrabold text-xs text-gray-900 mb-4 uppercase tracking-widest">
+                {menu?.name || `Column ${colIdx + 1}`}
+              </h3>
+              <ul className="space-y-4 text-sm font-semibold text-gray-500">
+                {menu?.links.map((link, idx) => (
+                  <li key={idx}>
+                    <Link to={link.url} className="hover:text-primary transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     if (footerLinks) {
       const cols: typeof footerLinks[] = [[], [], []];
       footerLinks.forEach((link, idx) => {
@@ -83,7 +118,7 @@ export default function Footer() {
              <ul className="space-y-4 text-sm font-semibold text-gray-500">
                 <li><Link to="/about" className="hover:text-primary transition-colors">Our Story & Philosophy</Link></li>
                 <li><Link to="/blog" className="hover:text-primary transition-colors">Travel Blog & Journals</Link></li>
-                <li><Link to="/planner" className="hover:text-primary transition-colors">AI Trip Planner</Link></li>
+                <li><Link to="/planner" className="hover:text-primary transition-colors">AI Planner</Link></li>
              </ul>
           </div>
        </div>
