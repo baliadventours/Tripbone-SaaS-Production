@@ -339,8 +339,10 @@ export default function SaaSLayout() {
       {/* Footer */}
       <footer className="bg-slate-950 pt-20 pb-12 text-slate-400 border-t border-slate-800 mt-auto">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-16">
+            
+            {/* Column 1: Brand Info */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-1">
               <div className="flex items-center space-x-2.5 mb-6">
                 {globalBrand?.logoUrl || settings?.logoURL ? (
                   <img src={globalBrand?.logoUrl || settings?.logoURL} alt={globalBrand?.platformName || settings?.siteName || "Tripbone"} className="h-9 max-w-[150px] object-contain" />
@@ -353,10 +355,10 @@ export default function SaaSLayout() {
                   </>
                 )}
               </div>
-              <p className="text-sm leading-relaxed mb-6">
-                The ultimate all-in-one platform for tour operators. Drive sales, automate bookings, and scale your business.
+              <p className="text-xs leading-relaxed mb-6 text-slate-400">
+                Your own booking website. Not a widget. Not complicated. Drive direct sales, automate WhatsApp dispatches, and eliminate booking commissions.
               </p>
-              <div className="text-sm text-slate-300 space-y-2 mt-4">
+              <div className="text-xs text-slate-300 space-y-2 mt-4">
                 <p className="flex items-center gap-2">
                   <span className="font-bold text-white">Support Email:</span>
                   <a href="mailto:support@tripbone.com" className="text-brand hover:underline">support@tripbone.com</a>
@@ -364,53 +366,72 @@ export default function SaaSLayout() {
               </div>
             </div>
             
+            {/* Column 2: Industries */}
             <div>
-              <h4 className="text-white font-bold mb-6">Solutions</h4>
-              <ul className="space-y-4 text-sm">
-                <li><Link to="/industries" className="hover:text-white transition-colors">By Industry</Link></li>
-                <li><Link to="/compare" className="hover:text-white transition-colors">Compare Platforms</Link></li>
-                <li><Link to="/features/design" className="hover:text-white transition-colors">Website Builder</Link></li>
-                <li><Link to="/features/sales" className="hover:text-white transition-colors">Booking Engine</Link></li>
-                <li><Link to="/features/operations" className="hover:text-white transition-colors">Command Center</Link></li>
-                <li><Link to="/features/ai" className="hover:text-white transition-colors">AI Superpowers</Link></li>
+              <h4 className="text-white font-bold text-sm mb-5 tracking-wide uppercase text-slate-200">Industries</h4>
+              <ul className="space-y-3 text-xs">
+                <li><Link to="/industries/day-tours" className="hover:text-white transition-colors">Day Tour Operator</Link></li>
+                <li><Link to="/industries/atv-offroad" className="hover:text-white transition-colors">ATV Operator</Link></li>
+                <li><Link to="/industries/rafting-outdoor" className="hover:text-white transition-colors">Rafting Operator</Link></li>
+                <li><Link to="/industries/boat-charters" className="hover:text-white transition-colors">Boat Charters & Cruises</Link></li>
+                <li><Link to="/industries/food-culinary" className="hover:text-white transition-colors">Food & Culinary Tours</Link></li>
+                <li><Link to="/industries/rentals" className="hover:text-white transition-colors">Equipment Rentals</Link></li>
               </ul>
             </div>
 
+            {/* Column 3: Compare Us */}
             <div>
-              <h4 className="text-white font-bold mb-6">Company</h4>
-              <ul className="space-y-4 text-sm">
+              <h4 className="text-white font-bold text-sm mb-5 tracking-wide uppercase text-slate-200">Compare Us</h4>
+              <ul className="space-y-3 text-xs">
+                <li><Link to="/compare/bokun" className="hover:text-white transition-colors">Tripbone vs Bokun</Link></li>
+                <li><Link to="/compare/fareharbor" className="hover:text-white transition-colors">Tripbone vs FareHarbor</Link></li>
+                <li><Link to="/compare/rezdy" className="hover:text-white transition-colors">Tripbone vs Rezdy</Link></li>
+                <li><Link to="/compare/peek-pro" className="hover:text-white transition-colors">Tripbone vs Peek Pro</Link></li>
+                <li><Link to="/compare/regiondo" className="hover:text-white transition-colors">Tripbone vs Regiondo</Link></li>
+                <li><Link to="/compare/checkfront" className="hover:text-white transition-colors">Tripbone vs Checkfront</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 4: Platform */}
+            <div>
+              <h4 className="text-white font-bold text-sm mb-5 tracking-wide uppercase text-slate-200">Platform & Company</h4>
+              <ul className="space-y-3 text-xs">
+                <li><Link to="/features" className="hover:text-white transition-colors">Platform Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing & Plans</Link></li>
+                <li><Link to="/directory" className="hover:text-white transition-colors">Live Store Demos</Link></li>
                 <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                <li><Link to="/blog" className="hover:text-white transition-colors">Blog / Updates</Link></li>
-                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link to="/blog" className="hover:text-white transition-colors">Blog / Guides</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Support</Link></li>
                 <li><button onClick={handleLoginClick} className="hover:text-white transition-colors">{user ? 'Dashboard' : 'Log In'}</button></li>
               </ul>
             </div>
 
+            {/* Column 5: Legal */}
             <div>
-              <h4 className="text-white font-bold mb-6">Legal</h4>
-              <ul className="space-y-4 text-sm">
+              <h4 className="text-white font-bold text-sm mb-5 tracking-wide uppercase text-slate-200">Legal</h4>
+              <ul className="space-y-3 text-xs">
                 <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
                 <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/cookies" className="hover:text-white transition-colors">Cookie Policy</Link></li>
               </ul>
             </div>
+
           </div>
           
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between">
-            <p className="text-sm">&copy; {new Date().getFullYear()} {globalBrand?.platformName || "Tripbone"}. All rights reserved.</p>
+            <p className="text-xs">&copy; {new Date().getFullYear()} {globalBrand?.platformName || "Tripbone"}. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               {globalBrand?.twitterUrl && (
-                <a href={globalBrand.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Twitter</a>
+                <a href={globalBrand.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-xs hover:text-white transition-colors">Twitter</a>
               )}
               {globalBrand?.linkedinUrl && (
-                <a href={globalBrand.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">LinkedIn</a>
+                <a href={globalBrand.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-xs hover:text-white transition-colors">LinkedIn</a>
               )}
               {globalBrand?.facebookUrl && (
-                <a href={globalBrand.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Facebook</a>
+                <a href={globalBrand.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-xs hover:text-white transition-colors">Facebook</a>
               )}
               {globalBrand?.instagramUrl && (
-                <a href={globalBrand.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">Instagram</a>
+                <a href={globalBrand.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-xs hover:text-white transition-colors">Instagram</a>
               )}
             </div>
           </div>

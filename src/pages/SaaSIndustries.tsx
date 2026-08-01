@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { 
   Bike, Anchor, Utensils, Compass, Key, Mountain, 
   CheckCircle2, ArrowRight, ShieldCheck, Sparkles, Zap, 
-  ChevronRight
+  ChevronRight, ArrowLeft
 } from 'lucide-react';
 import { useSettings } from '../lib/SettingsContext';
 
 interface Industry {
   id: string;
+  slugs: string[];
   name: string;
   badge: string;
   icon: React.ElementType;
@@ -19,75 +20,15 @@ interface Industry {
   keyFeatures: string[];
   painPointsSolved: string[];
   sampleSiteTitle: string;
+  metaTitle: string;
+  metaDesc: string;
 }
 
 const INDUSTRIES_DATA: Industry[] = [
   {
-    id: 'atv-offroad',
-    name: 'ATV & Off-Road Tours',
-    badge: 'Popular for Quad Bike & Buggy Operators',
-    icon: Bike,
-    heroImg: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
-    tagline: 'Streamline waiver signatures, equipment inventory, and muddy trail departure slots.',
-    description: 'Purpose-built for quad bike, buggy, and dirt bike operators. Eliminate front-desk bottlenecks with digital safety waivers, helmet size logging, and automated WhatsApp reminder notifications sent directly to riders.',
-    keyFeatures: [
-      'Digital Safety Waiver & Liability Signatures on mobile',
-      'Engine & Equipment Maintenance logging per departure slot',
-      'WhatsApp automated hotel pickup coordinates & driver details',
-      'Instant group waiver status dashboard at base camp'
-    ],
-    painPointsSolved: [
-      'No more paper waiver clipboards ruining morning departure times',
-      'Prevents double-booking quad bikes during peak morning slots',
-      'Automates driver assignment for hotel transfers'
-    ],
-    sampleSiteTitle: 'Bali ATV Jungle Quad Adventure'
-  },
-  {
-    id: 'boat-charters',
-    name: 'Boat Charters & Cruises',
-    badge: 'Yachts, Catamarans & Snorkeling Boats',
-    icon: Anchor,
-    heroImg: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80',
-    tagline: 'Manage captain manifests, tide-dependent schedules, and private island charters.',
-    description: 'Designed for island hopping, catamaran cruises, and diving charters. Manage passenger manifests for port authority compliance, collect dietary requirements in advance, and handle tide-adjusted departure times with ease.',
-    keyFeatures: [
-      'Official Passenger Manifest generation for port authorities',
-      'Tide & weather-contingent flexible scheduling alerts',
-      'Meal preference & dietary restriction intake during checkout',
-      'Private charter vs shared seat pricing engine'
-    ],
-    painPointsSolved: [
-      'Automates harbor master manifest printing in one click',
-      'Avoids refund chaos during sudden weather cancellations with instant reschedule links',
-      'Seamless add-ons for snorkeling gear and private cabana upgrades'
-    ],
-    sampleSiteTitle: 'Nusa Penida Speedboat & Fast Boat Charters'
-  },
-  {
-    id: 'food-culinary',
-    name: 'Food & Culinary Walking Tours',
-    badge: 'Foodies, Cooking Schools & Market Walks',
-    icon: Utensils,
-    heroImg: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-    tagline: 'Coordinate local vendor stops, dietary intake, and intimate group caps.',
-    description: 'Empower food tour guides, street food walks, and cooking classes. Keep small group sizes capped dynamically, track ingredient costs, and send automatic WhatsApp reminders with meeting point drop-pins.',
-    keyFeatures: [
-      'Dietary requirements & allergy intake (Vegan, Halal, Gluten-Free)',
-      'Vendor headcount notifications via automated WhatsApp alerts',
-      'Strict max-guest limits per guide for intimate group dynamics',
-      'Interactive culinary map & recipe digital downloadable gifts'
-    ],
-    painPointsSolved: [
-      'Prevents last-minute guest dietary surprises at local food stalls',
-      'Notifies street vendors in advance of expected guest counts',
-      'Boosts TripAdvisor & Google reviews automatically after tasting walks'
-    ],
-    sampleSiteTitle: 'Ubud Night Market & Culinary Walking Tour'
-  },
-  {
     id: 'day-tours',
-    name: 'Day Tours & Private Drivers',
+    slugs: ['day-tours', 'day-tour', 'private-driver'],
+    name: 'Day Tour & Private Driver Operators',
     badge: 'Full-Day Sightseeing & Custom Itineraries',
     icon: Compass,
     heroImg: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80',
@@ -104,32 +45,38 @@ const INDUSTRIES_DATA: Industry[] = [
       'Automates driver assignment notifications night before the tour',
       'Tracks cash balances collected by drivers on the ground'
     ],
-    sampleSiteTitle: 'Bali UNESCO Temples & Waterfall Day Tour'
+    sampleSiteTitle: 'Bali UNESCO Temples & Waterfall Day Tour',
+    metaTitle: 'Website Builder & Booking Engine for Day Tour Operators | Tripbone',
+    metaDesc: 'Launch your direct day tour website in 2 minutes. Accept online deposits, automate driver WhatsApp notifications, and eliminate OTA commissions.'
   },
   {
-    id: 'rentals',
-    name: 'Scooter, Bike & Equipment Rentals',
-    badge: 'Motorbikes, E-Bikes & Surf Gear',
-    icon: Key,
-    heroImg: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1200&q=80',
-    tagline: 'Real-time fleet availability, hotel drop-offs, and digital security deposits.',
-    description: 'Streamline your vehicle or gear rental operations. Manage real-time inventory calendars, track driver license uploads, and collect refundable security deposits effortlessly.',
+    id: 'atv-offroad',
+    slugs: ['atv-offroad', 'atv', 'quad-bikes'],
+    name: 'ATV & Quad Bike Operators',
+    badge: 'Popular for Quad Bike & Buggy Operators',
+    icon: Bike,
+    heroImg: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
+    tagline: 'Streamline waiver signatures, equipment inventory, and muddy trail departure slots.',
+    description: 'Purpose-built for quad bike, buggy, and dirt bike operators. Eliminate front-desk bottlenecks with digital safety waivers, helmet size logging, and automated WhatsApp reminder notifications sent directly to riders.',
     keyFeatures: [
-      'Real-time vehicle fleet inventory tracking & conflict prevention',
-      'Passport & Driver License document upload before key handoff',
-      'Hotel delivery vs shop pickup selection at checkout',
-      'Refundable security deposit holds via credit card or cash'
+      'Digital Safety Waiver & Liability Signatures on mobile',
+      'Engine & Equipment Maintenance logging per departure slot',
+      'WhatsApp automated hotel pickup coordinates & driver details',
+      'Instant group waiver status dashboard at base camp'
     ],
     painPointsSolved: [
-      'Stops overbooking motorbikes during peak holiday seasons',
-      'Speeds up check-in with pre-uploaded driving licenses',
-      'Tracks vehicle return dates with automated WhatsApp reminder'
+      'No more paper waiver clipboards ruining morning departure times',
+      'Prevents double-booking quad bikes during peak morning slots',
+      'Automates driver assignment for hotel transfers'
     ],
-    sampleSiteTitle: 'Canggu Scooter & NMAX Rental Fleet'
+    sampleSiteTitle: 'Bali ATV Jungle Quad Adventure',
+    metaTitle: 'Website Builder & Booking System for ATV & Quad Bike Operators | Tripbone',
+    metaDesc: 'Streamline ATV quad bike bookings, digital safety waivers, and hotel pickup logistics. No coding needed.'
   },
   {
-    id: 'outdoor-adventure',
-    name: 'Outdoor & Adventure Parks',
+    id: 'rafting-outdoor',
+    slugs: ['rafting-outdoor', 'rafting', 'outdoor-adventure'],
+    name: 'White Water Rafting & Adventure Operators',
     badge: 'Ziplines, Rafting, Canyoning & Parks',
     icon: Mountain,
     heroImg: 'https://images.unsplash.com/photo-1539367628448-4bc5c9d171c8?auto=format&fit=crop&w=1200&q=80',
@@ -146,21 +93,113 @@ const INDUSTRIES_DATA: Industry[] = [
       'Pre-sizes harnesses, wetsuits, or life jackets before arrival',
       'Maximizes revenue with instant photo package add-on sales'
     ],
-    sampleSiteTitle: 'Ayung River White Water Rafting Center'
+    sampleSiteTitle: 'Ayung River White Water Rafting Center',
+    metaTitle: 'Booking System & Website Builder for Rafting & Adventure Operators | Tripbone',
+    metaDesc: 'Empower white water rafting, zipline, and canyoning operators with digital waivers, timed entry QR tickets, and photo package add-ons.'
+  },
+  {
+    id: 'boat-charters',
+    slugs: ['boat-charters', 'boat', 'cruises'],
+    name: 'Boat Charters & Cruise Operators',
+    badge: 'Yachts, Catamarans & Snorkeling Boats',
+    icon: Anchor,
+    heroImg: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80',
+    tagline: 'Manage captain manifests, tide-dependent schedules, and private island charters.',
+    description: 'Designed for island hopping, catamaran cruises, and diving charters. Manage passenger manifests for port authority compliance, collect dietary requirements in advance, and handle tide-adjusted departure times with ease.',
+    keyFeatures: [
+      'Official Passenger Manifest generation for port authorities',
+      'Tide & weather-contingent flexible scheduling alerts',
+      'Meal preference & dietary restriction intake during checkout',
+      'Private charter vs shared seat pricing engine'
+    ],
+    painPointsSolved: [
+      'Automates harbor master manifest printing in one click',
+      'Avoids refund chaos during sudden weather cancellations with instant reschedule links',
+      'Seamless add-ons for snorkeling gear and private cabana upgrades'
+    ],
+    sampleSiteTitle: 'Nusa Penida Speedboat & Fast Boat Charters',
+    metaTitle: 'Booking System & Website Builder for Boat Charters & Cruises | Tripbone',
+    metaDesc: 'Manage passenger manifests, weather updates, and private boat charter bookings with zero booking fees.'
+  },
+  {
+    id: 'food-culinary',
+    slugs: ['food-culinary', 'food-tours', 'culinary'],
+    name: 'Food & Culinary Walking Tour Operators',
+    badge: 'Foodies, Cooking Schools & Market Walks',
+    icon: Utensils,
+    heroImg: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+    tagline: 'Coordinate local vendor stops, dietary intake, and intimate group caps.',
+    description: 'Empower food tour guides, street food walks, and cooking classes. Keep small group sizes capped dynamically, track ingredient costs, and send automatic WhatsApp reminders with meeting point drop-pins.',
+    keyFeatures: [
+      'Dietary requirements & allergy intake (Vegan, Halal, Gluten-Free)',
+      'Vendor headcount notifications via automated WhatsApp alerts',
+      'Strict max-guest limits per guide for intimate group dynamics',
+      'Interactive culinary map & recipe digital downloadable gifts'
+    ],
+    painPointsSolved: [
+      'Prevents last-minute guest dietary surprises at local food stalls',
+      'Notifies street vendors in advance of expected guest counts',
+      'Boosts TripAdvisor & Google reviews automatically after tasting walks'
+    ],
+    sampleSiteTitle: 'Ubud Night Market & Culinary Walking Tour',
+    metaTitle: 'Booking System & Website Builder for Food & Culinary Tours | Tripbone',
+    metaDesc: 'Automate guest dietary restriction collecting, street vendor headcount dispatches, and review requests.'
+  },
+  {
+    id: 'rentals',
+    slugs: ['rentals', 'scooter-rental', 'equipment-rental'],
+    name: 'Scooter, Bike & Equipment Rental Operators',
+    badge: 'Motorbikes, E-Bikes & Surf Gear',
+    icon: Key,
+    heroImg: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1200&q=80',
+    tagline: 'Real-time fleet availability, hotel drop-offs, and digital security deposits.',
+    description: 'Streamline your vehicle or gear rental operations. Manage real-time inventory calendars, track driver license uploads, and collect refundable security deposits effortlessly.',
+    keyFeatures: [
+      'Real-time vehicle fleet inventory tracking & conflict prevention',
+      'Passport & Driver License document upload before key handoff',
+      'Hotel delivery vs shop pickup selection at checkout',
+      'Refundable security deposit holds via credit card or cash'
+    ],
+    painPointsSolved: [
+      'Stops overbooking motorbikes during peak holiday seasons',
+      'Speeds up check-in with pre-uploaded driving licenses',
+      'Tracks vehicle return dates with automated WhatsApp reminder'
+    ],
+    sampleSiteTitle: 'Canggu Scooter & NMAX Rental Fleet',
+    metaTitle: 'Booking & Fleet Management Website Builder for Rental Operators | Tripbone',
+    metaDesc: 'Real-time vehicle inventory calendars, online license verification, and digital security deposits.'
   }
 ];
 
 export default function SaaSIndustries() {
+  const { slug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
   const { globalBrand } = useSettings();
-  const [selectedIndustry, setSelectedIndustry] = useState<Industry>(INDUSTRIES_DATA[0]);
-
   const brandColor = globalBrand?.brandColor || '#1db3cd';
+
+  // Find matching industry if slug is provided
+  const activeIndustry = slug 
+    ? INDUSTRIES_DATA.find(ind => ind.id === slug || ind.slugs.includes(slug.toLowerCase())) 
+    : null;
+
+  const [selectedIndustry, setSelectedIndustry] = useState<Industry>(activeIndustry || INDUSTRIES_DATA[0]);
+
+  useEffect(() => {
+    if (activeIndustry) {
+      setSelectedIndustry(activeIndustry);
+    }
+  }, [slug, activeIndustry]);
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900">
       <Helmet>
-        <title>Tailored Booking Solutions for Tour Operator Industries | Tripbone</title>
-        <meta name="description" content="Discover how Tripbone provides industry-specific booking engines, digital waivers, and WhatsApp automation for ATV tours, boat charters, food walks, day tours, and rentals." />
+        <title>
+          {activeIndustry ? activeIndustry.metaTitle : 'Tailored Booking Solutions for Tour Operator Industries | Tripbone'}
+        </title>
+        <meta 
+          name="description" 
+          content={activeIndustry ? activeIndustry.metaDesc : "Discover how Tripbone provides industry-specific booking engines, digital waivers, and WhatsApp automation for ATV tours, boat charters, food walks, day tours, and rentals."} 
+        />
       </Helmet>
 
       <style>{`
@@ -170,33 +209,57 @@ export default function SaaSIndustries() {
         .bg-brand-fade { background-color: ${brandColor}15 !important; }
       `}</style>
 
-      {/* Hero Header (Dark Hero Section matching frontpage, with generous top padding so title is completely clear of fixed navbar) */}
+      {/* Hero Header */}
       <section className="bg-slate-950 text-white pt-36 sm:pt-40 pb-16 sm:pb-20 px-6 relative overflow-hidden border-b border-slate-800">
-        {/* Ambient glowing radial light flares */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-tr from-cyan-600/15 via-indigo-600/20 to-emerald-500/15 rounded-full blur-[120px] pointer-events-none -z-0"></div>
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b12_1px,transparent_1px),linear-gradient(to_bottom,#1e293b12_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
         <div className="max-w-7xl mx-auto text-center relative z-10">
+          
+          {activeIndustry && (
+            <div className="mb-6 flex justify-center">
+              <Link to="/industries" className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-bold text-slate-400 hover:text-white hover:border-slate-700 transition-all">
+                <ArrowLeft className="w-3.5 h-3.5 text-brand" />
+                <span>All Industries</span>
+              </Link>
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-bold text-slate-300 shadow-xs mb-6 backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-brand" />
-            <span>Tailored For Your Specific Experience Vertical</span>
+            <span>{activeIndustry ? activeIndustry.badge : 'Tailored For Your Specific Experience Vertical'}</span>
           </div>
+
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">
-            Built Specifically For Your <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-[#1db3cd]">
-              Tour & Activity Industry
-            </span>
+            {activeIndustry ? (
+              <>
+                Website Builder & Booking System for <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-[#1db3cd]">
+                  {activeIndustry.name}
+                </span>
+              </>
+            ) : (
+              <>
+                Built Specifically For Your <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-[#1db3cd]">
+                  Tour & Activity Industry
+                </span>
+              </>
+            )}
           </h1>
+
           <p className="text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
-            Generic booking software wasn't built for muddy quad bike waivers, tide-dependent boat manifests, or dietary restrictions. Tripbone provides specialized workflows for your exact experience business.
+            {activeIndustry 
+              ? activeIndustry.description 
+              : "Generic booking software wasn't built for muddy quad bike waivers, tide-dependent boat manifests, or dietary restrictions. Tripbone provides specialized workflows for your exact experience business."}
           </p>
         </div>
       </section>
 
-      {/* Main Content Body (Light Background matching frontpage body sections) */}
+      {/* Main Content Body */}
       <div className="py-12 sm:py-16">
         
-        {/* Vertical Selector Tabs */}
+        {/* Industry Nav Pills */}
         <div className="max-w-7xl mx-auto px-6 mb-12">
           <div className="flex items-center justify-start md:justify-center gap-3 overflow-x-auto pb-4 scrollbar-none">
             {INDUSTRIES_DATA.map((ind) => {
@@ -205,7 +268,10 @@ export default function SaaSIndustries() {
               return (
                 <button
                   key={ind.id}
-                  onClick={() => setSelectedIndustry(ind)}
+                  onClick={() => {
+                    setSelectedIndustry(ind);
+                    navigate(`/industries/${ind.id}`);
+                  }}
                   className={`flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
                     isSelected 
                       ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
@@ -282,7 +348,7 @@ export default function SaaSIndustries() {
                     className="w-full sm:w-auto px-8 py-4 rounded-xl text-white font-bold text-sm text-center shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
                     style={{ backgroundColor: brandColor }}
                   >
-                    <span>Build {selectedIndustry.name} Website Now</span>
+                    <span>Try it Free (7 Days)</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                   <Link
@@ -333,13 +399,10 @@ export default function SaaSIndustries() {
             {INDUSTRIES_DATA.map((ind) => {
               const Icon = ind.icon;
               return (
-                <div 
+                <Link 
                   key={ind.id}
-                  onClick={() => {
-                    setSelectedIndustry(ind);
-                    window.scrollTo({ top: 300, behavior: 'smooth' });
-                  }}
-                  className="bg-white border border-slate-200 hover:border-brand/50 p-6 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg group"
+                  to={`/industries/${ind.id}`}
+                  className="bg-white border border-slate-200 hover:border-brand/50 p-6 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-lg group block"
                 >
                   <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-5 group-hover:bg-brand-fade transition-colors">
                     <Icon className="w-6 h-6 text-brand" />
@@ -355,7 +418,7 @@ export default function SaaSIndustries() {
                     <span>Explore features</span>
                     <ArrowRight className="w-3 h-3" />
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -373,7 +436,7 @@ export default function SaaSIndustries() {
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-white font-bold text-sm shadow-xl hover:brightness-110 transition-all"
               style={{ backgroundColor: brandColor }}
             >
-              <span>Start 7-Day Free Trial</span>
+              <span>Try it Free (7 Days)</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

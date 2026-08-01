@@ -20,66 +20,68 @@ import Loader from './components/Loader';
 import { ShieldAlert } from 'lucide-react';
 import { initGA, trackGAPageview } from './lib/googleAnalytics';
 import { logSimplePageView } from './lib/simpleAnalytics';
+import ChunkErrorBoundary from './components/ChunkErrorBoundary';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 
 // Critical pages imported directly for instant load
 import Home from './pages/Home';
 
 import ImpersonateBar from './components/ImpersonateBar';
 
-// Lazy load non-critical pages for performance
-const Tours = lazy(() => import('./pages/Tours'));
-const TourDetail = lazy(() => import('./pages/TourDetail'));
-const Admin = lazy(() => import('./pages/Admin'));
-const Checkout = lazy(() => import('./pages/Checkout'));
-const BookingSuccess = lazy(() => import('./pages/BookingSuccess'));
-const BookingTracker = lazy(() => import('./pages/BookingTracker'));
-const Contact = lazy(() => import('./pages/Contact'));
-const About = lazy(() => import('./pages/About'));
-const Destinations = lazy(() => import('./pages/Destinations'));
-const BlogArchive = lazy(() => import('./pages/BlogArchive'));
-const BlogPostDetail = lazy(() => import('./pages/BlogPostDetail'));
-const Auth = lazy(() => import('./pages/Auth'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
-const PriceList = lazy(() => import('./pages/PriceList'));
-const DashboardLayout = lazy(() => import('./pages/Dashboard/DashboardLayout'));
-const Overview = lazy(() => import('./pages/Dashboard/Overview'));
-const Bookings = lazy(() => import('./pages/Dashboard/Bookings'));
-const Wishlist = lazy(() => import('./pages/Dashboard/Wishlist'));
-const Profile = lazy(() => import('./pages/Dashboard/Profile'));
-const MyPlans = lazy(() => import('./pages/Dashboard/MyPlans'));
-const Tickets = lazy(() => import('./pages/Dashboard/Tickets'));
-const GoogleAnalytics = lazy(() => import('./pages/Dashboard/GoogleAnalytics'));
-const AIPlanner = lazy(() => import('./pages/AIPlanner'));
-const AIHub = lazy(() => import('./pages/AIHub'));
-const Terms = lazy(() => import('./pages/Terms'));
-const Privacy = lazy(() => import('./pages/Privacy'));
-const ProposalView = lazy(() => import('./pages/ProposalView'));
+// Lazy load non-critical pages with auto-recovery for stale builds / 404 chunks
+const Tours = lazyWithRetry(() => import('./pages/Tours'));
+const TourDetail = lazyWithRetry(() => import('./pages/TourDetail'));
+const Admin = lazyWithRetry(() => import('./pages/Admin'));
+const Checkout = lazyWithRetry(() => import('./pages/Checkout'));
+const BookingSuccess = lazyWithRetry(() => import('./pages/BookingSuccess'));
+const BookingTracker = lazyWithRetry(() => import('./pages/BookingTracker'));
+const Contact = lazyWithRetry(() => import('./pages/Contact'));
+const About = lazyWithRetry(() => import('./pages/About'));
+const Destinations = lazyWithRetry(() => import('./pages/Destinations'));
+const BlogArchive = lazyWithRetry(() => import('./pages/BlogArchive'));
+const BlogPostDetail = lazyWithRetry(() => import('./pages/BlogPostDetail'));
+const Auth = lazyWithRetry(() => import('./pages/Auth'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
+const PriceList = lazyWithRetry(() => import('./pages/PriceList'));
+const DashboardLayout = lazyWithRetry(() => import('./pages/Dashboard/DashboardLayout'));
+const Overview = lazyWithRetry(() => import('./pages/Dashboard/Overview'));
+const Bookings = lazyWithRetry(() => import('./pages/Dashboard/Bookings'));
+const Wishlist = lazyWithRetry(() => import('./pages/Dashboard/Wishlist'));
+const Profile = lazyWithRetry(() => import('./pages/Dashboard/Profile'));
+const MyPlans = lazyWithRetry(() => import('./pages/Dashboard/MyPlans'));
+const Tickets = lazyWithRetry(() => import('./pages/Dashboard/Tickets'));
+const GoogleAnalytics = lazyWithRetry(() => import('./pages/Dashboard/GoogleAnalytics'));
+const AIPlanner = lazyWithRetry(() => import('./pages/AIPlanner'));
+const AIHub = lazyWithRetry(() => import('./pages/AIHub'));
+const Terms = lazyWithRetry(() => import('./pages/Terms'));
+const Privacy = lazyWithRetry(() => import('./pages/Privacy'));
+const ProposalView = lazyWithRetry(() => import('./pages/ProposalView'));
 
-const SaaSHome = lazy(() => import('./pages/SaaSHome'));
-const SaaSSuperAdmin = lazy(() => import('./pages/SaaSSuperAdmin'));
-const SaaSMarketing = lazy(() => import('./pages/SaaSMarketing'));
-const SaaSShowcase = lazy(() => import('./pages/SaaSShowcase'));
-const SaaSLayout = lazy(() => import('./components/SaaS/SaaSLayout'));
-const SaaSFeatures = lazy(() => import('./pages/SaaSFeatures'));
-const AIFeatures = lazy(() => import('./pages/SaaSFeatures/AIFeatures'));
-const OperationsFeatures = lazy(() => import('./pages/SaaSFeatures/OperationsFeatures'));
-const SalesFeatures = lazy(() => import('./pages/SaaSFeatures/SalesFeatures'));
-const DesignFeatures = lazy(() => import('./pages/SaaSFeatures/DesignFeatures'));
-const InfrastructureFeatures = lazy(() => import('./pages/SaaSFeatures/InfrastructureFeatures'));
-const SaaSPricing = lazy(() => import('./pages/SaaSPricing'));
-const SaaSIndustries = lazy(() => import('./pages/SaaSIndustries'));
-const SaaSComparison = lazy(() => import('./pages/SaaSComparison'));
-const SaaSAbout = lazy(() => import('./pages/SaaSAbout'));
-const SaaSContact = lazy(() => import('./pages/SaaSContact'));
-const SaaSTerms = lazy(() => import('./pages/SaaSTerms'));
-const SaaSPrivacy = lazy(() => import('./pages/SaaSPrivacy'));
-const SaasCookies = lazy(() => import('./pages/SaasCookies'));
-const AppSumoRedeem = lazy(() => import('./pages/AppSumoRedeem'));
+const SaaSHome = lazyWithRetry(() => import('./pages/SaaSHome'));
+const SaaSSuperAdmin = lazyWithRetry(() => import('./pages/SaaSSuperAdmin'));
+const SaaSMarketing = lazyWithRetry(() => import('./pages/SaaSMarketing'));
+const SaaSShowcase = lazyWithRetry(() => import('./pages/SaaSShowcase'));
+const SaaSLayout = lazyWithRetry(() => import('./components/SaaS/SaaSLayout'));
+const SaaSFeatures = lazyWithRetry(() => import('./pages/SaaSFeatures'));
+const AIFeatures = lazyWithRetry(() => import('./pages/SaaSFeatures/AIFeatures'));
+const OperationsFeatures = lazyWithRetry(() => import('./pages/SaaSFeatures/OperationsFeatures'));
+const SalesFeatures = lazyWithRetry(() => import('./pages/SaaSFeatures/SalesFeatures'));
+const DesignFeatures = lazyWithRetry(() => import('./pages/SaaSFeatures/DesignFeatures'));
+const InfrastructureFeatures = lazyWithRetry(() => import('./pages/SaaSFeatures/InfrastructureFeatures'));
+const SaaSPricing = lazyWithRetry(() => import('./pages/SaaSPricing'));
+const SaaSIndustries = lazyWithRetry(() => import('./pages/SaaSIndustries'));
+const SaaSComparison = lazyWithRetry(() => import('./pages/SaaSComparison'));
+const SaaSAbout = lazyWithRetry(() => import('./pages/SaaSAbout'));
+const SaaSContact = lazyWithRetry(() => import('./pages/SaaSContact'));
+const SaaSTerms = lazyWithRetry(() => import('./pages/SaaSTerms'));
+const SaaSPrivacy = lazyWithRetry(() => import('./pages/SaaSPrivacy'));
+const SaasCookies = lazyWithRetry(() => import('./pages/SaasCookies'));
+const AppSumoRedeem = lazyWithRetry(() => import('./pages/AppSumoRedeem'));
 
 // Lazy load non-critical components
 import { useTenantSEO } from './hooks/useTenantSEO';
 
-const Chatbot = lazy(() => import('./components/Chatbot'));
+const Chatbot = lazyWithRetry(() => import('./components/Chatbot'));
 
 function AppContent() {
   const { isMaster, isAppGate, tenant, loading: tenantLoading, setPreviewTenant, isImpersonating } = useTenant();
@@ -199,52 +201,56 @@ function AppContent() {
     return (
       <div className="flex min-h-screen flex-col font-sans antialiased text-gray-100 bg-[#070b13] w-full max-w-full overflow-x-hidden">
         {isImpersonating && <ImpersonateBar />}
-        <Suspense fallback={<Loader />}>
-          <Routes>
-            <Route path="/admin/*" element={<SaaSSuperAdmin />} />
-            <Route path="/superadmin/*" element={<SaaSSuperAdmin />} />
-            <Route path="/login" element={<SaaSHome />} />
-            <Route path="/signup" element={<SaaSHome />} />
-            <Route path="/redeem" element={<AppSumoRedeem />} />
-            <Route path="/appsumo" element={<AppSumoRedeem />} />
-            
-            {/* SaaS App Gate (Legacy Mode) */}
-            {isAppGate && (
-              <>
-                <Route path="/" element={<SaaSHome />} />
-                <Route path="*" element={<SaaSHome />} />
-              </>
-            )}
+        <ChunkErrorBoundary>
+          <Suspense fallback={<Loader />}>
+            <Routes>
+              <Route path="/admin/*" element={<SaaSSuperAdmin />} />
+              <Route path="/superadmin/*" element={<SaaSSuperAdmin />} />
+              <Route path="/login" element={<SaaSHome />} />
+              <Route path="/signup" element={<SaaSHome />} />
+              <Route path="/redeem" element={<AppSumoRedeem />} />
+              <Route path="/appsumo" element={<AppSumoRedeem />} />
+              
+              {/* SaaS App Gate (Legacy Mode) */}
+              {isAppGate && (
+                <>
+                  <Route path="/" element={<SaaSHome />} />
+                  <Route path="*" element={<SaaSHome />} />
+                </>
+              )}
 
-            {/* SaaS Marketing Site (Wrapped with Global Header/Footer Layout) */}
-            {!isAppGate && (
-              <Route element={<SaaSLayout />}>
-                <Route path="/" element={<SaaSMarketing />} />
-                <Route path="/directory" element={<SaaSShowcase />} />
-                <Route path="/features" element={<SaaSFeatures />} />
-                <Route path="/features/ai" element={<AIFeatures />} />
-                <Route path="/features/operations" element={<OperationsFeatures />} />
-                <Route path="/features/sales" element={<SalesFeatures />} />
-                <Route path="/features/design" element={<DesignFeatures />} />
-                <Route path="/features/infrastructure" element={<InfrastructureFeatures />} />
-                
-                <Route path="/industries" element={<SaaSIndustries />} />
-                <Route path="/compare" element={<SaaSComparison />} />
-                <Route path="/comparisons" element={<SaaSComparison />} />
+              {/* SaaS Marketing Site (Wrapped with Global Header/Footer Layout) */}
+              {!isAppGate && (
+                <Route element={<SaaSLayout />}>
+                  <Route path="/" element={<SaaSMarketing />} />
+                  <Route path="/directory" element={<SaaSShowcase />} />
+                  <Route path="/features" element={<SaaSFeatures />} />
+                  <Route path="/features/ai" element={<AIFeatures />} />
+                  <Route path="/features/operations" element={<OperationsFeatures />} />
+                  <Route path="/features/sales" element={<SalesFeatures />} />
+                  <Route path="/features/design" element={<DesignFeatures />} />
+                  <Route path="/features/infrastructure" element={<InfrastructureFeatures />} />
+                  
+                  <Route path="/industries" element={<SaaSIndustries />} />
+                  <Route path="/industries/:slug" element={<SaaSIndustries />} />
+                  <Route path="/compare" element={<SaaSComparison />} />
+                  <Route path="/compare/:slug" element={<SaaSComparison />} />
+                  <Route path="/comparisons" element={<SaaSComparison />} />
 
-                <Route path="/pricing" element={<SaaSPricing />} />
-                <Route path="/about" element={<SaaSAbout />} />
-                <Route path="/contact" element={<SaaSContact />} />
-                <Route path="/blog" element={<BlogArchive />} />
-                <Route path="/blog/:slug" element={<BlogPostDetail />} />
-                <Route path="/terms" element={<SaaSTerms />} />
-                <Route path="/privacy" element={<SaaSPrivacy />} />
-                <Route path="/cookies" element={<SaasCookies />} />
-                <Route path="*" element={<SaaSMarketing />} />
-              </Route>
-            )}
-          </Routes>
-        </Suspense>
+                  <Route path="/pricing" element={<SaaSPricing />} />
+                  <Route path="/about" element={<SaaSAbout />} />
+                  <Route path="/contact" element={<SaaSContact />} />
+                  <Route path="/blog" element={<BlogArchive />} />
+                  <Route path="/blog/:slug" element={<BlogPostDetail />} />
+                  <Route path="/terms" element={<SaaSTerms />} />
+                  <Route path="/privacy" element={<SaaSPrivacy />} />
+                  <Route path="/cookies" element={<SaasCookies />} />
+                  <Route path="*" element={<SaaSMarketing />} />
+                </Route>
+              )}
+            </Routes>
+          </Suspense>
+        </ChunkErrorBoundary>
       </div>
     );
   }
@@ -329,43 +335,45 @@ function AppContent() {
           "pt-[80px] md:pt-[120px]"
         )
       )}>
-        <Suspense fallback={<Loader />}>
-          <Routes>
-            <Route path="/login" element={<Auth />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/customer" element={<DashboardLayout />}>
-              <Route path="dashboard" element={<Overview />} />
-              <Route path="bookings" element={<Bookings />} />
-              <Route path="wishlist" element={<Wishlist />} />
-              <Route path="my-plans" element={<MyPlans />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="tickets" element={<Tickets />} />
-              <Route path="google-analytics" element={<GoogleAnalytics />} />
-            </Route>
-            <Route path="/" element={<Home />} />
-            <Route path="/tours" element={<Tours />} />
-            <Route path="/blog" element={<BlogArchive />} />
-            <Route path="/blog/:slug" element={<BlogPostDetail />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/planner" element={<AIPlanner />} />
-            <Route path="/proposal/:id" element={<ProposalView />} />
-            <Route path="/ai-hub" element={<AIHub />} />
-            <Route path="/price-list" element={<PriceList />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/destinations" element={<Destinations />} />
-            <Route path="/tour/:slug" element={<TourDetail />} />
-            <Route path="/checkout/:tourId" element={<Checkout />} />
-            <Route path="/admin/*" element={<Admin />} />
-            <Route path="/supplier/*" element={<Admin />} />
-            <Route path="/agent/*" element={<Admin />} />
-            <Route path="/track-booking" element={<BookingTracker />} />
-            <Route path="/booking-success/:id" element={<BookingSuccess />} />
-            <Route path="/booking-confirmation/:id" element={<BookingSuccess />} />
-            <Route path="*" element={<Home />} />
-          </Routes>
-        </Suspense>
+        <ChunkErrorBoundary>
+          <Suspense fallback={<Loader />}>
+            <Routes>
+              <Route path="/login" element={<Auth />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/customer" element={<DashboardLayout />}>
+                <Route path="dashboard" element={<Overview />} />
+                <Route path="bookings" element={<Bookings />} />
+                <Route path="wishlist" element={<Wishlist />} />
+                <Route path="my-plans" element={<MyPlans />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="tickets" element={<Tickets />} />
+                <Route path="google-analytics" element={<GoogleAnalytics />} />
+              </Route>
+              <Route path="/" element={<Home />} />
+              <Route path="/tours" element={<Tours />} />
+              <Route path="/blog" element={<BlogArchive />} />
+              <Route path="/blog/:slug" element={<BlogPostDetail />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/planner" element={<AIPlanner />} />
+              <Route path="/proposal/:id" element={<ProposalView />} />
+              <Route path="/ai-hub" element={<AIHub />} />
+              <Route path="/price-list" element={<PriceList />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/destinations" element={<Destinations />} />
+              <Route path="/tour/:slug" element={<TourDetail />} />
+              <Route path="/checkout/:tourId" element={<Checkout />} />
+              <Route path="/admin/*" element={<Admin />} />
+              <Route path="/supplier/*" element={<Admin />} />
+              <Route path="/agent/*" element={<Admin />} />
+              <Route path="/track-booking" element={<BookingTracker />} />
+              <Route path="/booking-success/:id" element={<BookingSuccess />} />
+              <Route path="/booking-confirmation/:id" element={<BookingSuccess />} />
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </Suspense>
+        </ChunkErrorBoundary>
       </main>
       {!hideFooter && <div className="no-print"><Footer /></div>}
       {!hideMobileNav && <div className="no-print"><MobileNav /></div>}

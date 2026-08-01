@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { 
   Check, X, Sparkles, ArrowRight, ShieldCheck, DollarSign, 
-  Zap, Calculator, Lock, RefreshCw, Layers
+  Zap, Calculator, Lock, RefreshCw, Layers, ArrowLeft
 } from 'lucide-react';
 import { useSettings } from '../lib/SettingsContext';
 
@@ -24,6 +24,25 @@ interface Competitor {
 
 const COMPETITORS: Competitor[] = [
   {
+    id: 'bokun',
+    name: 'Bókun (TripAdvisor)',
+    feeLabel: '1.5% + TripAdvisor Marketplace Fee',
+    avgFeePct: 3.5,
+    guestBookingFee: '1.5% - 4.0% marketplace cut',
+    websiteBuildTime: 'Self-serve template (Basic design)',
+    whatsAppIntegration: 'None',
+    reviewSync: 'TripAdvisor reviews only',
+    customDomain: 'Subdomain or basic custom domain mapping',
+    payoutSpeed: '3 - 7 Business Days',
+    tagline: 'Heavily biased toward TripAdvisor marketplace listings over your direct brand.',
+    drawbacks: [
+      'Pushes TripAdvisor marketplace distribution instead of direct website sales',
+      'Rigid, outdated website templates that look generic and unoptimized for mobile',
+      'No native WhatsApp order dispatches or driver cash-on-delivery tracking',
+      'Limited customization for custom experience packages and AI itinerary planners'
+    ]
+  },
+  {
     id: 'fareharbor',
     name: 'FareHarbor',
     feeLabel: '6% + Credit Card Processing',
@@ -40,6 +59,25 @@ const COMPETITORS: Competitor[] = [
       'Requires waiting weeks for their internal design team to build or modify your site',
       'No native WhatsApp booking automation or driver pickup coordinate dispatching',
       'No real-time 3-in-1 review synchronization (Google, TripAdvisor, Airbnb)'
+    ]
+  },
+  {
+    id: 'rezdy',
+    name: 'Rezdy',
+    feeLabel: '2% - 6% per online booking + Marketplace fee',
+    avgFeePct: 4.5,
+    guestBookingFee: '2% - 6% booking engine commission',
+    websiteBuildTime: 'Self-serve integration (Requires existing website or basic builder)',
+    whatsAppIntegration: 'None',
+    reviewSync: 'Basic widget embed',
+    customDomain: 'Embedded iframe on client site',
+    payoutSpeed: '3 - 5 Business Days',
+    tagline: 'High commission cut on direct sales with complex marketplace distribution tiers.',
+    drawbacks: [
+      'Takes a percentage cut from your own direct website traffic',
+      'Requires an existing custom website to embed booking widgets',
+      'No built-in WhatsApp automated driver dispatch or pickup drop-pins',
+      'No AI-assisted tour copy generator or multi-currency converter'
     ]
   },
   {
@@ -62,22 +100,22 @@ const COMPETITORS: Competitor[] = [
     ]
   },
   {
-    id: 'bokun',
-    name: 'Bókun (TripAdvisor)',
-    feeLabel: '1.5% + TripAdvisor Marketplace Fee',
-    avgFeePct: 3.5,
-    guestBookingFee: '1.5% - 4.0% marketplace cut',
-    websiteBuildTime: 'Self-serve template (Basic design)',
-    whatsAppIntegration: 'None',
-    reviewSync: 'TripAdvisor reviews only',
-    customDomain: 'Subdomain or basic custom domain mapping',
+    id: 'regiondo',
+    name: 'Regiondo',
+    feeLabel: '4% - 6% per booking + monthly subscription fee',
+    avgFeePct: 5.0,
+    guestBookingFee: '4% - 6% ticket transaction fee',
+    websiteBuildTime: '1 - 2 Weeks',
+    whatsAppIntegration: 'None (Email notifications only)',
+    reviewSync: 'Basic review widget',
+    customDomain: 'Subdomain or iframe widget',
     payoutSpeed: '3 - 7 Business Days',
-    tagline: 'Heavily biased toward TripAdvisor marketplace listings over your direct brand.',
+    tagline: 'Dual penalty: monthly software subscription plus steep transaction fees.',
     drawbacks: [
-      'Pushes TripAdvisor marketplace distribution instead of direct website sales',
-      'Rigid, outdated website templates that look generic and unoptimized for mobile',
-      'No native WhatsApp order dispatches or driver cash-on-delivery tracking',
-      'Limited customization for custom experience packages and AI itinerary planners'
+      'Double charges with both a monthly software fee and per-booking percentages',
+      'Complex back-office interface with steep learning curve for staff',
+      'No native WhatsApp driver dispatch or instant guest waiver signing',
+      'Lacks AI website generation capabilities'
     ]
   },
   {
@@ -102,9 +140,25 @@ const COMPETITORS: Competitor[] = [
 ];
 
 export default function SaaSComparison() {
+  const { slug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
   const { globalBrand } = useSettings();
-  const [selectedCompetitorId, setSelectedCompetitorId] = useState<string>('fareharbor');
+
+  // Find competitor matching slug if provided
+  const matchedCompetitor = slug
+    ? COMPETITORS.find(c => c.id === slug.toLowerCase() || c.name.toLowerCase().includes(slug.toLowerCase()))
+    : null;
+
+  const [selectedCompetitorId, setSelectedCompetitorId] = useState<string>(
+    matchedCompetitor ? matchedCompetitor.id : 'bokun'
+  );
   const [monthlyRevenue, setMonthlyRevenue] = useState<number>(15000);
+
+  useEffect(() => {
+    if (matchedCompetitor) {
+      setSelectedCompetitorId(matchedCompetitor.id);
+    }
+  }, [slug, matchedCompetitor]);
 
   const brandColor = globalBrand?.brandColor || '#1db3cd';
   const competitor = COMPETITORS.find(c => c.id === selectedCompetitorId) || COMPETITORS[0];
@@ -118,8 +172,15 @@ export default function SaaSComparison() {
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900">
       <Helmet>
-        <title>Tripbone vs Legacy Tour Booking Systems | Compare FareHarbor, Peek Pro & Bokun</title>
-        <meta name="description" content="Compare Tripbone against FareHarbor, Peek Pro, Bokun, and Checkfront. Save thousands in booking fees with 0% commission option, AI website builder, and WhatsApp automation." />
+        <title>
+          {matchedCompetitor 
+            ? `Tripbone vs ${matchedCompetitor.name} | Direct Tour Booking Software Comparison` 
+            : 'Tripbone vs Legacy Tour Booking Systems | Compare FareHarbor, Peek Pro & Bokun'}
+        </title>
+        <meta 
+          name="description" 
+          content={`Compare Tripbone against ${competitor.name}. Save thousands in booking fees with 0% commission option, AI website builder, and WhatsApp automation.`} 
+        />
       </Helmet>
 
       <style>{`
@@ -129,24 +190,31 @@ export default function SaaSComparison() {
         .bg-brand-fade { background-color: ${brandColor}15 !important; }
       `}</style>
 
-      {/* Hero Header (Dark Hero Section matching frontpage, with generous top padding so title is completely clear of fixed navbar) */}
+      {/* Hero Header */}
       <section className="bg-slate-950 text-white pt-36 sm:pt-40 pb-16 sm:pb-20 px-6 relative overflow-hidden border-b border-slate-800">
-        {/* Ambient glowing radial light flares */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-tr from-cyan-600/15 via-indigo-600/20 to-emerald-500/15 rounded-full blur-[120px] pointer-events-none -z-0"></div>
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b12_1px,transparent_1px),linear-gradient(to_bottom,#1e293b12_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
 
         <div className="max-w-7xl mx-auto text-center relative z-10">
+          
+          {matchedCompetitor && (
+            <div className="mb-6 flex justify-center">
+              <Link to="/compare" className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-bold text-slate-400 hover:text-white hover:border-slate-700 transition-all">
+                <ArrowLeft className="w-3.5 h-3.5 text-brand" />
+                <span>All Platform Comparisons</span>
+              </Link>
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-bold text-slate-300 shadow-xs mb-6 backdrop-blur-sm">
             <Layers className="w-4 h-4 text-brand" />
-            <span>Platform Comparison & Fee Analysis</span>
+            <span>Honest Side-by-Side Comparison</span>
           </div>
+
           <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">
-            Why Tour Operators Are Switching <br className="hidden md:block" />
-            From Legacy Systems To{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-[#1db3cd]">
-              {globalBrand?.platformName || 'Tripbone'}
-            </span>
+            Tripbone vs <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-[#1db3cd]">{competitor.name}</span>
           </h1>
+
           <p className="text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
             Stop losing up to 6% of every booking to legacy booking platforms. Get a modern AI-powered website, 0% commission option, and native WhatsApp booking automation.
           </p>

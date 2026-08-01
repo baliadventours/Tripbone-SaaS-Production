@@ -208,23 +208,31 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15] text-white max-w-5xl mx-auto"
+              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white max-w-5xl mx-auto"
             >
-              The AI Website Builder & Booking System <br />
+              Your Own Booking Website. <br />
               <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
-                for Tour Operators
+                Not a Widget. Not Complicated.
               </span>
             </motion.h1>
 
-            {/* Centered Subheadline */}
-            <motion.p 
+            {/* Centered Bullet/Badge Value Prop Line */}
+            <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-slate-300 font-medium text-base sm:text-xl max-w-2xl mx-auto leading-relaxed"
+              className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-slate-300 font-semibold text-sm sm:text-lg max-w-4xl mx-auto leading-relaxed bg-slate-900/60 backdrop-blur-md px-6 py-3.5 rounded-2xl border border-slate-800/80 shadow-inner"
             >
-              Launch your direct booking website in 2 minutes. Integrated AI, instant payments, and automated WhatsApp dispatches — zero code required.
-            </motion.p>
+              <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                <Sparkles className="w-4 h-4 text-cyan-400 inline" /> Live in 2 minutes
+              </span>
+              <span className="hidden sm:inline text-slate-600">•</span>
+              <span className="text-emerald-300 font-bold">Zero commission or booking fees</span>
+              <span className="hidden sm:inline text-slate-600">•</span>
+              <span className="text-slate-200">No technical skill needed</span>
+              <span className="hidden sm:inline text-slate-600">•</span>
+              <span className="text-sky-300 font-bold">AI builds your tours in under 5 minutes</span>
+            </motion.div>
 
             {/* Centered CTA Button Group */}
             <motion.div 
@@ -235,9 +243,9 @@ export default function SaaSMarketing() {
             >
               <button
                 onClick={() => navigate('/signup')}
-                className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-base sm:text-lg px-8 py-4 rounded-full shadow-2xl shadow-cyan-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] group"
+                className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-base sm:text-lg px-9 py-4 rounded-full shadow-2xl shadow-cyan-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] group"
               >
-                <span>Get Started</span>
+                <span>Try it Free</span>
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>
 
@@ -253,7 +261,7 @@ export default function SaaSMarketing() {
             </motion.div>
 
             <p className="text-xs font-semibold text-slate-400 pt-1">
-              Start for free. No credit card required.
+              7 Days Free. No credit card required.
             </p>
 
             {/* --- WIX-STYLE HORIZONTAL SLIDESHOW SHOWCASE --- */}
@@ -1254,7 +1262,7 @@ export default function SaaSMarketing() {
                 onClick={() => navigate('/pricing')} 
                 className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-slate-950 text-base font-extrabold rounded-xl shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer"
               >
-                Start Free Trial
+                Try it Free
               </button>
               <button 
                 onClick={() => setShowDemoModal(true)} 
