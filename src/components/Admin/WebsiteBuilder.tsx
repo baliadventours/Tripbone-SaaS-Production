@@ -22,6 +22,11 @@ export interface BlockConfig {
   image?: string;
   heroImages?: string[];
   youtubeUrl?: string;
+  videoUrl?: string;
+  mediaType?: 'image' | 'slideshow' | 'video';
+  overlayOpacity?: 'none' | 'light' | 'medium' | 'dark' | 'gradient';
+  showSearch?: boolean;
+  heroBullets?: string[];
   menuId?: string;
   tourIds?: string[];
 }
@@ -508,9 +513,15 @@ export default function WebsiteBuilder() {
     switch(blockId) {
       case 'hero':
         return [
-          { value: 'slideshow-atv', label: 'Multi-Image Slideshow Hero' },
-          { value: 'airbnb-classic', label: 'Single Image Hero' },
-          { value: 'youtube-video', label: 'YouTube Video Hero' }
+          { value: 'slideshow-atv', label: 'Cinematic Slideshow', desc: 'Full-bleed image slider with badge, animated titles, and dot navigation' },
+          { value: 'airbnb-classic', label: 'Airbnb Split Search & Gallery', desc: 'Left search form with staggered 3-photo masonry grid' },
+          { value: 'youtube-video', label: 'Full Video Canvas', desc: 'Cinematic YouTube or direct MP4 video background with custom overlay' },
+          { value: 'split-media-right', label: 'Split Modern & Glass Card', desc: 'Side-by-side layout with badge, text, bullet highlights, and glass card media' },
+          { value: 'centered-overlay', label: 'Luxury Cover & Centered Search', desc: 'Full-bleed cover background with centered headline, search bar, and trust metrics' },
+          { value: 'bento-grid-hero', label: 'Bento Showcase Grid', desc: '3-card interactive bento layout showcasing main banner + highlight cards' },
+          { value: 'floating-card-hero', label: 'Floating Island Booking Card', desc: 'Full-bleed media canvas with elevated floating booking search card' },
+          { value: 'modern-glass', label: 'Glassmorphism Cyber Slate', desc: 'Dark obsidian canvas with glowing status dot and frosted glass container' },
+          { value: 'minimal-type', label: 'Editorial Typographic', desc: 'High-contrast display typography with volume tag and sleek right side image panel' }
         ];
       case 'featuredTours':
       case 'guestFavorites':
@@ -645,218 +656,333 @@ export default function WebsiteBuilder() {
                 <div className="p-6 border-t border-gray-100 space-y-6">
                   {/* Design Selector */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Design Layout</label>
-                    <div className="flex flex-wrap gap-4">
-                      {getDesignOptions(block.id).map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => updateBlock(block.id, { design: opt.value })}
-                          className={cn(
-                            "px-6 py-3 rounded-xl border-2 font-bold text-sm transition-all text-left", 
-                            block.design === opt.value ? "border-primary text-primary bg-orange-50" : "border-gray-200 text-gray-500 hover:border-gray-300"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center justify-between">
+                      <span>Select Hero Preset / Layout</span>
+                      <span className="text-[11px] font-semibold text-primary">{getDesignOptions(block.id).length} Presets Available</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                      {getDesignOptions(block.id).map(opt => {
+                        const isSelected = block.design === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => updateBlock(block.id, { design: opt.value })}
+                            className={cn(
+                              "p-4 rounded-2xl border-2 font-bold text-sm transition-all text-left flex flex-col justify-between group relative overflow-hidden", 
+                              isSelected 
+                                ? "border-primary text-gray-900 bg-orange-50/60 shadow-md ring-2 ring-primary/20" 
+                                : "border-gray-200/80 text-gray-600 bg-white hover:border-gray-300 hover:shadow-sm"
+                            )}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className={cn("font-extrabold text-sm", isSelected ? "text-primary" : "text-gray-900")}>
+                                  {opt.label}
+                                </span>
+                                {opt.desc && (
+                                  <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider", isSelected ? "bg-primary text-white" : "bg-gray-100 text-gray-500")}>
+                                    {isSelected ? 'Active' : 'Preset'}
+                                  </span>
+                                )}
+                              </div>
+                              {opt.desc && (
+                                <p className="text-xs font-normal text-gray-500 line-clamp-2 leading-relaxed">
+                                  {opt.desc}
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-3 flex items-center gap-1 text-[11px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span>Select Layout</span>
+                              <Sparkles className="w-3 h-3" />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Headline, Subheadline & Description (Only for some blocks like Hero) */}
+                  {/* Headline, Subheadline & Description (For Hero and featured blocks) */}
                   {['hero', 'featuredTours', 'guestFavorites'].includes(block.id) && (
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 gap-6 pt-4 border-t border-gray-100">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Headline</label>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Headline / Main Title</label>
                           <input
                             type="text"
                             value={block.headline || ''}
                             onChange={(e) => updateBlock(block.id, { headline: e.target.value })}
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
-                            placeholder="Section Title"
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-medium"
+                            placeholder="e.g. Discover Balinese Wonders"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Subheadline</label>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Subheadline / Eyebrow Subtitle</label>
                           <input
                             type="text"
                             value={block.subheadline || ''}
                             onChange={(e) => updateBlock(block.id, { subheadline: e.target.value })}
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
-                            placeholder="Short description..."
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-medium"
+                            placeholder="e.g. Unforgettable Island Expeditions"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Description</label>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Hero Narrative Description</label>
                         <textarea
                           value={block.description || ''}
                           onChange={(e) => updateBlock(block.id, { description: e.target.value })}
                           rows={3}
-                          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none resize-none"
-                          placeholder="Long description or paragraph text..."
+                          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none resize-none font-medium"
+                          placeholder="e.g. Curated expeditions and private custom adventures with trusted local hosts..."
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Additional fields for Hero (Badge & Buttons) */}
+                  {/* Additional fields for Hero (Badge, Bullet Checklist, & Buttons) */}
                   {block.id === 'hero' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Badge Text (e.g. Ubud, Bali)</label>
-                        <input
-                          type="text"
-                          value={block.badge || ''}
-                          onChange={(e) => updateBlock(block.id, { badge: e.target.value })}
-                          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
-                          placeholder="Badge Text"
-                        />
+                    <div className="space-y-6 pt-4 border-t border-gray-100">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Badge Text / Tag</label>
+                          <input
+                            type="text"
+                            value={block.badge || ''}
+                            onChange={(e) => updateBlock(block.id, { badge: e.target.value })}
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
+                            placeholder="e.g. ⭐ #1 Rated Tour Operator in Bali"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Hero Feature Highlights (Comma separated)</label>
+                          <input
+                            type="text"
+                            value={block.heroBullets ? block.heroBullets.join(', ') : ''}
+                            onChange={(e) => updateBlock(block.id, { heroBullets: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
+                            placeholder="e.g. Free Cancellation, 24/7 Support, Instant Confirmation"
+                          />
+                        </div>
                       </div>
-                      <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50">
-                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Primary Button</label>
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Text</label>
-                              <input
-                                type="text"
-                                value={block.primaryButtonText || ''}
-                                onChange={(e) => updateBlock(block.id, { primaryButtonText: e.target.value })}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm"
-                                placeholder="e.g. Book ATV Tour Now"
-                              />
+
+                      {/* Action Buttons Customizer */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-4 border border-gray-200 rounded-2xl bg-gray-50/50 space-y-3">
+                          <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider">Primary Call-to-Action</label>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Button Text</label>
+                            <input
+                              type="text"
+                              value={block.primaryButtonText || ''}
+                              onChange={(e) => updateBlock(block.id, { primaryButtonText: e.target.value })}
+                              className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium"
+                              placeholder="e.g. Book ATV Tour Now"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Target Link</label>
+                            <input
+                              type="text"
+                              value={block.primaryButtonLink || ''}
+                              onChange={(e) => updateBlock(block.id, { primaryButtonLink: e.target.value })}
+                              className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium"
+                              placeholder="e.g. /tours?search=atv"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="p-4 border border-gray-200 rounded-2xl bg-gray-50/50 space-y-3">
+                          <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider">Secondary Call-to-Action</label>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Button Text</label>
+                            <input
+                              type="text"
+                              value={block.secondaryButtonText || ''}
+                              onChange={(e) => updateBlock(block.id, { secondaryButtonText: e.target.value })}
+                              className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium"
+                              placeholder="e.g. Inquire / Contact Us"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Target Link</label>
+                            <input
+                              type="text"
+                              value={block.secondaryButtonLink || ''}
+                              onChange={(e) => updateBlock(block.id, { secondaryButtonLink: e.target.value })}
+                              className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium"
+                              placeholder="e.g. /contact"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Display & Layout Controls */}
+                      <div className="p-4 border border-gray-200 rounded-2xl bg-orange-50/30 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="showSearch"
+                            checked={block.showSearch !== false}
+                            onChange={(e) => updateBlock(block.id, { showSearch: e.target.checked })}
+                            className="w-4 h-4 text-primary rounded accent-primary cursor-pointer"
+                          />
+                          <label htmlFor="showSearch" className="text-xs font-bold text-gray-800 cursor-pointer">
+                            Show Integrated Search / Booking Form in Hero Section
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-600">Overlay Tint:</span>
+                          <select
+                            value={block.overlayOpacity || 'gradient'}
+                            onChange={(e) => updateBlock(block.id, { overlayOpacity: e.target.value as any })}
+                            className="p-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-800 outline-none"
+                          >
+                            <option value="gradient">Gradient Dark</option>
+                            <option value="dark">Deep Dark (80%)</option>
+                            <option value="medium">Medium Dark (50%)</option>
+                            <option value="light">Light Tint (25%)</option>
+                            <option value="none">No Overlay (Raw)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Unified Media Customizer (Hero only) */}
+                  {block.id === 'hero' && (
+                    <div className="space-y-6 pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Hero Background Media Customizer</label>
+                        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { mediaType: 'image' })}
+                            className={cn("px-3 py-1 rounded-lg text-xs font-bold transition-all", (block.mediaType || 'image') === 'image' ? "bg-white text-primary shadow-sm" : "text-gray-500")}
+                          >
+                            Single Image
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { mediaType: 'slideshow' })}
+                            className={cn("px-3 py-1 rounded-lg text-xs font-bold transition-all", block.mediaType === 'slideshow' ? "bg-white text-primary shadow-sm" : "text-gray-500")}
+                          >
+                            Slideshow
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { mediaType: 'video' })}
+                            className={cn("px-3 py-1 rounded-lg text-xs font-bold transition-all", block.mediaType === 'video' ? "bg-white text-primary shadow-sm" : "text-gray-500")}
+                          >
+                            Video (YouTube/MP4)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Video URL Input */}
+                      {((block.mediaType === 'video') || block.design === 'youtube-video') && (
+                        <div className="space-y-3 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Video Background Source (YouTube URL or Direct MP4 Link)
+                          </label>
+                          <input
+                            type="text"
+                            value={block.videoUrl || block.youtubeUrl || ''}
+                            onChange={(e) => updateBlock(block.id, { videoUrl: e.target.value, youtubeUrl: e.target.value })}
+                            className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-mono"
+                            placeholder="e.g. https://www.youtube.com/watch?v=... or https://example.com/video.mp4"
+                          />
+                          <p className="text-[11px] text-gray-500 font-medium">
+                            Supports YouTube watch links, embed links, or direct .mp4/.webm video URLs. Auto-plays muted in background.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Single Image Upload */}
+                      {((block.mediaType || 'image') === 'image' && block.design !== 'youtube-video') && (
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Single Hero Image</label>
+                          {block.image && (
+                            <div className="mb-4 relative w-64 aspect-video rounded-2xl overflow-hidden shadow-md border border-gray-200">
+                              <img src={block.image} className="w-full h-full object-cover" alt="Hero background" />
+                              <button onClick={() => updateBlock(block.id, { image: '' })} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors">
+                                <X className="w-4 h-4" />
+                              </button>
                             </div>
-                            <div>
-                              <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Link</label>
-                              <input
-                                type="text"
-                                value={block.primaryButtonLink || ''}
-                                onChange={(e) => updateBlock(block.id, { primaryButtonLink: e.target.value })}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm"
-                                placeholder="e.g. /tours?search=atv"
-                              />
+                          )}
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageUpload(e, block.id, false)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={uploadingImage}
+                            />
+                            <div className="w-full p-5 border-2 border-dashed border-gray-300 rounded-2xl text-center hover:border-primary transition-colors bg-gray-50">
+                              {uploadingImage ? (
+                                <div className="flex items-center justify-center gap-2 text-gray-500 font-bold"><Loader2 className="w-5 h-5 animate-spin text-primary" /> Uploading image to cloud...</div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1 text-gray-500">
+                                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                                  <span className="font-bold text-sm text-gray-800">Click to upload image file</span>
+                                  <span className="text-xs text-gray-400">JPG, PNG, WEBP supported</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
-                        <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50">
-                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Secondary Button</label>
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Text</label>
-                              <input
-                                type="text"
-                                value={block.secondaryButtonText || ''}
-                                onChange={(e) => updateBlock(block.id, { secondaryButtonText: e.target.value })}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm"
-                                placeholder="e.g. Inquire / Contact"
-                              />
+                      )}
+
+                      {/* Multi-Image Slideshow Manager */}
+                      {(block.mediaType === 'slideshow' || block.design === 'slideshow-atv') && (
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Slideshow Image Gallery</label>
+                          {block.heroImages && block.heroImages.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                              {block.heroImages.map((img, idx) => (
+                                <div key={idx} className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200 group">
+                                  <img src={img} className="w-full h-full object-cover" alt={`Hero image ${idx+1}`} />
+                                  <button 
+                                    type="button"
+                                    onClick={() => {
+                                      const newImgs = [...(block.heroImages || [])];
+                                      newImgs.splice(idx, 1);
+                                      updateBlock(block.id, { heroImages: newImgs });
+                                    }} 
+                                    className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors opacity-90 group-hover:opacity-100"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                  <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-black rounded">
+                                    Slide {idx+1}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                            <div>
-                              <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Link</label>
-                              <input
-                                type="text"
-                                value={block.secondaryButtonLink || ''}
-                                onChange={(e) => updateBlock(block.id, { secondaryButtonLink: e.target.value })}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm"
-                                placeholder="e.g. /contact"
-                              />
+                          )}
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={(e) => handleImageUpload(e, block.id, true)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={uploadingImage}
+                            />
+                            <div className="w-full p-5 border-2 border-dashed border-gray-300 rounded-2xl text-center hover:border-primary transition-colors bg-gray-50">
+                              {uploadingImage ? (
+                                <div className="flex items-center justify-center gap-2 text-gray-500 font-bold"><Loader2 className="w-5 h-5 animate-spin text-primary" /> Uploading slide images...</div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1 text-gray-500">
+                                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                                  <span className="font-bold text-sm text-gray-800">Click to select multiple images for slideshow</span>
+                                  <span className="text-xs text-gray-400">Add high resolution adventure photos</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Image/Video Inputs (Hero only) */}
-                  {block.id === 'hero' && block.design === 'youtube-video' && (
-                    <div>
-                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">YouTube Video URL</label>
-                       <input
-                          type="text"
-                          value={block.youtubeUrl || ''}
-                          onChange={(e) => updateBlock(block.id, { youtubeUrl: e.target.value })}
-                          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
-                    </div>
-                  )}
-
-                  {block.id === 'hero' && block.design === 'airbnb-classic' && (
-                    <div>
-                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Background Image</label>
-                       {block.image && (
-                         <div className="mb-4 relative w-48 aspect-video rounded-xl overflow-hidden shadow-sm">
-                           <img src={block.image} className="w-full h-full object-cover" alt="Hero background" />
-                           <button onClick={() => updateBlock(block.id, { image: '' })} className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70">
-                             <X className="w-4 h-4" />
-                           </button>
-                         </div>
-                       )}
-                       <div className="relative">
-                         <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, block.id, false)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={uploadingImage}
-                          />
-                          <div className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-center hover:border-primary transition-colors bg-gray-50">
-                            {uploadingImage ? (
-                              <div className="flex items-center justify-center gap-2 text-gray-500 font-bold"><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</div>
-                            ) : (
-                              <div className="flex flex-col items-center gap-1 text-gray-500">
-                                <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                                <span className="font-bold text-sm">Click to upload a single image</span>
-                              </div>
-                            )}
-                          </div>
-                       </div>
-                    </div>
-                  )}
-
-                  {block.id === 'hero' && block.design === 'slideshow-atv' && (
-                    <div>
-                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Slideshow Images (Multi-upload)</label>
-                       {block.heroImages && block.heroImages.length > 0 && (
-                         <div className="flex flex-wrap gap-4 mb-4">
-                           {block.heroImages.map((img, idx) => (
-                             <div key={idx} className="relative w-32 aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200">
-                               <img src={img} className="w-full h-full object-cover" alt={`Hero image ${idx+1}`} />
-                               <button 
-                                 onClick={() => {
-                                   const newImgs = [...(block.heroImages || [])];
-                                   newImgs.splice(idx, 1);
-                                   updateBlock(block.id, { heroImages: newImgs });
-                                 }} 
-                                 className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                                >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           ))}
-                         </div>
-                       )}
-                       <div className="relative">
-                         <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={(e) => handleImageUpload(e, block.id, true)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={uploadingImage}
-                          />
-                          <div className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-center hover:border-primary transition-colors bg-gray-50">
-                            {uploadingImage ? (
-                              <div className="flex items-center justify-center gap-2 text-gray-500 font-bold"><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</div>
-                            ) : (
-                              <div className="flex flex-col items-center gap-1 text-gray-500">
-                                <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                                <span className="font-bold text-sm">Click to upload multiple images</span>
-                              </div>
-                            )}
-                          </div>
-                       </div>
+                      )}
                     </div>
                   )}
 

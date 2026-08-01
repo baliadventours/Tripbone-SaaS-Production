@@ -49,17 +49,15 @@ import {
 import { cn } from '../../lib/utils';
 
 const THEME_OPTIONS = [
-  { id: 'slideshow-atv', name: 'Bali ATV Slideshow', category: 'Specialty' },
-  { id: 'airbnb-classic', name: 'Airbnb Classic', category: 'Airbnb' },
-  { id: 'airbnb-fluid', name: 'Airbnb Modern', category: 'Airbnb' },
-  { id: 'modern-dark', name: 'Modern Dark', category: 'Modern' },
-  { id: 'modern-glass', name: 'Modern Glass', category: 'Modern' },
-  { id: 'minimal-grid', name: 'Minimal Grid', category: 'Minimal' },
-  { id: 'minimal-type', name: 'Minimal Typo', category: 'Minimal' },
-  { id: 'premium-serif', name: 'Premium Serif', category: 'Premium' },
-  { id: 'premium-full', name: 'Premium Full-bleed', category: 'Premium' },
-  { id: 'saas-clean', name: 'SaaS Clean', category: 'SaaS' },
-  { id: 'saas-dash', name: 'SaaS Dashboard', category: 'SaaS' },
+  { id: 'slideshow-atv', name: 'Cinematic Multi-Image Slideshow Hero', category: 'Slideshow' },
+  { id: 'airbnb-classic', name: 'Airbnb Split Search & Gallery Hero', category: 'Airbnb' },
+  { id: 'youtube-video', name: 'Full Video Background Hero', category: 'Video' },
+  { id: 'split-media-right', name: 'Split Content & Glass Media Card Hero', category: 'Modern Split' },
+  { id: 'centered-overlay', name: 'Luxury Centered Cover & Search Overlay', category: 'Centered' },
+  { id: 'bento-grid-hero', name: 'Bento Showcase Grid Hero', category: 'Bento UI' },
+  { id: 'floating-card-hero', name: 'Floating Island Booking Card Hero', category: 'Floating Card' },
+  { id: 'modern-glass', name: 'Glassmorphism Cyber Slate Hero', category: 'Dark Mode' },
+  { id: 'minimal-type', name: 'Editorial Typographic Hero', category: 'Minimalist' },
 ];
 
 const SECTIONS = [

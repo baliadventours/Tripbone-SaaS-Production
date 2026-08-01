@@ -330,6 +330,7 @@ const SLIDES = [
 export default function Home() {
   const { settings, builderSettings } = useSettings();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [activeVideoModal, setActiveVideoModal] = useState<string | null>(null);
 
   const heroBlock = builderSettings?.blocks.find(b => b.id === 'hero');
   const imagesToUse = heroBlock?.heroImages?.length ? heroBlock.heroImages : settings?.heroImages;
@@ -352,21 +353,38 @@ export default function Home() {
     const val = heroBlock?.badge;
     return typeof val === 'string' && val.trim() !== '' ? val : null;
   };
-  const getPrimaryButtonText = (fallback) => {
+  const getPrimaryButtonText = (fallback: string) => {
     const val = heroBlock?.primaryButtonText;
     return typeof val === 'string' && val.trim() !== '' ? val : fallback;
   };
-  const getPrimaryButtonLink = (fallback) => {
+  const getPrimaryButtonLink = (fallback: string) => {
     const val = heroBlock?.primaryButtonLink;
     return typeof val === 'string' && val.trim() !== '' ? val : fallback;
   };
-  const getSecondaryButtonText = (fallback) => {
+  const getSecondaryButtonText = (fallback: string) => {
     const val = heroBlock?.secondaryButtonText;
     return typeof val === 'string' && val.trim() !== '' ? val : fallback;
   };
-  const getSecondaryButtonLink = (fallback) => {
+  const getSecondaryButtonLink = (fallback: string) => {
     const val = heroBlock?.secondaryButtonLink;
     return typeof val === 'string' && val.trim() !== '' ? val : fallback;
+  };
+
+  const getHeroBullets = () => {
+    if (heroBlock?.heroBullets && heroBlock.heroBullets.length > 0) return heroBlock.heroBullets;
+    return ['Free Cancellation up to 24h', 'Verified English Speaking Guides', 'Instant Confirmation'];
+  };
+
+  const getHeroOverlayClass = () => {
+    const opacity = heroBlock?.overlayOpacity || 'gradient';
+    switch(opacity) {
+      case 'dark': return 'bg-black/80';
+      case 'medium': return 'bg-black/55';
+      case 'light': return 'bg-black/25';
+      case 'none': return 'bg-transparent';
+      case 'gradient':
+      default: return 'bg-gradient-to-t from-black/90 via-black/50 to-black/30';
+    }
   };
 
   const slidesToUse = useMemo(() => {
@@ -1278,6 +1296,326 @@ export default function Home() {
           </section>
         );
 
+      case "split-media-right": {
+        const headline = getHeroTitle() || "Curated Expeditions & Private Custom Adventures";
+        const subtitle = getHeroSubtitle() || (getHeroBadge() || "⭐ #1 Rated Tour Operator in Bali");
+        const desc = getHeroDescription() || "Hand-vetted tours, high-performance transports, and custom timelines. Engineered for travelers who seek the extraordinary.";
+        const mediaSrc = singleImageToUse || imagesToUse?.[0] || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80";
+        const videoBg = heroBlock?.videoUrl || heroBlock?.youtubeUrl;
+
+        return (
+          <section className="relative min-h-[90vh] flex items-center pt-28 pb-16 bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white overflow-hidden">
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 blur-[120px] pointer-events-none" />
+            <div className="container mx-auto px-6 lg:px-12 relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+                {/* Left Side: Copy & Actions */}
+                <div className="lg:col-span-7 space-y-8">
+                  <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md">
+                    <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-orange-300">
+                      {subtitle}
+                    </span>
+                  </div>
+
+                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight text-white">
+                    {headline}
+                  </h1>
+
+                  <p className="text-base md:text-xl text-gray-300 font-medium leading-relaxed max-w-2xl">
+                    {desc}
+                  </p>
+
+                  {/* Bullet Highlights */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    {getHeroBullets().map((bullet, idx) => (
+                      <div key={idx} className="flex items-center gap-3 bg-white/5 border border-white/10 p-3 rounded-2xl backdrop-blur-sm">
+                        <LucideIcons.CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                        <span className="text-xs font-bold text-gray-200">{bullet}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Actions & Search */}
+                  <div className="flex flex-wrap items-center gap-4 pt-4">
+                    <Link
+                      to={getPrimaryButtonLink("/tours")}
+                      className="px-8 py-4 bg-primary hover:bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-primary/20 flex items-center gap-2 group"
+                    >
+                      <span>{getPrimaryButtonText("Explore All Tours")}</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                    <Link
+                      to={getSecondaryButtonLink("/contact")}
+                      className="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all backdrop-blur-md flex items-center gap-2"
+                    >
+                      <span>{getSecondaryButtonText("Custom Inquiry")}</span>
+                      <LucideIcons.MessageSquare className="w-4 h-4 text-orange-400" />
+                    </Link>
+                  </div>
+
+                  {heroBlock?.showSearch !== false && (
+                    <div className="pt-4 max-w-2xl">
+                      <SearchForm />
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Side: Elevated Glass Media Card */}
+                <div className="lg:col-span-5 relative">
+                  <div className="relative rounded-[2.5rem] overflow-hidden border border-white/20 bg-white/5 p-3 backdrop-blur-xl shadow-2xl group">
+                    <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-gray-900">
+                      {videoBg ? (
+                        <div className="relative w-full h-full">
+                          {videoId ? (
+                            <iframe
+                              className="w-full h-full object-cover scale-[1.3]"
+                              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1`}
+                              allow="autoplay; encrypted-media"
+                            />
+                          ) : (
+                            <video src={videoBg} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                      ) : (
+                        <img src={mediaSrc} alt="Hero Media" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      )}
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                      {/* Floating Rating Badge */}
+                      <div className="absolute top-4 left-4 px-4 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-white text-xs font-bold flex items-center gap-2">
+                        <LucideIcons.Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                        <span>4.9 / 5.0 (1,200+ Verified Guests)</span>
+                      </div>
+
+                      {/* Floating Play Button */}
+                      {videoBg && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveVideoModal(videoBg)}
+                          className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all group/btn"
+                        >
+                          <Play className="w-7 h-7 fill-white ml-1" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      case "centered-overlay": {
+        const headline = getHeroTitle() || "Experience Unmatched Balinese Wonders";
+        const subtitle = getHeroSubtitle() || (getHeroBadge() || "PREMIUM ADVENTURES & PRIVATE TRANSPORTS");
+        const desc = getHeroDescription() || "Handpicked expeditions with instant confirmation and dedicated private concierge.";
+        const bgImage = singleImageToUse || imagesToUse?.[0] || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1600&q=80";
+
+        return (
+          <section className="relative min-h-screen w-full flex flex-col justify-between pt-32 pb-16 bg-gray-950 text-white overflow-hidden">
+            {/* Background Image / Overlay */}
+            <div className="absolute inset-0 z-0">
+              <img src={bgImage} className="w-full h-full object-cover" alt="Hero Cover" />
+              <div className={cn("absolute inset-0 z-10", getHeroOverlayClass())} />
+            </div>
+
+            {/* Main Center Content */}
+            <div className="relative z-20 container mx-auto px-6 lg:px-12 flex flex-col items-center text-center my-auto max-w-5xl space-y-8">
+              <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/20 border border-primary/40 backdrop-blur-md text-white">
+                <Sparkles className="w-4 h-4 text-orange-400" />
+                <span className="text-xs font-black uppercase tracking-widest">{subtitle}</span>
+              </div>
+
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.05] text-white drop-shadow-2xl">
+                {headline}
+              </h1>
+
+              <p className="text-lg md:text-2xl text-gray-200 font-medium max-w-3xl leading-relaxed drop-shadow-md">
+                {desc}
+              </p>
+
+              {/* Embedded Floating Search Widget */}
+              {heroBlock?.showSearch !== false && (
+                <div className="w-full max-w-4xl pt-4">
+                  <div className="p-3 bg-white/15 backdrop-blur-2xl rounded-3xl border border-white/20 shadow-2xl">
+                    <SearchForm />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Trust Metrics Bar */}
+            <div className="relative z-20 container mx-auto px-6 lg:px-12 pt-12 border-t border-white/10">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div className="space-y-1">
+                  <span className="text-2xl md:text-3xl font-black text-white">10,000+</span>
+                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wider">Happy Travelers</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-2xl md:text-3xl font-black text-white">100+</span>
+                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wider">Handpicked Tours</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-2xl md:text-3xl font-black text-white">4.9 / 5.0</span>
+                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wider">Guest Rating</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-2xl md:text-3xl font-black text-white">24/7</span>
+                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wider">Local Concierge</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      case "bento-grid-hero": {
+        const headline = getHeroTitle() || "Explore Bali’s Peak Destinations";
+        const desc = getHeroDescription() || "Custom private drivers, ATV adventures, sunrise volcano treks, and Instagram private tours.";
+        const bgImage = singleImageToUse || imagesToUse?.[0] || "https://images.unsplash.com/photo-1518548419070-2c61b179ad65?auto=format&fit=crop&w=1200&q=80";
+        const topTour = tours[0];
+
+        return (
+          <section className="relative min-h-screen pt-28 pb-16 bg-zinc-950 text-white flex items-center overflow-hidden">
+            <div className="container mx-auto px-6 lg:px-12 relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Bento Card 1: Main Banner (Span 8) */}
+                <div className="lg:col-span-8 relative rounded-[2.5rem] overflow-hidden border border-white/10 bg-gray-900 p-8 md:p-12 flex flex-col justify-between min-h-[500px] group shadow-2xl">
+                  <img src={bgImage} className="absolute inset-0 w-full h-full object-cover filter brightness-50 group-hover:scale-105 transition-transform duration-700" alt="Bento Main" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
+
+                  <div className="relative z-20 space-y-3">
+                    <span className="inline-block px-4 py-1.5 rounded-full bg-primary text-white text-xs font-black uppercase tracking-widest shadow-md">
+                      {getHeroBadge() || "FEATURED EXPERIENCE"}
+                    </span>
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight text-white max-w-2xl">
+                      {headline}
+                    </h1>
+                  </div>
+
+                  <div className="relative z-20 space-y-6 pt-8">
+                    <p className="text-base md:text-lg text-gray-200 font-medium max-w-xl">
+                      {desc}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <Link
+                        to={getPrimaryButtonLink("/tours")}
+                        className="px-8 py-4 bg-primary hover:bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl flex items-center gap-2"
+                      >
+                        <span>{getPrimaryButtonText("Book Expedition")}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Bento Cards 2 & 3 (Span 4) */}
+                <div className="lg:col-span-4 grid grid-cols-1 gap-6">
+                  {/* Bento Card 2: Spotlight Tour */}
+                  <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 bg-gray-900 p-6 flex flex-col justify-between min-h-[240px] group">
+                    <img
+                      src={topTour?.gallery?.[0] || topTour?.featuredImage || "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80"}
+                      className="absolute inset-0 w-full h-full object-cover filter brightness-50 group-hover:scale-105 transition-transform duration-500"
+                      alt="Spotlight Tour"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
+
+                    <div className="relative z-20 flex items-center justify-between">
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                        Top Rated
+                      </span>
+                      {topTour?.regularPrice && (
+                        <span className="px-3 py-1 bg-amber-400 text-gray-950 font-black text-xs rounded-full">
+                          <FormattedPrice amount={topTour.discountPrice || topTour.regularPrice} />
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="relative z-20 space-y-2">
+                      <h3 className="text-xl font-bold text-white line-clamp-1">
+                        {topTour?.title || "Mount Batur Sunrise Volcano Trek"}
+                      </h3>
+                      <Link
+                        to={topTour ? `/tour/${topTour.slug || topTour.id}` : "/tours"}
+                        className="inline-flex items-center gap-2 text-xs font-black text-primary hover:underline uppercase tracking-wider"
+                      >
+                        <span>Explore Tour</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Bento Card 3: Trust & Instant Concierge */}
+                  <div className="rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-gray-900 via-gray-950 to-black p-6 flex flex-col justify-between min-h-[240px]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-400">
+                          WhatsApp Concierge
+                        </span>
+                      </div>
+                      <LucideIcons.ShieldCheck className="w-6 h-6 text-primary" />
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold text-gray-300">
+                        Need custom itineraries or direct driver bookings? Talk directly with our Balinese travel team.
+                      </p>
+                      <Link
+                        to="/contact"
+                        className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-2xl font-black text-xs uppercase tracking-widest text-center block transition-all"
+                      >
+                        Chat with Concierge
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      case "floating-card-hero": {
+        const headline = getHeroTitle() || "Explore Bali Like Never Before";
+        const desc = getHeroDescription() || "Hand-vetted local guides, private transports, and instant confirmation for all activities.";
+        const bgImage = singleImageToUse || imagesToUse?.[0] || "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=80";
+
+        return (
+          <section className="relative min-h-screen w-full flex items-center justify-start pt-28 pb-16 bg-gray-950 overflow-hidden">
+            {/* Full Bleed Background Media */}
+            <div className="absolute inset-0 z-0">
+              <img src={bgImage} className="w-full h-full object-cover" alt="Floating Hero Cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
+            </div>
+
+            {/* Elevated Floating Search Island */}
+            <div className="relative z-20 container mx-auto px-6 lg:px-12">
+              <div className="max-w-xl bg-white/95 backdrop-blur-2xl border border-white/40 p-8 md:p-10 rounded-[2.5rem] shadow-2xl text-gray-900 space-y-6">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100 text-primary text-xs font-black uppercase tracking-widest">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{getHeroBadge() || "INSTANT PRIVATE BOOKINGS"}</span>
+                </div>
+
+                <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+                  {headline}
+                </h1>
+
+                <p className="text-sm md:text-base text-gray-600 font-medium leading-relaxed">
+                  {desc}
+                </p>
+
+                <div className="pt-2">
+                  <SearchForm />
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
       default:
         return (
           <section className="relative h-[85vh] w-full overflow-hidden hidden md:block bg-gray-900">
@@ -2086,6 +2424,39 @@ export default function Home() {
           </LazySection>
         )}
       </div>
+
+      {/* Video Lightbox Modal */}
+      <AnimatePresence>
+        {activeVideoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
+            onClick={() => setActiveVideoModal(null)}
+          >
+            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/20" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setActiveVideoModal(null)}
+                className="absolute top-4 right-4 z-50 p-3 rounded-full bg-black/60 text-white hover:bg-white hover:text-black transition-all"
+              >
+                <LucideIcons.X className="w-6 h-6" />
+              </button>
+              {activeVideoModal.includes('youtube') || activeVideoModal.includes('youtu.be') ? (
+                <iframe
+                  className="w-full h-full"
+                  src={`${activeVideoModal.replace('watch?v=', 'embed/')}?autoplay=1`}
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={activeVideoModal} autoPlay controls className="w-full h-full object-contain" />
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
