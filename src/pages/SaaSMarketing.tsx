@@ -170,7 +170,7 @@ export default function SaaSMarketing() {
     },
     { 
       q: "Is there a free trial available?", 
-      a: "Yes, we offer a 14-day free trial so you can experience everything Tripbone has to offer before committing." 
+      a: "Yes, we offer a 7-day free trial so you can experience everything Tripbone has to offer before committing." 
     }
   ];
 
@@ -1266,7 +1266,7 @@ export default function SaaSMarketing() {
 
             {/* Trial terms list */}
             <p className="text-xs text-slate-500 font-medium">
-              No credit card required • Free 14-day trial • Cancel anytime
+              No credit card required • Free 7-day trial • Cancel anytime
             </p>
           </div>
         </section>

@@ -425,7 +425,7 @@ export default function SaaSComparison() {
             <ShieldCheck className="w-12 h-12 text-teal-400 mx-auto mb-4" />
             <h2 className="text-3xl font-black text-white mb-4">Switching Is Fast & Completely Risk-Free</h2>
             <p className="text-slate-300 text-sm max-w-xl mx-auto mb-8 leading-relaxed">
-              Try Tripbone alongside your current software for 14 days with zero risk. Our migration team handles data transfer so your bookings never miss a beat.
+              Try Tripbone alongside your current software for 7 days with zero risk. Our migration team handles data transfer so your bookings never miss a beat.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -433,7 +433,7 @@ export default function SaaSComparison() {
                 className="w-full sm:w-auto px-8 py-4 rounded-xl text-white font-bold text-sm shadow-xl hover:brightness-110 transition-all flex items-center justify-center gap-2"
                 style={{ backgroundColor: brandColor }}
               >
-                <span>Claim Your 14-Day Free Trial</span>
+                <span>Claim Your 7-Day Free Trial</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
