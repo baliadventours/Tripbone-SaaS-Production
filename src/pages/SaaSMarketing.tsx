@@ -177,9 +177,9 @@ export default function SaaSMarketing() {
   return (
     <>
       <Helmet>
-        <title>{settings?.metaTitle || (settings?.siteName ? `${settings.siteName} - Instant Tour Agency in a Box` : 'Tripbone - Instant Tour Agency in a Box')}</title>
-        <meta name="description" content={settings?.siteDescription || 'Tripbone is an AI-powered SaaS platform for tour operators to generate fully automated tour websites with instant booking systems and WhatsApp automation.'} />
-        <meta name="keywords" content={settings?.siteKeywords || 'tour operator software, travel saas, custom booking engine, ai website builder'} />
+        <title>Tripbone - Tour Operator Booking & Management System</title>
+        <meta name="description" content="Tripbone is an AI-powered SaaS platform for tour operators to generate fully automated tour websites with instant booking systems and WhatsApp automation." />
+        <meta name="keywords" content="tour operator software, travel saas, custom booking engine, ai website builder" />
       </Helmet>
 
       <style>{`

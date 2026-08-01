@@ -319,9 +319,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           if (slug) {
             tenantQuery = query(collection(db, 'tenants'), where('slug', '==', slug), limit(1));
           } else if (customDomain) {
-            const cleanDomain = customDomain.replace(/^www\./i, '');
-            const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
-            tenantQuery = query(collection(db, 'tenants'), where('customDomain', 'in', domainsToSearch), limit(1));
+            const cleanDomain = customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').trim().toLowerCase();
+            const domainsToSearch = [
+              cleanDomain,
+              'www.' + cleanDomain,
+              'https://' + cleanDomain,
+              'https://www.' + cleanDomain,
+              'http://' + cleanDomain,
+              'http://www.' + cleanDomain,
+              cleanDomain + '/',
+              'www.' + cleanDomain + '/'
+            ];
+            tenantQuery = query(collection(db, 'tenants'), where('customDomain', 'in', domainsToSearch.slice(0, 10)), limit(1));
           }
 
           if (tenantQuery) {
@@ -330,6 +339,27 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               const tenantDoc = querySnapshot.docs[0];
               tenantDocId = tenantDoc.id;
               tenantData = { id: tenantDoc.id, ...(tenantDoc.data() as any) } as Tenant;
+            }
+          }
+
+          // Fallback in-memory scan if direct array query didn't match
+          if (!tenantData && customDomain) {
+            const cleanDomain = customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').trim().toLowerCase();
+            try {
+              const allTenantsSnap = await getDocs(collection(db, 'tenants'));
+              allTenantsSnap.forEach((docSnap) => {
+                if (tenantData) return;
+                const data = docSnap.data() as any;
+                if (data.customDomain) {
+                  const storedClean = data.customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').trim().toLowerCase();
+                  if (storedClean === cleanDomain) {
+                    tenantDocId = docSnap.id;
+                    tenantData = { id: docSnap.id, ...data } as Tenant;
+                  }
+                }
+              });
+            } catch (fallbackErr) {
+              console.warn('Error in fallback customDomain scan:', fallbackErr);
             }
           }
         }
@@ -356,7 +386,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           setTenant(null);
           setTenantIdInternal(null);
           setActiveTenantId(null);
-          setIsMaster(true);
+          // Crucial: On a custom domain, NEVER flag as master (SaaS Marketing)
+          setIsMaster(Boolean(!customDomain && !slug));
           setIsImpersonating(false);
         }
       } catch (err: any) {

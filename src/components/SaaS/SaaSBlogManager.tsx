@@ -648,9 +648,22 @@ export default function SaaSBlogManager({ isDarkMode = false }: SaaSBlogManagerP
             </p>
 
             {aiError && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{aiError}</span>
+              <div className="mb-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+                  <div className="flex-1">
+                    <p className="font-bold">{aiError}</p>
+                    {aiError.toLowerCase().includes('api key') && (
+                      <div className="mt-2.5 pt-2.5 border-t border-rose-500/20 text-[11px] text-gray-700 dark:text-gray-300 space-y-1.5">
+                        <p className="font-extrabold text-rose-700 dark:text-rose-300">How to resolve this issue:</p>
+                        <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
+                          <li>Generate a new free Gemini API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">Google AI Studio (aistudio.google.com)</a>.</li>
+                          <li>Go to <strong>Admin -&gt; Settings -&gt; Communication Settings</strong> and paste the key into <strong>Gemini API Key</strong>, OR update your <strong>GEMINI_API_KEY</strong> in Vercel Environment Variables.</li>
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

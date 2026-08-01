@@ -3,6 +3,18 @@ import { useLocation } from 'react-router-dom';
 import { useTenant } from '../lib/TenantContext';
 import { useSettings } from '../lib/SettingsContext';
 
+function deriveBrandFromHostname(hostname: string): string {
+  if (!hostname) return 'Tripbone';
+  const clean = hostname.replace(/^www\./i, '').split(':')[0].trim();
+  const namePart = clean.split('.')[0]; // e.g. smartbalitours or baliwanderlust
+  if (!namePart || namePart === 'localhost' || namePart === 'tripbone' || namePart === '127' || namePart === 'app') {
+    return 'Tripbone';
+  }
+  // Convert hyphens/underscores or merged lowercase to readable Title Case if applicable
+  const words = namePart.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  return words.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 export function useTenantSEO() {
   const { tenant, isMaster, globalSEO } = useTenant();
   const { settings } = useSettings();
@@ -12,15 +24,18 @@ export function useTenantSEO() {
     // Only run on client
     if (typeof window === 'undefined') return;
 
-    const siteName = settings?.siteName || tenant?.companyName || globalSEO?.siteName || 'Tripbone';
-    const siteDescription = settings?.metaDescription || settings?.siteDescription || 
-        (tenant?.companyName ? `Premium Tours & Experiences with ${tenant.companyName}` : globalSEO?.description);
+    const hostname = window.location.hostname;
+    const derivedBrand = deriveBrandFromHostname(hostname);
+
+    const siteName = settings?.siteName || tenant?.companyName || (derivedBrand !== 'Tripbone' ? derivedBrand : (globalSEO?.siteName || 'Tripbone'));
+    const siteDescription = settings?.metaDescription || settings?.siteDescription || (tenant as any)?.description || 
+        (!isMaster ? `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.` : globalSEO?.description);
     const siteKeywords = settings?.siteKeywords || globalSEO?.keywords || '';
     const siteImage = settings?.ogImage || settings?.heroImage || settings?.logoURL || tenant?.logo || globalSEO?.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
 
     let title = siteName;
     if (isMaster) {
-      title = globalSEO?.title || 'Tripbone - Enterprise Multi Tenant SaaS Platform';
+      title = globalSEO?.title || 'Tripbone - Tour Operator Booking & Management Platform';
     } else {
       const isTourDetail = location.pathname.startsWith('/tour/');
       if (location.pathname === '/') {
@@ -28,7 +43,7 @@ export function useTenantSEO() {
          if (!title && settings?.homeTitleFormat) {
            title = settings.homeTitleFormat.replace(/\{\{siteName\}\}/gi, siteName);
          }
-         title = title || `Book Tour and Adventours in Bali - ${siteName}`;
+         title = title || `${siteName} - Book Tours and Activities in Bali`;
       } else if (!isTourDetail) {
          const pathParts = location.pathname.split('/').filter(Boolean);
          if (pathParts.length > 0) {

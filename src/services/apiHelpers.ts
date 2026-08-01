@@ -223,6 +223,20 @@ export async function generateContentWithFallback(ai: any, params: any) {
       }
     }
   }
+
+  // Sanitize key error message for human clarity if it failed due to invalid API key
+  const finalErrMsg = String(lastError?.message || lastError || "");
+  if (
+    finalErrMsg.includes("API key not valid") || 
+    finalErrMsg.includes("API_KEY_INVALID") || 
+    finalErrMsg.includes("INVALID_ARGUMENT") ||
+    finalErrMsg.includes("UNAUTHENTICATED")
+  ) {
+    throw new Error(
+      "API key not valid. Please ensure your Gemini API Key is configured in Admin Settings (Communication Settings) or Vercel Environment Variables (GEMINI_API_KEY). You can obtain a free API key at https://aistudio.google.com."
+    );
+  }
+
   throw lastError;
 }
 
@@ -234,8 +248,15 @@ export async function resolveTenantGeminiKey(tenantId?: string | null): Promise<
     const commSettingsDoc = await db.collection('communicationSettings').doc(tenantId).get();
     if (commSettingsDoc.exists) {
       const data = commSettingsDoc.data();
-      if (data?.geminiApiKey && typeof data.geminiApiKey === 'string' && data.geminiApiKey.trim().length > 10) {
-        return data.geminiApiKey.trim();
+      const rawKey = data?.geminiApiKey;
+      if (
+        typeof rawKey === 'string' && 
+        rawKey.trim().length > 15 && 
+        !rawKey.includes('...') && 
+        !rawKey.toLowerCase().includes('your') &&
+        !rawKey.toLowerCase().includes('key')
+      ) {
+        return rawKey.trim();
       }
     }
   } catch (err) {

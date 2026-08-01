@@ -5178,10 +5178,19 @@ export async function createServer() {
           } catch (restE) {}
         }
       } else if (resolvedCustomDomain) {
-        const cleanDomain = resolvedCustomDomain.replace(/^www\./i, '');
-        const domainsToSearch = [cleanDomain, 'www.' + cleanDomain];
+        const cleanDomain = resolvedCustomDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').trim().toLowerCase();
+        const domainsToSearch = [
+          cleanDomain,
+          'www.' + cleanDomain,
+          'https://' + cleanDomain,
+          'https://www.' + cleanDomain,
+          'http://' + cleanDomain,
+          'http://www.' + cleanDomain,
+          cleanDomain + '/',
+          'www.' + cleanDomain + '/'
+        ];
         try {
-          const tenantsSnap = await db.collection('tenants').where('customDomain', 'in', domainsToSearch).limit(1).get();
+          const tenantsSnap = await db.collection('tenants').where('customDomain', 'in', domainsToSearch.slice(0, 10)).limit(1).get();
           if (!tenantsSnap.empty) {
             tenantDoc = { id: tenantsSnap.docs[0].id, ...tenantsSnap.docs[0].data() };
             console.log(`[SEO Server] Resolved tenant from custom domain ${resolvedCustomDomain} (ID: ${tenantDoc.id}) via Admin SDK`);
@@ -5189,7 +5198,7 @@ export async function createServer() {
         } catch (e) {
           try {
             const docs = await fetchFromREST('tenants', undefined, {
-              whereFilters: [{ field: 'customDomain', op: 'IN', value: domainsToSearch }],
+              whereFilters: [{ field: 'customDomain', op: 'IN', value: domainsToSearch.slice(0, 10) }],
               limit: 1
             });
             if (docs && docs.length > 0) {
@@ -5198,15 +5207,48 @@ export async function createServer() {
             }
           } catch (restE) {}
         }
+
+        // Fallback in-memory scan if array search did not yield a document
+        if (!tenantDoc) {
+          try {
+            const allTenantsSnap = await db.collection('tenants').get();
+            allTenantsSnap.docs.forEach(docSnap => {
+              if (tenantDoc) return;
+              const data = docSnap.data();
+              if (data.customDomain) {
+                const storedClean = data.customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').trim().toLowerCase();
+                if (storedClean === cleanDomain) {
+                  tenantDoc = { id: docSnap.id, ...data };
+                  console.log(`[SEO Server] Resolved tenant from custom domain ${resolvedCustomDomain} (ID: ${tenantDoc.id}) via in-memory scan`);
+                }
+              }
+            });
+          } catch (scanErr) {}
+        }
       }
     } catch (err: any) {
       console.error("[SEO Server Tenant Resolve Error]:", err.message || err);
     }
 
+    // Helper to derive a clean brand name from a custom domain string
+    const deriveBrandFromDomain = (domainStr: string) => {
+      if (!domainStr) return 'Tripbone';
+      const clean = domainStr.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(':')[0].trim();
+      const namePart = clean.split('.')[0];
+      if (!namePart || namePart === 'localhost' || namePart === 'tripbone' || namePart === '127' || namePart === 'app') {
+        return 'Tripbone';
+      }
+      return namePart.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, c => c.toUpperCase());
+    };
+
     if (tenantDoc) {
-      siteName = tenantDoc.companyName || 'Bali Adventours';
-      siteDescription = tenantDoc.description || `Book Tour and Adventours in Bali - ${siteName}`;
-      defaultTitle = `Book Tour and Adventours - ${siteName}`;
+      siteName = tenantDoc.companyName || deriveBrandFromDomain(resolvedCustomDomain || '');
+      siteDescription = tenantDoc.description || `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.`;
+      defaultTitle = `${siteName} - Book Tours and Activities in Bali`;
+    } else if (resolvedCustomDomain) {
+      siteName = deriveBrandFromDomain(resolvedCustomDomain);
+      siteDescription = `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.`;
+      defaultTitle = `${siteName} - Book Tours and Activities in Bali`;
     }
 
     const seo = {
@@ -5216,7 +5258,7 @@ export async function createServer() {
       siteName: siteName,
       isProduct: false,
       isArticle: false,
-      status: tenantDoc ? `tenant-${tenantDoc.slug}` : 'master-default',
+      status: tenantDoc ? `tenant-${tenantDoc.slug}` : (resolvedCustomDomain ? `custom-domain-${resolvedCustomDomain}` : 'master-default'),
       preloadedData: null as any,
       keywords: ''
     };
@@ -5269,10 +5311,10 @@ export async function createServer() {
     }
 
     if (reqPath === '/' || reqPath === '/index.html' || reqPath === '/app.html') {
-       if (tenantDoc) {
-         seo.title = `Book Tour and Adventours in Bali - ${siteName}`;
+       if (tenantDoc || resolvedCustomDomain) {
+         seo.title = `${siteName} - Book Tours and Activities in Bali`;
          seo.description = siteDescription;
-         seo.status = 'tenant-home-default';
+         seo.status = tenantDoc ? 'tenant-home-default' : 'custom-domain-home-default';
        } else {
          seo.title = defaultTitle;
          seo.description = siteDescription;
@@ -5312,7 +5354,7 @@ export async function createServer() {
         if (!derivedTitle && settings.homeTitleFormat) {
           derivedTitle = settings.homeTitleFormat.replace(/\{\{siteName\}\}/gi, seo.siteName);
         }
-        seo.title = derivedTitle || (tenantDoc ? `Book Tour and Adventours in Bali - ${seo.siteName}` : defaultTitle);
+        seo.title = derivedTitle || (tenantDoc || resolvedCustomDomain ? `${seo.siteName} - Book Tours and Activities in Bali` : defaultTitle);
         seo.description = settings.siteDescription || settings.metaDescription || seo.description;
       }
     }
