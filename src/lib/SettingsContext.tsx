@@ -216,37 +216,37 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             headingFont = 'Inter';
             bodyFont = 'Inter';
         } else if (activePreset === 'tech-dark') {
-            headingFont = 'Space Grotesk';
-            bodyFont = 'JetBrains Mono';
+            headingFont = 'Plus Jakarta Sans';
+            bodyFont = 'Inter';
         } else if (activePreset === 'elegant-editorial') {
             headingFont = 'Playfair Display';
-            bodyFont = 'Lora';
+            bodyFont = 'Plus Jakarta Sans';
         } else if (activePreset === 'nordic-forest') {
             headingFont = 'Outfit';
             bodyFont = 'Plus Jakarta Sans';
         } else if (activePreset === 'retro-adventure') {
-            headingFont = 'Bricolage Grotesque';
+            headingFont = 'Plus Jakarta Sans';
             bodyFont = 'Plus Jakarta Sans';
         } else if (activePreset === 'tokyo-neon') {
-            headingFont = 'Syne';
-            bodyFont = 'Plus Jakarta Sans';
+            headingFont = 'Plus Jakarta Sans';
+            bodyFont = 'Inter';
         } else if (activePreset === 'mediterranean-breeze') {
-            headingFont = 'Lexend';
+            headingFont = 'Outfit';
             bodyFont = 'Plus Jakarta Sans';
         } else if (activePreset === 'brutalist-mono') {
-            headingFont = 'Archivo Black';
-            bodyFont = 'Fira Code';
+            headingFont = 'Plus Jakarta Sans';
+            bodyFont = 'Inter';
         } else if (activePreset === 'royal-safari') {
             headingFont = 'Cormorant Garamond';
-            bodyFont = 'Lora';
+            bodyFont = 'Plus Jakarta Sans';
         } else if (activePreset === 'zen-oasis') {
             headingFont = 'Outfit';
             bodyFont = 'Inter';
         } else if (activePreset === 'alpine-chalet') {
-            headingFont = 'Bricolage Grotesque';
-            bodyFont = 'Lora';
+            headingFont = 'Outfit';
+            bodyFont = 'Plus Jakarta Sans';
         } else if (activePreset === 'sunset-ibiza') {
-            headingFont = 'Syne';
+            headingFont = 'Plus Jakarta Sans';
             bodyFont = 'Plus Jakarta Sans';
         }
 

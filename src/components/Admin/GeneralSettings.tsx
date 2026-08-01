@@ -1293,99 +1293,99 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                   },
                   {
                     id: 'swiss-minimalist',
-                    name: 'Swiss Minimalist',
-                    desc: 'Soft light greys, sharp corners, flat black accents, and high typographic contrast.',
-                    badge: 'Sleek & Modern',
-                    colorClass: 'from-[#000000] to-[#f4f4f6]',
-                    fontLabel: 'Inter Sans-Serif'
+                    name: 'Sleek Monochrome',
+                    desc: 'Pure crisp white canvas, obsidian accents, floating cards, and pill buttons.',
+                    badge: 'Airbnb Modern',
+                    colorClass: 'from-[#0f172a] to-[#ffffff]',
+                    fontLabel: 'Inter + Inter'
                   },
                   {
                     id: 'tech-dark',
-                    name: 'Technical Dark Grid',
-                    desc: 'Deep charcoal canvas, glowing emerald borders, and high-density technical modules.',
-                    badge: 'Neon Cyber',
-                    colorClass: 'from-[#10b981] to-[#09090b]',
-                    fontLabel: 'Space Grotesk + Mono'
+                    name: 'Midnight Slate',
+                    desc: 'Deep slate charcoal dark mode with clean borders, emerald accents, and high legibility.',
+                    badge: 'Sleek Dark Mode',
+                    colorClass: 'from-[#10b981] to-[#0f172a]',
+                    fontLabel: 'Jakarta + Inter'
                   },
                   {
                     id: 'elegant-editorial',
-                    name: 'Elegant Editorial',
-                    desc: 'Warm off-white background, luxurious serif headings, and generous organic curves.',
-                    badge: 'Luxury Print',
-                    colorClass: 'from-[#b45309] to-[#faf8f5]',
-                    fontLabel: 'Playfair + Lora Serif'
+                    name: 'Boutique Luxe',
+                    desc: 'Warm off-white background, terracotta accents, subtle card borders, and editorial serifs.',
+                    badge: 'Luxury Editorial',
+                    colorClass: 'from-[#c2410c] to-[#faf9f5]',
+                    fontLabel: 'Playfair + Jakarta'
                   },
                   {
                     id: 'nordic-forest',
-                    name: 'Nordic Forest',
-                    desc: 'Deep organic spruce green, soft birch background, and balanced rounded card silhouettes.',
-                    badge: 'Muted Organic',
-                    colorClass: 'from-[#164e63] to-[#f0f4f1]',
+                    name: 'Nordic Sanctuary',
+                    desc: 'Deep forest sage green, crisp slate background, and smooth 16px card silhouettes.',
+                    badge: 'Clean Eco',
+                    colorClass: 'from-[#065f46] to-[#f8fafc]',
                     fontLabel: 'Outfit + Jakarta'
                   },
                   {
                     id: 'retro-adventure',
-                    name: 'Retro Adventure',
-                    desc: 'Golden amber tones, vintage navy accents, paper stamp card designs, and adventurous feel.',
-                    badge: 'Wanderlust',
-                    colorClass: 'from-[#d97706] to-[#faf6f0]',
-                    fontLabel: 'Bricolage + Jakarta'
+                    name: 'Urban Wanderlust',
+                    desc: 'Warm golden amber, oat neutral background, minimalist line borders, and pill controls.',
+                    badge: 'Modern Oat',
+                    colorClass: 'from-[#d97706] to-[#fafaf9]',
+                    fontLabel: 'Jakarta + Jakarta'
                   },
                   {
                     id: 'tokyo-neon',
-                    name: 'Tokyo Neon Grid',
-                    desc: 'Deep cosmic dark space background, hot pink and violet glow, and glassy components.',
-                    badge: 'Shinjuku Midnight',
-                    colorClass: 'from-[#db2777] to-[#03000a]',
-                    fontLabel: 'Syne + Jakarta'
+                    name: 'Tokyo Minimal Dark',
+                    desc: 'Sleek obsidian dark canvas with rose accent lines, clean dark cards, and modern layout.',
+                    badge: 'Shinjuku Minimal',
+                    colorClass: 'from-[#f43f5e] to-[#09090b]',
+                    fontLabel: 'Jakarta + Inter'
                   },
                   {
                     id: 'mediterranean-breeze',
-                    name: 'Coastal Riviera',
-                    desc: 'Brilliant marine azure blue, sunny citrus accents, soft curved waves, and breezy feels.',
-                    badge: 'Sunny Sea Breeze',
+                    name: 'Mediterranean Azure',
+                    desc: 'Marine azure blue, ice sea foam background, floating white cards, and pill buttons.',
+                    badge: 'Coastal Minimal',
                     colorClass: 'from-[#0284c7] to-[#f0f9ff]',
-                    fontLabel: 'Lexend + Jakarta'
+                    fontLabel: 'Outfit + Jakarta'
                   },
                   {
                     id: 'brutalist-mono',
-                    name: 'Neo-Brutalist',
-                    desc: 'Intense high-contrast yellow canvas, 3px raw black borders, and heavy flat offset drop shadows.',
-                    badge: 'Avant-Garde Mono',
-                    colorClass: 'from-[#facc15] to-[#ffffff]',
-                    fontLabel: 'Archivo Black + Fira'
+                    name: 'Monochrome Studio',
+                    desc: 'Architectural precision with stark black and white geometry, clean lines, and minimal elevation.',
+                    badge: 'Studio Linear',
+                    colorClass: 'from-[#000000] to-[#ffffff]',
+                    fontLabel: 'Jakarta + Inter'
                   },
                   {
                     id: 'royal-safari',
-                    name: 'Royal Safari',
-                    desc: 'Imperial rich bronze gold details over a luxurious deep obsidian dark canvas.',
-                    badge: 'Regal Wilderness',
-                    colorClass: 'from-[#b5893d] to-[#0a0a0d]',
-                    fontLabel: 'Cormorant + Lora'
+                    name: 'Regal Wilderness',
+                    desc: 'Warm bronze gold details over a sleek dark charcoal canvas with refined serif headings.',
+                    badge: 'Regal Dark',
+                    colorClass: 'from-[#d97706] to-[#0b0f19]',
+                    fontLabel: 'Cormorant + Jakarta'
                   },
                   {
                     id: 'zen-oasis',
-                    name: 'Zen Oasis',
-                    desc: 'Serene soft celadon greens, massive white negative spaces, and ultra thin minimalist lines.',
-                    badge: 'Organic Peace',
-                    colorClass: 'from-[#a7f3d0] to-[#f4fbf7]',
+                    name: 'Zen Botanical',
+                    desc: 'Serene soft emerald, light botanical green borders, spacious canvas, and pill buttons.',
+                    badge: 'Botanical Peace',
+                    colorClass: 'from-[#059669] to-[#fafcfa]',
                     fontLabel: 'Outfit + Inter'
                   },
                   {
                     id: 'alpine-chalet',
-                    name: 'Alpine Chalet',
-                    desc: 'Rustic wood browns, warm glowing fireplace copper accents, and heavy rugged typography.',
-                    badge: 'Cozy Timber',
-                    colorClass: 'from-[#78350f] to-[#fdfaf6]',
-                    fontLabel: 'Bricolage + Lora'
+                    name: 'Alpine Resort',
+                    desc: 'Copper chestnut accents, warm stone canvas, sleek card borders, and modern rounded controls.',
+                    badge: 'Warm Stone',
+                    colorClass: 'from-[#9a3412] to-[#faf8f5]',
+                    fontLabel: 'Outfit + Jakarta'
                   },
                   {
                     id: 'sunset-ibiza',
-                    name: 'Ibiza Sunset',
-                    desc: 'Smooth orange-pink dream gradients, ultra-fluid border curves, and transparent white glass cards.',
-                    badge: 'Dream Riviera',
-                    colorClass: 'from-[#f43f5e] to-[#fff7ed]',
-                    fontLabel: 'Syne + Jakarta'
+                    name: 'Ibiza Riviera Coral',
+                    desc: 'Airbnb Coral `#FF385C`, warm off-white canvas, soft pill buttons, and subtle rounded cards.',
+                    badge: 'Airbnb Coral',
+                    colorClass: 'from-[#ff385c] to-[#fffdfb]',
+                    fontLabel: 'Jakarta + Jakarta'
                   }
                 ].map((preset) => {
                   const isSelected = (settings?.brandingPreset || 'default') === preset.id;
