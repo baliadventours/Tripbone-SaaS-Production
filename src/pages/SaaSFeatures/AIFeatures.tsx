@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Bot, Globe, Wand2, Zap, LayoutTemplate } from 'lucide-react';
+import { Sparkles, Bot, Globe, Zap, LayoutTemplate, ShieldCheck, FileText, Send, CheckCircle2, Image as ImageIcon, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function AIFeatures() {
@@ -14,10 +14,10 @@ export default function AIFeatures() {
             <span>AI Superpowers</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
-            Automate the Impossible.
+            Automate Your Tour Operations.
           </h1>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-12">
-            Create comprehensive, customized itineraries in seconds. Qualify leads while you sleep. Translate your entire storefront instantly.
+            Create 1-click tour pages, auto-generate sales proposals, qualify inbound leads with guest planners, and handle 24/7 order tracking with AI.
           </p>
           <img 
             src="https://i.ibb.co.com/4nF2mvyr/AIgenerated.png" 
@@ -27,19 +27,38 @@ export default function AIFeatures() {
         </div>
       </section>
 
-      {/* Feature 1: AI Tour Generation */}
+      {/* Feature 1: One Click AI Tour Page Creation */}
       <section className="py-24 px-6 border-b border-slate-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-            <h2 className="text-4xl font-bold mb-6">Create Custom Packages in Seconds</h2>
+            <div className="font-mono text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">[ 1-CLICK TOUR BUILDER ]</div>
+            <h2 className="text-4xl font-bold mb-6">One Click AI Tour Page Creation</h2>
             <p className="text-lg text-slate-600 mb-8">
-              Stop spending hours researching, formatting, and pricing custom itineraries. With our AI, you just type in a quick description (like "3-day romantic honeymoon in East Bali") and it instantly drafts a complete, day-by-day itinerary that's ready to sell.
+              Stop spending hours researching, drafting, and formatting tour itineraries. Simply input a title like "Full Day Nusa Penida Island Hopping" and AI automatically builds complete day-by-day itineraries, inclusions, highlights, FAQ, and pricing rules.
             </p>
-            <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Zap className="w-5 h-5 text-blue-500" /> Draft custom quotes 7x faster</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><LayoutTemplate className="w-5 h-5 text-blue-500" /> Publish directly to your live website with one click</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><ShieldCheck className="w-5 h-5 text-blue-500" /> Say goodbye to manual typos and pricing mistakes</li>
-            </ul>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900">Multi Package & Multi Tier Pricing</h4>
+                  <p className="text-sm text-slate-500">Auto-configures Standard, Deluxe, VIP tiers along with Adult, Child, and Infant rates.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <ImageIcon className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900">Image Gallery Compression</h4>
+                  <p className="text-sm text-slate-500">Auto-compresses high-resolution tour photos into lightweight WebP format for fast mobile loads.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900">Flexible Availability & Cutoff Times</h4>
+                  <p className="text-sm text-slate-500">Defines daily departure slots, max capacity limits, and advance booking rules instantly.</p>
+                </div>
+              </div>
+            </div>
           </motion.div>
           <div className="relative">
             <img src="https://i.ibb.co.com/KzWryQqz/image.png" alt="Tour Generator" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full object-cover" />
@@ -47,58 +66,78 @@ export default function AIFeatures() {
         </div>
       </section>
 
-      {/* Feature 2: Inbound Lead Converter */}
+      {/* Feature 2: Guest AI Travel Planner & Lead Generator */}
       <section className="py-24 px-6 bg-slate-50 border-b border-slate-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="relative order-2 lg:order-1">
             <img src="https://i.ibb.co.com/VYwm826K/image.png" alt="Travel Planner" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full object-cover" />
           </div>
           <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="order-1 lg:order-2">
-            <h2 className="text-4xl font-bold mb-6">Your Personal Travel Planner</h2>
+            <div className="font-mono text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">[ LEAD GENERATION ENGINE ]</div>
+            <h2 className="text-4xl font-bold mb-6">AI Powered Guest Travel Planner</h2>
             <p className="text-lg text-slate-600 mb-8">
-              Give your website visitors their own personal travel planner. Travelers can design their dream vacation right on your site, and as soon as they save it, their details and itinerary are sent straight to you as a hot, ready-to-book lead.
+              Turn casual website visitors into ready-to-buy inquiries. Travelers use an interactive AI itinerary planner on your storefront to outline their custom dream vacation. Once saved, the generated itinerary is delivered directly to your tenant admin portal as a qualified lead.
             </p>
             <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Zap className="w-5 h-5 text-blue-500" /> Turn casual website browsers into targeted leads</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Bot className="w-5 h-5 text-blue-500" /> Beautiful trip maps and visual daily schedules</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><ShieldCheck className="w-5 h-5 text-blue-500" /> Proven to boost your closing rates by 35%</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Travelers save custom multi-day trip schedules</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><Send className="w-5 h-5 text-blue-500" /> Tenant receives full guest contact details & itinerary lead</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><Bot className="w-5 h-5 text-blue-500" /> Higher conversion rate than standard contact forms</li>
             </ul>
           </motion.div>
         </div>
       </section>
 
-      {/* Feature 3: Live Chatbot & Translation */}
-      <section className="py-24 px-6">
+      {/* Feature 3: AI Tour Proposal Generator */}
+      <section className="py-24 px-6 border-b border-slate-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-            <h2 className="text-4xl font-bold mb-6">24/7 Chatbot & Translation</h2>
+            <div className="font-mono text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">[ PROPOSAL AUTOMATION ]</div>
+            <h2 className="text-4xl font-bold mb-6">AI Powered Tour Proposal</h2>
             <p className="text-lg text-slate-600 mb-8">
-              Never miss a booking because you were asleep. Our chatbot connects directly to your calendar to check availability, answer questions, and help customers check out 24/7. Plus, our automatic translation feature instantly switches your website into your visitor's native language.
+              When a traveler inquires about a private group or custom trip, your team can generate a stunning interactive web proposal in seconds. AI formats pricing options, daily schedules, and deposit checkout links into a shareable branded link.
             </p>
-            <div className="grid grid-cols-2 gap-6 mt-8">
-              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
-                <Bot className="w-8 h-8 text-blue-500 mb-4" />
-                <h4 className="font-bold mb-2">Live Answers</h4>
-                <p className="text-sm text-slate-500">"Yes, we have 4 spots left for the Sunrise Tour tomorrow."</p>
+            <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
+              <div className="flex items-center gap-2 font-bold text-blue-900 text-sm">
+                <FileText className="w-4 h-4 text-blue-600" /> Instant Shareable Link
               </div>
-              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
-                <Globe className="w-8 h-8 text-blue-500 mb-4" />
-                <h4 className="font-bold mb-2">Global Reach</h4>
-                <p className="text-sm text-slate-500">Instantly speak your customer's language and show their currency.</p>
-              </div>
+              <p className="text-xs text-blue-800 leading-relaxed">
+                Send interactive proposals via WhatsApp or Email. Guests view their custom trip layout, select package options, and pay deposits directly online.
+              </p>
             </div>
           </motion.div>
           <div className="relative">
-            <img src="https://i.ibb.co.com/0gBfXtC/image.png" alt="Chatbot Interface" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full object-cover" />
+            <img src="https://i.ibb.co.com/0gBfXtC/image.png" alt="AI Proposal Interface" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full object-cover" />
           </div>
         </div>
       </section>
 
+      {/* Feature 4: Live AI Chatbot & Order Tracking */}
+      <section className="py-24 px-6 bg-slate-50">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="relative order-2 lg:order-1">
+            <img src="https://i.ibb.co.com/VYwm826K/image.png" alt="Chatbot Interface" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full object-cover" />
+          </div>
+          <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="order-1 lg:order-2">
+            <div className="font-mono text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">[ 24/7 GUEST SUPPORT ]</div>
+            <h2 className="text-4xl font-bold mb-6">AI Chatbot & Booking Tracking</h2>
+            <p className="text-lg text-slate-600 mb-8">
+              Keep customer service running round-the-clock. Your store's AI assistant answers trip questions, recommends tours based on preferences, and allows existing guests to check their real-time booking status using their reference code.
+            </p>
+            <div className="grid grid-cols-2 gap-6 mt-8">
+              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
+                <Bot className="w-8 h-8 text-blue-500 mb-4" />
+                <h4 className="font-bold mb-2 text-slate-900">AI Assistant</h4>
+                <p className="text-sm text-slate-500">Provides live answers about pickup locations, inclusions, and policies.</p>
+              </div>
+              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
+                <Globe className="w-8 h-8 text-blue-500 mb-4" />
+                <h4 className="font-bold mb-2 text-slate-900">Order Tracking</h4>
+                <p className="text-sm text-slate-500">Guests look up vouchers and departure status anytime without emailing staff.</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </div>
   );
 }
-
-// Temporary component mock since it's not imported top-level
-const ShieldCheck = ({className}: {className?: string}) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-);

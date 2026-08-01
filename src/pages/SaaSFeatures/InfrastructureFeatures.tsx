@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Network, Lock, DollarSign, Database, Server } from 'lucide-react';
+import { ShieldCheck, Network, Lock, DollarSign, Database, Server, Search, Globe, Users, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function InfrastructureFeatures() {
@@ -11,13 +11,13 @@ export default function InfrastructureFeatures() {
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-semibold text-slate-300 mb-8 backdrop-blur-md">
             <ShieldCheck className="w-4 h-4" />
-            <span>Infrastructure & Security</span>
+            <span>Infrastructure & B2B Engine</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
-            Own Your Platform.
+            Enterprise Infrastructure. Zero Fees.
           </h1>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-12">
-            Full control over your data, zero transaction commission fees, and lifetime system ownership.
+            Self-hosted independence, zero transaction commissions, SEO-optimized Schema.org architecture, and multi-role B2B portals.
           </p>
           <img 
             src="https://i.ibb.co.com/B5dnFVb4/Software-dashboard-UI-mockup-202605262231.jpg" 
@@ -27,19 +27,19 @@ export default function InfrastructureFeatures() {
         </div>
       </section>
 
-      {/* Feature 1: Self-Hosted Infrastructure */}
+      {/* Feature 1: Self-Hosted & Zero Commission */}
       <section className="py-24 px-6 border-b border-slate-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-            <div className="font-mono text-sm text-slate-500 font-bold mb-4">[ SELF-ARCHIVE ENVIRONMENT CRITERIA ]</div>
-            <h2 className="text-4xl font-bold mb-6 text-slate-900">Self-Hosted System Infrastructure</h2>
+            <div className="font-mono text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">[ ZERO COMMISSION DEPLOYMENT ]</div>
+            <h2 className="text-4xl font-bold mb-6 text-slate-900">Self-Hosted Platform Independence</h2>
             <p className="text-lg text-slate-600 mb-8">
-              Cloud-hosted booking platforms charge up to 6% in commission on every single booking, eating into your hard-earned margins. Tripbone offers a completely self-hosted, cloud-native backend. You own your source code and keep 100% of your booking revenues.
+              SaaS booking platforms take 3% to 6% of your revenue on every single booking. Tripbone provides a self-hosted architecture where you maintain 100% ownership of your guest database, source code, and online bookings.
             </p>
             <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Server className="w-5 h-5 text-slate-600" /> Cloud Native Deployment (AWS, GCP, Vercel)</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><DollarSign className="w-5 h-5 text-slate-600" /> Fee-Free Stripe Integration (Funds route direct to your bank)</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Lock className="w-5 h-5 text-slate-600" /> Complete Data Security & Database Independence</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><Server className="w-5 h-5 text-slate-600" /> Cloud Native Infrastructure: Deploy on Cloud Run, AWS, or Vercel</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><DollarSign className="w-5 h-5 text-slate-600" /> Keep 100% of Booking Revenue: Direct payments to your merchant account</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><Database className="w-5 h-5 text-slate-600" /> Database Sovereignty: Full ownership over guest logs and customer data</li>
             </ul>
           </motion.div>
           <div className="relative">
@@ -48,27 +48,54 @@ export default function InfrastructureFeatures() {
         </div>
       </section>
 
-      {/* Feature 2: Multi-Supplier Engine */}
+      {/* Feature 2: SEO Friendly & Schema.org Architecture */}
       <section className="py-24 px-6 bg-slate-50 border-b border-slate-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="relative order-2 lg:order-1">
-            <img src="https://i.ibb.co.com/pjk8TdWP/image.png" alt="Network Ledger" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full max-w-sm mx-auto object-cover" />
+            <img src="https://i.ibb.co.com/N6fXww79/image.png" alt="SEO Infrastructure" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full object-cover" />
           </div>
           <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="order-1 lg:order-2">
-            <div className="font-mono text-sm text-slate-500 font-bold mb-4">[ COOPERATIVE NETWORK LEDGER v1.8 ]</div>
-            <h2 className="text-4xl font-bold mb-6 text-slate-900">Multi-Supplier & Agent Network</h2>
+            <div className="font-mono text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">[ SEARCH ENGINE OPTIMIZATION ]</div>
+            <h2 className="text-4xl font-bold mb-6 text-slate-900">SEO Friendly & Structured Data</h2>
             <p className="text-lg text-slate-600 mb-8">
-              Scale your distribution channels by allowing agents and sub-suppliers to submit bookings independently. Separate portal permissions ensure agents can book directly into your system, while you handle payouts and deposit tracking automatically.
+              Rank higher on Google organic search. Tripbone automatically embeds Schema.org Tour and Event JSON-LD structured data on every tour page, enabling rich snippets, star ratings, and prices directly in Google search results.
             </p>
             <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Network className="w-5 h-5 text-slate-600" /> Dedicated Agent Portals with custom commissions</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><Database className="w-5 h-5 text-slate-600" /> Unified Settlement Ledger for easy financial auditing</li>
-              <li className="flex items-center gap-3 text-slate-700 font-medium"><ShieldCheck className="w-5 h-5 text-slate-600" /> Isolated Supplier accounts to protect proprietary data</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><Search className="w-5 h-5 text-slate-600" /> Automatic XML Sitemap generation and canonical URLs</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><Globe className="w-5 h-5 text-slate-600" /> Schema.org Tour JSON-LD structured metadata for rich Google snippets</li>
+              <li className="flex items-center gap-3 text-slate-700 font-medium"><CheckCircle2 className="w-5 h-5 text-slate-600" /> Fast mobile page loads optimized for Google Core Web Vitals</li>
             </ul>
           </motion.div>
         </div>
       </section>
 
+      {/* Feature 3: Multi Suppliers & Multi Agents Roles */}
+      <section className="py-24 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+            <div className="font-mono text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">[ MULTI-ROLE NETWORK ]</div>
+            <h2 className="text-4xl font-bold mb-6 text-slate-900">Multi-Supplier & Multi-Agent Network</h2>
+            <p className="text-lg text-slate-600 mb-8">
+              Empower partners while securing your system. Role-based authentication isolates Admin, Agent, and Supplier environments, allowing concierges to submit orders and vendors to review pickup manifests safely.
+            </p>
+            <div className="grid grid-cols-2 gap-6 mt-8">
+              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
+                <Network className="w-8 h-8 text-slate-700 mb-4" />
+                <h4 className="font-bold mb-2 text-slate-900">Agent Portals</h4>
+                <p className="text-sm text-slate-500">Dedicated login for travel agents with custom commission splits.</p>
+              </div>
+              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
+                <Users className="w-8 h-8 text-slate-700 mb-4" />
+                <h4 className="font-bold mb-2 text-slate-900">Supplier Portals</h4>
+                <p className="text-sm text-slate-500">Isolate vendor cost breakdowns and departure manifests securely.</p>
+              </div>
+            </div>
+          </motion.div>
+          <div className="relative">
+            <img src="https://i.ibb.co.com/pjk8TdWP/image.png" alt="Multi Role Engine" className="rounded-[2rem] shadow-2xl border-[8px] border-white w-full max-w-sm mx-auto object-cover" />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
