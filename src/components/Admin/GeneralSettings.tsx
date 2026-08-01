@@ -1393,43 +1393,43 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                       type="button"
                       onClick={() => setSettings(s => s ? { ...s, brandingPreset: preset.id as any } : null)}
                       className={cn(
-                        "flex flex-col text-left p-4 rounded-[16px] border transition-all duration-300 relative overflow-hidden group",
+                        "flex flex-col text-left p-4 rounded-2xl border transition-all duration-200 relative overflow-hidden group min-h-[190px]",
                         isSelected 
-                          ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-md" 
-                          : "border-gray-100 bg-white hover:border-gray-300 hover:shadow-sm"
+                          ? "border-emerald-500 bg-emerald-50/30 ring-2 ring-emerald-500/20 shadow-md" 
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
                       )}
                     >
                       {/* Gradient Accent Pill */}
-                      <div className="flex items-center justify-between w-full mb-3">
+                      <div className="flex items-center justify-between w-full mb-3 gap-2">
                         <span className={cn(
-                          "text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full",
-                          isSelected ? "bg-primary text-white" : "bg-gray-100 text-gray-500"
+                          "text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md truncate max-w-[110px]",
+                          isSelected ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600"
                         )}>
                           {preset.badge}
                         </span>
                         
                         {/* Circle Theme Color Preview */}
                         <div className={cn(
-                          "h-4 w-4 rounded-full bg-gradient-to-br shadow-inner",
+                          "h-4 w-4 rounded-full bg-gradient-to-br shadow-inner shrink-0",
                           preset.colorClass
                         )} />
                       </div>
 
-                      <h4 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                      <h4 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors line-clamp-1">
                         {preset.name}
                       </h4>
-                      <p className="text-xs text-gray-500 leading-snug flex-1 mb-3">
+                      <p className="text-xs text-gray-500 leading-snug flex-1 mb-3 line-clamp-3">
                         {preset.desc}
                       </p>
 
-                      <div className="text-[10px] font-mono text-gray-400 border-t border-gray-100 pt-2 w-full flex items-center justify-between">
-                        <span>Typography:</span>
-                        <span className="font-bold text-gray-600">{preset.fontLabel}</span>
+                      <div className="text-[10px] text-gray-400 border-t border-gray-100 pt-2 w-full flex items-center justify-between gap-1 mt-auto shrink-0">
+                        <span className="shrink-0 font-medium">Typography:</span>
+                        <span className="font-bold text-gray-700 truncate">{preset.fontLabel}</span>
                       </div>
 
                       {/* Selected Indicator Checkmark */}
                       {isSelected && (
-                        <div className="absolute right-2 top-2 bg-primary text-white p-0.5 rounded-full z-10">
+                        <div className="absolute right-2 top-2 bg-emerald-600 text-white p-0.5 rounded-full z-10 shadow-sm">
                           <Check className="h-3 w-3" />
                         </div>
                       )}
