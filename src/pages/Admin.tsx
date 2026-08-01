@@ -11708,7 +11708,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
   };
 
   return (
-    <div className={cn("flex bg-[#F8FAFC] relative", !isCentralPortal && "min-h-screen")}>
+    <div className={cn("admin-panel flex bg-[#F8FAFC] relative", !isCentralPortal && "min-h-screen")}>
       {/* Mobile Sidebar Backdrop Overlay */}
       {!isCentralPortal && isSidebarOpen && (
         <div 

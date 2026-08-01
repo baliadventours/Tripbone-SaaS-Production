@@ -147,32 +147,6 @@
 }
 
 /* Custom typography overrides for improved mobile and desktop readability */
-.text-\[8px\] {
-  font-size: 10px !important;
-}
-
-.text-\[9px\] {
-  font-size: 11px !important;
-}
-
-.text-\[10px\] {
-  font-size: 12px !important;
-}
-
-.text-\[11px\] {
-  font-size: 13px !important;
-}
-
-/* Ensure micro-fonts inside inputs and labels are highly legible on desktop */
-@media (min-width: 768px) {
-  .text-\[10px\] {
-    font-size: 13px !important;
-  }
-  .text-\[11px\] {
-    font-size: 13.5px !important;
-  }
-}
-
 /* Prevent iOS Safari auto-zoom on input focusing for absolute layout stability */
 @media (max-width: 767px) {
   input, select, textarea, [contenteditable] {
@@ -185,779 +159,236 @@ body {
 }
 
 /* ==========================================================================
-   THEME PRESET OVERRIDES (Redesigned for Airbnb-level Sleekness & Minimalism)
+   THEME PRESET OVERRIDES (Polished, Non-Destructive & Accessible)
    ========================================================================== */
 
 /* 1. SWISS MINIMALIST PRESET (Ultra-Clean Monochrome) */
 .theme-swiss-minimalist {
-  --primary-color: #0f172a !important;
-  --secondary-color: #18181b !important;
+  --primary-color: #0f172a;
+  --secondary-color: #18181b;
 }
 
-.theme-swiss-minimalist body {
-  background-color: #fafafa !important;
-  color: #0f172a !important;
+.theme-swiss-minimalist body:not(.admin-body) {
+  background-color: #fafafa;
+  color: #0f172a;
 }
 
-.theme-swiss-minimalist .bg-white,
-.theme-swiss-minimalist .bg-slate-50,
-.theme-swiss-minimalist .bg-slate-50\/50,
-.theme-swiss-minimalist .bg-gray-50,
-.theme-swiss-minimalist .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #f1f5f9 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-}
-
-.theme-swiss-minimalist .border,
-.theme-swiss-minimalist .border-slate-100,
-.theme-swiss-minimalist .border-slate-200,
-.theme-swiss-minimalist .border-gray-100,
-.theme-swiss-minimalist .border-gray-200 {
-  border-color: #e2e8f0 !important;
-}
-
-.theme-swiss-minimalist .rounded-xl,
-.theme-swiss-minimalist .rounded-2xl,
-.theme-swiss-minimalist .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-swiss-minimalist .bg-primary,
-.theme-swiss-minimalist .bg-primary-500,
-.theme-swiss-minimalist .bg-orange-500,
-.theme-swiss-minimalist .bg-orange-600 {
+.theme-swiss-minimalist:not(.admin-panel) .btn-primary {
   background-color: #0f172a !important;
   color: #ffffff !important;
-}
-
-.theme-swiss-minimalist .text-primary,
-.theme-swiss-minimalist .text-orange-500,
-.theme-swiss-minimalist .text-orange-600 {
-  color: #0f172a !important;
-}
-
-.theme-swiss-minimalist button,
-.theme-swiss-minimalist .btn,
-.theme-swiss-minimalist .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #0f172a !important;
-  color: #ffffff !important;
-  border: 1px solid #0f172a !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
-  transition: all 0.2s ease !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15) !important;
 }
 
-.theme-swiss-minimalist button:hover,
-.theme-swiss-minimalist .btn:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
-}
-
-/* 2. TECHNICAL DARK GRID PRESET (Midnight Slate Dark Airbnb) */
+/* 2. TECHNICAL DARK GRID PRESET (Midnight Slate Dark) */
 .theme-tech-dark {
-  --primary-color: #10b981 !important;
-  --secondary-color: #38bdf8 !important;
+  --primary-color: #10b981;
+  --secondary-color: #38bdf8;
 }
 
-.theme-tech-dark body {
-  background-color: #0f172a !important;
-  color: #f8fafc !important;
+.theme-tech-dark body:not(.admin-body) {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
-.theme-tech-dark .bg-white,
-.theme-tech-dark .bg-slate-50,
-.theme-tech-dark .bg-slate-50\/50,
-.theme-tech-dark .bg-gray-50,
-.theme-tech-dark .bg-zinc-50,
-.theme-tech-dark .bg-stone-50 {
-  background-color: #1e293b !important;
-  border: 1px solid #334155 !important;
-}
-
-.theme-tech-dark .text-slate-900,
-.theme-tech-dark .text-gray-900,
-.theme-tech-dark .text-zinc-900,
-.theme-tech-dark .text-slate-800,
-.theme-tech-dark .text-gray-800 {
-  color: #f8fafc !important;
-}
-
-.theme-tech-dark .text-slate-600,
-.theme-tech-dark .text-gray-600,
-.theme-tech-dark .text-zinc-600,
-.theme-tech-dark .text-slate-500,
-.theme-tech-dark .text-gray-500 {
-  color: #94a3b8 !important;
-}
-
-.theme-tech-dark .border,
-.theme-tech-dark .border-slate-100,
-.theme-tech-dark .border-slate-200,
-.theme-tech-dark .border-gray-200,
-.theme-tech-dark .border-slate-300 {
-  border-color: #334155 !important;
-}
-
-.theme-tech-dark .rounded-xl,
-.theme-tech-dark .rounded-2xl,
-.theme-tech-dark .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-tech-dark .bg-primary,
-.theme-tech-dark .bg-primary-500,
-.theme-tech-dark .bg-orange-500,
-.theme-tech-dark .bg-orange-600 {
+.theme-tech-dark:not(.admin-panel) .btn-primary {
   background-color: #10b981 !important;
   color: #0f172a !important;
-  font-weight: 700 !important;
-}
-
-.theme-tech-dark .text-primary,
-.theme-tech-dark .text-orange-500,
-.theme-tech-dark .text-orange-600 {
-  color: #10b981 !important;
-}
-
-.theme-tech-dark button,
-.theme-tech-dark .btn,
-.theme-tech-dark .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  border: 1px solid #10b981 !important;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25) !important;
 }
 
 /* 3. ELEGANT EDITORIAL PRESET (Modern Boutique Luxe) */
 .theme-elegant-editorial {
-  --primary-color: #c2410c !important;
-  --secondary-color: #78350f !important;
+  --primary-color: #c2410c;
+  --secondary-color: #78350f;
 }
 
-.theme-elegant-editorial body {
-  background-color: #faf9f5 !important;
-  color: #1c1917 !important;
+.theme-elegant-editorial body:not(.admin-body) {
+  background-color: #faf9f5;
+  color: #1c1917;
 }
 
-.theme-elegant-editorial .bg-white,
-.theme-elegant-editorial .bg-slate-50,
-.theme-elegant-editorial .bg-slate-50\/50,
-.theme-elegant-editorial .bg-gray-50,
-.theme-elegant-editorial .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #e7e5e4 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
-}
-
-.theme-elegant-editorial .border,
-.theme-elegant-editorial .border-slate-100,
-.theme-elegant-editorial .border-slate-200,
-.theme-elegant-editorial .border-gray-100,
-.theme-elegant-editorial .border-gray-200 {
-  border-color: #e7e5e4 !important;
-}
-
-.theme-elegant-editorial .rounded-xl,
-.theme-elegant-editorial .rounded-2xl,
-.theme-elegant-editorial .rounded-3xl {
-  border-radius: 20px !important;
-}
-
-.theme-elegant-editorial .bg-primary,
-.theme-elegant-editorial .bg-primary-500,
-.theme-elegant-editorial .bg-orange-500,
-.theme-elegant-editorial .bg-orange-600 {
+.theme-elegant-editorial:not(.admin-panel) .btn-primary {
   background-color: #c2410c !important;
   color: #ffffff !important;
-}
-
-.theme-elegant-editorial .text-primary,
-.theme-elegant-editorial .text-orange-500,
-.theme-elegant-editorial .text-orange-600 {
-  color: #c2410c !important;
-}
-
-.theme-elegant-editorial button,
-.theme-elegant-editorial .btn,
-.theme-elegant-editorial .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #c2410c !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.15) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.2) !important;
 }
 
 /* 4. NORDIC FOREST PRESET (Nordic Eco Sanctuary) */
 .theme-nordic-forest {
-  --primary-color: #065f46 !important;
-  --secondary-color: #047857 !important;
+  --primary-color: #065f46;
+  --secondary-color: #047857;
 }
 
-.theme-nordic-forest body {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+.theme-nordic-forest body:not(.admin-body) {
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
-.theme-nordic-forest .bg-white,
-.theme-nordic-forest .bg-slate-50,
-.theme-nordic-forest .bg-slate-50\/50,
-.theme-nordic-forest .bg-gray-50,
-.theme-nordic-forest .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.04) !important;
-}
-
-.theme-nordic-forest .border,
-.theme-nordic-forest .border-slate-100,
-.theme-nordic-forest .border-slate-200,
-.theme-nordic-forest .border-gray-200 {
-  border-color: #cbd5e1 !important;
-}
-
-.theme-nordic-forest .rounded-xl,
-.theme-nordic-forest .rounded-2xl,
-.theme-nordic-forest .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-nordic-forest .bg-primary,
-.theme-nordic-forest .bg-primary-500,
-.theme-nordic-forest .bg-orange-500,
-.theme-nordic-forest .bg-orange-600 {
+.theme-nordic-forest:not(.admin-panel) .btn-primary {
   background-color: #065f46 !important;
   color: #ffffff !important;
-}
-
-.theme-nordic-forest .text-primary,
-.theme-nordic-forest .text-orange-500,
-.theme-nordic-forest .text-orange-600 {
-  color: #065f46 !important;
-}
-
-.theme-nordic-forest button,
-.theme-nordic-forest .btn,
-.theme-nordic-forest .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #065f46 !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.15) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(6, 95, 70, 0.2) !important;
 }
 
 /* 5. RETRO ADVENTURE PRESET (Urban Wanderlust) */
 .theme-retro-adventure {
-  --primary-color: #d97706 !important;
-  --secondary-color: #1e3a8a !important;
+  --primary-color: #d97706;
+  --secondary-color: #1e3a8a;
 }
 
-.theme-retro-adventure body {
-  background-color: #fafaf9 !important;
-  color: #1c1917 !important;
+.theme-retro-adventure body:not(.admin-body) {
+  background-color: #fafaf9;
+  color: #1c1917;
 }
 
-.theme-retro-adventure .bg-white,
-.theme-retro-adventure .bg-slate-50,
-.theme-retro-adventure .bg-slate-50\/50,
-.theme-retro-adventure .bg-gray-50,
-.theme-retro-adventure .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #e7e5e4 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-}
-
-.theme-retro-adventure .border,
-.theme-retro-adventure .border-slate-100,
-.theme-retro-adventure .border-slate-200,
-.theme-retro-adventure .border-gray-200 {
-  border-color: #e7e5e4 !important;
-}
-
-.theme-retro-adventure .rounded-xl,
-.theme-retro-adventure .rounded-2xl,
-.theme-retro-adventure .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-retro-adventure .bg-primary,
-.theme-retro-adventure .bg-primary-500,
-.theme-retro-adventure .bg-orange-500,
-.theme-retro-adventure .bg-orange-600 {
+.theme-retro-adventure:not(.admin-panel) .btn-primary {
   background-color: #d97706 !important;
   color: #ffffff !important;
-}
-
-.theme-retro-adventure .text-primary,
-.theme-retro-adventure .text-orange-500,
-.theme-retro-adventure .text-orange-600 {
-  color: #d97706 !important;
-}
-
-.theme-retro-adventure button,
-.theme-retro-adventure .btn,
-.theme-retro-adventure .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #d97706 !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.2) !important;
 }
 
 /* 6. TOKYO NEON PRESET (Tokyo Minimal Dark) */
 .theme-tokyo-neon {
-  --primary-color: #f43f5e !important;
-  --secondary-color: #8b5cf6 !important;
+  --primary-color: #f43f5e;
+  --secondary-color: #8b5cf6;
 }
 
-.theme-tokyo-neon body {
-  background-color: #09090b !important;
-  color: #f4f4f5 !important;
+.theme-tokyo-neon body:not(.admin-body) {
+  background-color: #09090b;
+  color: #f4f4f5;
 }
 
-.theme-tokyo-neon .bg-white,
-.theme-tokyo-neon .bg-slate-50,
-.theme-tokyo-neon .bg-slate-50\/50,
-.theme-tokyo-neon .bg-gray-50,
-.theme-tokyo-neon .bg-zinc-50 {
-  background-color: #18181b !important;
-  border: 1px solid #27272a !important;
-}
-
-.theme-tokyo-neon .text-slate-900,
-.theme-tokyo-neon .text-gray-900,
-.theme-tokyo-neon .text-zinc-900,
-.theme-tokyo-neon .text-slate-800,
-.theme-tokyo-neon .text-gray-800 {
-  color: #f4f4f5 !important;
-}
-
-.theme-tokyo-neon .text-slate-600,
-.theme-tokyo-neon .text-gray-600,
-.theme-tokyo-neon .text-zinc-600,
-.theme-tokyo-neon .text-slate-500,
-.theme-tokyo-neon .text-gray-500 {
-  color: #a1a1aa !important;
-}
-
-.theme-tokyo-neon .border,
-.theme-tokyo-neon .border-slate-100,
-.theme-tokyo-neon .border-slate-200,
-.theme-tokyo-neon .border-gray-200 {
-  border-color: #27272a !important;
-}
-
-.theme-tokyo-neon .rounded-xl,
-.theme-tokyo-neon .rounded-2xl,
-.theme-tokyo-neon .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-tokyo-neon .bg-primary,
-.theme-tokyo-neon .bg-primary-500,
-.theme-tokyo-neon .bg-orange-500,
-.theme-tokyo-neon .bg-orange-600 {
+.theme-tokyo-neon:not(.admin-panel) .btn-primary {
   background-color: #f43f5e !important;
   color: #ffffff !important;
-}
-
-.theme-tokyo-neon .text-primary,
-.theme-tokyo-neon .text-orange-500,
-.theme-tokyo-neon .text-orange-600 {
-  color: #f43f5e !important;
-}
-
-.theme-tokyo-neon button,
-.theme-tokyo-neon .btn,
-.theme-tokyo-neon .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #f43f5e !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.2) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.25) !important;
 }
 
 /* 7. MEDITERRANEAN BREEZE PRESET (Mediterranean Azure) */
 .theme-mediterranean-breeze {
-  --primary-color: #0284c7 !important;
-  --secondary-color: #0369a1 !important;
+  --primary-color: #0284c7;
+  --secondary-color: #0369a1;
 }
 
-.theme-mediterranean-breeze body {
-  background-color: #f0f9ff !important;
-  color: #0f172a !important;
+.theme-mediterranean-breeze body:not(.admin-body) {
+  background-color: #f0f9ff;
+  color: #0f172a;
 }
 
-.theme-mediterranean-breeze .bg-white,
-.theme-mediterranean-breeze .bg-slate-50,
-.theme-mediterranean-breeze .bg-slate-50\/50,
-.theme-mediterranean-breeze .bg-gray-50,
-.theme-mediterranean-breeze .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #e0f2fe !important;
-  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.05) !important;
-}
-
-.theme-mediterranean-breeze .border,
-.theme-mediterranean-breeze .border-slate-100,
-.theme-mediterranean-breeze .border-slate-200,
-.theme-mediterranean-breeze .border-gray-200 {
-  border-color: #e0f2fe !important;
-}
-
-.theme-mediterranean-breeze .rounded-xl,
-.theme-mediterranean-breeze .rounded-2xl,
-.theme-mediterranean-breeze .rounded-3xl {
-  border-radius: 20px !important;
-}
-
-.theme-mediterranean-breeze .bg-primary,
-.theme-mediterranean-breeze .bg-primary-500,
-.theme-mediterranean-breeze .bg-orange-500,
-.theme-mediterranean-breeze .bg-orange-600 {
+.theme-mediterranean-breeze:not(.admin-panel) .btn-primary {
   background-color: #0284c7 !important;
   color: #ffffff !important;
-}
-
-.theme-mediterranean-breeze .text-primary,
-.theme-mediterranean-breeze .text-orange-500,
-.theme-mediterranean-breeze .text-orange-600 {
-  color: #0284c7 !important;
-}
-
-.theme-mediterranean-breeze button,
-.theme-mediterranean-breeze .btn,
-.theme-mediterranean-breeze .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #0284c7 !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.18) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.22) !important;
 }
 
 /* 8. BRUTALIST MONO PRESET (Monochrome Architectural) */
 .theme-brutalist-mono {
-  --primary-color: #000000 !important;
-  --secondary-color: #27272a !important;
+  --primary-color: #000000;
+  --secondary-color: #27272a;
 }
 
-.theme-brutalist-mono body {
-  background-color: #ffffff !important;
-  color: #09090b !important;
+.theme-brutalist-mono body:not(.admin-body) {
+  background-color: #ffffff;
+  color: #09090b;
 }
 
-.theme-brutalist-mono .bg-white,
-.theme-brutalist-mono .bg-slate-50,
-.theme-brutalist-mono .bg-slate-50\/50,
-.theme-brutalist-mono .bg-gray-50,
-.theme-brutalist-mono .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #18181b !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-}
-
-.theme-brutalist-mono .rounded-sm,
-.theme-brutalist-mono .rounded-md,
-.theme-brutalist-mono .rounded-lg,
-.theme-brutalist-mono .rounded-xl,
-.theme-brutalist-mono .rounded-2xl,
-.theme-brutalist-mono .rounded-3xl {
-  border-radius: 8px !important;
-}
-
-.theme-brutalist-mono .border,
-.theme-brutalist-mono .border-slate-100,
-.theme-brutalist-mono .border-slate-200,
-.theme-brutalist-mono .border-gray-200 {
-  border-color: #18181b !important;
-}
-
-.theme-brutalist-mono .bg-primary,
-.theme-brutalist-mono .bg-primary-500,
-.theme-brutalist-mono .bg-orange-500,
-.theme-brutalist-mono .bg-orange-600 {
+.theme-brutalist-mono:not(.admin-panel) .btn-primary {
   background-color: #000000 !important;
   color: #ffffff !important;
-}
-
-.theme-brutalist-mono .text-primary,
-.theme-brutalist-mono .text-orange-500,
-.theme-brutalist-mono .text-orange-600 {
-  color: #000000 !important;
+  border-radius: 8px !important;
   font-weight: 800 !important;
-}
-
-.theme-brutalist-mono button,
-.theme-brutalist-mono .btn,
-.theme-brutalist-mono .btn-primary {
-  border-radius: 8px !important;
-  background-color: #000000 !important;
-  color: #ffffff !important;
-  border: 1px solid #000000 !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.02em !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important;
-  transition: all 0.15s ease !important;
-}
-
-.theme-brutalist-mono button:hover,
-.theme-brutalist-mono .btn:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* 9. ROYAL SAFARI PRESET (Regal Wilderness Luxe) */
 .theme-royal-safari {
-  --primary-color: #d97706 !important;
-  --secondary-color: #b45309 !important;
+  --primary-color: #d97706;
+  --secondary-color: #b45309;
 }
 
-.theme-royal-safari body {
-  background-color: #0b0f19 !important;
-  color: #f9fafb !important;
+.theme-royal-safari body:not(.admin-body) {
+  background-color: #0b0f19;
+  color: #f9fafb;
 }
 
-.theme-royal-safari .bg-white,
-.theme-royal-safari .bg-slate-50,
-.theme-royal-safari .bg-slate-50\/50,
-.theme-royal-safari .bg-gray-50,
-.theme-royal-safari .bg-zinc-50 {
-  background-color: #111827 !important;
-  border: 1px solid rgba(217, 119, 6, 0.2) !important;
-}
-
-.theme-royal-safari .text-slate-900,
-.theme-royal-safari .text-gray-900,
-.theme-royal-safari .text-zinc-900,
-.theme-royal-safari .text-slate-800,
-.theme-royal-safari .text-gray-800 {
-  color: #f9fafb !important;
-}
-
-.theme-royal-safari .text-slate-600,
-.theme-royal-safari .text-gray-600,
-.theme-royal-safari .text-zinc-600,
-.theme-royal-safari .text-slate-500,
-.theme-royal-safari .text-gray-500 {
-  color: #fbbf24 !important;
-}
-
-.theme-royal-safari .border,
-.theme-royal-safari .border-slate-100,
-.theme-royal-safari .border-slate-200,
-.theme-royal-safari .border-gray-200 {
-  border-color: rgba(217, 119, 6, 0.2) !important;
-}
-
-.theme-royal-safari .rounded-xl,
-.theme-royal-safari .rounded-2xl,
-.theme-royal-safari .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-royal-safari .bg-primary,
-.theme-royal-safari .bg-primary-500,
-.theme-royal-safari .bg-orange-500,
-.theme-royal-safari .bg-orange-600 {
+.theme-royal-safari:not(.admin-panel) .btn-primary {
   background-color: #d97706 !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-}
-
-.theme-royal-safari .text-primary,
-.theme-royal-safari .text-orange-500,
-.theme-royal-safari .text-orange-600 {
-  color: #d97706 !important;
-}
-
-.theme-royal-safari button,
-.theme-royal-safari .btn,
-.theme-royal-safari .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #d97706 !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.22) !important;
 }
 
 /* 10. ZEN OASIS PRESET (Zen Botanical) */
 .theme-zen-oasis {
-  --primary-color: #059669 !important;
-  --secondary-color: #047857 !important;
+  --primary-color: #059669;
+  --secondary-color: #047857;
 }
 
-.theme-zen-oasis body {
-  background-color: #fafcfa !important;
-  color: #1e293b !important;
+.theme-zen-oasis body:not(.admin-body) {
+  background-color: #fafcfa;
+  color: #1e293b;
 }
 
-.theme-zen-oasis .bg-white,
-.theme-zen-oasis .bg-slate-50,
-.theme-zen-oasis .bg-slate-50\/50,
-.theme-zen-oasis .bg-gray-50,
-.theme-zen-oasis .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #e6f4ea !important;
-  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.04) !important;
-}
-
-.theme-zen-oasis .border,
-.theme-zen-oasis .border-slate-100,
-.theme-zen-oasis .border-slate-200,
-.theme-zen-oasis .border-gray-200 {
-  border-color: #e6f4ea !important;
-}
-
-.theme-zen-oasis .rounded-xl,
-.theme-zen-oasis .rounded-2xl,
-.theme-zen-oasis .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-zen-oasis .bg-primary,
-.theme-zen-oasis .bg-primary-500,
-.theme-zen-oasis .bg-orange-500,
-.theme-zen-oasis .bg-orange-600 {
+.theme-zen-oasis:not(.admin-panel) .btn-primary {
   background-color: #059669 !important;
   color: #ffffff !important;
-}
-
-.theme-zen-oasis .text-primary,
-.theme-zen-oasis .text-orange-500,
-.theme-zen-oasis .text-orange-600 {
-  color: #059669 !important;
-}
-
-.theme-zen-oasis button,
-.theme-zen-oasis .btn,
-.theme-zen-oasis .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #059669 !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.2) !important;
 }
 
 /* 11. ALPINE CHALET PRESET (Alpine Resort) */
 .theme-alpine-chalet {
-  --primary-color: #9a3412 !important;
-  --secondary-color: #7c2d12 !important;
+  --primary-color: #9a3412;
+  --secondary-color: #7c2d12;
 }
 
-.theme-alpine-chalet body {
-  background-color: #faf8f5 !important;
-  color: #1c1917 !important;
+.theme-alpine-chalet body:not(.admin-body) {
+  background-color: #faf8f5;
+  color: #1c1917;
 }
 
-.theme-alpine-chalet .bg-white,
-.theme-alpine-chalet .bg-slate-50,
-.theme-alpine-chalet .bg-slate-50\/50,
-.theme-alpine-chalet .bg-gray-50,
-.theme-alpine-chalet .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #e7e5e4 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-}
-
-.theme-alpine-chalet .border,
-.theme-alpine-chalet .border-slate-100,
-.theme-alpine-chalet .border-slate-200,
-.theme-alpine-chalet .border-gray-200 {
-  border-color: #e7e5e4 !important;
-}
-
-.theme-alpine-chalet .rounded-xl,
-.theme-alpine-chalet .rounded-2xl,
-.theme-alpine-chalet .rounded-3xl {
-  border-radius: 16px !important;
-}
-
-.theme-alpine-chalet .bg-primary,
-.theme-alpine-chalet .bg-primary-500,
-.theme-alpine-chalet .bg-orange-500,
-.theme-alpine-chalet .bg-orange-600 {
+.theme-alpine-chalet:not(.admin-panel) .btn-primary {
   background-color: #9a3412 !important;
   color: #ffffff !important;
-}
-
-.theme-alpine-chalet .text-primary,
-.theme-alpine-chalet .text-orange-500,
-.theme-alpine-chalet .text-orange-600 {
-  color: #9a3412 !important;
-}
-
-.theme-alpine-chalet button,
-.theme-alpine-chalet .btn,
-.theme-alpine-chalet .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #9a3412 !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(154, 52, 18, 0.15) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(154, 52, 18, 0.2) !important;
 }
 
-/* 12. IBIZA SUNSET PRESET (Ibiza Riviera Coral - Airbnb Coral) */
+/* 12. IBIZA SUNSET PRESET (Ibiza Riviera Coral) */
 .theme-sunset-ibiza {
-  --primary-color: #ff385c !important;
-  --secondary-color: #f97316 !important;
+  --primary-color: #ff385c;
+  --secondary-color: #f97316;
 }
 
-.theme-sunset-ibiza body {
-  background-color: #fffdfb !important;
-  color: #0f172a !important;
+.theme-sunset-ibiza body:not(.admin-body) {
+  background-color: #fffdfb;
+  color: #0f172a;
 }
 
-.theme-sunset-ibiza .bg-white,
-.theme-sunset-ibiza .bg-slate-50,
-.theme-sunset-ibiza .bg-slate-50\/50,
-.theme-sunset-ibiza .bg-gray-50,
-.theme-sunset-ibiza .bg-zinc-50 {
-  background-color: #ffffff !important;
-  border: 1px solid #ffe4e6 !important;
-  box-shadow: 0 6px 16px rgba(255, 56, 92, 0.06) !important;
-}
-
-.theme-sunset-ibiza .border,
-.theme-sunset-ibiza .border-slate-100,
-.theme-sunset-ibiza .border-slate-200,
-.theme-sunset-ibiza .border-gray-200 {
-  border-color: #ffe4e6 !important;
-}
-
-.theme-sunset-ibiza .rounded-xl,
-.theme-sunset-ibiza .rounded-2xl,
-.theme-sunset-ibiza .rounded-3xl {
-  border-radius: 20px !important;
-}
-
-.theme-sunset-ibiza .bg-primary,
-.theme-sunset-ibiza .bg-primary-500,
-.theme-sunset-ibiza .bg-orange-500,
-.theme-sunset-ibiza .bg-orange-600 {
+.theme-sunset-ibiza:not(.admin-panel) .btn-primary {
   background-color: #ff385c !important;
   color: #ffffff !important;
-}
-
-.theme-sunset-ibiza .text-primary,
-.theme-sunset-ibiza .text-orange-500,
-.theme-sunset-ibiza .text-orange-600 {
-  color: #ff385c !important;
-}
-
-.theme-sunset-ibiza button,
-.theme-sunset-ibiza .btn,
-.theme-sunset-ibiza .btn-primary {
   border-radius: 9999px !important;
-  font-weight: 600 !important;
-  background-color: #ff385c !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 14px rgba(255, 56, 92, 0.2) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(255, 56, 92, 0.25) !important;
 }
+
 
 

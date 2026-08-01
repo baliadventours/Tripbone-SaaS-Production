@@ -39,27 +39,28 @@ export default function CurrencySwitcher({ variant = 'default' }: { variant?: 'd
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 5 }}
-              className="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[150] p-1"
+              className="absolute right-0 mt-2 w-52 bg-slate-900/95 backdrop-blur-md border border-white/15 rounded-2xl shadow-2xl z-[150] p-1.5 space-y-1"
             >
               {SUPPORTED_CURRENCIES.map((currency) => (
                 <button
                   key={currency.code}
+                  type="button"
                   onClick={() => {
                     setCurrency(currency.code);
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold transition-all",
+                    "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all",
                     selectedCurrency === currency.code 
-                      ? "bg-primary text-white" 
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                      ? "bg-amber-500 text-slate-950 font-black shadow-sm" 
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   )}
                 >
-                  <div className="flex flex-col items-start">
-                    <span className="uppercase tracking-widest">{currency.code}</span>
-                    <span className="text-[8px] opacity-60 font-medium">{currency.name}</span>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="uppercase tracking-wider font-extrabold">{currency.code}</span>
+                    <span className="text-[10px] opacity-75 font-medium">{currency.name}</span>
                   </div>
-                  <span className="font-mono text-xs">{currency.symbol}</span>
+                  <span className="font-mono text-xs font-black opacity-90">{currency.symbol}</span>
                 </button>
               ))}
             </motion.div>
