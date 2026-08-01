@@ -968,9 +968,9 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
               <div className="space-y-4 border border-gray-100 rounded-[20px] p-6 bg-gray-50/50">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider pl-1">Hero Slideshow Images</h3>
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider pl-1">Hero Gallery & Slideshow Images</h3>
                   <p className="text-[11px] text-gray-400 font-medium pl-1 mt-0.5">
-                    Upload or paste URLs for multiple images to display in your home page slideshow.
+                    Upload or paste URLs for images used in your homepage Hero Slideshow or Airbnb Split Search & Gallery masonry grid.
                   </p>
                 </div>
                 <label className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 shadow-sm shadow-primary/15 self-end sm:self-auto">

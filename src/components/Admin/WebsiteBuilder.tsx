@@ -933,14 +933,19 @@ export default function WebsiteBuilder() {
                         </div>
                       )}
 
-                      {/* Multi-Image Slideshow Manager */}
-                      {(block.mediaType === 'slideshow' || block.design === 'slideshow-atv') && (
+                      {/* Multi-Image Gallery / Slideshow Manager */}
+                      {(block.mediaType === 'slideshow' || block.design === 'slideshow-atv' || block.design === 'airbnb-classic' || block.design === 'airbnb-fluid') && (
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Slideshow Image Gallery</label>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Hero Image Gallery & Airbnb Grid</label>
+                          <p className="text-[11px] text-gray-500 mb-3 font-medium">
+                            {block.design === 'airbnb-classic' || block.design === 'airbnb-fluid'
+                              ? "The first 3 images below will be displayed in the staggered masonry grid on your homepage."
+                              : "Upload or add multiple photos for your homepage hero slideshow."}
+                          </p>
                           {block.heroImages && block.heroImages.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
                               {block.heroImages.map((img, idx) => (
-                                <div key={idx} className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200 group">
+                                <div key={idx} className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200 group bg-gray-100">
                                   <img src={img} className="w-full h-full object-cover" alt={`Hero image ${idx+1}`} />
                                   <button 
                                     type="button"
@@ -954,12 +959,49 @@ export default function WebsiteBuilder() {
                                     <X className="w-3.5 h-3.5" />
                                   </button>
                                   <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-black rounded">
-                                    Slide {idx+1}
+                                    Photo {idx+1}
                                   </span>
                                 </div>
                               ))}
                             </div>
                           )}
+
+                          {/* Add URL Input */}
+                          <div className="flex gap-2 mb-3">
+                            <input
+                              type="text"
+                              placeholder="Paste image URL (e.g. https://.../photo.jpg)"
+                              className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                              id={`add-hero-url-${block.id}`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const input = e.currentTarget;
+                                  if (input.value.trim()) {
+                                    const existing = block.heroImages || [];
+                                    updateBlock(block.id, { heroImages: [...existing, input.value.trim()] });
+                                    input.value = '';
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const input = document.getElementById(`add-hero-url-${block.id}`) as HTMLInputElement;
+                                if (input && input.value.trim()) {
+                                  const existing = block.heroImages || [];
+                                  updateBlock(block.id, { heroImages: [...existing, input.value.trim()] });
+                                  input.value = '';
+                                }
+                              }}
+                              className="px-3.5 py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                            >
+                              Add URL
+                            </button>
+                          </div>
+
+                          {/* File Upload Drag/Drop */}
                           <div className="relative">
                             <input
                               type="file"
@@ -969,14 +1011,14 @@ export default function WebsiteBuilder() {
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                               disabled={uploadingImage}
                             />
-                            <div className="w-full p-5 border-2 border-dashed border-gray-300 rounded-2xl text-center hover:border-primary transition-colors bg-gray-50">
+                            <div className="w-full p-4 border-2 border-dashed border-gray-300 rounded-2xl text-center hover:border-primary transition-colors bg-gray-50">
                               {uploadingImage ? (
-                                <div className="flex items-center justify-center gap-2 text-gray-500 font-bold"><Loader2 className="w-5 h-5 animate-spin text-primary" /> Uploading slide images...</div>
+                                <div className="flex items-center justify-center gap-2 text-gray-500 font-bold text-xs"><Loader2 className="w-4 h-4 animate-spin text-primary" /> Uploading image(s)...</div>
                               ) : (
                                 <div className="flex flex-col items-center gap-1 text-gray-500">
-                                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                                  <span className="font-bold text-sm text-gray-800">Click to select multiple images for slideshow</span>
-                                  <span className="text-xs text-gray-400">Add high resolution adventure photos</span>
+                                  <Upload className="w-5 h-5 mb-0.5 text-gray-400" />
+                                  <span className="font-bold text-xs text-gray-800">Click to upload photos for gallery</span>
+                                  <span className="text-[10px] text-gray-400">JPG, PNG, WEBP supported</span>
                                 </div>
                               )}
                             </div>

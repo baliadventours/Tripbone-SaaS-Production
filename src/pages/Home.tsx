@@ -959,76 +959,100 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right Side: Redesigned Staggered 3-Photo Masonry Board */}
-              <div className="w-full lg:w-[55%] grid grid-cols-2 gap-4 select-none">
-                {/* Column 1 - Custom Staggered Column */}
-                <div className="space-y-4 pt-4 md:pt-8 flex flex-col justify-center">
-                  <Link
-                    to={getPhotoTourLink("rice", "tegallalang rice terrace")}
-                    className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-[3/4]"
-                  >
-                    <SmartImage
-                      src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80"
-                      alt="Exploring Rice Terrace"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                      aspectRatio="portrait"
-                      priority={true}
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 min-h-[40%] flex flex-col justify-end z-[5]">
-                      <span className="text-white font-black text-xs md:text-sm">
-                        Exploring Rice Terrace
-                      </span>
-                      <span className="text-orange-400 font-bold text-[9px] uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Explore Expedition
-                      </span>
-                    </div>
-                  </Link>
-                </div>
+              {/* Right Side: Dynamic 3-Photo Staggered Masonry Board */}
+              {(() => {
+                const configuredImages = (imagesToUse && imagesToUse.length > 0)
+                  ? imagesToUse
+                  : (singleImageToUse ? [singleImageToUse] : []);
 
-                {/* Column 2 */}
-                <div className="space-y-4">
-                  <Link
-                    to={getPhotoTourLink("trekking", "mount batur sunrise trekking")}
-                    className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-square"
-                  >
-                    <SmartImage
-                      src="https://images.unsplash.com/photo-1518548419070-2c61b179ad65?auto=format&fit=crop&w=800&q=80"
-                      alt="Best Sunrise Trekking"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                      aspectRatio="square"
-                      priority={true}
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 min-h-[40%] flex flex-col justify-end z-[5]">
-                      <span className="text-white font-black text-xs md:text-sm">
-                        Best Sunrise Trekking
-                      </span>
-                      <span className="text-orange-400 font-bold text-[9px] uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Explore Expedition
-                      </span>
+                const tourImages = tours.map(t => t.featuredImage || t.gallery?.[0] || (t as any).coverImage || (t as any).image).filter(Boolean);
+
+                const defaultUnsplash = [
+                  "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80",
+                  "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=800&q=80",
+                  "https://images.unsplash.com/photo-1539367628448-4bc5c9d171c8?auto=format&fit=crop&w=800&q=80"
+                ];
+
+                const img1 = configuredImages[0] || tourImages[0] || defaultUnsplash[0];
+                const img2 = configuredImages[1] || tourImages[1] || defaultUnsplash[1];
+                const img3 = configuredImages[2] || tourImages[2] || defaultUnsplash[2];
+
+                const title1 = tours[0]?.title || "Exploring Rice Terrace";
+                const title2 = tours[1]?.title || "Best Sunrise Trekking";
+                const title3 = tours[2]?.title || "For Your Instagram Feed";
+
+                return (
+                  <div className="w-full lg:w-[55%] grid grid-cols-2 gap-4 select-none">
+                    {/* Column 1 - Custom Staggered Column */}
+                    <div className="space-y-4 pt-4 md:pt-8 flex flex-col justify-center">
+                      <Link
+                        to={getPhotoTourLink("rice", title1)}
+                        className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-[3/4] bg-zinc-200"
+                      >
+                        <SmartImage
+                          src={img1}
+                          alt={title1}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                          aspectRatio="portrait"
+                          priority={true}
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 min-h-[40%] flex flex-col justify-end z-[5]">
+                          <span className="text-white font-black text-xs md:text-sm line-clamp-2">
+                            {title1}
+                          </span>
+                          <span className="text-orange-400 font-bold text-[9px] uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Explore Expedition
+                          </span>
+                        </div>
+                      </Link>
                     </div>
-                  </Link>
-                  <Link
-                    to={getPhotoTourLink("instagram", "bali instagram tour")}
-                    className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-square"
-                  >
-                    <SmartImage
-                      src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80"
-                      alt="For Your Instagram Feed"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                      aspectRatio="square"
-                      priority={true}
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 min-h-[40%] flex flex-col justify-end z-[5]">
-                      <span className="text-white font-black text-xs md:text-sm">
-                        For Your Instagram Feed
-                      </span>
-                      <span className="text-orange-400 font-bold text-[9px] uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Explore Expedition
-                      </span>
+
+                    {/* Column 2 */}
+                    <div className="space-y-4">
+                      <Link
+                        to={getPhotoTourLink("trekking", title2)}
+                        className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-square bg-zinc-200"
+                      >
+                        <SmartImage
+                          src={img2}
+                          alt={title2}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                          aspectRatio="square"
+                          priority={true}
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 min-h-[40%] flex flex-col justify-end z-[5]">
+                          <span className="text-white font-black text-xs md:text-sm line-clamp-2">
+                            {title2}
+                          </span>
+                          <span className="text-orange-400 font-bold text-[9px] uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Explore Expedition
+                          </span>
+                        </div>
+                      </Link>
+                      <Link
+                        to={getPhotoTourLink("instagram", title3)}
+                        className="block relative overflow-hidden rounded-[2rem] group shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer aspect-square bg-zinc-200"
+                      >
+                        <SmartImage
+                          src={img3}
+                          alt={title3}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                          aspectRatio="square"
+                          priority={true}
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 min-h-[40%] flex flex-col justify-end z-[5]">
+                          <span className="text-white font-black text-xs md:text-sm line-clamp-2">
+                            {title3}
+                          </span>
+                          <span className="text-orange-400 font-bold text-[9px] uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Explore Expedition
+                          </span>
+                        </div>
+                      </Link>
                     </div>
-                  </Link>
-                </div>
-              </div>
+                  </div>
+                );
+              })()}
             </div>
           </section>
         );
