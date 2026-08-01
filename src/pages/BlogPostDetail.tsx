@@ -48,8 +48,11 @@ export default function BlogPostDetail() {
   const [matchedTours, setMatchedTours] = useState<Tour[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  const { isMaster, tenantId, tenant } = useTenant();
+  const isSaaSBlog = isMaster || !tenantId || tenant?.isSaaS || tenantId === 'global' || window.location.hostname.includes('tripbone.com');
+
   const siteUrl = window.location.origin;
-  const siteName = settings?.siteName || 'Bali Adventours';
+  const siteName = settings?.siteName || (isSaaSBlog ? 'Tripbone' : 'Bali Adventours');
   const blogSchema = post ? generateBlogSchema(post, siteUrl, settings) : null;
 
   const blogTitle = post ? 
@@ -84,9 +87,6 @@ export default function BlogPostDetail() {
       }
     ]
   };
-
-  const { isMaster, tenantId, tenant } = useTenant();
-  const isSaaSBlog = isMaster || !tenantId || tenant?.isSaaS || tenantId === 'global';
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -157,6 +157,13 @@ export default function BlogPostDetail() {
   useEffect(() => {
     const fetchRelatedTours = async () => {
       if (!post) return;
+
+      // Do not load tenant tours on Tripbone SaaS blog posts
+      if (isSaaSBlog || (post as any).isSaaS) {
+        setMatchedTours([]);
+        return;
+      }
+
       try {
         const q = query(
           collection(db, 'tours'),
@@ -340,7 +347,7 @@ export default function BlogPostDetail() {
             <div className="flex flex-wrap items-center gap-6 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
               <div className="flex items-center gap-2">
                 <Icons.User className="h-4 w-4 text-primary" />
-                <span className="text-gray-900">{post.author || 'Bali Adventours'}</span>
+                <span className="text-gray-900">{post.author || (isSaaSBlog ? 'Tripbone Editorial' : 'Bali Adventours')}</span>
               </div>
               <div className="flex items-center gap-2 border-l border-gray-100 pl-6">
                 <Icons.Calendar className="h-4 w-4 text-primary" />
