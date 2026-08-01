@@ -157,7 +157,7 @@ export default function SaaSIndustries() {
   const brandColor = globalBrand?.brandColor || '#1db3cd';
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-28 pb-20 text-slate-900">
+    <div className="bg-slate-50 min-h-screen text-slate-900">
       <Helmet>
         <title>Tailored Booking Solutions for Tour Operator Industries | Tripbone</title>
         <meta name="description" content="Discover how Tripbone provides industry-specific booking engines, digital waivers, and WhatsApp automation for ATV tours, boat charters, food walks, day tours, and rentals." />
@@ -170,204 +170,215 @@ export default function SaaSIndustries() {
         .bg-brand-fade { background-color: ${brandColor}15 !important; }
       `}</style>
 
-      {/* Hero Header */}
-      <div className="max-w-7xl mx-auto px-6 text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-xs mb-6">
-          <Sparkles className="w-4 h-4 text-brand" />
-          <span>Tailored For Your Specific Experience Vertical</span>
+      {/* Hero Header (Dark Hero Section matching frontpage, with generous top padding so title is completely clear of fixed navbar) */}
+      <section className="bg-slate-950 text-white pt-36 sm:pt-40 pb-16 sm:pb-20 px-6 relative overflow-hidden border-b border-slate-800">
+        {/* Ambient glowing radial light flares */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-tr from-cyan-600/15 via-indigo-600/20 to-emerald-500/15 rounded-full blur-[120px] pointer-events-none -z-0"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b12_1px,transparent_1px),linear-gradient(to_bottom,#1e293b12_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+
+        <div className="max-w-7xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-bold text-slate-300 shadow-xs mb-6 backdrop-blur-sm">
+            <Sparkles className="w-4 h-4 text-brand" />
+            <span>Tailored For Your Specific Experience Vertical</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">
+            Built Specifically For Your <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-[#1db3cd]">
+              Tour & Activity Industry
+            </span>
+          </h1>
+          <p className="text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            Generic booking software wasn't built for muddy quad bike waivers, tide-dependent boat manifests, or dietary restrictions. Tripbone provides specialized workflows for your exact experience business.
+          </p>
         </div>
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 mb-6">
-          Built Specifically For Your <br className="hidden md:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 via-sky-600 to-indigo-600">
-            Tour & Activity Industry
-          </span>
-        </h1>
-        <p className="text-base md:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-          Generic booking software wasn't built for muddy quad bike waivers, tide-dependent boat manifests, or dietary restrictions. Tripbone provides specialized workflows for your exact experience business.
-        </p>
-      </div>
+      </section>
 
-      {/* Vertical Selector Tabs */}
-      <div className="max-w-7xl mx-auto px-6 mb-12">
-        <div className="flex items-center justify-start md:justify-center gap-3 overflow-x-auto pb-4 scrollbar-none">
-          {INDUSTRIES_DATA.map((ind) => {
-            const Icon = ind.icon;
-            const isSelected = selectedIndustry.id === ind.id;
-            return (
-              <button
-                key={ind.id}
-                onClick={() => setSelectedIndustry(ind)}
-                className={`flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
-                  isSelected 
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900 shadow-xs'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isSelected ? 'text-teal-400' : 'text-slate-500'}`} />
-                <span>{ind.name}</span>
-              </button>
-            );
-          })}
+      {/* Main Content Body (Light Background matching frontpage body sections) */}
+      <div className="py-12 sm:py-16">
+        
+        {/* Vertical Selector Tabs */}
+        <div className="max-w-7xl mx-auto px-6 mb-12">
+          <div className="flex items-center justify-start md:justify-center gap-3 overflow-x-auto pb-4 scrollbar-none">
+            {INDUSTRIES_DATA.map((ind) => {
+              const Icon = ind.icon;
+              const isSelected = selectedIndustry.id === ind.id;
+              return (
+                <button
+                  key={ind.id}
+                  onClick={() => setSelectedIndustry(ind)}
+                  className={`flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border ${
+                    isSelected 
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900 shadow-xs'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isSelected ? 'text-teal-400' : 'text-slate-500'}`} />
+                  <span>{ind.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Featured Industry Deep Dive Card */}
-      <div className="max-w-7xl mx-auto px-6 mb-20">
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-8 md:p-12 shadow-xl relative overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left Content Column */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-block px-3.5 py-1.5 bg-slate-100 border border-slate-200 text-slate-800 rounded-full text-xs font-bold uppercase tracking-wider">
-                {selectedIndustry.badge}
-              </div>
-
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-                {selectedIndustry.name}
-              </h2>
-
-              <p className="text-base text-slate-700 font-semibold leading-relaxed italic border-l-4 border-brand pl-4 py-1">
-                "{selectedIndustry.tagline}"
-              </p>
-
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {selectedIndustry.description}
-              </p>
-
-              {/* Key Features */}
-              <div className="pt-4 border-t border-slate-100">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  Key Workflows Included:
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {selectedIndustry.keyFeatures.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <span className="text-xs text-slate-800 font-semibold">{feat}</span>
-                    </div>
-                  ))}
+        {/* Featured Industry Deep Dive Card */}
+        <div className="max-w-7xl mx-auto px-6 mb-20">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-8 md:p-12 shadow-xl relative overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+              
+              {/* Left Content Column */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="inline-block px-3.5 py-1.5 bg-slate-100 border border-slate-200 text-slate-800 rounded-full text-xs font-bold uppercase tracking-wider">
+                  {selectedIndustry.badge}
                 </div>
+
+                <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                  {selectedIndustry.name}
+                </h2>
+
+                <p className="text-base text-slate-700 font-semibold leading-relaxed italic border-l-4 border-brand pl-4 py-1">
+                  "{selectedIndustry.tagline}"
+                </p>
+
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {selectedIndustry.description}
+                </p>
+
+                {/* Key Features */}
+                <div className="pt-4 border-t border-slate-100">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    Key Workflows Included:
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedIndustry.keyFeatures.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className="text-xs text-slate-800 font-semibold">{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pain Points Solved */}
+                <div className="pt-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-teal-600" />
+                    Operational Bottlenecks Solved:
+                  </h3>
+                  <ul className="space-y-2">
+                    {selectedIndustry.painPointsSolved.map((pain, idx) => (
+                      <li key={idx} className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand"></div>
+                        <span>{pain}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* CTA Action Button */}
+                <div className="pt-6 flex flex-col sm:flex-row items-center gap-4">
+                  <Link
+                    to="/signup"
+                    className="w-full sm:w-auto px-8 py-4 rounded-xl text-white font-bold text-sm text-center shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    <span>Build {selectedIndustry.name} Website Now</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    to="/directory"
+                    className="w-full sm:w-auto px-6 py-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm text-center transition-all border border-slate-200"
+                  >
+                    View Live Storefront Demos
+                  </Link>
+                </div>
+
               </div>
 
-              {/* Pain Points Solved */}
-              <div className="pt-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-teal-600" />
-                  Operational Bottlenecks Solved:
-                </h3>
-                <ul className="space-y-2">
-                  {selectedIndustry.painPointsSolved.map((pain, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand"></div>
-                      <span>{pain}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* CTA Action Button */}
-              <div className="pt-6 flex flex-col sm:flex-row items-center gap-4">
-                <Link
-                  to="/signup"
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl text-white font-bold text-sm text-center shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  <span>Build {selectedIndustry.name} Website Now</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  to="/directory"
-                  className="w-full sm:w-auto px-6 py-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm text-center transition-all border border-slate-200"
-                >
-                  View Live Storefront Demos
-                </Link>
-              </div>
-
-            </div>
-
-            {/* Right Hero Image Card Column */}
-            <div className="lg:col-span-5">
-              <div className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-xl bg-slate-100">
-                <img 
-                  src={selectedIndustry.heroImg} 
-                  alt={selectedIndustry.name}
-                  className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-700" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
-                <div className="absolute bottom-5 left-5 right-5 p-4 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Example Live Tenant</p>
-                      <h4 className="text-sm font-black text-slate-900">{selectedIndustry.sampleSiteTitle}</h4>
+              {/* Right Hero Image Card Column */}
+              <div className="lg:col-span-5">
+                <div className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-xl bg-slate-100">
+                  <img 
+                    src={selectedIndustry.heroImg} 
+                    alt={selectedIndustry.name}
+                    className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-700" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
+                  <div className="absolute bottom-5 left-5 right-5 p-4 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Example Live Tenant</p>
+                        <h4 className="text-sm font-black text-slate-900">{selectedIndustry.sampleSiteTitle}</h4>
+                      </div>
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md border border-emerald-200">
+                        Live
+                      </span>
                     </div>
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md border border-emerald-200">
-                      Live
-                    </span>
                   </div>
                 </div>
               </div>
-            </div>
 
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Grid of All Industries */}
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-10">
-          <h3 className="text-2xl font-black text-slate-900 mb-2">Explore All Specialized Vertical Solutions</h3>
-          <p className="text-slate-600 text-sm">Select any industry to see how Tripbone transforms your operations</p>
-        </div>
+        {/* Grid of All Industries */}
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-10">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Explore All Specialized Vertical Solutions</h3>
+            <p className="text-slate-600 text-sm">Select any industry to see how Tripbone transforms your operations</p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {INDUSTRIES_DATA.map((ind) => {
-            const Icon = ind.icon;
-            return (
-              <div 
-                key={ind.id}
-                onClick={() => {
-                  setSelectedIndustry(ind);
-                  window.scrollTo({ top: 300, behavior: 'smooth' });
-                }}
-                className="bg-white border border-slate-200 hover:border-brand/50 p-6 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-5 group-hover:bg-brand-fade transition-colors">
-                  <Icon className="w-6 h-6 text-brand" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {INDUSTRIES_DATA.map((ind) => {
+              const Icon = ind.icon;
+              return (
+                <div 
+                  key={ind.id}
+                  onClick={() => {
+                    setSelectedIndustry(ind);
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                  }}
+                  className="bg-white border border-slate-200 hover:border-brand/50 p-6 rounded-2xl cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-5 group-hover:bg-brand-fade transition-colors">
+                    <Icon className="w-6 h-6 text-brand" />
+                  </div>
+                  <h4 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-brand transition-colors flex items-center justify-between">
+                    <span>{ind.name}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand transition-colors" />
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                    {ind.tagline}
+                  </p>
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-brand">
+                    <span>Explore features</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </div>
                 </div>
-                <h4 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-brand transition-colors flex items-center justify-between">
-                  <span>{ind.name}</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand transition-colors" />
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                  {ind.tagline}
-                </p>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-brand">
-                  <span>Explore features</span>
-                  <ArrowRight className="w-3 h-3" />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Bottom CTA */}
-      <div className="max-w-5xl mx-auto px-6 mt-20 text-center">
-        <div className="bg-slate-900 text-white border border-slate-800 p-10 md:p-14 rounded-3xl shadow-2xl">
-          <h2 className="text-3xl font-black text-white mb-4">Ready to Modernize Your Tour Business?</h2>
-          <p className="text-slate-300 text-sm max-w-xl mx-auto mb-8 leading-relaxed">
-            Launch your custom brand website in under 2 minutes. Zero setup fees, 0% commission option, and instant WhatsApp booking workflow.
-          </p>
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-white font-bold text-sm shadow-xl hover:brightness-110 transition-all"
-            style={{ backgroundColor: brandColor }}
-          >
-            <span>Start 14-Day Free Trial</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+        {/* Bottom CTA */}
+        <div className="max-w-5xl mx-auto px-6 mt-20 text-center">
+          <div className="bg-slate-900 text-white border border-slate-800 p-10 md:p-14 rounded-3xl shadow-2xl">
+            <h2 className="text-3xl font-black text-white mb-4">Ready to Modernize Your Tour Business?</h2>
+            <p className="text-slate-300 text-sm max-w-xl mx-auto mb-8 leading-relaxed">
+              Launch your custom brand website in under 2 minutes. Zero setup fees, 0% commission option, and instant WhatsApp booking workflow.
+            </p>
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-white font-bold text-sm shadow-xl hover:brightness-110 transition-all"
+              style={{ backgroundColor: brandColor }}
+            >
+              <span>Start 14-Day Free Trial</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
+
       </div>
 
     </div>
