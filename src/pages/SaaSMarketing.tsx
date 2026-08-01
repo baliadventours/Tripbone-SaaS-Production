@@ -208,9 +208,9 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white max-w-4xl mx-auto"
+              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15] text-white max-w-5xl mx-auto"
             >
-              The AI Website Builder & Booking System <br className="hidden sm:block" />
+              The AI Website Builder & Booking System <br />
               <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
                 for Tour Operators
               </span>
