@@ -208,11 +208,11 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white max-w-3xl mx-auto"
+              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white max-w-4xl mx-auto"
             >
-              Build Your Tour Booking <br />
+              The AI Website Builder & Booking System <br className="hidden sm:block" />
               <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
-                Website in 2 Minutes
+                for Tour Operators
               </span>
             </motion.h1>
 
@@ -221,9 +221,9 @@ export default function SaaSMarketing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-slate-300 font-bold text-xl sm:text-2xl max-w-2xl mx-auto tracking-wide"
+              className="text-slate-300 font-medium text-base sm:text-xl max-w-2xl mx-auto leading-relaxed"
             >
-              AI-Powered. No Code. All-in-One.
+              Launch your direct booking website in 2 minutes. Integrated AI, instant payments, and automated WhatsApp dispatches — zero code required.
             </motion.p>
 
             {/* Centered CTA Button Group */}
