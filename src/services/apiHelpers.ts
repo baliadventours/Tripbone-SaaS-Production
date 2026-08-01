@@ -151,15 +151,17 @@ export async function fetchFromREST(
 
 // Robust Gemini API helper that falls back to stable alternative models if the primary model is unavailable.
 export async function generateContentWithFallback(ai: any, params: any) {
-  const modelsToTry = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.1-flash-lite"];
-  const initialModel = params.model || "gemini-3.5-flash";
+  const modelsToTry = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-pro"];
+  const initialModel = params.model || "gemini-2.5-flash";
   const uniqueModels = Array.from(new Set([initialModel, ...modelsToTry]));
 
   let lastError: any = null;
+  let currentAi = ai;
+
   for (const model of uniqueModels) {
     try {
       console.log(`[Gemini Fallback Router] Attempting generation with model: ${model}`);
-      const response = await ai.models.generateContent({
+      const response = await currentAi.models.generateContent({
         ...params,
         model: model
       });
@@ -167,7 +169,25 @@ export async function generateContentWithFallback(ai: any, params: any) {
       return response;
     } catch (err: any) {
       lastError = err;
-      console.warn(`[Gemini Fallback Router] Failed with model ${model}:`, err.message || err);
+      const errMsg = err.message || String(err);
+      console.warn(`[Gemini Fallback Router] Failed with model ${model}:`, errMsg);
+
+      // If key is invalid and server process.env.GEMINI_API_KEY exists, switch client to environment key and retry
+      if ((errMsg.includes('API key not valid') || errMsg.includes('API_KEY_INVALID') || errMsg.includes('INVALID_ARGUMENT')) && process.env.GEMINI_API_KEY?.trim()) {
+        try {
+          console.log(`[Gemini Fallback Router] Retrying model ${model} with process.env.GEMINI_API_KEY...`);
+          const { GoogleGenAI } = await import("@google/genai");
+          currentAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY.trim() });
+          const response = await currentAi.models.generateContent({
+            ...params,
+            model: model
+          });
+          console.log(`[Gemini Fallback Router] Successfully recovered using env key with model: ${model}`);
+          return response;
+        } catch (keyFallbackErr: any) {
+          console.warn(`[Gemini Fallback Router] Env key retry failed for ${model}:`, keyFallbackErr.message || keyFallbackErr);
+        }
+      }
 
       // If we failed and there are tools configured, try one more time for this model without tools (in case of tool support issues)
       if (params.config?.tools || params.tools) {
@@ -180,7 +200,7 @@ export async function generateContentWithFallback(ai: any, params: any) {
           }
           delete cleanParams.tools;
           
-          const response = await ai.models.generateContent({
+          const response = await currentAi.models.generateContent({
             ...cleanParams,
             model: model
           });
@@ -203,8 +223,8 @@ export async function resolveTenantGeminiKey(tenantId?: string | null): Promise<
     const commSettingsDoc = await db.collection('communicationSettings').doc(tenantId).get();
     if (commSettingsDoc.exists) {
       const data = commSettingsDoc.data();
-      if (data?.geminiApiKey) {
-        return data.geminiApiKey;
+      if (data?.geminiApiKey && typeof data.geminiApiKey === 'string' && data.geminiApiKey.trim().length > 10) {
+        return data.geminiApiKey.trim();
       }
     }
   } catch (err) {

@@ -240,7 +240,7 @@ router.post("/generate-blog", async (req, res) => {
   try {
     const { prompt, topic, audience, tone, language, isSaaS, apiKey, tenantId } = req.body;
     const finalPrompt = prompt || topic || (topic ? `Write an article on: ${topic}` : null);
-    if (!finalPrompt) {
+    if (!finalPrompt || typeof finalPrompt !== 'string') {
       return res.status(400).json({ error: "Missing required field: prompt or topic" });
     }
 
@@ -253,71 +253,70 @@ router.post("/generate-blog", async (req, res) => {
     }
 
     const tenantApiKey = await resolveTenantGeminiKey(tenantId);
-    const finalKey = tenantApiKey || apiKey?.trim() || process.env.GEMINI_API_KEY?.trim();
+    let finalKey = (tenantApiKey && tenantApiKey.length > 10) ? tenantApiKey : (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 10 ? apiKey.trim() : process.env.GEMINI_API_KEY?.trim());
     if (!finalKey) {
       return res.status(400).json({ error: "Gemini API Key is not configured on the server." });
     }
 
     const { GoogleGenAI, Type } = await import("@google/genai");
-    const ai = new GoogleGenAI({
-      apiKey: finalKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+    const ai = new GoogleGenAI({ apiKey: finalKey });
 
-    const isSaaSSite = isSaaS || (finalPrompt.toLowerCase().includes('saas') || finalPrompt.toLowerCase().includes('tour operator') || finalPrompt.toLowerCase().includes('booking'));
+    const isSaaSSite = isSaaS || Boolean(finalPrompt.toLowerCase().includes('saas') || finalPrompt.toLowerCase().includes('tour operator') || finalPrompt.toLowerCase().includes('booking') || finalPrompt.toLowerCase().includes('tripbone'));
 
     const systemInstruction = isSaaSSite
-      ? `You are an expert SaaS content writer and B2B marketing specialist writing for "Tripbone", an all-in-one AI tour operator management system and booking platform.
-Your task is to write high-quality, engaging, insightful, and SEO-optimized articles for tour operators, travel agencies, and activity providers.
+      ? `You are an expert SaaS content strategist, B2B technology writer, and SEO specialist for 'Tripbone' (app.tripbone.com) — a modern, zero-commission, multi-tenant tour operator booking and reservation platform.
+Write high-converting, deeply informative, and authoritative B2B SaaS articles for tour operators, travel agencies, DMCs, and experience providers.
+Topics include comparisons (e.g., FareHarbor alternatives, Bokun alternatives), 'Why Tripbone', guides to choosing tour booking systems, direct booking growth tactics, and automated booking management.
+Output MUST be valid JSON matching the schema.`
+      : `You are an expert travel, SaaS, and tourism blog writer and SEO specialist writing for "Bali Adventours". Output MUST be valid JSON matching the schema.`;
 
-TOPIC: ${finalPrompt}
-AUDIENCE: ${audience || 'Tour Operators & Travel Agencies'}
-TONE: ${tone || 'Authoritative, engaging, professional'}
-LANGUAGE: ${language || 'English'}
+    const fullPrompt = `Write a high-quality, SEO-optimized, engaging blog article based on the following instructions.
 
-VOICE & STYLE:
-- Authoritative, clear, actionable, and encouraging.
-- Focus on real operational insights, business growth, booking conversion, and modern technology.
-- Use proper HTML formatting inside the 'content' field (h2, h3, p, ul, li, strong) for rich readability.
-- The article should be thorough, informative, and around 500-800 words.
+TOPIC: "${finalPrompt}"
+TARGET AUDIENCE: ${audience || (isSaaSSite ? "Tour Operators & Travel Agencies" : "Tour Operators, Travel Agencies, and Enthusiasts")}
+TONE OF VOICE: ${tone || "Engaging, Professional, and Authoritative"}
+LANGUAGE: ${language || "English"}
+${isSaaSSite ? "BRAND FOCUS: Tripbone Tour Operator Booking & Management System" : ""}
 
-The output MUST be in valid JSON format including title, excerpt, full HTML content, category, and tags.`
-      : `You are a professional travel blogger and SEO expert writing for "Bali Adventours".
-Your task is to write high-quality, engaging, and SEO-optimized blog posts about Bali and travel.
-
-VOICE & STYLE:
-- Use an inspiring, adventurous, yet helpful tone.
-- Write in English but feel free to use local Balinese/Indonesian terms with brief explanations where appropriate (e.g., "Canang Sari").
-- The content should be informative, providing real value to travelers (tips, hidden gems, cultural etiquette).
-- Use proper HTML formatting inside the 'content' field (h2, h3, p, ul, li) for readability.
-- The content should be at least 600-800 words long.
-
-The output MUST be in valid JSON format including title, excerpt, full HTML content, category, and tags.`;
+REQUIREMENTS:
+1. "title": A catchy, high-CTR blog headline.
+2. "slug": Clean URL-friendly slug (e.g. "fareharbor-alternatives-2026-tripbone").
+3. "excerpt": A 2-sentence captivating summary/hook.
+4. "category": A single relevant category (e.g. "Comparisons & Software", "Platform Guide", "Operator Tips", "Growth Strategies", "Industry Insights").
+5. "content": The complete, comprehensive blog article formatted in clean HTML. Use <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote> tags. Make it deeply informative, readable, and structured with 4-6 detailed sections. Do NOT include <html>, <head>, or <body> tags.
+6. "author": A professional author name/title (e.g. "Tripbone Editorial Team" or "Travel Tech Specialist").
+7. "readTime": Estimated reading time (e.g. "5 min read").
+8. "coverImageQuery": 2-3 English search keywords suitable for finding a relevant high-resolution cover photo on Unsplash.
+9. "tags": An array of 5-8 relevant SEO keywords.
+10. "seoKeywords": An array of 5-8 relevant SEO keywords.`;
 
     const response = await generateContentWithFallback(ai, {
-      model: "gemini-3.5-flash",
-      contents: finalPrompt,
+      model: "gemini-2.5-flash",
+      contents: fullPrompt,
       config: {
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            title: { type: Type.STRING, description: "Captivating SEO-friendly blog title" },
-            excerpt: { type: Type.STRING, description: "A short, intriguing 2-sentence summary to encourage clicks" },
-            content: { type: Type.STRING, description: "Full blog post content with HTML tags (h2, h3, p, ul, li)" },
-            category: { type: Type.STRING, description: "Best matching category (e.g., Adventure, Culture, Software, Guide, News)" },
-            tags: { 
-              type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "4-6 relevant SEO tags"
+            title: { type: Type.STRING },
+            slug: { type: Type.STRING },
+            excerpt: { type: Type.STRING },
+            category: { type: Type.STRING },
+            content: { type: Type.STRING },
+            author: { type: Type.STRING },
+            readTime: { type: Type.STRING },
+            coverImageQuery: { type: Type.STRING },
+            tags: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            seoKeywords: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
             }
           },
-          required: ["title", "excerpt", "content", "category", "tags"]
+          required: ["title", "excerpt", "content", "category"]
         }
       }
     });
@@ -329,7 +328,16 @@ The output MUST be in valid JSON format including title, excerpt, full HTML cont
       text = text.split("```")[1].split("```")[0].trim();
     }
 
-    res.json(JSON.parse(text));
+    const result = JSON.parse(text);
+    if (!result.slug && result.title) {
+      result.slug = result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    }
+    if (!result.author) result.author = isSaaSSite ? "Tripbone Editorial" : "Bali Adventours";
+    if (!result.readTime) result.readTime = "5 min read";
+    if (!result.tags) result.tags = result.seoKeywords || ["Travel", "Tour Operator", "Software"];
+    if (!result.seoKeywords) result.seoKeywords = result.tags;
+
+    res.json(result);
   } catch (error: any) {
     console.error("[Generate Blog Server Error]:", error);
     res.status(500).json({ error: error.message || "Failed to generate blog post" });
@@ -907,97 +915,7 @@ Example:
   }
 });
 
-// API Route: AI Blog Post Generator
-router.post("/generate-blog", async (req, res) => {
-  try {
-    const { topic, audience, tone, language, tenantId, isSaaS } = req.body;
-    if (!topic || typeof topic !== 'string') {
-      return res.status(400).json({ error: "Missing required field: topic" });
-    }
 
-    try {
-      await moderateCreemContent(topic);
-    } catch (modErr: any) {
-      console.warn("[Moderation blocked blog topic]:", modErr.message);
-      return res.status(400).json({ error: "Topic blocked by moderation policy." });
-    }
-
-    const tenantApiKey = await resolveTenantGeminiKey(tenantId);
-    const finalKey = tenantApiKey || process.env.GEMINI_API_KEY?.trim();
-    if (!finalKey) {
-      return res.status(400).json({ error: "Gemini API Key is not configured on the server." });
-    }
-
-    const { GoogleGenAI, Type } = await import("@google/genai");
-    const ai = new GoogleGenAI({ apiKey: finalKey });
-
-    const systemContext = isSaaS 
-      ? `You are an expert SaaS content strategist, B2B technology writer, and SEO specialist for 'Tripbone' (app.tripbone.com) — a modern, zero-commission, multi-tenant tour operator booking and reservation platform.
-Write high-converting, deeply informative, and authoritative B2B SaaS articles for tour operators, travel agencies, DMCs, and experience providers.
-Topics include comparisons (e.g., FareHarbor alternatives, Bokun alternatives), 'Why Tripbone', guides to choosing tour booking systems, direct booking growth tactics, and automated booking management.
-Output MUST be valid JSON matching the schema.`
-      : "You are an expert travel, SaaS, and tourism blog writer and SEO specialist. Output MUST be valid JSON matching the schema.";
-
-    const prompt = `Write a high-quality, SEO-optimized, engaging blog article based on the following instructions.
-
-TOPIC: "${topic}"
-TARGET AUDIENCE: ${audience || (isSaaS ? "Tour Operators & Travel Agencies" : "Tour Operators, Travel Agencies, and Enthusiasts")}
-TONE OF VOICE: ${tone || "Engaging, Professional, and Authoritative"}
-LANGUAGE: ${language || "English"}
-${isSaaS ? "BRAND FOCUS: Tripbone Tour Operator Booking & Management System" : ""}
-
-REQUIREMENTS:
-1. "title": A catchy, high-CTR blog headline.
-2. "slug": Clean URL-friendly slug (e.g. "fareharbor-alternatives-2026-tripbone").
-3. "excerpt": A 2-sentence captivating summary/hook.
-4. "category": A single relevant category (e.g. "Comparisons & Software", "Platform Guide", "Operator Tips", "Growth Strategies", "Industry Insights").
-5. "content": The complete, comprehensive blog article formatted in clean HTML. Use <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote> tags. Make it deeply informative, readable, and structured with 4-6 detailed sections. Do NOT include <html>, <head>, or <body> tags.
-6. "author": A professional author name/title (e.g. "Tripbone Editorial Team" or "Travel Tech Specialist").
-7. "readTime": Estimated reading time (e.g. "5 min read").
-8. "coverImageQuery": 2-3 English search keywords suitable for finding a relevant high-resolution cover photo on Unsplash.
-9. "seoKeywords": An array of 5-8 relevant SEO keywords.`;
-
-    const response = await generateContentWithFallback(ai, {
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: systemContext,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            slug: { type: Type.STRING },
-            excerpt: { type: Type.STRING },
-            category: { type: Type.STRING },
-            content: { type: Type.STRING },
-            author: { type: Type.STRING },
-            readTime: { type: Type.STRING },
-            coverImageQuery: { type: Type.STRING },
-            seoKeywords: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            }
-          },
-          required: ["title", "slug", "excerpt", "category", "content", "author", "readTime", "coverImageQuery"]
-        }
-      }
-    });
-
-    let text = response.text || "";
-    if (text.includes("```json")) {
-      text = text.split("```json")[1].split("```")[0].trim();
-    } else if (text.includes("```")) {
-      text = text.split("```")[1].split("```")[0].trim();
-    }
-
-    const result = JSON.parse(text);
-    res.json(result);
-  } catch (error: any) {
-    console.error("[Generate Blog Server Error]:", error);
-    res.status(500).json({ error: error.message || "Failed to generate blog article" });
-  }
-});
 
 // API Route: Chatbot Endpoint
 router.post("/chatbot", async (req, res) => {
