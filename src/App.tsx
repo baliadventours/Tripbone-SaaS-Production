@@ -67,6 +67,8 @@ const SalesFeatures = lazy(() => import('./pages/SaaSFeatures/SalesFeatures'));
 const DesignFeatures = lazy(() => import('./pages/SaaSFeatures/DesignFeatures'));
 const InfrastructureFeatures = lazy(() => import('./pages/SaaSFeatures/InfrastructureFeatures'));
 const SaaSPricing = lazy(() => import('./pages/SaaSPricing'));
+const SaaSIndustries = lazy(() => import('./pages/SaaSIndustries'));
+const SaaSComparison = lazy(() => import('./pages/SaaSComparison'));
 const SaaSAbout = lazy(() => import('./pages/SaaSAbout'));
 const SaaSContact = lazy(() => import('./pages/SaaSContact'));
 const SaaSTerms = lazy(() => import('./pages/SaaSTerms'));
@@ -226,6 +228,10 @@ function AppContent() {
                 <Route path="/features/design" element={<DesignFeatures />} />
                 <Route path="/features/infrastructure" element={<InfrastructureFeatures />} />
                 
+                <Route path="/industries" element={<SaaSIndustries />} />
+                <Route path="/compare" element={<SaaSComparison />} />
+                <Route path="/comparisons" element={<SaaSComparison />} />
+
                 <Route path="/pricing" element={<SaaSPricing />} />
                 <Route path="/about" element={<SaaSAbout />} />
                 <Route path="/contact" element={<SaaSContact />} />
