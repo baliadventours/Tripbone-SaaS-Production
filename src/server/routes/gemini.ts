@@ -340,7 +340,14 @@ REQUIREMENTS:
     res.json(result);
   } catch (error: any) {
     console.error("[Generate Blog Server Error]:", error);
-    res.status(500).json({ error: error.message || "Failed to generate blog post" });
+    let message = error.message || "Failed to generate blog post";
+    try {
+      const parsed = typeof message === 'string' && message.startsWith('{') ? JSON.parse(message) : null;
+      if (parsed?.error?.message) {
+        message = parsed.error.message;
+      }
+    } catch (_) {}
+    res.status(500).json({ error: message });
   }
 });
 

@@ -151,7 +151,7 @@ export async function fetchFromREST(
 
 // Robust Gemini API helper that falls back to stable alternative models if the primary model is unavailable.
 export async function generateContentWithFallback(ai: any, params: any) {
-  const modelsToTry = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-pro"];
+  const modelsToTry = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3-flash-preview"];
   const initialModel = params.model || "gemini-2.5-flash";
   const uniqueModels = Array.from(new Set([initialModel, ...modelsToTry]));
 
@@ -169,13 +169,23 @@ export async function generateContentWithFallback(ai: any, params: any) {
       return response;
     } catch (err: any) {
       lastError = err;
-      const errMsg = err.message || String(err);
+      const errMsg = String(err.message || err);
       console.warn(`[Gemini Fallback Router] Failed with model ${model}:`, errMsg);
 
-      // If key is invalid and server process.env.GEMINI_API_KEY exists, switch client to environment key and retry
-      if ((errMsg.includes('API key not valid') || errMsg.includes('API_KEY_INVALID') || errMsg.includes('INVALID_ARGUMENT')) && process.env.GEMINI_API_KEY?.trim()) {
+      // Check if error is related to API key or authorization or invalid argument or quota
+      const isKeyError = errMsg.includes('API key not valid') || 
+                         errMsg.includes('API_KEY_INVALID') || 
+                         errMsg.includes('INVALID_ARGUMENT') || 
+                         errMsg.includes('UNAUTHENTICATED') || 
+                         errMsg.includes('PermissionDenied') || 
+                         errMsg.includes('400') ||
+                         errMsg.includes('401') ||
+                         errMsg.includes('403');
+
+      // If key is invalid and server process.env.GEMINI_API_KEY exists, switch client to environment key and retry immediately
+      if (isKeyError && process.env.GEMINI_API_KEY?.trim()) {
         try {
-          console.log(`[Gemini Fallback Router] Retrying model ${model} with process.env.GEMINI_API_KEY...`);
+          console.log(`[Gemini Fallback Router] Key/model error detected. Retrying model ${model} with process.env.GEMINI_API_KEY...`);
           const { GoogleGenAI } = await import("@google/genai");
           currentAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY.trim() });
           const response = await currentAi.models.generateContent({
@@ -186,6 +196,7 @@ export async function generateContentWithFallback(ai: any, params: any) {
           return response;
         } catch (keyFallbackErr: any) {
           console.warn(`[Gemini Fallback Router] Env key retry failed for ${model}:`, keyFallbackErr.message || keyFallbackErr);
+          lastError = keyFallbackErr;
         }
       }
 
