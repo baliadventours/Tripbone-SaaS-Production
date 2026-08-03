@@ -7839,6 +7839,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           { id: 'communication', label: 'Communication Setting', hidden: isSupplier || isAgent },
           { id: 'website', label: 'Website Setting', hidden: isSupplier || isAgent },
           { id: 'domain', label: 'Custom Domain', hidden: isSupplier || isAgent },
+          { id: 'guide-pdf', label: 'Panduan Website (PDF)' },
           { id: 'company-profile', label: 'My Company Profile', hidden: !isSupplier && !isAgent },
         ].filter(c => !c.hidden)
       }
@@ -11819,6 +11820,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                   setActiveMenu('popups-manager');
                               } else if (child.id === 'blog-categories') {
                                   setActiveMenu('blog');
+                              } else if (child.id === 'guide-pdf') {
+                                  navigate('/panduan');
                               } else {
                                   setActiveMenu(child.id as MenuId);
                               }

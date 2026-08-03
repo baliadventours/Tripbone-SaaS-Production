@@ -78,6 +78,7 @@ const SaaSTerms = lazyWithRetry(() => import('./pages/SaaSTerms'));
 const SaaSPrivacy = lazyWithRetry(() => import('./pages/SaaSPrivacy'));
 const SaasCookies = lazyWithRetry(() => import('./pages/SaasCookies'));
 const AppSumoRedeem = lazyWithRetry(() => import('./pages/AppSumoRedeem'));
+const GuideView = lazyWithRetry(() => import('./pages/GuideView'));
 
 // Lazy load non-critical components
 import { useTenantSEO } from './hooks/useTenantSEO';
@@ -356,6 +357,9 @@ function AppContent() {
               <Route path="/blog" element={<BlogArchive />} />
               <Route path="/blog/:slug" element={<BlogPostDetail />} />
               <Route path="/about" element={<About />} />
+              <Route path="/panduan" element={<GuideView />} />
+              <Route path="/guide" element={<GuideView />} />
+              <Route path="/admin/guide" element={<GuideView />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/page/:slug" element={<CustomPageView />} />
