@@ -98,8 +98,8 @@ const SliderTourCard = ({ tour }: { tour: Tour }) => {
               />
             </span>
           </div>
-          <div className="text-[10px] font-black text-primary bg-orange-50 border border-orange-100 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
-            View Details
+          <div className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-primary px-3 py-1.5 rounded-xl uppercase tracking-wider shadow-sm hover:bg-orange-600 transition-colors">
+            Book Now <ArrowRight className="h-3 w-3" />
           </div>
         </div>
       </div>

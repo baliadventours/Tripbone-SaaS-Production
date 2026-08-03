@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import TourCard from '../components/TourCard';
+import ElfsightWidget from '../components/Home/ElfsightWidget';
 
 const FEATURE_ICONS: { [key: string]: any } = {
   ShieldCheck,
@@ -328,26 +329,23 @@ export default function CustomPageView() {
                   )}
                 </div>
 
-                {/* Elfsight Widget Container */}
-                {sec.reviewsEmbedCode ? (
-                  <div 
-                    className="w-full min-h-[180px]"
-                    dangerouslySetInnerHTML={{ __html: sec.reviewsEmbedCode }}
-                  />
+                {/* Elfsight Widget Container or Fallback Cards */}
+                {sec.reviewsEmbedCode && sec.reviewsEmbedCode.trim().length > 5 ? (
+                  <ElfsightWidget embedCode={sec.reviewsEmbedCode} />
                 ) : (
                   /* Fallback Reviews Cards */
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
                       { name: 'Sarah & Mark (UK)', rating: 5, text: 'The absolute highlight of our trip to Bali! Our guide was deeply knowledgeable, friendly, and took us to spots away from tourist crowds.' },
                       { name: 'Alexandre R. (France)', rating: 5, text: 'Top-tier service from pickup to dropoff. Pristine luxury vehicle and private customization made everything perfect.' },
                       { name: 'Elena V. (Australia)', rating: 5, text: 'Booking with Bali Adventours was super smooth. Direct communication via WhatsApp made us feel 100% safe and cared for.' }
                     ].map((rev, i) => (
-                      <div key={i} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-3">
+                      <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                         <div className="flex text-amber-400 gap-1">
-                          {[...Array(5)].map((_, idx) => <Star key={idx} className="h-4 w-4 fill-amber-400" />)}
+                          {[...Array(5)].map((_, idx) => <Star key={idx} className="h-4 w-4 fill-amber-400 text-amber-400" />)}
                         </div>
                         <p className="text-xs text-gray-600 font-medium leading-relaxed italic">"{rev.text}"</p>
-                        <p className="text-xs font-black text-gray-900 pt-2 border-t border-gray-200/60">— {rev.name}</p>
+                        <p className="text-xs font-black text-gray-900 pt-2 border-t border-gray-100">— {rev.name}</p>
                       </div>
                     ))}
                   </div>

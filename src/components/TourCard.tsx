@@ -278,11 +278,17 @@ export default function TourCard({ tour, index = 0, viewMode = 'grid', variant =
                 ) : null}
               </div>
 
-              {/* Star Rating and Review Count replacing the Explore button */}
-              <div className="flex items-center gap-1 bg-amber-500/5 group-hover:bg-amber-500/10 border border-amber-500/10 px-2.5 py-1.5 rounded-lg text-xs select-none shrink-0 transition-colors">
-                <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" />
-                <span className="font-black text-gray-900 text-[11.5px] leading-none">{tour.rating ? tour.rating.toFixed(1) : '4.9'}</span>
-                <span className="text-[10px] font-bold text-gray-500 leading-none">({tour.reviewsCount || 120})</span>
+              {/* Star Rating & Book Now Button */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="hidden xs:flex sm:flex items-center gap-1 bg-amber-500/5 border border-amber-500/10 px-2 py-1.5 rounded-lg text-xs select-none">
+                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                  <span className="font-black text-gray-900 text-[11px] leading-none">{tour.rating ? tour.rating.toFixed(1) : '4.9'}</span>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 bg-primary text-white text-xs font-black px-3.5 py-2 rounded-xl hover:bg-orange-600 transition-all shadow-md shadow-orange-500/20 group-hover:scale-105 shrink-0">
+                  <span>Book Now</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </div>
               </div>
             </div>
           </div>

@@ -84,26 +84,30 @@ export default function ReviewSlider() {
   const maxDisplay = settings?.maxDisplayReviews ? Number(settings.maxDisplayReviews) : 6;
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'reviews'),
-      where('status', '==', 'approved')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Review));
-      const sorted = data
-        .sort((a: any, b: any) => {
-          const timeA = a.createdAt?.seconds 
-            ? a.createdAt.seconds * 1000 + (a.createdAt.nanoseconds || 0) / 1000000
-            : (a.createdAt instanceof Date ? a.createdAt.getTime() : typeof a.createdAt === 'number' ? a.createdAt : 0);
-          const timeB = b.createdAt?.seconds 
-            ? b.createdAt.seconds * 1000 + (b.createdAt.nanoseconds || 0) / 1000000
-            : (b.createdAt instanceof Date ? b.createdAt.getTime() : typeof b.createdAt === 'number' ? b.createdAt : 0);
-          return timeB - timeA;
-        });
-      
-      setReviews(sorted);
-    });
-    return unsubscribe;
+    try {
+      const q = collection(db, 'reviews');
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Review));
+        const approved = data.filter((r: any) => !r.status || r.status === 'approved');
+        const sorted = approved
+          .sort((a: any, b: any) => {
+            const timeA = a.createdAt?.seconds 
+              ? a.createdAt.seconds * 1000 + (a.createdAt.nanoseconds || 0) / 1000000
+              : (a.createdAt instanceof Date ? a.createdAt.getTime() : typeof a.createdAt === 'number' ? a.createdAt : 0);
+            const timeB = b.createdAt?.seconds 
+              ? b.createdAt.seconds * 1000 + (b.createdAt.nanoseconds || 0) / 1000000
+              : (b.createdAt instanceof Date ? b.createdAt.getTime() : typeof b.createdAt === 'number' ? b.createdAt : 0);
+            return timeB - timeA;
+          });
+        
+        setReviews(sorted);
+      }, (err) => {
+        console.warn("Reviews onSnapshot notice:", err);
+      });
+      return unsubscribe;
+    } catch (err) {
+      console.warn("Error setting up reviews listener:", err);
+    }
   }, []);
 
   const effectiveReviews = reviews.length > 0 ? reviews : DEFAULT_FALLBACK_REVIEWS;
@@ -170,7 +174,7 @@ export default function ReviewSlider() {
       />
 
       {/* Elfsight Live Widget Embed OR Fallback Custom Reviews */}
-      {settings?.elfsightEnabled !== false && settings?.elfsightEmbedCode ? (
+      {settings?.elfsightEnabled === true && settings?.elfsightEmbedCode?.trim() ? (
         <div className="mb-6 sm:mb-10 w-full">
           <ElfsightWidget embedCode={settings.elfsightEmbedCode} />
         </div>
