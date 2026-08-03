@@ -3,6 +3,7 @@ import { doc, onSnapshot, getDoc, setDoc, collection, query, orderBy } from '@/s
 import { db } from './firebase';
 import { SiteSettings, TourLabel } from '../types';
 import { useTenant } from './TenantContext';
+import { updateTenantGA } from './googleAnalytics';
 
 import { WebsiteBuilderSettings } from '../components/Admin/WebsiteBuilder';
 
@@ -104,6 +105,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const data = snapshot.data() as SiteSettings;
         setSettings(data);
         applySettings(data);
+        updateTenantGA(tenantId, data.gaMeasurementId, data.gaCustomScript);
       } else {
         const fallback: SiteSettings = {
           ...defaultSettings,
@@ -117,6 +119,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         };
         setSettings(fallback);
         applySettings(fallback);
+        updateTenantGA(tenantId, fallback.gaMeasurementId, fallback.gaCustomScript);
       }
     });
 

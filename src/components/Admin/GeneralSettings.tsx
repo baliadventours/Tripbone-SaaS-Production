@@ -47,7 +47,7 @@ import {
   Award
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { setGAMeasurementId, setGACustomScript, extractMeasurementId } from '../../lib/googleAnalytics';
+import { updateTenantGA, extractMeasurementId } from '../../lib/googleAnalytics';
 
 const THEME_OPTIONS = [
   { id: 'slideshow-atv', name: 'Cinematic Multi-Image Slideshow Hero', category: 'Slideshow' },
@@ -172,7 +172,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
       const settingsId = tenantId || 'general';
       await setDoc(doc(db, 'settings', settingsId), settings);
 
-      // Sync GA4 settings live if provided
+      // Sync GA4 settings live for this tenant
       let cleanGaId = (settings.gaMeasurementId || '').trim().toUpperCase();
       const cleanGaScript = (settings.gaCustomScript || '').trim();
       
@@ -180,24 +180,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
         cleanGaId = extractMeasurementId(cleanGaScript);
       }
 
-      if (cleanGaId || cleanGaScript) {
-        try {
-          await setDoc(doc(db, 'settings', 'analytics'), {
-            measurementId: cleanGaId,
-            customScript: cleanGaScript,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-
-          if (cleanGaId) {
-            setGAMeasurementId(cleanGaId);
-          }
-          if (cleanGaScript) {
-            setGACustomScript(cleanGaScript);
-          }
-        } catch (analyticsErr) {
-          console.warn("Analytics settings sync warning:", analyticsErr);
-        }
-      }
+      updateTenantGA(tenantId, cleanGaId, cleanGaScript);
 
       // Handle Vercel Custom Domain APIs if it changed
       if (tenantId && settings.customDomain !== initialCustomDomain) {

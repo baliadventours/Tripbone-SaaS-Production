@@ -17,17 +17,18 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   getGAMeasurementId, 
-  setGAMeasurementId, 
   getGACustomScript,
-  setGACustomScript,
+  updateTenantGA,
   trackGAEvent, 
   recordedGAEvents,
   extractMeasurementId
 } from '../../lib/googleAnalytics';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc } from '@/src/lib/firebase';
+import { useTenant } from '../../lib/TenantContext';
 
 export default function GoogleAnalytics() {
+  const { tenantId } = useTenant();
   const [measurementId, setMeasurementId] = useState(getGAMeasurementId());
   const [customScript, setCustomScript] = useState(getGACustomScript());
   const [newId, setNewId] = useState(measurementId);
@@ -39,24 +40,30 @@ export default function GoogleAnalytics() {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
 
-  // Load analytics configuration from Cloud database on mount
+  // Load analytics configuration from Cloud database for active tenant
   useEffect(() => {
     const fetchRemoteSettings = async () => {
       try {
-        const docRef = doc(db, 'settings', 'analytics');
+        const settingsDocId = tenantId || 'general';
+        const docRef = doc(db, 'settings', settingsDocId);
         const snap = await getDoc(docRef);
         if (snap.exists()) {
           const data = snap.data();
-          const remoteId = data.measurementId || '';
-          const remoteScript = data.customScript || '';
+          const remoteId = data.gaMeasurementId || data.measurementId || '';
+          const remoteScript = data.gaCustomScript || data.customScript || '';
           
           setMeasurementId(remoteId);
           setNewId(remoteId);
           setCustomScript(remoteScript);
           setNewScript(remoteScript);
           
-          if (remoteId) setGAMeasurementId(remoteId);
-          if (remoteScript) setGACustomScript(remoteScript);
+          updateTenantGA(tenantId, remoteId, remoteScript);
+        } else {
+          setMeasurementId('');
+          setNewId('');
+          setCustomScript('');
+          setNewScript('');
+          updateTenantGA(tenantId, '', '');
         }
       } catch (err) {
         console.warn('[Analytics settings] Failed to sync remote cloud configs:', err);
@@ -65,7 +72,7 @@ export default function GoogleAnalytics() {
       }
     };
     fetchRemoteSettings();
-  }, []);
+  }, [tenantId]);
 
   // Listen for real client-side events captured on the live site
   useEffect(() => {
@@ -92,40 +99,24 @@ export default function GoogleAnalytics() {
       cleanId = extractMeasurementId(cleanScript);
     }
 
-    // 1. Always update runtime state and localStorage immediately so tracking deploys instantly
-    if (cleanId) {
-      setGAMeasurementId(cleanId);
-    } else {
-      setGAMeasurementId('');
-    }
-
-    setGACustomScript(cleanScript);
+    // 1. Always update runtime state for this tenant immediately
+    updateTenantGA(tenantId, cleanId, cleanScript);
     
     setMeasurementId(cleanId);
     setCustomScript(cleanScript);
     setNewId(cleanId);
 
-    // 2. Persist to Cloud Firestore
+    // 2. Persist to Cloud Firestore for this tenant
     try {
-      const docRef = doc(db, 'settings', 'analytics');
+      const settingsDocId = tenantId || 'general';
+      const docRef = doc(db, 'settings', settingsDocId);
       await setDoc(docRef, {
-        measurementId: cleanId,
-        customScript: cleanScript,
+        gaMeasurementId: cleanId,
+        gaCustomScript: cleanScript,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-
-      try {
-        const generalRef = doc(db, 'settings', 'general');
-        await setDoc(generalRef, {
-          gaMeasurementId: cleanId,
-          gaCustomScript: cleanScript,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      } catch (e) {
-        // Non-critical
-      }
     } catch (cloudErr) {
-      console.warn('[Google Analytics] Cloud database sync notice (saved locally):', cloudErr);
+      console.warn('[Google Analytics] Cloud database sync notice:', cloudErr);
     }
 
     setSuccessMessage('Google Analytics tracking deployed to production live!');

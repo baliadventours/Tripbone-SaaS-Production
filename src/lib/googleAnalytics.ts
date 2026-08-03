@@ -21,6 +21,7 @@ declare global {
 // In-memory cache for fast synchronous access
 let activeMeasurementId = '';
 let activeCustomScript = '';
+let activeTenantId: string | null = null;
 let isGAInitialized = false;
 
 // Memory logging of GA events for the interactive dashboard preview list
@@ -59,41 +60,41 @@ export const extractMeasurementId = (text: string): string => {
 };
 
 export const getGAMeasurementId = (): string => {
-  if (activeMeasurementId) return activeMeasurementId;
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem('ga_measurement_id') || '';
-    if (local) {
-      activeMeasurementId = local;
-      return local;
-    }
-  }
-  return '';
+  return activeMeasurementId;
 };
 
 export const getGACustomScript = (): string => {
-  if (activeCustomScript) return activeCustomScript;
+  return activeCustomScript;
+};
+
+export const clearGATracking = () => {
+  activeMeasurementId = '';
+  activeCustomScript = '';
   if (typeof window !== 'undefined') {
-    const local = localStorage.getItem('ga_custom_script') || '';
-    if (local) {
-      activeCustomScript = local;
-      return local;
-    }
+    localStorage.removeItem('ga_measurement_id');
+    localStorage.removeItem('ga_custom_script');
+    delete window.GA_MEASUREMENT_ID;
+
+    const existingScript = document.getElementById('ga-gtag-script');
+    if (existingScript) existingScript.remove();
+
+    const existingCustom = document.getElementById('ga-custom-script-injection');
+    if (existingCustom) existingCustom.remove();
   }
-  return '';
 };
 
 export const setGAMeasurementId = (id: string) => {
   const cleanId = id.trim().toUpperCase();
+  if (!cleanId) {
+    clearGATracking();
+    return;
+  }
+
   activeMeasurementId = cleanId;
   if (typeof window !== 'undefined') {
-    if (cleanId) {
-      localStorage.setItem('ga_measurement_id', cleanId);
-      window.GA_MEASUREMENT_ID = cleanId;
-      setupGATags(cleanId);
-    } else {
-      localStorage.removeItem('ga_measurement_id');
-      delete window.GA_MEASUREMENT_ID;
-    }
+    localStorage.setItem('ga_measurement_id', cleanId);
+    window.GA_MEASUREMENT_ID = cleanId;
+    setupGATags(cleanId);
   }
 };
 
@@ -218,78 +219,60 @@ export const setupGATags = (measurementId: string) => {
   }
 };
 
-// Orchestrates both GTAG and raw HTML custom scripts, synchronizing with Firestore settings
-export const initGA = async () => {
+// Synchronizes Google Analytics with the specific tenant's settings
+export const updateTenantGA = (tenantId: string | null, rawMeasurementId?: string | null, rawCustomScript?: string | null) => {
   if (typeof window === 'undefined') return;
 
-  // 1. Initial cached render from memory / localStorage / env
-  let cachedId = getGAMeasurementId();
-  let cachedScript = getGACustomScript();
+  activeTenantId = tenantId;
 
-  // Check Vite env fallback
-  if (!cachedId && import.meta.env.VITE_GA_MEASUREMENT_ID) {
-    cachedId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+  let cleanId = (rawMeasurementId || '').trim().toUpperCase();
+  const cleanScript = (rawCustomScript || '').trim();
+
+  if (!cleanId && cleanScript) {
+    cleanId = extractMeasurementId(cleanScript);
   }
 
-  if (cachedScript) {
-    injectCustomScript(cachedScript);
-    if (!cachedId) {
-      cachedId = extractMeasurementId(cachedScript);
-    }
+  if (!cleanId && !cleanScript) {
+    clearGATracking();
+    return;
   }
 
-  if (cachedId) {
-    setupGATags(cachedId);
+  if (cleanScript) {
+    injectCustomScript(cleanScript);
   }
 
-  // 2. Fetch remote values from database
+  if (cleanId) {
+    setGAMeasurementId(cleanId);
+  }
+};
+
+// Orchestrates both GTAG and raw HTML custom scripts, synchronizing with tenant settings in Firestore
+export const initGA = async (tenantId?: string | null) => {
+  if (typeof window === 'undefined') return;
+
+  const currentTenantId = tenantId !== undefined ? tenantId : activeTenantId;
+
   try {
-    // Try settings/analytics first
-    const docRef = doc(db, 'settings', 'analytics');
+    const settingsDocId = currentTenantId || 'general';
+    const docRef = doc(db, 'settings', settingsDocId);
     const snap = await getDoc(docRef);
+
     let remoteId = '';
     let remoteScript = '';
 
     if (snap.exists()) {
       const data = snap.data();
-      remoteId = (data.measurementId || data.ga4Id || data.gaMeasurementId || '').trim();
-      remoteScript = (data.customScript || data.gaCustomScript || '').trim();
+      remoteId = (data.gaMeasurementId || data.googleAnalyticsId || data.measurementId || '').trim();
+      remoteScript = (data.gaCustomScript || data.customScript || '').trim();
     }
 
-    // Fallback check settings/general
-    if (!remoteId) {
-      const generalRef = doc(db, 'settings', 'general');
-      const generalSnap = await getDoc(generalRef);
-      if (generalSnap.exists()) {
-        const gData = generalSnap.data();
-        remoteId = (gData.gaMeasurementId || gData.googleAnalyticsId || '').trim();
-        if (!remoteScript) {
-          remoteScript = (gData.gaCustomScript || '').trim();
-        }
-      }
-    }
-
-    // Auto extract ID from script if remoteId still missing
     if (!remoteId && remoteScript) {
       remoteId = extractMeasurementId(remoteScript);
     }
 
-    // If remote values exist and differ, save and apply
-    if (remoteId && remoteId !== cachedId) {
-      localStorage.setItem('ga_measurement_id', remoteId);
-      activeMeasurementId = remoteId;
-      setupGATags(remoteId);
-    }
+    updateTenantGA(currentTenantId, remoteId, remoteScript);
 
-    if (remoteScript && remoteScript !== cachedScript) {
-      localStorage.setItem('ga_custom_script', remoteScript);
-      activeCustomScript = remoteScript;
-      injectCustomScript(remoteScript);
-    }
-
-    // If we newly configured GA, track current initial pageview
-    const currentId = getGAMeasurementId();
-    if (currentId) {
+    if (remoteId) {
       trackGAPageview(window.location.pathname + window.location.search);
     }
   } catch (error) {
@@ -308,7 +291,6 @@ export const trackGAPageview = (path: string) => {
         send_page_view: true
       });
     } else {
-      // Lazy init if window.gtag isn't defined yet
       setupGATags(measurementId);
       if (typeof (window as any).gtag === 'function') {
         (window as any).gtag('config', measurementId, {

@@ -85,7 +85,7 @@ import { useTenantSEO } from './hooks/useTenantSEO';
 const Chatbot = lazyWithRetry(() => import('./components/Chatbot'));
 
 function AppContent() {
-  const { isMaster, isAppGate, tenant, loading: tenantLoading, setPreviewTenant, isImpersonating } = useTenant();
+  const { isMaster, isAppGate, tenant, tenantId, loading: tenantLoading, setPreviewTenant, isImpersonating } = useTenant();
   const { settings, loading: settingsLoading } = useSettings();
   const location = useLocation();
 
@@ -119,9 +119,10 @@ function AppContent() {
 
   // Track Google Analytics pageviews on route modifications
   useEffect(() => {
-    // Initial loading of ga scripts
-    initGA();
-  }, []);
+    if (!tenantLoading) {
+      initGA(tenantId);
+    }
+  }, [tenantId, tenantLoading]);
 
   useEffect(() => {
     const fullPath = location.pathname + location.search;
