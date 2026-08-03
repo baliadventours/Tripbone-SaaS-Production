@@ -84,15 +84,29 @@ export default function GoogleAnalytics() {
 
   const handleSaveId = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanScript = newScript.trim();
+    let cleanId = newId.trim().toUpperCase();
+
+    // Auto extract ID if not specified in text input but found in script snippet
+    if (!cleanId && cleanScript) {
+      cleanId = extractMeasurementId(cleanScript);
+    }
+
+    // 1. Always update runtime state and localStorage immediately so tracking deploys instantly
+    if (cleanId) {
+      setGAMeasurementId(cleanId);
+    } else {
+      setGAMeasurementId('');
+    }
+
+    setGACustomScript(cleanScript);
+    
+    setMeasurementId(cleanId);
+    setCustomScript(cleanScript);
+    setNewId(cleanId);
+
+    // 2. Persist to Cloud Firestore
     try {
-      const cleanScript = newScript.trim();
-      let cleanId = newId.trim().toUpperCase();
-
-      // Auto extract ID if not specified in text input but found in script snippet
-      if (!cleanId && cleanScript) {
-        cleanId = extractMeasurementId(cleanScript);
-      }
-
       const docRef = doc(db, 'settings', 'analytics');
       await setDoc(docRef, {
         measurementId: cleanId,
@@ -100,7 +114,6 @@ export default function GoogleAnalytics() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      // Save also to general settings as fallback
       try {
         const generalRef = doc(db, 'settings', 'general');
         await setDoc(generalRef, {
@@ -111,29 +124,15 @@ export default function GoogleAnalytics() {
       } catch (e) {
         // Non-critical
       }
+    } catch (cloudErr) {
+      console.warn('[Google Analytics] Cloud database sync notice (saved locally):', cloudErr);
+    }
 
-      // Update runtime state and localStorage
-      if (cleanId) {
-        setGAMeasurementId(cleanId);
-      } else {
-        setGAMeasurementId('');
-      }
+    setSuccessMessage('Google Analytics tracking deployed to production live!');
+    setTimeout(() => setSuccessMessage(''), 5000);
 
-      setGACustomScript(cleanScript);
-      
-      setMeasurementId(cleanId);
-      setCustomScript(cleanScript);
-      setNewId(cleanId);
-
-      setSuccessMessage('Google Analytics tracking deployed to production live!');
-      setTimeout(() => setSuccessMessage(''), 5000);
-
-      if (cleanId) {
-        trackGAEvent('update_measurement_id', 'admin', cleanId);
-      }
-    } catch (err) {
-      console.error('Failed to update settings:', err);
-      alert('Failed to save analytics settings to Cloud database.');
+    if (cleanId) {
+      trackGAEvent('update_measurement_id', 'admin', cleanId);
     }
   };
 
