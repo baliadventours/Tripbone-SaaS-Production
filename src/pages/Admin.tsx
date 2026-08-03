@@ -37,6 +37,7 @@ import {
 import { cn, formatPrice } from '../lib/utils';
 import { uploadImage } from '../lib/imgbb';
 import SimpleAnalyticsDashboard from '../components/Admin/SimpleAnalyticsDashboard';
+import LandingPageGenerator from '../components/Admin/LandingPageGenerator';
 import { useTenant } from '../lib/TenantContext';
 import { useSettings } from '../lib/SettingsContext';
 
@@ -13045,7 +13046,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           )}
           {activeMenu === 'pages' && (
              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-                <PageManager />
+                <LandingPageGenerator openMediaGallery={openMediaGallery} allTours={tours} />
              </div>
           )}
           {activeMenu === 'blog' && (

@@ -182,20 +182,6 @@ export interface UrgencyPoint {
   icon: string; // Lucide icon name
 }
 
-export interface PageContent {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  seo?: {
-    title: string;
-    description: string;
-    keywords?: string;
-    ogImage?: string;
-  };
-  updatedAt: any;
-}
-
 export interface Review {
   id: string;
   tourId?: string; // New: reference back to tour
@@ -658,4 +644,66 @@ export interface Tenant {
   updatedAt: any;
 }
 
+export interface PageContent {
+  id?: string;
+  title: string;
+  slug: string;
+  content?: string;
+  isLandingPage?: boolean;
+  sections?: LandingPageSection[];
+  seo?: {
+    title: string;
+    description: string;
+  };
+  updatedAt?: any;
+}
 
+export interface LandingPageFeatureItem {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface LandingPageSection {
+  id: string;
+  type: 'hero' | 'intro' | 'tours' | 'features' | 'reviews' | 'contact';
+  enabled: boolean;
+  
+  // Hero section
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroImage?: string;
+  heroCtaText?: string;
+  heroCtaLink?: string;
+  heroOverlay?: 'none' | 'light' | 'medium' | 'dark' | 'gradient';
+
+  // Intro paragraph section
+  introTitle?: string;
+  introContent?: string;
+
+  // Selected Tours section (columns layout)
+  toursTitle?: string;
+  toursSubtitle?: string;
+  selectedTourIds?: string[];
+  toursColumns?: 2 | 3 | 4;
+
+  // Features list section (Why book with us)
+  featuresTitle?: string;
+  featuresSubtitle?: string;
+  features?: LandingPageFeatureItem[];
+
+  // Review list section (Elfsight embed)
+  reviewsTitle?: string;
+  reviewsSubtitle?: string;
+  reviewsEmbedCode?: string;
+
+  // Contact Information & Maps embed section
+  contactTitle?: string;
+  contactSubtitle?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactAddress?: string;
+  contactWhatsapp?: string;
+  contactMapEmbedUrl?: string;
+}

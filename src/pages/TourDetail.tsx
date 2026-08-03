@@ -98,7 +98,7 @@ export default function TourDetail() {
           trackGAViewItem({
             id: fetchedTour.id,
             title: fetchedTour.title,
-            price: fetchedTour.price,
+            price: fetchedTour.regularPrice,
             category: fetchedTour.categoryId
           });
           

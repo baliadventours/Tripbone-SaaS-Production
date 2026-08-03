@@ -55,6 +55,7 @@ const AIPlanner = lazyWithRetry(() => import('./pages/AIPlanner'));
 const AIHub = lazyWithRetry(() => import('./pages/AIHub'));
 const Terms = lazyWithRetry(() => import('./pages/Terms'));
 const Privacy = lazyWithRetry(() => import('./pages/Privacy'));
+const CustomPageView = lazyWithRetry(() => import('./pages/CustomPageView'));
 const ProposalView = lazyWithRetry(() => import('./pages/ProposalView'));
 
 const SaaSHome = lazyWithRetry(() => import('./pages/SaaSHome'));
@@ -356,6 +357,8 @@ function AppContent() {
               <Route path="/about" element={<About />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/page/:slug" element={<CustomPageView />} />
+              <Route path="/landing/:slug" element={<CustomPageView />} />
               <Route path="/planner" element={<AIPlanner />} />
               <Route path="/proposal/:id" element={<ProposalView />} />
               <Route path="/ai-hub" element={<AIHub />} />

@@ -310,8 +310,8 @@ export const trackGAPageview = (path: string) => {
     } else {
       // Lazy init if window.gtag isn't defined yet
       setupGATags(measurementId);
-      if (typeof window.gtag === 'function') {
-        window.gtag('config', measurementId, {
+      if (typeof (window as any).gtag === 'function') {
+        (window as any).gtag('config', measurementId, {
           page_path: path,
           send_page_view: true
         });
@@ -345,12 +345,12 @@ export const trackGAEvent = (
       ...extraParams
     };
 
-    if (typeof window.gtag === 'function') {
-      window.gtag('event', action, payload);
+    if (typeof (window as any).gtag === 'function') {
+      (window as any).gtag('event', action, payload);
     } else {
       setupGATags(measurementId);
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', action, payload);
+      if (typeof (window as any).gtag === 'function') {
+        (window as any).gtag('event', action, payload);
       }
     }
 
