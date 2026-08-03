@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  LineChart as LucideLineChart, 
-  Activity, 
   Settings, 
-  MousePointerClick, 
-  Globe, 
-  Smartphone, 
-  Laptop, 
-  Tablet, 
   CheckCircle2, 
-  TrendingUp, 
-  Clock, 
-  ArrowRight,
-  RefreshCw,
-  Database,
-  Search,
-  Code,
-  FileCode
+  RefreshCw, 
+  Database, 
+  Code, 
+  Copy, 
+  ExternalLink,
+  HelpCircle,
+  BarChart2,
+  ShieldCheck,
+  Zap,
+  Globe,
+  Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -24,8 +20,6 @@ import {
   setGAMeasurementId, 
   getGACustomScript,
   setGACustomScript,
-  setupGATags,
-  injectCustomScript,
   trackGAEvent, 
   recordedGAEvents,
   extractMeasurementId
@@ -33,59 +27,19 @@ import {
 import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc } from '@/src/lib/firebase';
 
-// Recharts components
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  BarChart,
-  Bar,
-  Cell,
-  PieChart,
-  Pie
-} from 'recharts';
-
-// Let's model a premium simulated telemetry system combined with real GA events.
-const INITIAL_TRAFFIC_DATA = [
-  { date: 'May 22', pageviews: 820, visitors: 450 },
-  { date: 'May 23', pageviews: 950, visitors: 510 },
-  { date: 'May 24', pageviews: 1210, visitors: 680 },
-  { date: 'May 25', pageviews: 1100, visitors: 620 },
-  { date: 'May 26', pageviews: 1450, visitors: 890 },
-  { date: 'May 27', pageviews: 1680, visitors: 1050 },
-  { date: 'May 28', pageviews: 1890, visitors: 1210 },
-];
-
-const TRAFFIC_SOURCES_DATA = [
-  { source: 'Google CPC', value: 450, percentage: '37%' },
-  { source: 'Direct Search', value: 320, percentage: '26%' },
-  { source: 'TripAdvisor Direct', value: 210, percentage: '17%' },
-  { source: 'Instagram Ads', value: 160, percentage: '13%' },
-  { source: 'Web Referral', value: 70, percentage: '7%' },
-];
-
-const DEVICE_DATA = [
-  { name: 'Mobile', value: 740, color: '#00A651' },
-  { name: 'Desktop', value: 380, color: '#0EA5E9' },
-  { name: 'Tablet', value: 90, color: '#F59E0B' },
-];
-
 export default function GoogleAnalytics() {
   const [measurementId, setMeasurementId] = useState(getGAMeasurementId());
   const [customScript, setCustomScript] = useState(getGACustomScript());
   const [newId, setNewId] = useState(measurementId);
   const [newScript, setNewScript] = useState(customScript);
   const [liveEvents, setLiveEvents] = useState<typeof recordedGAEvents>([]);
-  const [activeUsersCount, setActiveUsersCount] = useState(8);
-  const [currentTestEventName, setCurrentTestEventName] = useState('add_to_wishlist');
-  const [currentTestEventLabel, setCurrentTestEventLabel] = useState('Mount Batur Sunrise Tour');
+  const [currentTestEventName, setCurrentTestEventName] = useState('page_view_test');
+  const [currentTestEventLabel, setCurrentTestEventLabel] = useState('Production Verification Test');
   const [successMessage, setSuccessMessage] = useState('');
   const [loadingConfig, setLoadingConfig] = useState(true);
+  const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
 
-  // Load configuration from database on initial mount
+  // Load analytics configuration from Cloud database on mount
   useEffect(() => {
     const fetchRemoteSettings = async () => {
       try {
@@ -100,6 +54,9 @@ export default function GoogleAnalytics() {
           setNewId(remoteId);
           setCustomScript(remoteScript);
           setNewScript(remoteScript);
+          
+          if (remoteId) setGAMeasurementId(remoteId);
+          if (remoteScript) setGACustomScript(remoteScript);
         }
       } catch (err) {
         console.warn('[Analytics settings] Failed to sync remote cloud configs:', err);
@@ -110,7 +67,7 @@ export default function GoogleAnalytics() {
     fetchRemoteSettings();
   }, []);
 
-  // Auto-refresh captured live events from GA listener
+  // Listen for real client-side events captured on the live site
   useEffect(() => {
     setLiveEvents([...recordedGAEvents]);
     
@@ -119,19 +76,9 @@ export default function GoogleAnalytics() {
     };
     
     window.addEventListener('ga-event-logged', handleGAEvent);
-    
-    // Simulate real-time fluctuating live users
-    const interval = setInterval(() => {
-      setActiveUsersCount(prev => {
-        const delta = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
-        const newVal = prev + delta;
-        return newVal < 3 ? 3 : newVal > 18 ? 18 : newVal;
-      });
-    }, 8000);
 
     return () => {
       window.removeEventListener('ga-event-logged', handleGAEvent);
-      clearInterval(interval);
     };
   }, []);
 
@@ -153,7 +100,7 @@ export default function GoogleAnalytics() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      // Save also to general settings if accessible for fallback
+      // Save also to general settings as fallback
       try {
         const generalRef = doc(db, 'settings', 'general');
         await setDoc(generalRef, {
@@ -162,10 +109,10 @@ export default function GoogleAnalytics() {
           updatedAt: new Date().toISOString()
         }, { merge: true });
       } catch (e) {
-        // Non-critical fallback
+        // Non-critical
       }
 
-      // Update local storage and memory tracker
+      // Update runtime state and localStorage
       if (cleanId) {
         setGAMeasurementId(cleanId);
       } else {
@@ -178,521 +125,391 @@ export default function GoogleAnalytics() {
       setCustomScript(cleanScript);
       setNewId(cleanId);
 
-      setSuccessMessage('GA4 Tracker & Custom Analytics Scripts saved, deployed, and activated live!');
+      setSuccessMessage('Google Analytics tracking deployed to production live!');
       setTimeout(() => setSuccessMessage(''), 5000);
 
-      // Track config change
       if (cleanId) {
         trackGAEvent('update_measurement_id', 'admin', cleanId);
       }
     } catch (err) {
       console.error('Failed to update settings:', err);
-      alert('Failed to write dashboard analytics block updates to Firebase.');
+      alert('Failed to save analytics settings to Cloud database.');
     }
   };
 
   const handleTriggerTestEvent = () => {
-    trackGAEvent(currentTestEventName, 'test_sandbox', currentTestEventLabel, 1);
-    setSuccessMessage(`Successfully dispatched event "${currentTestEventName}" to dataLayer & Analytics.`);
-    setTimeout(() => setSuccessMessage(''), 4000);
+    trackGAEvent(currentTestEventName, 'production_test', currentTestEventLabel, 1);
+    setSuccessMessage(`Test event "${currentTestEventName}" fired successfully! Check Google Analytics Realtime/DebugView.`);
+    setTimeout(() => setSuccessMessage(''), 5000);
   };
 
+  const handleCopyCode = (code: string, label: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedTemplate(label);
+    setTimeout(() => setCopiedTemplate(null), 3000);
+  };
+
+  const sampleGtagScript = `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=YOUR_MEASUREMENT_ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'YOUR_MEASUREMENT_ID');
+</script>`;
+
+  const sampleGtmScript = `<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-XXXXXXX');</script>
+<!-- End Google Tag Manager -->`;
+
+  const isConfigured = Boolean(measurementId || customScript);
+
   return (
-    <div className="space-y-8 animate-fadeIn text-left">
+    <div className="space-y-8 animate-fadeIn text-left max-w-7xl mx-auto pb-12">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-orange-50 text-orange-700 border border-orange-100 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
-              Real-time Enabled
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`px-3 py-1 text-xs font-black rounded-full flex items-center gap-1.5 border ${
+              isConfigured 
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                : 'bg-amber-50 text-amber-800 border-amber-200'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              {isConfigured ? 'Tracking Active in Production' : 'Setup Required for Production'}
             </span>
           </div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Google Analytics Hub</h1>
-          <p className="text-sm font-medium text-gray-500 mt-1 max-w-2xl">
-            Monitor traffic volume, referral channels, real-time client visits, and dispatch events dynamically with our direct Google Analytics integration.
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Google Analytics Integration</h1>
+          <p className="text-sm font-medium text-gray-500 mt-1 max-w-3xl">
+            Embed your official Google Analytics 4 (GA4) or Google Tag Manager tracking snippet to monitor live visitor traffic, pageviews, and bookings directly on your Google Analytics Dashboard.
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => {
-              setSuccessMessage('Syncing analytics counters with tracking server...');
-              setTimeout(() => setSuccessMessage(''), 2000);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all shadow-sm cursor-pointer"
+          <a
+            href="https://analytics.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:text-gray-900 shadow-sm transition-all"
           >
-            <RefreshCw className="h-4 w-4 animate-spin-slow text-[#00A651]" />
-            Sync Server
-          </button>
+            <ExternalLink className="h-4 w-4 text-orange-600" />
+            Open Google Analytics Dashboard
+          </a>
         </div>
       </div>
 
-      {/* Success Notification Bar */}
+      {/* Success Banner */}
       <AnimatePresence>
         {successMessage && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-orange-50 border border-orange-100 text-orange-800 text-xs px-4 py-3 rounded-xl flex items-center gap-2.5 shadow-sm"
+            className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs px-4 py-3.5 rounded-xl flex items-center justify-between shadow-sm"
           >
-            <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" />
-            <span className="font-bold">{successMessage}</span>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <span className="font-bold">{successMessage}</span>
+            </div>
+            <button 
+              onClick={() => setSuccessMessage('')}
+              className="text-xs text-emerald-700 hover:text-emerald-950 font-bold underline"
+            >
+              Dismiss
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Primary Configuration & Real-Time Pulse Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Grid: Configuration + Setup Guide */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* GA Script Integration ID Card */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-          <div>
+        {/* Left Column: Config Panel */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-orange-50 rounded-xl text-[#00A651]">
-                <Settings className="h-5 w-5" />
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-orange-50 rounded-xl text-primary">
+                  <Settings className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-black text-gray-900 text-lg">Embed Code & Measurement ID</h2>
+                  <p className="text-xs font-semibold text-gray-400">Save your GA4 code to deploy across all website pages</p>
+                </div>
               </div>
-              <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full border ${
-                measurementId || customScript 
-                  ? 'text-orange-700 bg-orange-50/50 border-orange-100 flex items-center gap-1.5' 
-                  : 'text-amber-700 bg-amber-50 border-amber-100'
-              }`}>
-                {measurementId || customScript ? (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
-                    Served Live
-                  </>
-                ) : 'Awaiting Config'}
-              </span>
+
+              {loadingConfig && (
+                <RefreshCw className="h-4 w-4 text-gray-400 animate-spin" />
+              )}
             </div>
-            
-            <h3 className="font-black text-gray-900 text-lg">Analytics Config Core</h3>
-            <p className="text-xs font-bold text-gray-500 mt-1 mb-5">
-              Paste your official Google Analytics tracking GTAG ID or paste raw Custom JS/HTML injection tags here to evaluate live in document head.
-            </p>
 
-            <form onSubmit={handleSaveId} className="space-y-4">
+            <form onSubmit={handleSaveId} className="space-y-5">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">
-                  GA4 Measurement ID (Optional)
+                <label className="text-xs font-black uppercase tracking-wider text-gray-700 block mb-1.5">
+                  GA4 Measurement ID
                 </label>
-                <input 
-                  type="text"
-                  value={newId}
-                  onChange={(e) => setNewId(e.target.value.toUpperCase().trim())}
-                  placeholder="e.g. G-H2KLMNOP9"
-                  className="w-full bg-white border border-gray-250 rounded-xl p-2.5 text-xs font-mono font-black placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all"
-                />
+                <div className="relative">
+                  <input 
+                    type="text"
+                    value={newId}
+                    onChange={(e) => setNewId(e.target.value.toUpperCase().trim())}
+                    placeholder="e.g. G-XXXXXXXXXX"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-mono font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  />
+                  {newId && (
+                    <span className="absolute right-3 top-3 text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                      Valid ID Format
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] font-medium text-gray-400 mt-1">
+                  Format: <code className="font-mono text-gray-600 bg-gray-100 px-1 py-0.5 rounded">G-XXXXXXXXXX</code> (Found in Google Analytics &gt; Data Streams)
+                </p>
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">
-                  Custom Script / Raw GA Script Code block (Optional)
+                <label className="text-xs font-black uppercase tracking-wider text-gray-700 block mb-1.5">
+                  Custom HTML / Script Snippet Code (Optional)
                 </label>
                 <textarea 
                   value={newScript}
                   onChange={(e) => setNewScript(e.target.value)}
-                  placeholder={`<!-- Paste your raw Google Analytics script code tag here -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXX"></script>
+                  placeholder={`<!-- Paste your raw Google Analytics or Google Tag Manager script here -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXX');
+  gtag('config', 'G-XXXXXXXXXX');
 </script>`}
-                  rows={8}
-                  className="w-full bg-white border border-gray-250 rounded-xl p-2.5 text-[10px] font-mono font-semibold placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all"
+                  rows={9}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-mono font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all leading-relaxed"
                 />
+                <p className="text-[11px] font-medium text-gray-400 mt-1">
+                  You can paste complete <code className="font-mono text-gray-600">&lt;script&gt;</code> code blocks here for Google Tag Manager, Meta Pixel, or custom tag managers.
+                </p>
               </div>
 
-              <button 
-                type="submit"
-                className="w-full text-center py-2.5 bg-[#00A651] hover:bg-primary font-bold hover:shadow-md text-xs font-black text-white rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" /> Save & Deploy Configuration
-              </button>
+              <div className="pt-2">
+                <button 
+                  type="submit"
+                  className="w-full py-3.5 bg-primary hover:bg-orange-600 font-black text-sm text-white rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  Save & Deploy Configuration to Production
+                </button>
+              </div>
             </form>
-          </div>
-          
-          <div className="mt-5 pt-4 border-t border-gray-55 text-[10px] font-medium text-gray-400 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-            Synchronized dynamically to Cloud DB
-          </div>
-        </div>
 
-        {/* Real-time Tracking Pulse */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-rose-50 rounded-xl text-rose-600">
-                <Activity className="h-5 w-5 animate-pulse" />
+            <div className="mt-5 pt-4 border-t border-gray-100 text-xs font-medium text-gray-500 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                Changes take effect immediately on all visitor page views
+              </span>
+              <span className="text-[10px] text-gray-400 font-mono">
+                Synced to Cloud DB
+              </span>
+            </div>
+          </div>
+
+          {/* Real-time Event Verification & Sandbox */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-sky-50 rounded-lg text-sky-600">
+                  <Zap className="h-4 w-4" />
+                </div>
+                <h3 className="font-black text-gray-900 text-base">Test Event Dispatcher</h3>
               </div>
-              <span className="text-[10px] uppercase font-black tracking-wider text-rose-800 bg-rose-100/40 px-2 py-0.5 rounded-lg">
-                Live Analytics
+              <span className="text-[10px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-100 px-2 py-0.5 rounded">
+                Verification Sandbox
               </span>
             </div>
 
-            <h3 className="font-black text-gray-900 text-lg">Active Explorers</h3>
-            <p className="text-xs font-bold text-gray-500 mt-1 mb-4">
-              Estimated visitors interactively surfing our tour guides, plans, and itinerary pages on the platform.
+            <p className="text-xs font-medium text-gray-500">
+              Trigger a test event to verify that your Google Analytics measurement tag or script is receiving data correctly in Google Analytics DebugView or Realtime tab.
             </p>
 
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-gray-950 font-mono tracking-tight">{activeUsersCount}</span>
-              <span className="text-xs font-black text-rose-600 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
-                Active now
-              </span>
-            </div>
-
-            <div className="space-y-2 bg-gray-50 rounded-xl p-3 border border-gray-100">
-              <div className="flex justify-between text-[11px] border-b border-gray-100 pb-1.5">
-                <span className="font-black text-gray-500">Active Screens</span>
-                <span className="font-black text-gray-500">Users</span>
-              </div>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between text-gray-800">
-                  <span className="font-mono text-orange-700 font-bold">/tours (Tour Explorer)</span>
-                  <span className="font-black">{Math.max(2, Math.floor(activeUsersCount * 0.4))}</span>
-                </div>
-                <div className="flex justify-between text-gray-800">
-                  <span className="font-mono text-orange-700 font-bold">/planner (AI Planner)</span>
-                  <span className="font-black">{Math.max(1, Math.floor(activeUsersCount * 0.3))}</span>
-                </div>
-                <div className="flex justify-between text-gray-800">
-                  <span className="font-mono text-orange-700 font-bold">/ (Home Page)</span>
-                  <span className="font-black">{Math.max(1, Math.floor(activeUsersCount * 0.2))}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3.5 border-t border-gray-50 text-[10px] font-bold text-gray-400">
-            Realtime metrics refresh every 8 seconds
-          </div>
-        </div>
-
-        {/* Fast Action Event Sandbox */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-sky-50 rounded-xl text-sky-600">
-                <MousePointerClick className="h-5 w-5" />
-              </div>
-              <span className="text-[10px] uppercase font-black tracking-wider text-sky-700 bg-sky-100/40 px-2 py-0.5 rounded-lg">
-                Event Dispatcher
-              </span>
-            </div>
-
-            <h3 className="font-black text-gray-900 text-lg">Custom Sandbox Testing</h3>
-            <p className="text-xs font-bold text-gray-500 mt-1 mb-4">
-              Simulate high-value actions to test Google Analytics. Fired events are logged in the live stream below.
-            </p>
-
-            <div className="space-y-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 block mb-1">
-                  Event Name
-                </label>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Event Name</label>
                 <select 
                   value={currentTestEventName}
                   onChange={(e) => setCurrentTestEventName(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs font-black text-gray-800"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none"
                 >
-                  <option value="add_to_wishlist">add_to_wishlist</option>
-                  <option value="booking_initiated">booking_initiated</option>
-                  <option value="generate_ai_itinerary">generate_ai_itinerary</option>
-                  <option value="booking_completed">booking_completed</option>
-                  <option value="custom_share">custom_share</option>
+                  <option value="page_view_test">page_view_test</option>
+                  <option value="select_item">select_item (Tour Click)</option>
+                  <option value="begin_checkout">begin_checkout (Booking)</option>
+                  <option value="purchase">purchase (Completed Order)</option>
+                  <option value="generate_lead">generate_lead (Inquiry)</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 block mb-1">
-                  Label/Parameter
-                </label>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Event Label / Details</label>
                 <input 
                   type="text"
                   value={currentTestEventLabel}
                   onChange={(e) => setCurrentTestEventLabel(e.target.value)}
-                  placeholder="e.g. Ubud Cultural Tour"
-                  className="w-full bg-white border border-gray-200 rounded-xl p-2 text-xs font-black placeholder:text-gray-300"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-900 focus:bg-white focus:outline-none"
+                  placeholder="e.g. Production Verification"
                 />
               </div>
             </div>
-          </div>
 
-          <button 
-            type="button"
-            onClick={handleTriggerTestEvent}
-            className="w-full mt-4 py-2.5 bg-sky-600 hover:bg-sky-700 font-black text-xs text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>Run Test Event</span>
-            <Code className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-      </div>
-
-      {/* Analytics Visual Interactive Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Main Traffic Trend Over Time */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs lg:col-span-2 text-left">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="font-black text-gray-900 text-lg">Pageviews & Visitors Trend</h3>
-              <p className="text-xs font-medium text-gray-400">Total volume of hits captured in the past 7 days across templates</p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 text-xs text-gray-400 font-bold">
-                <span className="w-2.5 h-2.5 rounded bg-[#00A651]" />
-                Views
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-400 font-bold">
-                <span className="w-2.5 h-2.5 rounded bg-sky-500" />
-                Visitors
-              </span>
-            </div>
-          </div>
-
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={INITIAL_TRAFFIC_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorPageviews" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00A651" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#00A651" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="date" 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tick={{ fontSize: 10, fontWeight: '700', fill: '#9CA3AF' }} 
-                />
-                <YAxis 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tick={{ fontSize: 10, fontWeight: '700', fill: '#9CA3AF' }} 
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    borderRadius: '12px', 
-                    border: '1px solid #E5E7EB', 
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                    fontSize: '11px',
-                    fontWeight: '700'
-                  }} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="pageviews" 
-                  stroke="#00A651" 
-                  strokeWidth={2.5} 
-                  fillOpacity={1} 
-                  fill="url(#colorPageviews)" 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="visitors" 
-                  stroke="#0EA5E9" 
-                  strokeWidth={2.5} 
-                  fillOpacity={1} 
-                  fill="url(#colorVisitors)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <button 
+              type="button"
+              onClick={handleTriggerTestEvent}
+              className="w-full py-2.5 bg-gray-900 hover:bg-black text-white font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Code className="h-4 w-4 text-emerald-400" />
+              Dispatch Test Event to Google Analytics
+            </button>
           </div>
         </div>
 
-        {/* Device Breakdown Pie chart */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs flex flex-col justify-between text-left">
-          <div>
-            <h3 className="font-black text-gray-900 text-lg mb-1">Device Breakdown</h3>
-            <p className="text-xs font-medium text-gray-400 mb-6">Aggregate device types registered</p>
-            
-            <div className="h-44 w-full flex items-center justify-center relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={DEVICE_DATA}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {DEVICE_DATA.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              
-              <div className="absolute text-center">
-                <span className="text-2xl font-black text-gray-900 block leading-none">1,210</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 block">Sessions</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-50 text-center">
-            {DEVICE_DATA.map((device) => (
-              <div key={device.name}>
-                <span className="flex items-center justify-center gap-1 text-[11px] font-black text-gray-800">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: device.color }} />
-                  {device.name}
-                </span>
-                <span className="text-xs font-mono text-gray-400 mt-0.5 block font-bold">
-                  {Math.round((device.value / 1210) * 100)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Traffic Sources Acquisition Channel details */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs text-left">
-          <h3 className="font-black text-gray-900 text-lg mb-1">Acquisition Channels</h3>
-          <p className="text-xs font-medium text-gray-400 mb-6 font-bold">Where your Balinese explorer traffic comes from</p>
+        {/* Right Column: Step-by-Step Guide + Live Event Logger */}
+        <div className="lg:col-span-5 space-y-6">
           
-          <div className="space-y-4">
-            {TRAFFIC_SOURCES_DATA.map((source, index) => (
-              <div key={source.source} className="space-y-1.5">
-                <div className="flex justify-between items-center text-xs font-black text-gray-800">
-                  <span className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 font-mono text-[9px]">
-                      {index + 1}
-                    </span>
-                    {source.source}
-                  </span>
-                  <span>{source.value} ({source.percentage})</span>
-                </div>
-                <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-orange-500 to-teal-500 rounded-full"
-                    style={{ width: source.percentage }}
-                  />
-                </div>
+          {/* Step-by-Step Setup Guide Card */}
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-6 shadow-md space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-700/80 pb-4">
+              <div className="flex items-center gap-2.5">
+                <BarChart2 className="h-5 w-5 text-orange-400" />
+                <h3 className="font-black text-white text-base">Step-by-Step Embed Guide</h3>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* High-value conversion funnel */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs text-left">
-          <h3 className="font-black text-gray-900 text-lg mb-1">User Action Funnel</h3>
-          <p className="text-xs font-medium text-gray-400 mb-6">Dropoff levels from page discovery to absolute ticket booking</p>
-
-          <div className="space-y-4">
-            {/* Step 1 */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-orange-50 text-[#00A651] flex items-center justify-center font-black text-xs">
-                1
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-black text-gray-800">1. Discovery Pageview</span>
-                  <span className="font-bold text-gray-500 font-mono">100% (12.4K)</span>
-                </div>
-                <div className="w-full h-1.5 bg-orange-100 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-[#00A651] w-full" />
-                </div>
-              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-300 bg-orange-950/60 border border-orange-800/60 px-2 py-0.5 rounded">
+                Official Instructions
+              </span>
             </div>
 
-            {/* Step 2 */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-orange-50 text-[#00A651] flex items-center justify-center font-black text-xs">
-                2
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-black text-gray-800">2. View Tour Package</span>
-                  <span className="font-bold text-gray-500 font-mono">42% (5.2K)</span>
+            <div className="space-y-4 text-xs">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                  1
                 </div>
-                <div className="w-full h-1.5 bg-orange-100/50 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-[#00A651] w-[42%]" />
+                <div>
+                  <h4 className="font-bold text-slate-100 text-sm">Create Google Analytics Account</h4>
+                  <p className="text-slate-300 mt-0.5 leading-relaxed">
+                    Log in to <a href="https://analytics.google.com/" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline hover:text-orange-300">analytics.google.com</a> and create or select your Web Property.
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Step 3 */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-orange-50 text-[#00A651] flex items-center justify-center font-black text-xs">
-                3
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-black text-gray-800">3. Checkout Initiated</span>
-                  <span className="font-bold text-gray-500 font-mono">12% (1.5K)</span>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                  2
                 </div>
-                <div className="w-full h-1.5 bg-orange-100/50 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-[#00A651] w-[12%]" />
+                <div>
+                  <h4 className="font-bold text-slate-100 text-sm">Copy Measurement ID or Web Tag</h4>
+                  <p className="text-slate-300 mt-0.5 leading-relaxed">
+                    Navigate to <strong>Admin ⚙️ &gt; Data Streams &gt; Web Stream</strong>. Copy your <strong>Measurement ID</strong> (e.g. <code className="text-orange-300 font-mono">G-XXXXXXXXXX</code>) or click <strong>View tag instructions</strong> to copy the entire script code snippet.
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Step 4 */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-orange-50 text-[#00A651] flex items-center justify-center font-black text-xs">
-                4
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-black text-gray-800">4. Final Booking Receipt</span>
-                  <span className="font-bold text-gray-500 font-mono">3.8% (471)</span>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                  3
                 </div>
-                <div className="w-full h-1.5 bg-orange-100/50 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-[#00A651] w-[3.8%]" />
+                <div>
+                  <h4 className="font-bold text-slate-100 text-sm">Paste into Settings & Save</h4>
+                  <p className="text-slate-300 mt-0.5 leading-relaxed">
+                    Paste the ID or script in the left form and click <strong>Save & Deploy</strong>. The tag is immediately injected across all pages on your domain.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                  4
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-100 text-sm">View Analytics Live</h4>
+                  <p className="text-slate-300 mt-0.5 leading-relaxed">
+                    Open your website in a new tab. In Google Analytics, navigate to <strong>Reports &gt; Realtime</strong> to view active users and pages visited live in production!
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Captured GA Live Event Stream */}
-        <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-xs flex flex-col justify-between text-left">
-          <div>
-            <h3 className="font-black text-gray-900 text-lg mb-1">Live GA Event Logger</h3>
-            <p className="text-xs font-medium text-gray-400 mb-4 font-bold">Capturing local page routing and analytical actions</p>
-            
-            <div className="h-56 overflow-y-auto border border-gray-100 rounded-xl bg-gray-50 p-3 space-y-2.5 font-mono text-[10px] text-gray-600 scrollbar-thin">
+          {/* Reference Templates */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="font-black text-gray-900 text-sm flex items-center gap-2">
+              <Code className="h-4 w-4 text-primary" />
+              Standard GA4 Embed Script Template
+            </h3>
+            <p className="text-xs text-gray-500 font-medium">
+              Reference code structure for standard Google Analytics tags:
+            </p>
+
+            <div className="relative bg-gray-900 rounded-xl p-3 text-[11px] font-mono text-gray-200 overflow-x-auto leading-relaxed">
+              <button 
+                onClick={() => handleCopyCode(sampleGtagScript, 'gtag')}
+                className="absolute top-2 right-2 px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-[10px] font-bold rounded flex items-center gap-1 transition-colors"
+              >
+                <Copy className="h-3 w-3" />
+                {copiedTemplate === 'gtag' ? 'Copied!' : 'Copy'}
+              </button>
+              <pre className="pr-12 whitespace-pre-wrap">{sampleGtagScript}</pre>
+            </div>
+          </div>
+
+          {/* Live GA Event Stream Logger */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-gray-900 text-base flex items-center gap-2">
+                  <Radio className="h-4 w-4 text-emerald-600 animate-pulse" />
+                  Live Local Event Logger
+                </h3>
+                <p className="text-xs font-semibold text-gray-400">Captures actual page views and events fired in this session</p>
+              </div>
+
+              {liveEvents.length > 0 && (
+                <button 
+                  onClick={() => {
+                    recordedGAEvents.length = 0;
+                    setLiveEvents([]);
+                  }}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 transition-colors"
+                >
+                  Clear Feed
+                </button>
+              )}
+            </div>
+
+            <div className="h-60 overflow-y-auto border border-gray-150 rounded-xl bg-gray-50 p-3 space-y-2 font-mono text-[11px] text-gray-700 no-scrollbar">
               {liveEvents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 select-none space-y-2">
-                  <Database className="h-6 w-6 stroke-1.5 text-gray-300" />
-                  <span>Listening for actions...</span>
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 select-none space-y-2 py-8 text-center">
+                  <Database className="h-8 w-8 stroke-1.5 text-gray-300" />
+                  <span className="text-xs font-medium">No actions captured yet in this browser session.</span>
+                  <span className="text-[10px] text-gray-400">Navigate the site or run a test event to see logs here.</span>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {liveEvents.map((evt, idx) => (
-                    <div key={idx} className="p-2 bg-white rounded border border-gray-100 space-y-1">
-                      <div className="flex justify-between items-center text-[9px]">
+                    <div key={idx} className="p-2.5 bg-white rounded-lg border border-gray-200 space-y-1 shadow-2xs">
+                      <div className="flex justify-between items-center text-[10px]">
                         <span className="font-semibold text-gray-400">{evt.timestamp}</span>
-                        <span className={`px-1.5 py-0.2 rounded font-black text-[8px] uppercase ${
+                        <span className={`px-2 py-0.5 rounded font-black text-[9px] uppercase ${
                           evt.type === 'pageview' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
                         }`}>
                           {evt.type}
                         </span>
                       </div>
                       <div className="text-gray-900 font-bold break-all">
-                        {evt.type === 'pageview' ? `Page View: ${evt.name}` : `Event Fired: "${evt.name}"`}
+                        {evt.type === 'pageview' ? `Page View: ${evt.name}` : `Event: "${evt.name}"`}
                       </div>
                       {evt.params && (
-                        <div className="text-[8.5px] text-orange-700 bg-orange-50/40 p-1.5 rounded border border-orange-100/30 overflow-x-auto whitespace-pre">
+                        <div className="text-[10px] text-orange-800 bg-orange-50/60 p-1.5 rounded border border-orange-100 overflow-x-auto whitespace-pre font-mono">
                           {JSON.stringify(evt.params, null, 2)}
                         </div>
                       )}
@@ -703,22 +520,9 @@ export default function GoogleAnalytics() {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-gray-50 flex justify-between items-center">
-            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block">Live Capture Hub</span>
-            <button 
-              onClick={() => {
-                recordedGAEvents.length = 0;
-                setLiveEvents([]);
-              }}
-              className="text-[10px] font-black uppercase text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-            >
-              Clear Feed
-            </button>
-          </div>
         </div>
 
       </div>
-
     </div>
   );
 }
