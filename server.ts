@@ -5150,6 +5150,35 @@ export async function createServer() {
       }
     } catch (e) {}
 
+    // Helper to derive a clean brand name from a custom domain string
+    const deriveBrandFromDomain = (domainStr: string) => {
+      if (!domainStr) return 'Tripbone';
+      const clean = domainStr.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(':')[0].trim().toLowerCase();
+      const namePart = clean.split('.')[0];
+      if (!namePart || namePart === 'localhost' || namePart === 'tripbone' || namePart === '127' || namePart === 'app') {
+        return 'Tripbone';
+      }
+
+      const knownBrands: Record<string, string> = {
+        'smartbalitours': 'Smart Bali Tours',
+        'baliparadisetour': 'Bali Paradise Tour',
+        'baliblissfultours': 'Bali Blissful Tours',
+        'baliwanderlust': 'Bali Wanderlust',
+      };
+      if (knownBrands[namePart]) {
+        return knownBrands[namePart];
+      }
+
+      let formatted = namePart
+        .replace(/[-_]/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/(bali|tour|tours|paradise|blissful|wanderlust|adventure|adventures|travel|trip|trips)/gi, ' $1 ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      return formatted.replace(/\b\w/g, c => c.toUpperCase());
+    };
+
     // Resolve tenant based on request domain or query param (identical to Client-Side TenantContext)
     let tenantDoc: any = null;
     let resolvedSlug: string | null = null;
@@ -5159,11 +5188,11 @@ export async function createServer() {
       const forwardedHost = req.headers['x-forwarded-host'] || req.get?.('x-forwarded-host');
       const hostHeader = req.get?.('host') || '';
       if (forwardedHost) {
-        hostname = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost).split(',')[0].trim().split(':')[0];
+        hostname = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost).split(',')[0].trim().split(':')[0].toLowerCase();
       } else if (hostHeader) {
-        hostname = hostHeader.split(':')[0]; // remove port
+        hostname = hostHeader.split(':')[0].trim().toLowerCase(); // remove port
       } else {
-        hostname = req.hostname || '';
+        hostname = (req.hostname || '').toLowerCase();
       }
 
       const queryTenant = req.query.tenant;
@@ -5215,6 +5244,7 @@ export async function createServer() {
         }
       } else if (resolvedCustomDomain) {
         const cleanDomain = resolvedCustomDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').trim().toLowerCase();
+        const domainWithoutExt = cleanDomain.split('.')[0];
         const domainsToSearch = [
           cleanDomain,
           'www.' + cleanDomain,
@@ -5225,6 +5255,8 @@ export async function createServer() {
           cleanDomain + '/',
           'www.' + cleanDomain + '/'
         ];
+
+        // 1. Search tenants by customDomain
         try {
           const tenantsSnap = await db.collection('tenants').where('customDomain', 'in', domainsToSearch.slice(0, 10)).limit(1).get();
           if (!tenantsSnap.empty) {
@@ -5244,7 +5276,47 @@ export async function createServer() {
           } catch (restE) {}
         }
 
-        // Fallback in-memory scan if array search did not yield a document
+        // 2. Search tenants by slug matching domain prefix
+        if (!tenantDoc && domainWithoutExt) {
+          try {
+            const slugSnap = await db.collection('tenants').where('slug', '==', domainWithoutExt).limit(1).get();
+            if (!slugSnap.empty) {
+              tenantDoc = { id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() };
+              console.log(`[SEO Server] Resolved tenant from domain slug match ${domainWithoutExt} (ID: ${tenantDoc.id}) via Admin SDK`);
+            }
+          } catch (e) {
+            try {
+              const docs = await fetchFromREST('tenants', undefined, {
+                whereFilters: [{ field: 'slug', op: 'EQUAL', value: domainWithoutExt }],
+                limit: 1
+              });
+              if (docs && docs.length > 0) {
+                tenantDoc = docs[0];
+                console.log(`[SEO Server] Resolved tenant from domain slug match ${domainWithoutExt} (ID: ${tenantDoc.id}) via REST API`);
+              }
+            } catch (restE) {}
+          }
+        }
+
+        // 3. Search settings collection for customDomain match
+        if (!tenantDoc) {
+          try {
+            const settingsSnap = await db.collection('settings').where('customDomain', 'in', domainsToSearch.slice(0, 10)).limit(1).get();
+            if (!settingsSnap.empty) {
+              const matchedSettingsDoc = settingsSnap.docs[0];
+              const tId = matchedSettingsDoc.id;
+              const tSnap = await db.collection('tenants').doc(tId).get();
+              if (tSnap.exists) {
+                tenantDoc = { id: tSnap.id, ...tSnap.data() };
+              } else {
+                tenantDoc = { id: tId, companyName: matchedSettingsDoc.data().siteName || deriveBrandFromDomain(resolvedCustomDomain) };
+              }
+              console.log(`[SEO Server] Resolved tenant via settings collection customDomain match (ID: ${tenantDoc.id})`);
+            }
+          } catch (settingsErr) {}
+        }
+
+        // 4. Fallback in-memory scan
         if (!tenantDoc) {
           try {
             const allTenantsSnap = await db.collection('tenants').get();
@@ -5257,6 +5329,9 @@ export async function createServer() {
                   tenantDoc = { id: docSnap.id, ...data };
                   console.log(`[SEO Server] Resolved tenant from custom domain ${resolvedCustomDomain} (ID: ${tenantDoc.id}) via in-memory scan`);
                 }
+              } else if (data.slug && data.slug.toLowerCase() === domainWithoutExt) {
+                tenantDoc = { id: docSnap.id, ...data };
+                console.log(`[SEO Server] Resolved tenant from slug ${domainWithoutExt} via in-memory scan`);
               }
             });
           } catch (scanErr) {}
@@ -5265,17 +5340,6 @@ export async function createServer() {
     } catch (err: any) {
       console.error("[SEO Server Tenant Resolve Error]:", err.message || err);
     }
-
-    // Helper to derive a clean brand name from a custom domain string
-    const deriveBrandFromDomain = (domainStr: string) => {
-      if (!domainStr) return 'Tripbone';
-      const clean = domainStr.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(':')[0].trim();
-      const namePart = clean.split('.')[0];
-      if (!namePart || namePart === 'localhost' || namePart === 'tripbone' || namePart === '127' || namePart === 'app') {
-        return 'Tripbone';
-      }
-      return namePart.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b\w/g, c => c.toUpperCase());
-    };
 
     if (tenantDoc) {
       siteName = tenantDoc.companyName || deriveBrandFromDomain(resolvedCustomDomain || '');
@@ -5359,27 +5423,27 @@ export async function createServer() {
     }
 
     // 3. Database Fetch (The "Gold Standard" Layer - with resilient permission-proof REST fallback)
-    const settingsDocId = tenantDoc ? tenantDoc.id : 'general';
+    // Avoid loading 'general' master settings for custom domains if tenant document is not found
+    const settingsDocId = tenantDoc ? tenantDoc.id : (resolvedCustomDomain ? null : 'general');
     let settings: any = null;
-    try {
-      // Fetch site-wide settings first
-      const settingsSnap = await db.collection('settings').doc(settingsDocId).get();
-      if (settingsSnap.exists) {
-        settings = settingsSnap.data() || {};
-        console.log(`[SEO Admin] Successfully fetched ${settingsDocId} settings via Admin SDK`);
-      }
-    } catch (e: any) {
+    if (settingsDocId) {
       try {
-        settings = await fetchFromREST('settings', settingsDocId);
-        if (settings) {
-          console.log(`[SEO Channel] Successfully matched ${settingsDocId} settings`);
+        const settingsSnap = await db.collection('settings').doc(settingsDocId).get();
+        if (settingsSnap.exists) {
+          settings = settingsSnap.data() || {};
+          console.log(`[SEO Admin] Successfully fetched ${settingsDocId} settings via Admin SDK`);
         }
-      } catch (restErr: any) {
-        // Fallback silently to defaults
+      } catch (e: any) {
+        try {
+          settings = await fetchFromREST('settings', settingsDocId);
+          if (settings) {
+            console.log(`[SEO Channel] Successfully matched ${settingsDocId} settings`);
+          }
+        } catch (restErr: any) {}
       }
     }
 
-    if (settings) {
+    if (settings && (tenantDoc || (!resolvedCustomDomain && !resolvedSlug))) {
       seo.siteName = settings.siteName || tenantDoc?.companyName || seo.siteName;
       seo.image = settings.ogImage || settings.heroImage || settings.logoURL || tenantDoc?.logo || seo.image;
       if (settings.siteKeywords) {

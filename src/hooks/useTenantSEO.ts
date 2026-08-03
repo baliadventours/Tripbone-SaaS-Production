@@ -5,11 +5,22 @@ import { useSettings } from '../lib/SettingsContext';
 
 function deriveBrandFromHostname(hostname: string): string {
   if (!hostname) return 'Tripbone';
-  const clean = hostname.replace(/^www\./i, '').split(':')[0].trim();
+  const clean = hostname.replace(/^www\./i, '').split(':')[0].trim().toLowerCase();
   const namePart = clean.split('.')[0]; // e.g. smartbalitours or baliwanderlust
   if (!namePart || namePart === 'localhost' || namePart === 'tripbone' || namePart === '127' || namePart === 'app') {
     return 'Tripbone';
   }
+
+  const knownBrands: Record<string, string> = {
+    'smartbalitours': 'Smart Bali Tours',
+    'baliparadisetour': 'Bali Paradise Tour',
+    'baliblissfultours': 'Bali Blissful Tours',
+    'baliwanderlust': 'Bali Wanderlust',
+  };
+  if (knownBrands[namePart]) {
+    return knownBrands[namePart];
+  }
+
   // Convert hyphens/underscores or merged lowercase to readable Title Case if applicable
   const words = namePart.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
   return words.replace(/\b\w/g, c => c.toUpperCase());
@@ -26,15 +37,16 @@ export function useTenantSEO() {
 
     const hostname = window.location.hostname;
     const derivedBrand = deriveBrandFromHostname(hostname);
+    const isCustomDomain = derivedBrand !== 'Tripbone';
 
-    const siteName = settings?.siteName || tenant?.companyName || (derivedBrand !== 'Tripbone' ? derivedBrand : (globalSEO?.siteName || 'Tripbone'));
+    const siteName = settings?.siteName || tenant?.companyName || (isCustomDomain ? derivedBrand : (globalSEO?.siteName || 'Tripbone'));
     const siteDescription = settings?.metaDescription || settings?.siteDescription || (tenant as any)?.description || 
-        (!isMaster ? `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.` : globalSEO?.description);
+        (!isMaster || isCustomDomain ? `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.` : globalSEO?.description);
     const siteKeywords = settings?.siteKeywords || globalSEO?.keywords || '';
     const siteImage = settings?.ogImage || settings?.heroImage || settings?.logoURL || tenant?.logo || globalSEO?.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
 
     let title = siteName;
-    if (isMaster) {
+    if (isMaster && !isCustomDomain) {
       title = globalSEO?.title || 'Tripbone - Tour Operator Booking & Management Platform';
     } else {
       const isTourDetail = location.pathname.startsWith('/tour/');
