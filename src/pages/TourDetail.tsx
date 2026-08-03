@@ -25,6 +25,7 @@ import { Helmet } from 'react-helmet-async';
 import { useSettings } from '../lib/SettingsContext';
 
 import { generateTourSchema } from '../lib/seoUtils';
+import { trackGAViewItem } from '../lib/googleAnalytics';
 
 export default function TourDetail() {
   const { slug } = useParams();
@@ -94,6 +95,12 @@ export default function TourDetail() {
           }
 
           setTour(fetchedTour);
+          trackGAViewItem({
+            id: fetchedTour.id,
+            title: fetchedTour.title,
+            price: fetchedTour.price,
+            category: fetchedTour.categoryId
+          });
           
           // Fetch similar tours logic
           const getSimilarTours = async () => {

@@ -47,6 +47,7 @@ import {
   Award
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { setGAMeasurementId, setGACustomScript, extractMeasurementId } from '../../lib/googleAnalytics';
 
 const THEME_OPTIONS = [
   { id: 'slideshow-atv', name: 'Cinematic Multi-Image Slideshow Hero', category: 'Slideshow' },
@@ -170,6 +171,33 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
     try {
       const settingsId = tenantId || 'general';
       await setDoc(doc(db, 'settings', settingsId), settings);
+
+      // Sync GA4 settings live if provided
+      let cleanGaId = (settings.gaMeasurementId || '').trim().toUpperCase();
+      const cleanGaScript = (settings.gaCustomScript || '').trim();
+      
+      if (!cleanGaId && cleanGaScript) {
+        cleanGaId = extractMeasurementId(cleanGaScript);
+      }
+
+      if (cleanGaId || cleanGaScript) {
+        try {
+          await setDoc(doc(db, 'settings', 'analytics'), {
+            measurementId: cleanGaId,
+            customScript: cleanGaScript,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+
+          if (cleanGaId) {
+            setGAMeasurementId(cleanGaId);
+          }
+          if (cleanGaScript) {
+            setGACustomScript(cleanGaScript);
+          }
+        } catch (analyticsErr) {
+          console.warn("Analytics settings sync warning:", analyticsErr);
+        }
+      }
 
       // Handle Vercel Custom Domain APIs if it changed
       if (tenantId && settings.customDomain !== initialCustomDomain) {
@@ -1700,6 +1728,61 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                          settings?.allowAICrawlers ? "translate-x-6" : "translate-x-1"
                        )} />
                      </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Google Analytics 4 (GA4) Integration Box */}
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <div className="p-5 bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 rounded-[20px] border border-orange-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-orange-500 text-white rounded-xl shadow-xs">
+                      <Zap className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-gray-900">Google Analytics 4 (GA4) Tracker Integration</h4>
+                      <p className="text-xs text-gray-500 font-medium">Automatic pageview tracking & conversion event dispatching</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-700 bg-orange-100 rounded-full">
+                    GTAG Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">
+                      GA4 Measurement ID
+                    </label>
+                    <input 
+                      type="text" 
+                      value={settings?.gaMeasurementId || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().trim();
+                        setSettings(s => s ? {...s, gaMeasurementId: val} : null);
+                      }}
+                      placeholder="e.g. G-ABC123XYZ"
+                      className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2.5 text-xs font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Found in Google Analytics &gt; Data Streams &gt; Measurement ID (starts with G-)</p>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">
+                      Custom Script Header Block (Optional)
+                    </label>
+                    <textarea 
+                      rows={2}
+                      value={settings?.gaCustomScript || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSettings(s => s ? {...s, gaCustomScript: val} : null);
+                      }}
+                      placeholder={`<!-- Raw Google Tag Manager / GTAG snippet -->`}
+                      className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2 text-[10px] font-mono text-gray-800 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
                   </div>
                 </div>
               </div>

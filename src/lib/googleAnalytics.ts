@@ -1,4 +1,4 @@
-// Google Analytics Service for Bali Adventours
+// Google Analytics 4 (GA4) Tracker Service for Tripbone
 import { db } from './firebase';
 import { doc, getDoc } from '@/src/lib/firebase';
 
@@ -7,16 +7,23 @@ export interface GAEvent {
   category?: string;
   label?: string;
   value?: number;
+  [key: string]: any;
 }
 
 declare global {
   interface Window {
     dataLayer: any[];
     gtag: (...args: any[]) => void;
+    GA_MEASUREMENT_ID?: string;
   }
 }
 
-// Memory logging of GA events for the interactive demo preview list
+// In-memory cache for fast synchronous access
+let activeMeasurementId = '';
+let activeCustomScript = '';
+let isGAInitialized = false;
+
+// Memory logging of GA events for the interactive dashboard preview list
 export const recordedGAEvents: Array<{
   timestamp: string;
   type: 'pageview' | 'event';
@@ -39,67 +46,128 @@ const logToInteractiveStream = (type: 'pageview' | 'event', name: string, params
   }
 
   // Trigger a custom event so the UI can listen and refresh live
-  window.dispatchEvent(new CustomEvent('ga-event-logged'));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ga-event-logged'));
+  }
+};
+
+// Helper to extract G-XXXXXXXXXX from a string (e.g., custom script block)
+export const extractMeasurementId = (text: string): string => {
+  if (!text) return '';
+  const match = text.match(/G-[A-Z0-9]{6,12}/i);
+  return match ? match[0].toUpperCase() : '';
 };
 
 export const getGAMeasurementId = (): string => {
-  return localStorage.getItem('ga_measurement_id') || '';
+  if (activeMeasurementId) return activeMeasurementId;
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem('ga_measurement_id') || '';
+    if (local) {
+      activeMeasurementId = local;
+      return local;
+    }
+  }
+  return '';
 };
 
 export const getGACustomScript = (): string => {
-  return localStorage.getItem('ga_custom_script') || '';
+  if (activeCustomScript) return activeCustomScript;
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem('ga_custom_script') || '';
+    if (local) {
+      activeCustomScript = local;
+      return local;
+    }
+  }
+  return '';
 };
 
 export const setGAMeasurementId = (id: string) => {
-  if (id) {
-    localStorage.setItem('ga_measurement_id', id);
-    setupGATags(id);
-  } else {
-    localStorage.removeItem('ga_measurement_id');
+  const cleanId = id.trim().toUpperCase();
+  activeMeasurementId = cleanId;
+  if (typeof window !== 'undefined') {
+    if (cleanId) {
+      localStorage.setItem('ga_measurement_id', cleanId);
+      window.GA_MEASUREMENT_ID = cleanId;
+      setupGATags(cleanId);
+    } else {
+      localStorage.removeItem('ga_measurement_id');
+      delete window.GA_MEASUREMENT_ID;
+    }
   }
 };
 
-// Safely inject custom script HTML (including direct script tag code evaluation) in body
-export const injectCustomScript = (htmlSnippet: string) => {
-  if (!htmlSnippet) {
-    const existingBlock = document.getElementById('ga-custom-script-injection');
-    if (existingBlock) existingBlock.remove();
-    return;
+export const setGACustomScript = (script: string) => {
+  activeCustomScript = script;
+  if (typeof window !== 'undefined') {
+    if (script) {
+      localStorage.setItem('ga_custom_script', script);
+      injectCustomScript(script);
+      // Auto extract ID if not present
+      if (!activeMeasurementId) {
+        const extracted = extractMeasurementId(script);
+        if (extracted) {
+          setGAMeasurementId(extracted);
+        }
+      }
+    } else {
+      localStorage.removeItem('ga_custom_script');
+      injectCustomScript('');
+    }
   }
+};
 
-  // Clear previous injected block if it exists
+// Safely inject custom script HTML (including script tag code evaluation) in body/head
+export const injectCustomScript = (htmlSnippet: string) => {
+  if (typeof document === 'undefined') return;
+
   const existingBlock = document.getElementById('ga-custom-script-injection');
   if (existingBlock) existingBlock.remove();
 
-  // Create a wrapper element
-  const container = document.createElement('div');
-  container.id = 'ga-custom-script-injection';
-  container.style.display = 'none';
-  container.innerHTML = htmlSnippet;
-  document.body.appendChild(container);
-
-  // Extract all script tags and inject them manually so they execute correctly
-  const scripts = container.getElementsByTagName('script');
-  for (let i = 0; i < scripts.length; i++) {
-    const s = scripts[i];
-    const newScript = document.createElement('script');
-    
-    // Copy all attributes
-    for (let j = 0; j < s.attributes.length; j++) {
-      const attr = s.attributes[j];
-      newScript.setAttribute(attr.name, attr.value);
-    }
-    
-    // Copy content code inside script
-    newScript.textContent = s.textContent;
-    document.head.appendChild(newScript);
+  if (!htmlSnippet || !htmlSnippet.trim()) {
+    return;
   }
-  console.log('[Google Analytics] Injected raw script block successfully.');
+
+  try {
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'ga-custom-script-injection';
+    container.style.display = 'none';
+    container.innerHTML = htmlSnippet;
+    document.body.appendChild(container);
+
+    // Convert script elements to static array to prevent live collection issues
+    const scripts = Array.from(container.querySelectorAll('script'));
+    scripts.forEach((s) => {
+      const newScript = document.createElement('script');
+      
+      // Copy all attributes
+      for (let j = 0; j < s.attributes.length; j++) {
+        const attr = s.attributes[j];
+        newScript.setAttribute(attr.name, attr.value);
+      }
+      
+      // Copy content code inside script
+      if (s.textContent) {
+        newScript.textContent = s.textContent;
+      }
+      document.head.appendChild(newScript);
+    });
+
+    console.log('[Google Analytics] Injected custom script block successfully.');
+  } catch (error) {
+    console.error('[Google Analytics] Error injecting custom script block:', error);
+  }
 };
 
 // Low level runner to inject and configure GTAG tags
 export const setupGATags = (measurementId: string) => {
-  if (!measurementId) return;
+  if (!measurementId || typeof window === 'undefined') return;
+
+  const cleanId = measurementId.trim().toUpperCase();
+  if (!cleanId.startsWith('G-') && !cleanId.startsWith('UA-')) {
+    console.warn('[Google Analytics] Measurement ID does not follow GA4 format (e.g. G-XXXXXXXXXX):', cleanId);
+  }
 
   try {
     const existingScriptId = 'ga-gtag-script';
@@ -109,33 +177,42 @@ export const setupGATags = (measurementId: string) => {
       script = document.createElement('script');
       script.id = existingScriptId;
       script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${cleanId}`;
       document.head.appendChild(script);
     } else {
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${cleanId}`;
     }
 
     // Initialize dataLayer
     window.dataLayer = window.dataLayer || [];
-    if (!window.gtag) {
+    
+    // Ensure gtag function exists and forwards arguments to dataLayer
+    if (typeof window.gtag !== 'function') {
       window.gtag = function() {
         window.dataLayer.push(arguments);
       };
-      window.gtag('js', new Date());
     }
 
+    // Fire js initialization event
+    window.gtag('js', new Date());
+
     // Configure tracking ID
-    window.gtag('config', measurementId, {
+    window.gtag('config', cleanId, {
       page_path: window.location.pathname + window.location.search,
       send_page_view: true
     });
 
+    activeMeasurementId = cleanId;
+    window.GA_MEASUREMENT_ID = cleanId;
+    isGAInitialized = true;
+
     logToInteractiveStream('pageview', window.location.pathname, {
       title: document.title,
-      measurementId
+      measurementId: cleanId,
+      status: 'gtag_configured'
     });
 
-    console.log(`[Google Analytics] Initialized GTAG with ID: ${measurementId}`);
+    console.log(`[Google Analytics] Initialized GTAG with ID: ${cleanId}`);
   } catch (error) {
     console.error('[Google Analytics] GTAG setup error:', error);
   }
@@ -143,33 +220,77 @@ export const setupGATags = (measurementId: string) => {
 
 // Orchestrates both GTAG and raw HTML custom scripts, synchronizing with Firestore settings
 export const initGA = async () => {
-  // 1. Initial cached render
-  const cachedId = getGAMeasurementId();
-  const cachedScript = getGACustomScript();
+  if (typeof window === 'undefined') return;
+
+  // 1. Initial cached render from memory / localStorage / env
+  let cachedId = getGAMeasurementId();
+  let cachedScript = getGACustomScript();
+
+  // Check Vite env fallback
+  if (!cachedId && import.meta.env.VITE_GA_MEASUREMENT_ID) {
+    cachedId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+  }
+
+  if (cachedScript) {
+    injectCustomScript(cachedScript);
+    if (!cachedId) {
+      cachedId = extractMeasurementId(cachedScript);
+    }
+  }
 
   if (cachedId) {
     setupGATags(cachedId);
   }
-  if (cachedScript) {
-    injectCustomScript(cachedScript);
-  }
 
   // 2. Fetch remote values from database
   try {
+    // Try settings/analytics first
     const docRef = doc(db, 'settings', 'analytics');
     const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const { measurementId = '', customScript = '' } = snap.data();
+    let remoteId = '';
+    let remoteScript = '';
 
-      // If remote values changed, save and re-inject
-      if (measurementId !== cachedId) {
-        localStorage.setItem('ga_measurement_id', measurementId);
-        setupGATags(measurementId);
+    if (snap.exists()) {
+      const data = snap.data();
+      remoteId = (data.measurementId || data.ga4Id || data.gaMeasurementId || '').trim();
+      remoteScript = (data.customScript || data.gaCustomScript || '').trim();
+    }
+
+    // Fallback check settings/general
+    if (!remoteId) {
+      const generalRef = doc(db, 'settings', 'general');
+      const generalSnap = await getDoc(generalRef);
+      if (generalSnap.exists()) {
+        const gData = generalSnap.data();
+        remoteId = (gData.gaMeasurementId || gData.googleAnalyticsId || '').trim();
+        if (!remoteScript) {
+          remoteScript = (gData.gaCustomScript || '').trim();
+        }
       }
-      if (customScript !== cachedScript) {
-        localStorage.setItem('ga_custom_script', customScript);
-        injectCustomScript(customScript);
-      }
+    }
+
+    // Auto extract ID from script if remoteId still missing
+    if (!remoteId && remoteScript) {
+      remoteId = extractMeasurementId(remoteScript);
+    }
+
+    // If remote values exist and differ, save and apply
+    if (remoteId && remoteId !== cachedId) {
+      localStorage.setItem('ga_measurement_id', remoteId);
+      activeMeasurementId = remoteId;
+      setupGATags(remoteId);
+    }
+
+    if (remoteScript && remoteScript !== cachedScript) {
+      localStorage.setItem('ga_custom_script', remoteScript);
+      activeCustomScript = remoteScript;
+      injectCustomScript(remoteScript);
+    }
+
+    // If we newly configured GA, track current initial pageview
+    const currentId = getGAMeasurementId();
+    if (currentId) {
+      trackGAPageview(window.location.pathname + window.location.search);
     }
   } catch (error) {
     console.warn('[Google Analytics] Remote config sync postponed:', error);
@@ -178,14 +299,23 @@ export const initGA = async () => {
 
 export const trackGAPageview = (path: string) => {
   const measurementId = getGAMeasurementId();
-  if (!measurementId) return;
+  if (!measurementId || typeof window === 'undefined') return;
 
   try {
-    if (window.gtag) {
+    if (typeof window.gtag === 'function') {
       window.gtag('config', measurementId, {
         page_path: path,
         send_page_view: true
       });
+    } else {
+      // Lazy init if window.gtag isn't defined yet
+      setupGATags(measurementId);
+      if (typeof window.gtag === 'function') {
+        window.gtag('config', measurementId, {
+          page_path: path,
+          send_page_view: true
+        });
+      }
     }
     
     logToInteractiveStream('pageview', path, {
@@ -197,25 +327,85 @@ export const trackGAPageview = (path: string) => {
   }
 };
 
-export const trackGAEvent = (action: string, category: string = 'engagement', label?: string, value?: number) => {
+export const trackGAEvent = (
+  action: string, 
+  category: string = 'engagement', 
+  label?: string, 
+  value?: number,
+  extraParams?: Record<string, any>
+) => {
   const measurementId = getGAMeasurementId();
-  if (!measurementId) return;
+  if (!measurementId || typeof window === 'undefined') return;
 
   try {
-    if (window.gtag) {
-      window.gtag('event', action, {
-        event_category: category,
-        event_label: label,
-        value: value
-      });
+    const payload: Record<string, any> = {
+      event_category: category,
+      event_label: label,
+      value: value,
+      ...extraParams
+    };
+
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', action, payload);
+    } else {
+      setupGATags(measurementId);
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', action, payload);
+      }
     }
 
     logToInteractiveStream('event', action, {
       category,
       label,
-      value
+      value,
+      ...extraParams
     });
   } catch (error) {
     console.warn('[Google Analytics] Event track error:', error);
   }
+};
+
+// Specialized GA4 E-Commerce & Conversion Helpers
+export const trackGAViewItem = (tour: { id: string; title: string; price?: number; category?: string }) => {
+  trackGAEvent('view_item', 'ecommerce', tour.title, tour.price, {
+    items: [{
+      item_id: tour.id,
+      item_name: tour.title,
+      item_category: tour.category || 'Tour',
+      price: tour.price || 0
+    }]
+  });
+};
+
+export const trackGAAddToCart = (tour: { id: string; title: string; price: number }) => {
+  trackGAEvent('add_to_cart', 'ecommerce', tour.title, tour.price, {
+    items: [{
+      item_id: tour.id,
+      item_name: tour.title,
+      price: tour.price
+    }]
+  });
+};
+
+export const trackGABeginCheckout = (booking: { tourTitle: string; totalAmount: number; participants?: number }) => {
+  trackGAEvent('begin_checkout', 'ecommerce', booking.tourTitle, booking.totalAmount, {
+    currency: 'USD',
+    value: booking.totalAmount,
+    participants: booking.participants || 1
+  });
+};
+
+export const trackGAPurchase = (booking: { id: string; tourTitle: string; totalAmount: number; paymentMethod?: string }) => {
+  trackGAEvent('purchase', 'ecommerce', booking.tourTitle, booking.totalAmount, {
+    transaction_id: booking.id,
+    value: booking.totalAmount,
+    currency: 'USD',
+    payment_type: booking.paymentMethod || 'online'
+  });
+};
+
+export const trackGAInquirySubmit = (inquiryType: string, planTitle?: string) => {
+  trackGAEvent('generate_lead', 'conversion', planTitle || inquiryType, 1, {
+    lead_type: inquiryType
+  });
 };

@@ -23,10 +23,12 @@ import {
   getGAMeasurementId, 
   setGAMeasurementId, 
   getGACustomScript,
+  setGACustomScript,
   setupGATags,
   injectCustomScript,
   trackGAEvent, 
-  recordedGAEvents 
+  recordedGAEvents,
+  extractMeasurementId
 } from '../../lib/googleAnalytics';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc } from '@/src/lib/firebase';
@@ -136,32 +138,56 @@ export default function GoogleAnalytics() {
   const handleSaveId = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const cleanScript = newScript.trim();
+      let cleanId = newId.trim().toUpperCase();
+
+      // Auto extract ID if not specified in text input but found in script snippet
+      if (!cleanId && cleanScript) {
+        cleanId = extractMeasurementId(cleanScript);
+      }
+
       const docRef = doc(db, 'settings', 'analytics');
       await setDoc(docRef, {
-        measurementId: newId.trim(),
-        customScript: newScript.trim(),
+        measurementId: cleanId,
+        customScript: cleanScript,
         updatedAt: new Date().toISOString()
-      });
+      }, { merge: true });
 
-      // Save locally for instant fallback load
-      localStorage.setItem('ga_measurement_id', newId.trim());
-      localStorage.setItem('ga_custom_script', newScript.trim());
-      
-      setMeasurementId(newId.trim());
-      setCustomScript(newScript.trim());
+      // Save also to general settings if accessible for fallback
+      try {
+        const generalRef = doc(db, 'settings', 'general');
+        await setDoc(generalRef, {
+          gaMeasurementId: cleanId,
+          gaCustomScript: cleanScript,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (e) {
+        // Non-critical fallback
+      }
 
-      // Reinitialize trackers live
-      setupGATags(newId.trim());
-      injectCustomScript(newScript.trim());
+      // Update local storage and memory tracker
+      if (cleanId) {
+        setGAMeasurementId(cleanId);
+      } else {
+        setGAMeasurementId('');
+      }
+
+      setGACustomScript(cleanScript);
       
-      setSuccessMessage('Analytics custom header codes & Measurement ID saved and synced across cloud servers!');
+      setMeasurementId(cleanId);
+      setCustomScript(cleanScript);
+      setNewId(cleanId);
+
+      setSuccessMessage('GA4 Tracker & Custom Analytics Scripts saved, deployed, and activated live!');
       setTimeout(() => setSuccessMessage(''), 5000);
 
       // Track config change
-      trackGAEvent('update_measurement_id', 'admin', newId.trim());
+      if (cleanId) {
+        trackGAEvent('update_measurement_id', 'admin', cleanId);
+      }
     } catch (err) {
       console.error('Failed to update settings:', err);
-      alert('Failed to write dashboard analytics block updates to Firebase rules.');
+      alert('Failed to write dashboard analytics block updates to Firebase.');
     }
   };
 

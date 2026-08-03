@@ -513,7 +513,9 @@ export interface SiteSettings {
   elfsightEnabled?: boolean;
   elfsightEmbedCode?: string;
 
-  // SEO & AI Crawler Settings
+  // SEO & AI Crawler & Analytics Settings
+  gaMeasurementId?: string;
+  gaCustomScript?: string;
   homeTitleFormat?: string; // e.g. "{{siteName}} - Best Bali Tours"
   pageTitleFormat?: string; // e.g. "{{title}} | {{siteName}}"
   tourTitleFormat?: string; // e.g. "{{title}} | {{siteName}}"

@@ -11,6 +11,7 @@ import dns from "dns";
 import { getAdminApp, getAdminDb, verifyAdmin, verifyUser, getDocViaRest, createDocViaRest, writeDocViaRest, deleteDocViaRest } from "./src/services/firebaseAdmin.js";
 import { parseRestValue, parseRestDocument, fetchFromREST, generateContentWithFallback, resolveTenantGeminiKey } from "./src/services/apiHelpers.js";
 import geminiRouter from "./src/server/routes/gemini.js";
+import { securityHeadersMiddleware, sanitizeBodyMiddleware, createRateLimiter } from "./src/server/security.js";
 import { handleSendEmail } from "./src/services/emailHandler.js";
 import { sendWhatsAppMessage, formatWhatsAppMessage, sendWhatsAppTemplateMessage } from "./src/services/whatsappHandler.js";
 import { generateVoucherPdf } from "./src/services/email/voucherGenerator.js";
@@ -43,9 +44,44 @@ export async function createServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
+  // Apply security headers to prevent XSS, MIME sniffing, and clickjacking
+  app.use(securityHeadersMiddleware);
+
   app.use(compression());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: "5mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+
+  // Sanitize incoming JSON body payloads
+  app.use(sanitizeBodyMiddleware);
+
+  // Rate Limiting Middlewares to protect server resources
+  const generalApiLimiter = createRateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    max: 120, // 120 requests/min
+    message: "General API rate limit exceeded. Please wait a moment.",
+    keyPrefix: "general_api"
+  });
+
+  const aiApiLimiter = createRateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 AI reqs/min per IP
+    message: "AI service rate limit reached. Please wait 60 seconds before trying again.",
+    keyPrefix: "ai_api"
+  });
+
+  const messagingLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // 30 messaging/upload requests per 15 min
+    message: "Messaging & upload rate limit reached. Please wait before retrying.",
+    keyPrefix: "msg_api"
+  });
+
+  // Apply rate limiters
+  app.use("/api", generalApiLimiter);
+  app.use("/api/gemini", aiApiLimiter);
+  app.use("/api/send-email", messagingLimiter);
+  app.use("/api/send-whatsapp", messagingLimiter);
+  app.use("/api/upload", messagingLimiter);
 
   // Mount Gemini Router for AI blog generator and concierge endpoints
   app.use("/api/gemini", geminiRouter);
