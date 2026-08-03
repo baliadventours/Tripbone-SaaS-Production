@@ -7832,6 +7832,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         label: 'Setting', 
         icon: Settings,
         children: [
+          { id: 'analytics-integration', label: 'Analytics Integration' },
           { id: 'company-info', label: 'Company Info', hidden: isSupplier || isAgent },
           { id: 'seo', label: 'SEO Setting', hidden: isSupplier || isAgent },
           { id: 'payment-settings', label: 'Payment Setting', hidden: isSupplier || isAgent },
@@ -13223,6 +13224,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           {activeMenu === 'website-builder' && (
              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
                 <WebsiteBuilder />
+             </div>
+          )}
+          {(activeMenu === 'analytics-integration' || activeMenu === 'analytics' || activeMenu === 'google-analytics') && (
+             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+                <GoogleAnalytics />
              </div>
           )}
           {activeMenu === 'general-settings' && (
