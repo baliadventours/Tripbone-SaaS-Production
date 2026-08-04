@@ -492,6 +492,22 @@ export default function WebsiteBuilder() {
     setSaving(true);
     try {
       await setDoc(doc(db, 'website_builder', tenantId), settings);
+
+      // Sync topNav and mainNav presets to sectionStyles in general settings
+      const topNavBlock = settings.blocks?.find(b => b.id === 'topNav');
+      const mainNavBlock = settings.blocks?.find(b => b.id === 'mainNav');
+      if (topNavBlock || mainNavBlock) {
+        const generalRef = doc(db, 'settings', tenantId);
+        const generalSnap = await getDoc(generalRef);
+        const existingGen = generalSnap.exists() ? generalSnap.data() : {};
+        const updatedStyles = {
+          ...(existingGen.sectionStyles || {}),
+          ...(topNavBlock?.design ? { topNav: topNavBlock.design } : {}),
+          ...(mainNavBlock?.design ? { mainNav: mainNavBlock.design } : {}),
+        };
+        await setDoc(generalRef, { ...existingGen, sectionStyles: updatedStyles, themeMode: 'custom' }, { merge: true });
+      }
+
       alert('Website Builder settings saved successfully!');
     } catch (error) {
       console.error(error);

@@ -157,10 +157,17 @@ export default function Header() {
   const isTourDetail = location.pathname.startsWith('/tour/');
   const isCheckout = location.pathname.startsWith('/checkout');
 
-  // Theme Logic
-  const themeMode = settings?.themeMode || 'default';
-  const topNavStyle = themeMode === 'custom' ? settings?.sectionStyles?.topNav : 'default';
-  const mainNavStyle = themeMode === 'custom' ? settings?.sectionStyles?.mainNav : 'default';
+  // Theme Logic & Preset Resolution
+  const topNavBlock = builderSettings?.blocks?.find(b => b.id === 'topNav');
+  const mainNavBlock = builderSettings?.blocks?.find(b => b.id === 'mainNav');
+
+  const topNavStyle = (topNavBlock?.design && topNavBlock.design !== 'default') 
+    ? topNavBlock.design 
+    : (settings?.sectionStyles?.topNav || topNavBlock?.design || 'default');
+
+  const mainNavStyle = (mainNavBlock?.design && mainNavBlock.design !== 'default') 
+    ? mainNavBlock.design 
+    : (settings?.sectionStyles?.mainNav || mainNavBlock?.design || 'default');
 
   const renderTopNav = () => {
     if (builderSettings) {
@@ -508,28 +515,28 @@ export default function Header() {
         const isGlass = mainNavStyle === 'modern-glass';
         return (
           <div className={cn(
-             "container mx-auto px-4 lg:px-8 flex items-center justify-between h-20 transition-all", 
-             isGlass && "bg-white/10 backdrop-blur-3xl border border-white/5 rounded-3xl mt-4 mx-4 w-auto h-16 shadow-2xl"
+             "container mx-auto px-4 lg:px-8 flex items-center justify-between transition-all", 
+             isGlass ? "bg-white/10 backdrop-blur-3xl border border-white/5 rounded-3xl mt-4 mx-4 w-auto h-16 shadow-2xl text-white" : "bg-gray-950 text-white border-b border-gray-800 h-20 w-full"
           )}>
              <Link to="/" className="flex items-center gap-3">
                 <div className="h-10 w-10 bg-primary text-white font-black text-xl flex items-center justify-center rounded-xl rotate-3">B</div>
-                <span className={cn("text-xl font-black tracking-tighter hidden sm:block", isGlass ? "text-white" : "text-gray-900")}>ADV.</span>
+                <span className="text-xl font-black tracking-tighter hidden sm:block text-white">{siteName || 'ADV.'}</span>
              </Link>
   
              <nav className={cn(
                "hidden lg:flex items-center gap-1 p-1 rounded-2xl border",
-               isGlass ? "bg-black/20 border-white/5" : "bg-gray-50 border-gray-100"
+               isGlass ? "bg-black/20 border-white/5" : "bg-gray-900 border-gray-800"
              )}>
                 {customLinks ? (
                   customLinks.map((link, idx) => (
-                    <Link key={idx} to={link.url} className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>{link.label}</Link>
+                    <Link key={idx} to={link.url} className="px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/10">{link.label}</Link>
                   ))
                 ) : (
                   <>
-                    <Link to="/" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>Index</Link>
-                    <Link to="/tours" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "bg-white text-gray-900" : "bg-white text-gray-900 shadow-sm border border-gray-100")}>Expeditions</Link>
-                    <Link to="/planner" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>AI Planner</Link>
-                    <Link to="/blog" className={cn("px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest", isGlass ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-900")}>News</Link>
+                    <Link to="/" className="px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/10">Index</Link>
+                    <Link to="/tours" className="px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest bg-primary text-white shadow-sm">Expeditions</Link>
+                    <Link to="/planner" className="px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/10">AI Planner</Link>
+                    <Link to="/blog" className="px-5 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/10">News</Link>
                   </>
                 )}
              </nav>
