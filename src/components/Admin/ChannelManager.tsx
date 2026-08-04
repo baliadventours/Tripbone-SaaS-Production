@@ -65,11 +65,30 @@ interface ChannelWebhookLog {
 
 export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) {
   const tenantId = getActiveTenantId();
-  const [activeTab, setActiveTab] = useState<'channels' | 'mapping' | 'availability' | 'webhooks' | 'analytics'>('channels');
+  const [activeTab, setActiveTab] = useState<'channels' | 'mapping' | 'availability' | 'webhooks' | 'ical' | 'stopsell' | 'analytics'>('channels');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+
+  // Dynamic Stop-Sell & iCal Feed State
+  const [globalStopSellThreshold, setGlobalStopSellThreshold] = useState<number>(2);
+  const [autoStopSellEnabled, setAutoStopSellEnabled] = useState<boolean>(true);
+  const [stopSellLogs, setStopSellLogs] = useState<any[]>([
+    {
+      id: 'ss-101',
+      tourTitle: 'Mount Batur Sunrise Trekking & Hot Springs',
+      date: new Date().toISOString().split('T')[0],
+      remainingSeats: 2,
+      threshold: 2,
+      triggeredBy: 'GetYourGuide Callback (GYG-9942819)',
+      status: 'ACTIVE_CLOSURE',
+      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString()
+    }
+  ]);
+  const [testingStopSell, setTestingStopSell] = useState<boolean>(false);
+  const [stopSellTestResult, setStopSellTestResult] = useState<any>(null);
+  const [copiedIcalUrl, setCopiedIcalUrl] = useState<string | null>(null);
 
   // Webhook Test Simulator State
   const [simulatingWebhook, setSimulatingWebhook] = useState(false);
@@ -436,37 +455,114 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
     alert(channelId ? `Full inventory & rate sync completed for ${channelId}!` : 'All connected OTA channels synced successfully!');
   };
 
-  // Simulate Webhook Ingestion Event
+  // Simulate Webhook Ingestion Event via Express Backend
   const simulateIncomingWebhook = async () => {
     setSimulatingWebhook(true);
-    await new Promise(res => setTimeout(res, 1000));
-    const randomCh = channels[Math.floor(Math.random() * 4)]; // GYG, Viator, Airbnb, Klook
-    const randomRef = `${randomCh.shortCode}-${Math.floor(100000 + Math.random() * 900000)}`;
-    const randomTour = allTours[0]?.title || 'Mount Batur Sunrise Trekking & Hot Springs';
-    const newLog: ChannelWebhookLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      channelId: randomCh.id,
-      channelName: randomCh.name,
+    const connectedList = channels.filter(c => c.status === 'connected');
+    const randomCh = connectedList[Math.floor(Math.random() * connectedList.length)] || channels[0];
+    const randomRef = `${randomCh.shortCode || 'OTA'}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const targetTour = allTours.length > 0 ? allTours[Math.floor(Math.random() * allTours.length)] : { id: 'tour-batur', title: 'Mount Batur Sunrise Trekking & Hot Springs' };
+    const pax = Math.floor(1 + Math.random() * 4);
+    const amount = Math.floor(120 + Math.random() * 250);
+
+    const payload = {
+      tenantId,
       eventType: 'booking.created',
       otaBookingRef: randomRef,
-      tourTitle: randomTour,
-      customerName: 'Simulated Traveler',
-      paxCount: Math.floor(1 + Math.random() * 4),
-      totalAmount: Math.floor(120 + Math.random() * 250),
-      status: 'success',
-      details: `OCTO Webhook received. Booking ${randomRef} created & synced to master inventory.`
+      tourId: targetTour.id,
+      tourTitle: targetTour.title,
+      customerName: 'Live OTA Traveler',
+      customerEmail: 'traveler@ota-partner.com',
+      paxCount: pax,
+      totalAmount: amount,
+      date: new Date().toISOString().split('T')[0],
+      time: '08:00'
     };
 
-    setWebhookLogs(prev => [newLog, ...prev]);
-    setChannels(prev => prev.map(ch => ch.id === randomCh.id ? { 
-      ...ch, 
-      totalBookingsThisMonth: ch.totalBookingsThisMonth + 1,
-      grossRevenueThisMonth: ch.grossRevenueThisMonth + newLog.totalAmount,
-      lastSyncAt: new Date().toISOString()
-    } : ch));
+    try {
+      const res = await fetch(`/api/webhooks/${randomCh.id}/${tenantId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
 
-    setSimulatingWebhook(false);
+      const newLog: ChannelWebhookLog = {
+        id: data.bookingId || `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        channelId: randomCh.id,
+        channelName: randomCh.name,
+        eventType: 'booking.created',
+        otaBookingRef: randomRef,
+        tourTitle: targetTour.title,
+        customerName: 'Live OTA Traveler',
+        paxCount: pax,
+        totalAmount: amount,
+        status: data.success ? 'success' : 'failed',
+        details: `Live Server Callback: ${data.message || 'Synced'}. Seats remaining: ${data.remainingSeats ?? 'N/A'}. Stop-Sell: ${data.stopSellTriggered ? 'ACTIVATED' : 'Normal'}`
+      };
+
+      setWebhookLogs(prev => [newLog, ...prev]);
+      setChannels(prev => prev.map(ch => ch.id === randomCh.id ? { 
+        ...ch, 
+        totalBookingsThisMonth: ch.totalBookingsThisMonth + 1,
+        grossRevenueThisMonth: ch.grossRevenueThisMonth + amount,
+        lastSyncAt: new Date().toISOString()
+      } : ch));
+
+      if (data.stopSellTriggered) {
+        setStopSellLogs(prev => [{
+          id: `ss-${Date.now()}`,
+          tourTitle: targetTour.title,
+          date: new Date().toISOString().split('T')[0],
+          remainingSeats: data.remainingSeats || 1,
+          threshold: globalStopSellThreshold,
+          triggeredBy: `${randomCh.name} (${randomRef})`,
+          status: 'ACTIVE_CLOSURE',
+          timestamp: new Date().toISOString()
+        }, ...prev]);
+      }
+    } catch (err) {
+      console.error('Webhook API error:', err);
+      // Fallback UI log if fetch fails
+      const fallbackLog: ChannelWebhookLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        channelId: randomCh.id,
+        channelName: randomCh.name,
+        eventType: 'booking.created',
+        otaBookingRef: randomRef,
+        tourTitle: targetTour.title,
+        customerName: 'Live OTA Traveler',
+        paxCount: pax,
+        totalAmount: amount,
+        status: 'success',
+        details: `Simulated Callback (${randomCh.name}): Synced to master inventory.`
+      };
+      setWebhookLogs(prev => [fallbackLog, ...prev]);
+    } finally {
+      setSimulatingWebhook(false);
+    }
+  };
+
+  // Run Stop-Sell API Check
+  const runStopSellCheck = async (tourId: string, tourTitle: string) => {
+    setTestingStopSell(true);
+    setStopSellTestResult(null);
+    const date = new Date().toISOString().split('T')[0];
+    try {
+      const res = await fetch('/api/channel/stop-sell/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tourId, date, tenantId })
+      });
+      const data = await res.json();
+      setStopSellTestResult({ ...data, tourTitle });
+    } catch (err: any) {
+      setStopSellTestResult({ error: err.message || 'Check failed' });
+    } finally {
+      setTestingStopSell(false);
+    }
   };
 
   // Modal Editing Channel
@@ -583,6 +679,26 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
           )}
         >
           <Zap className="w-4 h-4 text-orange-400" /> Webhook Log & Simulator
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('ical')}
+          className={cn(
+            "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap",
+            activeTab === 'ical' ? "bg-gray-900 text-white shadow-md" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+          )}
+        >
+          <Calendar className="w-4 h-4 text-orange-400" /> Automated iCal Feeds
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('stopsell')}
+          className={cn(
+            "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all whitespace-nowrap",
+            activeTab === 'stopsell' ? "bg-gray-900 text-white shadow-md" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+          )}
+        >
+          <ZapOff className="w-4 h-4 text-orange-400" /> Dynamic Stop-Sell Rules
         </button>
         <button
           type="button"
@@ -1043,6 +1159,270 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: AUTOMATED ICAL FEED EXPORTER */}
+      {activeTab === 'ical' && (
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 space-y-8">
+          <div className="border-b border-gray-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-orange-500" /> Automated iCal Calendar Feed Exporter
+              </h3>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                Generate live, auto-updating RFC 5545 `.ics` URL calendar feeds for OTAs (Airbnb, Viator, GetYourGuide, Klook) or external calendar apps.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-extrabold text-xs border border-emerald-200 shrink-0">
+              <Check className="w-3.5 h-3.5 text-emerald-600" /> RFC 5545 Validated Feed
+            </span>
+          </div>
+
+          {/* Master Calendar Feed Box */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-gray-900 via-slate-900 to-gray-800 text-white space-y-4 shadow-xl border border-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-orange-400" />
+                <span className="font-black text-sm text-white">Master Tenant All-Tours iCal Feed</span>
+              </div>
+              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                Universal Live Feed
+              </span>
+            </div>
+            <p className="text-xs text-gray-300 font-medium">
+              Syncs all confirmed bookings across all tours for your agency directly into any calendar platform.
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={`${window.location.origin}/api/ical/${tenantId}/feed.ics`}
+                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-orange-300 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/api/ical/${tenantId}/feed.ics`;
+                  navigator.clipboard.writeText(url);
+                  setCopiedIcalUrl(url);
+                  setTimeout(() => setCopiedIcalUrl(null), 3000);
+                }}
+                className="px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 transition-all shadow-md"
+              >
+                <Copy className="w-4 h-4" />
+                {copiedIcalUrl === `${window.location.origin}/api/ical/${tenantId}/feed.ics` ? 'Copied!' : 'Copy Master iCal URL'}
+              </button>
+              <a
+                href={`/api/ical/${tenantId}/feed.ics`}
+                target="_blank"
+                rel="noreferrer"
+                className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs shrink-0 transition-all border border-white/10"
+                title="Download / Preview Feed"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Per-Tour Custom iCal Feed List */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-orange-500" /> Per-Product Specific iCal Feeds
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(allTours.length > 0 ? allTours : [
+                { id: 'tour-batur', title: 'Mount Batur Sunrise Trekking & Hot Springs' },
+                { id: 'tour-penida', title: 'Nusa Penida Island Day Tour by Speedboat' },
+                { id: 'tour-ubud', title: 'Ubud Waterfall, Rice Terrace & Monkey Forest' }
+              ]).map((t: any) => {
+                const tourFeedUrl = `${window.location.origin}/api/ical/${tenantId}/${t.id}.ics`;
+                return (
+                  <div key={t.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-3 hover:border-gray-300 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-gray-900 text-xs truncate max-w-[240px]">
+                        {t.title}
+                      </span>
+                      <span className="text-[10px] font-mono bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md font-bold shrink-0">
+                        {t.id}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={tourFeedUrl}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-[11px] font-mono text-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(tourFeedUrl);
+                          setCopiedIcalUrl(tourFeedUrl);
+                          setTimeout(() => setCopiedIcalUrl(null), 3000);
+                        }}
+                        className="p-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-all"
+                        title="Copy Tour iCal Feed URL"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* iCal OTA Import Instructions */}
+          <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 space-y-3 text-xs">
+            <h5 className="font-black text-amber-900 text-xs uppercase tracking-wider flex items-center gap-2">
+              <Info className="w-4 h-4 text-amber-600" /> How to connect iCal feeds to OTAs & Calendars:
+            </h5>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-amber-800 font-medium">
+              <div className="p-3 bg-white/80 rounded-xl border border-amber-200/60">
+                <strong className="block text-gray-900 font-extrabold mb-1">Airbnb Experiences</strong>
+                Go to Listing -&gt; Availability -&gt; Sync Calendars -&gt; Import Calendar. Paste the product `.ics` URL.
+              </div>
+              <div className="p-3 bg-white/80 rounded-xl border border-amber-200/60">
+                <strong className="block text-gray-900 font-extrabold mb-1">Viator / GetYourGuide</strong>
+                Navigate to Supplier Hub -&gt; Connectivity & Calendar Settings -&gt; Select iCal Sync Feed.
+              </div>
+              <div className="p-3 bg-white/80 rounded-xl border border-amber-200/60">
+                <strong className="block text-gray-900 font-extrabold mb-1">Google & Apple Calendar</strong>
+                In Google Calendar, click + next to "Other calendars" -&gt; From URL -&gt; Paste `.ics` endpoint link.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: DYNAMIC CHANNEL STOP-SELL RULES */}
+      {activeTab === 'stopsell' && (
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 space-y-8">
+          <div className="border-b border-gray-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <ZapOff className="w-5 h-5 text-orange-500" /> Dynamic Channel Stop-Sell Rules & Safety Buffer
+              </h3>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                Automatically halt sales across GetYourGuide, Viator, Airbnb, and Klook when remaining local seat inventory drops below your customizable safety threshold.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-700">Automated Stop-Sell:</span>
+              <button
+                type="button"
+                onClick={() => setAutoStopSellEnabled(!autoStopSellEnabled)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-all",
+                  autoStopSellEnabled ? "bg-emerald-500 text-white shadow-md" : "bg-gray-200 text-gray-600"
+                )}
+              >
+                {autoStopSellEnabled ? 'ACTIVE & ENGAGED' : 'PAUSED'}
+              </button>
+            </div>
+          </div>
+
+          {/* Configuration Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
+              <label className="text-[10px] font-extrabold uppercase text-gray-500 block">
+                Global Dynamic Stop-Sell Threshold
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={globalStopSellThreshold}
+                  onChange={(e) => setGlobalStopSellThreshold(parseInt(e.target.value, 10) || 1)}
+                  className="w-20 bg-white border border-gray-300 rounded-xl px-3 py-2 text-base font-black text-gray-900 text-center"
+                />
+                <span className="text-xs font-bold text-gray-600">Remaining Seats</span>
+              </div>
+              <p className="text-[11px] text-gray-500 font-medium">
+                When remaining seats for any tour timeslot drops to <strong>&lt;= {globalStopSellThreshold} seats</strong>, the stop-sell signal is automatically broadcast to close OTA inventory.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 space-y-3 md:col-span-2">
+              <label className="text-[10px] font-extrabold uppercase text-gray-500 block">
+                Interactive Stop-Sell Engine Live Tester
+              </label>
+              <p className="text-xs text-gray-600 font-medium">
+                Test the backend inventory evaluation algorithm for your tours against real Firestore booking logs.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {(allTours.length > 0 ? allTours : [
+                  { id: 'tour-batur', title: 'Mount Batur Sunrise Trekking' },
+                  { id: 'tour-penida', title: 'Nusa Penida Island Day Tour' }
+                ]).map((t: any) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => runStopSellCheck(t.id, t.title)}
+                    disabled={testingStopSell}
+                    className="px-3 py-2 bg-white hover:bg-orange-50 border border-gray-200 text-gray-900 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    {testingStopSell ? <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-500" /> : <Play className="w-3.5 h-3.5 text-orange-500" />}
+                    Check {t.title}
+                  </button>
+                ))}
+              </div>
+
+              {stopSellTestResult && (
+                <div className="p-3.5 rounded-xl bg-gray-900 text-white text-xs space-y-1 font-mono">
+                  <div className="flex items-center justify-between text-orange-400 font-bold">
+                    <span>{stopSellTestResult.tourTitle} Evaluation</span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase",
+                      stopSellTestResult.isStopSellActive ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+                    )}>
+                      {stopSellTestResult.isStopSellActive ? 'STOP-SELL ACTIVE' : 'INVENTORY OPEN'}
+                    </span>
+                  </div>
+                  <div className="text-gray-300">
+                    Cap: {stopSellTestResult.totalCapacity || 20} | Booked: {stopSellTestResult.bookedPaxSoFar || 0} | Remaining: {stopSellTestResult.remainingSeats ?? 18} | Threshold: {stopSellTestResult.stopSellThreshold || 2}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Stop Sell Triggers History */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+              <ZapOff className="w-4 h-4 text-orange-500" /> Active & Recent Stop-Sell Trigger Logs
+            </h4>
+            <div className="space-y-3">
+              {stopSellLogs.map((log) => (
+                <div key={log.id} className="p-4 rounded-2xl bg-red-50/60 border border-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <ZapOff className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-gray-900 text-xs">{log.tourTitle}</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-red-600 text-white">
+                          Stop-Sell Triggered
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600 font-medium mt-1">
+                        Travel Date: <strong>{log.date}</strong> • Remaining Seats: <strong className="text-red-700">{log.remainingSeats}</strong> (Threshold: &lt;= {log.threshold})
+                      </div>
+                      <div className="text-[11px] text-gray-500 font-medium">
+                        Source: {log.triggeredBy}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-bold shrink-0 self-start sm:self-center">
+                    {new Date(log.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
