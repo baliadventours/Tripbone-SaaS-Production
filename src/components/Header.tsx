@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth, db, query, collection, where, orderBy, limit, onSnapshot, doc, getDoc, setDoc } from '../lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { serverTimestamp } from '@/src/lib/firebase';
-import { User, Shield, Leaf, Search, Instagram, Facebook, Twitter, Phone, Mail, HelpCircle, ArrowLeft, MoreHorizontal, Bell, CheckCircle2, Music2, Calendar, UserCircle, Settings, LogOut, ChevronDown, Globe, Sparkles, BookOpen, LayoutGrid, Zap } from 'lucide-react';
+import { User, Shield, Leaf, Search, Instagram, Facebook, Twitter, Phone, Mail, HelpCircle, ArrowLeft, MoreHorizontal, Bell, CheckCircle2, Music2, Calendar, UserCircle, Settings, LogOut, ChevronDown, Globe, Sparkles, BookOpen, LayoutGrid, Zap, MessageCircle } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useSettings } from '../lib/SettingsContext';
 import { useTenant } from '../lib/TenantContext';
@@ -299,6 +299,97 @@ export default function Header() {
           </div>
         );
 
+      case 'emerald-safari':
+        return (
+          <div className="bg-emerald-950 text-emerald-100 py-2 border-b border-emerald-800/40 hidden md:block">
+            <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between text-[11px] font-bold">
+               <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5 bg-emerald-900/80 text-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-black tracking-wider">
+                    <Phone className="h-3 w-3" /> 24/7 Hotline
+                  </span>
+                  <span>{settings?.supportPhone || '+62 812 3456 7890'}</span>
+               </div>
+               <div className="flex items-center gap-6">
+                  <a href={`https://wa.me/${settings?.whatsappNumber?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-emerald-300 hover:text-white transition-colors">
+                    <MessageCircle className="h-3.5 w-3.5" /> Instant WhatsApp
+                  </a>
+                  <span className="h-3 w-px bg-emerald-800" />
+                  <CurrencySwitcher variant="minimal" />
+               </div>
+            </div>
+          </div>
+        );
+
+      case 'tokyo-neon':
+        return (
+          <div className="bg-slate-950 text-cyan-400 py-2 border-b border-cyan-500/20 hidden md:block">
+            <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+               <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> LIVE ONLINE BOOKING
+                  </span>
+                  <span className="text-slate-500">|</span>
+                  <span className="text-slate-300">Instant Tour Confirmation</span>
+               </div>
+               <div className="flex items-center gap-6">
+                  <span className="text-slate-400">Currency:</span>
+                  <CurrencySwitcher variant="minimal" />
+                  <Link to="/contact" className="px-3 py-1 bg-cyan-500/10 text-cyan-300 rounded border border-cyan-500/30 hover:bg-cyan-500 hover:text-black transition-all">VIP Support</Link>
+               </div>
+            </div>
+          </div>
+        );
+
+      case 'sunset-ibiza':
+        return (
+          <div className="bg-gradient-to-r from-amber-600 via-rose-600 to-purple-700 text-white py-2 hidden md:block shadow-xs">
+            <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between text-[11px] font-bold">
+               <div className="flex items-center gap-3">
+                  <span className="bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase">
+                    Special Offer
+                  </span>
+                  <span>Use promo code <strong className="underline decoration-wavy">BALI15</strong> for 15% off all private day tours!</span>
+               </div>
+               <div className="flex items-center gap-6">
+                  <Link to="/tours" className="hover:underline">Explore Offers</Link>
+                  <CurrencySwitcher variant="minimal" />
+               </div>
+            </div>
+          </div>
+        );
+
+      case 'nordic-clean':
+        return (
+          <div className="bg-stone-100 text-stone-700 py-2 border-b border-stone-200 hidden md:block">
+            <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between text-[11px] font-medium">
+               <div className="flex items-center gap-6">
+                  <span className="font-bold text-stone-900">{siteName}</span>
+                  <span className="text-stone-400">|</span>
+                  <span className="text-stone-500">Operating Daily 07:00 - 22:00 WITA</span>
+               </div>
+               <div className="flex items-center gap-6 text-xs">
+                  <a href={`tel:${settings?.supportPhone}`} className="hover:text-stone-900 font-bold">{settings?.supportPhone || '+62 812 3456 7890'}</a>
+                  <CurrencySwitcher variant="minimal" />
+               </div>
+            </div>
+          </div>
+        );
+
+      case 'royal-gold':
+        return (
+          <div className="bg-neutral-950 text-amber-300 py-2 border-b border-amber-500/20 hidden md:block">
+            <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em]">
+               <div className="flex items-center gap-4">
+                  <span className="text-amber-400 flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> VIP Concierge & Luxury Chauffeur</span>
+               </div>
+               <div className="flex items-center gap-6">
+                  <a href={`https://wa.me/${settings?.whatsappNumber?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Direct Desk</a>
+                  <CurrencySwitcher variant="minimal" />
+               </div>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="bg-gray-900 py-2.5 hidden md:block">
@@ -560,6 +651,134 @@ export default function Header() {
                  </>
                )}
             </div>
+          </div>
+        );
+
+      case 'centered-logo':
+        return (
+          <div className={cn(headerClass, "h-24 md:h-28 border-b border-gray-100 bg-white")}>
+             <nav className="hidden lg:flex items-center gap-6 text-xs font-bold text-gray-700">
+                <Link to="/tours" className="hover:text-primary transition-colors">All Tours</Link>
+                <Link to="/planner" className="hover:text-primary transition-colors">AI Trip Planner</Link>
+             </nav>
+
+             <Link to="/" className="flex flex-col items-center group">
+                {logoURL ? (
+                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight uppercase group-hover:text-primary transition-colors">{siteName}</span>
+                )}
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-0.5">Explore Paradise</span>
+             </Link>
+
+             <div className="flex items-center gap-4">
+                <CurrencySwitcher variant="minimal" />
+                {renderActionArea()}
+             </div>
+          </div>
+        );
+
+      case 'floating-dock':
+        return (
+          <div className="container mx-auto px-4 py-4 fixed top-2 left-0 right-0 z-50 pointer-events-none">
+             <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-2xl border border-gray-200/80 rounded-full px-6 py-3 shadow-2xl flex items-center justify-between pointer-events-auto transition-all hover:border-gray-300">
+                <Link to="/" className="flex items-center gap-2">
+                   {logoURL ? (
+                     <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-8 w-auto object-contain" referrerPolicy="no-referrer" />
+                   ) : (
+                     <span className="font-black text-lg text-gray-900 tracking-tight">{siteName}</span>
+                   )}
+                </Link>
+
+                <nav className="hidden md:flex items-center gap-1 bg-gray-100/80 p-1 rounded-full">
+                   {customLinks ? (
+                     customLinks.map((link, idx) => (
+                       <Link key={idx} to={link.url} className="px-4 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:bg-white hover:shadow-xs transition-all">{link.label}</Link>
+                     ))
+                   ) : (
+                     <>
+                       <Link to="/tours" className="px-4 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:bg-white hover:shadow-xs transition-all">Tours</Link>
+                       <Link to="/planner" className="px-4 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:bg-white hover:shadow-xs transition-all">AI Planner</Link>
+                       <Link to="/contact" className="px-4 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:bg-white hover:shadow-xs transition-all">Contact</Link>
+                     </>
+                   )}
+                </nav>
+
+                <div className="flex items-center gap-3">
+                   <CurrencySwitcher variant="minimal" />
+                   {renderActionArea(true)}
+                </div>
+             </div>
+          </div>
+        );
+
+      case 'split-action':
+        return (
+          <div className={cn(headerClass, "h-20 bg-gray-900 text-white px-6 md:px-12")}>
+             <Link to="/" className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary text-white rounded-xl font-black text-xl flex items-center justify-center shadow-lg shadow-primary/30">B</div>
+                <span className="font-extrabold text-xl tracking-tight text-white">{siteName}</span>
+             </Link>
+
+             <nav className="hidden lg:flex items-center gap-8 text-xs font-black uppercase tracking-widest text-gray-300">
+                <Link to="/tours" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  Tours <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[9px]">Hot</span>
+                </Link>
+                <Link to="/planner" className="hover:text-primary transition-colors">AI Trip Planner</Link>
+                <Link to="/blog" className="hover:text-primary transition-colors">Stories</Link>
+             </nav>
+
+             <div className="flex items-center gap-3">
+                <Link to="/contact" className="hidden sm:inline-flex px-4 py-2 rounded-xl text-xs font-bold bg-white/10 text-white hover:bg-white/20 transition-all">
+                   Contact Us
+                </Link>
+                <Link to="/tours" className="px-5 py-2.5 rounded-xl text-xs font-black bg-primary text-white hover:bg-orange-600 shadow-lg shadow-orange-900/40 transition-all">
+                   Book Tour
+                </Link>
+             </div>
+          </div>
+        );
+
+      case 'lux-editorial':
+        return (
+          <div className={cn(headerClass, "h-24 bg-[#FAF8F5] border-b border-[#E8E2D9] px-6 lg:px-12")}>
+             <Link to="/" className="font-serif text-3xl italic text-gray-900 tracking-tight">
+                {siteName}
+             </Link>
+
+             <nav className="hidden lg:flex items-center gap-10 font-sans text-[11px] font-black uppercase tracking-[0.25em] text-gray-500">
+                <Link to="/tours" className="hover:text-gray-900 transition-colors">Curated Collections</Link>
+                <Link to="/about" className="hover:text-gray-900 transition-colors">Our Philosophy</Link>
+                <Link to="/contact" className="hover:text-gray-900 transition-colors">Private Concierge</Link>
+             </nav>
+
+             <div className="flex items-center gap-4">
+                <a href={`https://wa.me/${settings?.whatsappNumber?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-100/80 px-4 py-2 rounded-full border border-amber-200 hover:bg-amber-200 transition-all">
+                   <Phone className="w-3.5 h-3.5" /> Direct Concierge
+                </a>
+                <CurrencySwitcher variant="minimal" />
+             </div>
+          </div>
+        );
+
+      case 'brutalist-bold':
+        return (
+          <div className={cn(headerClass, "h-20 bg-yellow-400 border-b-4 border-black px-6 lg:px-10")}>
+             <Link to="/" className="font-black text-2xl uppercase tracking-tighter text-black hover:skew-x-2 transition-transform">
+                {siteName} ★
+             </Link>
+
+             <nav className="hidden lg:flex items-center gap-8 font-mono text-xs font-black uppercase text-black">
+                <Link to="/tours" className="hover:underline underline-offset-4 decoration-2">EXPLORE TOURS</Link>
+                <Link to="/planner" className="hover:underline underline-offset-4 decoration-2">AI PLANNER</Link>
+                <Link to="/contact" className="hover:underline underline-offset-4 decoration-2">CONTACT</Link>
+             </nav>
+
+             <div className="flex items-center gap-4">
+                <Link to="/tours" className="px-6 py-2.5 bg-black text-white font-black text-xs uppercase tracking-wider rounded-none border-2 border-black hover:bg-white hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                   BOOK NOW
+                </Link>
+             </div>
           </div>
         );
 

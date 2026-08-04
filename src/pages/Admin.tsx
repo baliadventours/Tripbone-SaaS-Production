@@ -173,6 +173,8 @@ import TicketManager from '../components/Admin/TicketManager';
 import GoogleAnalytics from './Dashboard/GoogleAnalytics';
 import AIHubManager from '../components/Admin/AIHubManager';
 import ProposalGenerator from '../components/Admin/ProposalGenerator';
+import UserManager from '../components/Admin/UserManager';
+import PaymentManager from '../components/Admin/PaymentManager';
 
 type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
@@ -2137,7 +2139,7 @@ const BookingTimeManager = () => {
         </div>
       </div>
     );
-  };  const UserManager = ({ users, setUsers, onDeleteUser, roleFilter, allTours = [], resetForm, setFormData, formData, setActiveMenu }: { 
+  };  const LegacyUserManager = ({ users, setUsers, onDeleteUser, roleFilter, allTours = [], resetForm, setFormData, formData, setActiveMenu }: { 
     users: UserProfile[], 
     setUsers: (u: UserProfile[]) => void, 
     onDeleteUser: (u: UserProfile) => void, 
@@ -2842,7 +2844,7 @@ const BookingTimeManager = () => {
     );
   };
 
-  const PaymentManager = () => {
+  const LegacyPaymentManager = () => {
   const [settings, setSettings] = useState({
     paypalClientId: '',
     paypalSecret: '',
@@ -7813,6 +7815,12 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         id: 'reviews',
         label: 'Reviews',
         icon: Star,
+        hidden: isSupplier || isAgent
+      },
+      {
+        id: 'users',
+        label: 'User Management',
+        icon: Users,
         hidden: isSupplier || isAgent
       },
       {
@@ -13213,6 +13221,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
               <CommunicationManager />
             </div>
+          )}
+          {activeMenu === 'users' && (
+             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+                <UserManager users={users} setUsers={setUsers} currentUserProfile={currentUserProfile} />
+             </div>
           )}
           {activeMenu === 'payment-settings' && (
              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">

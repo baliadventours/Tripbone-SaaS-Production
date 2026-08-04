@@ -511,6 +511,35 @@ export default function WebsiteBuilder() {
 
   const getDesignOptions = (blockId: string) => {
     switch(blockId) {
+      case 'topNav':
+        return [
+          { value: 'default', label: 'Classic Dark Bar', desc: 'Social Icons, Support Phone, Support Email, Currency Switcher' },
+          { value: 'airbnb-classic', label: 'Airbnb White Bar', desc: 'Welcome banner, WhatsApp assistance link, Currency Switcher' },
+          { value: 'emerald-safari', label: 'Emerald Tropical Bar', desc: '24/7 Hotline badge, Instant WhatsApp link, Currency Switcher' },
+          { value: 'tokyo-neon', label: 'Cyberpunk Slate Bar', desc: 'Live booking status indicator, System status, Currency' },
+          { value: 'sunset-ibiza', label: 'Gradient Sunset Ibiza', desc: 'Special offer discount banner highlight, Currency' },
+          { value: 'nordic-clean', label: 'Nordic Stone Grey Bar', desc: 'Clean operating hours badge, Phone link, Currency' },
+          { value: 'royal-gold', label: 'Royal Black & Gold', desc: 'VIP Concierge & Luxury Chauffeur, Direct Desk link' },
+          { value: 'modern-dark', label: 'Modern Obsidian Bar', desc: 'Adventure intelligence stats badge, System status, Currency' },
+          { value: 'modern-glass', label: 'Glassmorphism Bar', desc: 'Frosted container with AI Planner CTA, Currency' },
+          { value: 'minimal-type', label: 'Editorial Typographic', desc: 'Monospace contact details and uppercase brand tag' },
+          { value: 'saas-clean', label: 'SaaS Minimal Bar', desc: 'Build version tag, Developer support, Currency' }
+        ];
+
+      case 'mainNav':
+        return [
+          { value: 'default', label: 'Standard Responsive Navigation', desc: 'Classic Brand Logo, Search Bar, Links, Currency, Book CTA' },
+          { value: 'airbnb-classic', label: 'Airbnb Floating Search Pill Header', desc: 'Interactive search pill ("Where next? | Dates | Group size")' },
+          { value: 'centered-logo', label: 'Centered Brand Logo Header', desc: 'Categories on left, centered display brand logo, right action area' },
+          { value: 'floating-dock', label: 'Apple Floating Capsule Island', desc: 'Floats centered above top banner with backdrop blur and shadow' },
+          { value: 'split-action', label: 'Split Action Header', desc: 'Brand logo left, badge links middle, Contact Us + Book Tour CTAs' },
+          { value: 'lux-editorial', label: 'High-End Editorial Serif Header', desc: 'Serif logo, uppercase links, direct concierge button' },
+          { value: 'brutalist-bold', label: 'High-Contrast Brutalist Header', desc: 'Yellow canvas with thick black borders and solid shadow buttons' },
+          { value: 'modern-glass', label: 'Glassmorphism Capsule Nav', desc: 'Dark backdrop blur, glass container with search button' },
+          { value: 'minimal-type', label: 'Editorial Typographic Header', desc: 'Monospace typography with clean borders and volume tag' },
+          { value: 'saas-clean', label: 'SaaS Engine Header', desc: 'Compact logo with console badge button' }
+        ];
+
       case 'hero':
         return [
           { value: 'slideshow-atv', label: 'Cinematic Slideshow', desc: 'Full-bleed image slider with badge, animated titles, and dot navigation' },

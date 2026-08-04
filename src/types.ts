@@ -203,18 +203,44 @@ export interface Review {
 }
 
 export interface PaymentSettings {
+  // PayPal Settings
   paypalClientId: string;
-  paypalSecret?: string; // Cache for backend use if needed
+  paypalSecret?: string;
   paypalSandboxClientId?: string;
   paypalSandboxSecret?: string;
   paypalMode: 'live' | 'sandbox';
   isPaypalEnabled: boolean;
   creditCardEnabled: boolean;
+
+  // Stripe Settings
+  isStripeEnabled?: boolean;
+  stripeMode?: 'live' | 'test';
+  stripePublishableKey?: string;
+  stripeSecretKey?: string;
+  stripeTestPublishableKey?: string;
+  stripeTestSecretKey?: string;
+  stripeWebhookSecret?: string;
+
+  // Midtrans Settings (Indonesia Gateways & QRIS)
+  isMidtransEnabled?: boolean;
+  midtransEnvironment?: 'sandbox' | 'production';
+  midtransMerchantId?: string;
+  midtransClientKey?: string;
+  midtransServerKey?: string;
+  midtransSnapUrl?: string;
+  midtransPaymentMethods?: string[];
+
+  // Bank Transfer Settings
+  isBankTransferEnabled?: boolean;
   bankName: string;
   accountNumber: string;
   accountHolder: string;
   swiftCode?: string;
   bankInstructions: string;
+
+  // Pay on Arrival (Cash) Settings
+  isPayOnArrivalEnabled?: boolean;
+  payOnArrivalInstructions?: string;
 }
 
 export interface BookingLog {
@@ -314,7 +340,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL: string;
-  role: 'admin' | 'customer' | 'supplier' | 'agent';
+  role: 'admin' | 'staff' | 'customer' | 'supplier' | 'agent';
   status: 'active' | 'pending' | 'suspended';
   commissionRate?: number; // For suppliers (percentage 0-100)
   discountRate?: number; // For agents (percentage 0-100)

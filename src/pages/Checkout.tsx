@@ -28,6 +28,7 @@ import {
   Wallet,
   Banknote,
   DollarSign,
+  QrCode,
   Loader2,
   ArrowLeft,
   Calendar,
@@ -57,7 +58,7 @@ import { sendBookingEmail } from "../lib/emailService";
 import { sendWhatsAppNotification } from "../lib/whatsappService";
 
 type CheckoutStep = "selection" | "customer" | "payment";
-type PaymentMethod = "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
+type PaymentMethod = "stripe" | "midtrans" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
 
 interface CountryWithPhoneCode {
   name: string;
@@ -471,6 +472,8 @@ export default function Checkout() {
     paypalMode?: 'live' | 'sandbox';
     isPaypalEnabled: boolean;
     creditCardEnabled: boolean;
+    isStripeEnabled?: boolean;
+    isMidtransEnabled?: boolean;
     isBankTransferEnabled?: boolean;
     isPayOnArrivalEnabled?: boolean;
     bankName?: string;
@@ -2498,6 +2501,20 @@ const toggleAddOn = (addon: AddOn) => {
 
                 <div className="grid gap-4">
                   {[
+                    {
+                      id: "stripe",
+                      label: "Credit / Debit Card (Stripe)",
+                      icon: CreditCard,
+                      des: "Fast, secure card payment processed by Stripe",
+                      enabled: paymentSettings?.isStripeEnabled ?? false,
+                    },
+                    {
+                      id: "midtrans",
+                      label: "QRIS / GoPay / Indo Banks (Midtrans)",
+                      icon: QrCode,
+                      des: "Instant QRIS code, GoPay, ShopeePay, BCA, Mandiri VA",
+                      enabled: paymentSettings?.isMidtransEnabled ?? false,
+                    },
                     {
                       id: "paypal",
                       label: "PayPal",

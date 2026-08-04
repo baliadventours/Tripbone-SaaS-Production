@@ -49,6 +49,33 @@ import {
 import { cn } from '../../lib/utils';
 import { updateTenantGA, extractMeasurementId } from '../../lib/googleAnalytics';
 
+const TOP_NAV_OPTIONS = [
+  { id: 'default', name: 'Classic Dark Bar (Phone, Support Email, Currency)', category: 'TopBar' },
+  { id: 'airbnb-classic', name: 'Airbnb White Bar (Welcome, WhatsApp assistance)', category: 'TopBar' },
+  { id: 'emerald-safari', name: 'Emerald Tropical Bar (24/7 Hotline badge, WhatsApp)', category: 'TopBar' },
+  { id: 'tokyo-neon', name: 'Cyberpunk Slate Bar (Live booking status, System status)', category: 'TopBar' },
+  { id: 'sunset-ibiza', name: 'Gradient Sunset Bar (Promo discount banner)', category: 'TopBar' },
+  { id: 'nordic-clean', name: 'Nordic Stone Grey Bar (Operating hours, Phone)', category: 'TopBar' },
+  { id: 'royal-gold', name: 'Royal Black & Gold Bar (VIP Concierge)', category: 'TopBar' },
+  { id: 'modern-dark', name: 'Modern Dark Bar (Adventure intelligence)', category: 'TopBar' },
+  { id: 'modern-glass', name: 'Glassmorphism Bar (AI Planner CTA)', category: 'TopBar' },
+  { id: 'minimal-type', name: 'Editorial Typographic Bar (Monospace contact details)', category: 'TopBar' },
+  { id: 'saas-clean', name: 'SaaS Minimal Bar (Build version tag)', category: 'TopBar' },
+];
+
+const MAIN_NAV_OPTIONS = [
+  { id: 'default', name: 'Standard Responsive Navigation (Logo, Links, Search, CTA)', category: 'MainNav' },
+  { id: 'airbnb-classic', name: 'Airbnb Floating Search Pill Header ("Where next?")', category: 'MainNav' },
+  { id: 'centered-logo', name: 'Centered Brand Logo Header (Left categories, Centered logo)', category: 'MainNav' },
+  { id: 'floating-dock', name: 'Apple Floating Capsule Island (Floats centered with blur)', category: 'MainNav' },
+  { id: 'split-action', name: 'Split Action Header (Brand left, Badge links, Dual CTAs)', category: 'MainNav' },
+  { id: 'lux-editorial', name: 'High-End Editorial Serif Header (Serif logo, Concierge button)', category: 'MainNav' },
+  { id: 'brutalist-bold', name: 'High-Contrast Brutalist Header (Yellow canvas, Thick black border)', category: 'MainNav' },
+  { id: 'modern-glass', name: 'Glassmorphism Capsule Nav (Dark backdrop blur)', category: 'MainNav' },
+  { id: 'minimal-type', name: 'Editorial Typographic Header (Monospace typography)', category: 'MainNav' },
+  { id: 'saas-clean', name: 'SaaS Engine Header (Compact logo, Console button)', category: 'MainNav' },
+];
+
 const THEME_OPTIONS = [
   { id: 'slideshow-atv', name: 'Cinematic Multi-Image Slideshow Hero', category: 'Slideshow' },
   { id: 'airbnb-classic', name: 'Airbnb Split Search & Gallery Hero', category: 'Airbnb' },
@@ -1890,7 +1917,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                       className="w-full bg-orange-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white focus:ring-2 focus:ring-orange-500 focus:outline-none appearance-none"
                     >
                       <option value="" className="bg-orange-900 text-white/50">Current Default Style</option>
-                      {THEME_OPTIONS.map(opt => (
+                      {(section.id === 'topNav' ? TOP_NAV_OPTIONS : section.id === 'mainNav' ? MAIN_NAV_OPTIONS : THEME_OPTIONS).map(opt => (
                         <option key={opt.id} value={opt.id} className="bg-orange-900 text-white">
                           [{opt.category}] {opt.name}
                         </option>

@@ -45,7 +45,7 @@ export default function GuideView() {
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      await html2pdf().set(opt).from(element).save();
+      await (html2pdf as any)().set(opt).from(element).save();
     } catch (err) {
       console.error('Error generating PDF:', err);
       // Fallback to browser print if html2pdf encounters an issue
