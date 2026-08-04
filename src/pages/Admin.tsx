@@ -175,8 +175,9 @@ import AIHubManager from '../components/Admin/AIHubManager';
 import ProposalGenerator from '../components/Admin/ProposalGenerator';
 import UserManager from '../components/Admin/UserManager';
 import PaymentManager from '../components/Admin/PaymentManager';
+import ChannelManager from '../components/Admin/ChannelManager';
 
-type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
+type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
 
 const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'locations' | 'labels', items: (Category | TourType | LocationMeta | TourLabel)[] }) => {
@@ -6953,7 +6954,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       if (menu === 'tours' || menu === 'categories' || menu === 'tour-types' || menu === 'locations' || menu === 'addons' || menu === 'transports' || menu === 'labels') {
         return 'tours';
       }
-      if (menu === 'bookings' || menu === 'schedule' || menu === 'operation' || menu === 'inventory' || menu === 'import-bookings' || menu === 'timeslots') {
+      if (menu === 'bookings' || menu === 'channel-manager' || menu === 'schedule' || menu === 'operation' || menu === 'inventory' || menu === 'import-bookings' || menu === 'timeslots') {
         return 'bookings';
       }
       if (menu === 'settings' || menu === 'payments' || menu === 'general-settings' || menu === 'payment-settings' || menu === 'communication') {
@@ -7733,6 +7734,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         icon: Briefcase,
         children: [
           { id: 'bookings', label: 'Booking List' },
+          { id: 'channel-manager', label: 'Channel Manager (OTAs)', hidden: isAgent || isSupplier },
           { id: 'import-bookings', label: 'Import Booking', hidden: isAgent || isSupplier },
           { id: 'schedule', label: 'Calendar', hidden: isAgent },
           { id: 'reports', label: 'Booking Reports', hidden: isAgent || isSupplier }
@@ -12444,6 +12446,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 onSuccess={() => setActiveMenu('bookings')}
                 commSettings={commSettings}
               />
+            </div>
+          )}
+          {activeMenu === 'channel-manager' && (
+            <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+              <ChannelManager allTours={tours} />
             </div>
           )}
           {activeMenu === 'inquiries' && (
