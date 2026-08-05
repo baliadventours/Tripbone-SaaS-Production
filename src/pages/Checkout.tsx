@@ -662,7 +662,7 @@ export default function Checkout() {
       if (defaultOpt.type === 'meet') {
         setCustomerData(prev => ({
           ...prev,
-          pickupAddress: tour?.meetingPoint || "Meet directly at our adventure basecamp."
+          pickupAddress: selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp."
         }));
       }
       return;
@@ -706,7 +706,20 @@ export default function Checkout() {
         }
       }
     }
-  }, [availableTransports, selectedTransport, selectedTransportType, adults, children, tour?.meetingPoint]);
+  }, [availableTransports, selectedTransport, selectedTransportType, adults, children, selectedPackage?.meetingPoint, tour?.meetingPoint]);
+
+  // Sync pickup address whenever selectedPackage or tour meeting point changes and Own Transport is active
+  useEffect(() => {
+    if (selectedTransportType === 'meet') {
+      const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+      setCustomerData(prev => {
+        if (prev.pickupAddress !== activeMp) {
+          return { ...prev, pickupAddress: activeMp };
+        }
+        return prev;
+      });
+    }
+  }, [selectedPackage?.meetingPoint, tour?.meetingPoint, selectedTransportType]);
 
   const applicableTier = useMemo(() => {
     if (!selectedPackage?.tiers || selectedPackage.tiers.length === 0) return null;
@@ -1025,6 +1038,9 @@ const toggleAddOn = (addon: AddOn) => {
         supplierEmail,
         customerData: {
           ...customerData,
+          pickupAddress: selectedTransportType === 'meet' 
+            ? (selectedPackage?.meetingPoint || tour?.meetingPoint || customerData.pickupAddress || "Meet directly at our adventure basecamp.") 
+            : customerData.pickupAddress,
           phone: getInternationalPhoneNumber(customerData.phone, customerData.nationality),
           email: customerEmailNormalized
         },
@@ -1946,7 +1962,7 @@ const toggleAddOn = (addon: AddOn) => {
                             if (opt) setSelectedTransport(opt);
                             setCustomerData(prev => ({
                               ...prev,
-                              pickupAddress: tour?.meetingPoint || "Meet directly at our adventure basecamp."
+                              pickupAddress: selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp."
                             }));
                           }}
                           className={cn(
@@ -1994,7 +2010,8 @@ const toggleAddOn = (addon: AddOn) => {
                               setSelectedTransportType('shared');
                               if (sOpt) setSelectedTransport(sOpt);
                               setCustomerData(prev => {
-                                const isMeetingPoint = prev.pickupAddress === (tour?.meetingPoint || "Meet directly at our adventure basecamp.");
+                                const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+                                const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
                                 return {
                                   ...prev,
                                   pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
@@ -2054,7 +2071,8 @@ const toggleAddOn = (addon: AddOn) => {
                               const bestPrivateOpt = matchingCars[0] || pOpts[0];
                               if (bestPrivateOpt) setSelectedTransport(bestPrivateOpt);
                               setCustomerData(prev => {
-                                const isMeetingPoint = prev.pickupAddress === (tour?.meetingPoint || "Meet directly at our adventure basecamp.");
+                                const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+                                const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
                                 return {
                                   ...prev,
                                   pickupAddress: isMeetingPoint ? "" : prev.pickupAddress

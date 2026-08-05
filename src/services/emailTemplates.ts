@@ -430,6 +430,7 @@ export const bookingDetailsSection = (booking: any, siteSettings?: any, isAdmin:
         <a href="${mp.url}" target="_blank" style="color: #ea580c; font-weight: 800; text-decoration: underline; font-size: 13px; display: inline-block;">
           ${mp.venue}
         </a>
+        ${mp.address && mp.address !== mp.venue ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${mp.address}</div>` : ''}
       </div>
     `;
   } else {
