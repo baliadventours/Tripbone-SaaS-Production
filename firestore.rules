@@ -343,8 +343,18 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // --- Knowledge Base ---
+    // --- Knowledge Base & Documentation ---
     match /knowledge_base/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /documentation_articles/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /documentation_categories/{catId} {
       allow read: if true;
       allow write: if true;
     }

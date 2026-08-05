@@ -4,7 +4,7 @@ import {
   BookOpen, Search, ChevronRight, ChevronLeft, Image as ImageIcon, 
   ExternalLink, Layers, Copy, Check, Sparkles, FileText,
   HelpCircle, ArrowLeft, Menu, X, Plus, Globe,
-  CheckCircle2, ListOrdered, Share2
+  CheckCircle2, ListOrdered, Share2, Sun, Moon, Settings, FolderPlus
 } from 'lucide-react';
 import { db, collection, onSnapshot } from '../../lib/firebase';
 import { useTenant } from '../../lib/TenantContext';
@@ -27,7 +27,21 @@ export interface DocArticle {
   createdAt?: any;
 }
 
-const DEFAULT_DOC_ARTICLES: DocArticle[] = [
+export interface DocCategory {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+}
+
+export const DEFAULT_DOC_CATEGORIES: DocCategory[] = [
+  { id: 'cat-1', name: 'Getting Started', description: 'Essential setup guides for Tripbone SaaS', order: 1 },
+  { id: 'cat-2', name: 'Payment Integration', description: 'BYOPG payment gateway setup guides', order: 2 },
+  { id: 'cat-3', name: 'Domain & SEO', description: 'Custom domain and SEO optimization', order: 3 },
+  { id: 'cat-4', name: 'AI & Automation', description: 'AI itinerary generator and automated workflows', order: 4 },
+];
+
+export const DEFAULT_DOC_ARTICLES: DocArticle[] = [
   {
     id: 'getting-started',
     slug: 'getting-started',
@@ -141,7 +155,23 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
 
+  // Theme Mode: 'dark' | 'light'
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tripbone_docs_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    }
+    return 'dark';
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('tripbone_docs_theme', nextTheme);
+  };
+
   const [articles, setArticles] = useState<DocArticle[]>(DEFAULT_DOC_ARTICLES);
+  const [categories, setCategories] = useState<DocCategory[]>(DEFAULT_DOC_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -165,6 +195,25 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
     return () => unsubscribe();
   }, []);
 
+  // Load categories from Firestore `documentation_categories`
+  useEffect(() => {
+    const q = collection(db, 'documentation_categories');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const cats = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as DocCategory[];
+        cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+        setCategories(cats);
+      }
+    }, (error) => {
+      console.warn("Docs categories snapshot fallback:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Filtered published articles
   const publishedArticles = useMemo(() => {
     return articles.filter(a => a.status === 'published' || isSuperAdmin);
@@ -179,12 +228,25 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
       groups[cat].push(art);
     });
 
-    Object.keys(groups).forEach(cat => {
-      groups[cat].sort((a, b) => (a.order || 0) - (b.order || 0));
+    // Ensure category ordering matching `categories` list if available
+    const categoryOrderMap: { [catName: string]: number } = {};
+    categories.forEach(c => {
+      categoryOrderMap[c.name] = c.order || 99;
     });
 
-    return groups;
-  }, [publishedArticles]);
+    const sortedCategoryNames = Object.keys(groups).sort((a, b) => {
+      const orderA = categoryOrderMap[a] ?? 99;
+      const orderB = categoryOrderMap[b] ?? 99;
+      return orderA - orderB;
+    });
+
+    const orderedGroups: { [key: string]: DocArticle[] } = {};
+    sortedCategoryNames.forEach(cat => {
+      orderedGroups[cat] = groups[cat].sort((a, b) => (a.order || 0) - (b.order || 0));
+    });
+
+    return orderedGroups;
+  }, [publishedArticles, categories]);
 
   // Active Article selection
   const activeArticle = useMemo(() => {
@@ -252,108 +314,176 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Theme-dependent class names
+  const isDark = theme === 'dark';
+
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 font-sans antialiased selection:bg-cyan-500/20 selection:text-cyan-300">
+    <div className={`min-h-screen font-sans antialiased transition-colors duration-200 ${
+      isDark 
+        ? 'bg-[#090d16] text-slate-100 selection:bg-cyan-500/20 selection:text-cyan-300' 
+        : 'bg-slate-50 text-slate-800 selection:bg-cyan-500/30 selection:text-cyan-900'
+    }`}>
       
-      {/* Top Bar Navigation */}
-      <header className="sticky top-0 z-40 bg-[#090d16]/95 backdrop-blur-md border-b border-slate-800/60 px-4 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      {/* Top Bar Navigation (Spacious & Clean Header) */}
+      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-6 lg:px-10 py-4 transition-colors ${
+        isDark 
+          ? 'bg-[#090d16]/95 border-slate-800/80' 
+          : 'bg-white/95 border-slate-200/90 shadow-xs'
+      }`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
           
-          <div className="flex items-center space-x-3">
+          {/* Logo & Mobile Menu Toggle */}
+          <div className="flex items-center space-x-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/50"
+              className={`lg:hidden p-2.5 rounded-xl border transition ${
+                isDark 
+                  ? 'bg-slate-800/80 text-slate-300 hover:text-white border-slate-700/50' 
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200'
+              }`}
             >
               {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <Link to="/docs" className="flex items-center space-x-3 group">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center font-bold transition group-hover:bg-cyan-500/20">
-                <BookOpen className="w-4 h-4" />
+
+            <Link to="/docs" className="flex items-center space-x-3.5 group">
+              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold transition ${
+                isDark 
+                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 group-hover:bg-cyan-500/20' 
+                  : 'bg-cyan-50 border-cyan-200 text-cyan-600 group-hover:bg-cyan-100'
+              }`}>
+                <BookOpen className="w-5 h-5" />
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-sm tracking-tight text-white group-hover:text-cyan-400 transition">
-                  docs.tripbone.com
-                </span>
-                <span className="text-[10px] font-mono font-bold bg-slate-800/90 text-cyan-400 border border-slate-700 px-1.5 py-0.5 rounded">
-                  v2.5
+              <div className="flex flex-col">
+                <div className="flex items-center space-x-2">
+                  <span className={`font-extrabold text-base tracking-tight transition ${
+                    isDark ? 'text-white group-hover:text-cyan-400' : 'text-slate-900 group-hover:text-cyan-600'
+                  }`}>
+                    docs.tripbone.com
+                  </span>
+                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                    isDark ? 'bg-slate-800/90 text-cyan-400 border-slate-700' : 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                  }`}>
+                    v2.5
+                  </span>
+                </div>
+                <span className={`text-[11px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Documentation & Knowledge Center
                 </span>
               </div>
             </Link>
           </div>
 
           {/* Search Input */}
-          <div className="relative flex-1 max-w-sm hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <div className="relative flex-1 max-w-md hidden sm:block">
+            <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-400'}`} />
             <input
               type="text"
-              placeholder="Search documentation..."
+              placeholder="Search guides, tutorials & APIs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs font-medium text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60 transition"
+              className={`w-full border rounded-xl pl-10 pr-4 py-2 text-xs font-medium transition focus:outline-none ${
+                isDark 
+                  ? 'bg-slate-900/90 border-slate-800 text-slate-200 placeholder-slate-500 focus:border-cyan-500/60' 
+                  : 'bg-slate-100/80 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-cyan-500 focus:bg-white'
+              }`}
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-[11px]"
+                className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-bold ${
+                  isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                }`}
               >
                 Clear
               </button>
             )}
           </div>
 
-          {/* Action Links */}
-          <div className="flex items-center space-x-2">
+          {/* Controls: Theme Toggle & Admin Actions */}
+          <div className="flex items-center space-x-3">
+            {/* Theme Switcher Button */}
+            <button
+              onClick={toggleTheme}
+              title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+              className={`p-2.5 rounded-xl border font-bold text-xs flex items-center space-x-2 transition ${
+                isDark 
+                  ? 'bg-slate-800/80 border-slate-700/60 text-amber-300 hover:bg-slate-800' 
+                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+              <span className="hidden md:inline text-xs font-semibold">
+                {isDark ? 'Light' : 'Dark'}
+              </span>
+            </button>
+
             {onOpenManageModal && (
               <button
                 onClick={onOpenManageModal}
-                className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 font-bold text-xs flex items-center space-x-1.5 transition"
+                className={`px-3.5 py-2 rounded-xl border font-bold text-xs flex items-center space-x-1.5 transition ${
+                  isDark 
+                    ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20' 
+                    : 'bg-cyan-500 text-white border-cyan-600 hover:bg-cyan-600 shadow-xs'
+                }`}
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Manage Docs</span>
               </button>
             )}
+
             <Link
               to="/admin"
-              className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center space-x-1.5 border border-slate-700/60 transition"
+              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition ${
+                isDark 
+                  ? 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/60' 
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border-slate-200'
+              }`}
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-4 h-4" />
               <span className="hidden md:inline">Back office</span>
             </Link>
           </div>
         </div>
 
         {/* Mobile Search */}
-        <div className="mt-2.5 sm:hidden">
+        <div className="mt-3 sm:hidden">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search docs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+              className={`w-full border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none ${
+                isDark 
+                  ? 'bg-slate-900 border-slate-800 text-slate-200 focus:border-cyan-500' 
+                  : 'bg-slate-100 border-slate-200 text-slate-800 focus:border-cyan-500'
+              }`}
             />
           </div>
         </div>
       </header>
 
       {/* Main Documentation Grid Layout */}
-      <div className="max-w-7xl mx-auto flex min-h-[calc(100vh-57px)]">
+      <div className="max-w-7xl mx-auto flex min-h-[calc(100vh-73px)]">
         
         {/* Sidebar Index Navigation */}
         <aside className={`
-          fixed lg:sticky top-[57px] z-30 w-64 h-[calc(100vh-57px)] bg-[#090d16] lg:bg-transparent border-r border-slate-800/60
-          overflow-y-auto p-4 transition-transform duration-200 shrink-0
+          fixed lg:sticky top-[73px] z-30 w-68 h-[calc(100vh-73px)] border-r
+          overflow-y-auto p-5 transition-transform duration-200 shrink-0
+          ${isDark ? 'bg-[#090d16] lg:bg-transparent border-slate-800/60' : 'bg-white lg:bg-transparent border-slate-200'}
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           {searchQuery && (
-            <div className="mb-4 bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div className={`mb-5 border rounded-2xl p-3.5 space-y-2.5 ${
+              isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-100/90 border-slate-200'
+            }`}>
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
                 <span>Search ({searchResults.length})</span>
-                <button onClick={() => setSearchQuery('')} className="text-cyan-400">Clear</button>
+                <button onClick={() => setSearchQuery('')} className="text-cyan-500 hover:underline">Clear</button>
               </div>
               {searchResults.length === 0 ? (
-                <p className="text-xs text-slate-500">No matching docs.</p>
+                <p className="text-xs text-slate-400">No matching docs.</p>
               ) : (
                 searchResults.map(art => (
                   <button
@@ -363,9 +493,13 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                       setSearchQuery('');
                       setIsSidebarOpen(false);
                     }}
-                    className="w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition group"
+                    className={`w-full text-left p-2 rounded-xl transition group ${
+                      isDark ? 'hover:bg-slate-800/80' : 'hover:bg-slate-200/80'
+                    }`}
                   >
-                    <p className="text-xs font-bold text-slate-200 group-hover:text-cyan-400">{art.title}</p>
+                    <p className={`text-xs font-bold transition group-hover:text-cyan-500 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                      {art.title}
+                    </p>
                     <p className="text-[10px] text-slate-400 line-clamp-1">{art.category}</p>
                   </button>
                 ))
@@ -375,15 +509,19 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
 
           <div className="space-y-6">
             {Object.keys(groupedCategories).map((category) => (
-              <div key={category} className="space-y-1">
-                <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-2 py-1 flex items-center justify-between">
+              <div key={category} className="space-y-1.5">
+                <h4 className={`text-[11px] font-extrabold uppercase tracking-wider px-2 py-1 flex items-center justify-between ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}>
                   <span>{category}</span>
-                  <span className="text-[10px] font-mono bg-slate-800/80 px-1.5 py-0.2 rounded text-slate-400">
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
+                    isDark ? 'bg-slate-800/80 text-slate-400 border-slate-700/50' : 'bg-slate-200/70 text-slate-600 border-slate-300/60'
+                  }`}>
                     {groupedCategories[category].length}
                   </span>
                 </h4>
 
-                <div className="space-y-0.5 border-l border-slate-800 ml-2 pl-2">
+                <div className={`space-y-1 border-l ml-2 pl-2.5 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                   {groupedCategories[category].map((art) => {
                     const isActive = activeArticle?.id === art.id || activeArticle?.slug === art.slug;
                     return (
@@ -394,14 +532,18 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                           setIsSidebarOpen(false);
                         }}
                         className={`
-                          w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition flex items-center justify-between group
+                          w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between group font-medium
                           ${isActive 
-                            ? 'bg-cyan-500/10 text-cyan-400 font-semibold border-l-2 border-cyan-400 -ml-[9px] pl-3' 
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'}
+                            ? (isDark 
+                                ? 'bg-cyan-500/10 text-cyan-400 font-bold border-l-2 border-cyan-400 -ml-[11px] pl-3' 
+                                : 'bg-cyan-50 text-cyan-700 font-bold border-l-2 border-cyan-600 -ml-[11px] pl-3')
+                            : (isDark 
+                                ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80')}
                         `}
                       >
                         <span className="truncate">{art.title}</span>
-                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-500 shrink-0 ml-1" />}
                       </button>
                     );
                   })}
@@ -412,27 +554,33 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
         </aside>
 
         {/* Center Main Doc Reader */}
-        <main className="flex-1 min-w-0 p-6 lg:p-10 border-r border-slate-800/60">
+        <main className={`flex-1 min-w-0 p-6 sm:p-8 lg:p-12 border-r ${
+          isDark ? 'border-slate-800/60' : 'border-slate-200'
+        }`}>
           {activeArticle ? (
             <article className="max-w-3xl space-y-8">
               
               {/* Breadcrumb */}
-              <div className="flex items-center space-x-2 text-xs font-medium text-slate-400">
-                <Link to="/docs" className="hover:text-cyan-400 transition">Docs</Link>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-                <span className="text-slate-300">{activeArticle.category}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-                <span className="text-cyan-400 font-medium truncate">{activeArticle.title}</span>
+              <div className={`flex items-center space-x-2 text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <Link to="/docs" className="hover:text-cyan-500 transition">Docs</Link>
+                <ChevronRight className="w-3.5 h-3.5" />
+                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>{activeArticle.category}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+                <span className="text-cyan-500 font-semibold truncate">{activeArticle.title}</span>
               </div>
 
               {/* Title Section */}
-              <div className="space-y-3 pb-6 border-b border-slate-800/80">
+              <div className={`space-y-4 pb-6 border-b ${isDark ? 'border-slate-800/80' : 'border-slate-200'}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                    <span className={`inline-block px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border ${
+                      isDark ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                    }`}>
                       {activeArticle.category}
                     </span>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
+                    <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug ${
+                      isDark ? 'text-white' : 'text-slate-900'
+                    }`}>
                       {activeArticle.title}
                     </h1>
                   </div>
@@ -440,20 +588,24 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                   <button
                     onClick={handleCopyShare}
                     title="Share Link"
-                    className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs shrink-0 border border-slate-700/50"
+                    className={`p-2.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 shrink-0 transition ${
+                      isDark 
+                        ? 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/50' 
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border-slate-200'
+                    }`}
                   >
-                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
+                    {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
                     <span className="hidden sm:inline">{copiedLink ? 'Copied' : 'Share'}</span>
                   </button>
                 </div>
 
                 {activeArticle.subTitle && (
-                  <h2 id="overview-subtitle" className="text-base font-semibold text-slate-300">
+                  <h2 id="overview-subtitle" className={`text-base font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                     {activeArticle.subTitle}
                   </h2>
                 )}
 
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pt-1">
+                <p className={`text-sm sm:text-base leading-relaxed pt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                   {activeArticle.description}
                 </p>
               </div>
@@ -461,17 +613,23 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
               {/* HTML / Body Content */}
               {activeArticle.content && (
                 <div 
-                  className="prose prose-invert prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-100 prose-p:text-slate-300 prose-a:text-cyan-400 prose-strong:text-slate-100 text-xs sm:text-sm leading-relaxed space-y-4"
+                  className={`prose max-w-none text-sm sm:text-base leading-relaxed space-y-4 ${
+                    isDark 
+                      ? 'prose-invert prose-headings:text-white prose-p:text-slate-300 prose-a:text-cyan-400 prose-strong:text-white' 
+                      : 'prose-slate prose-headings:text-slate-900 prose-p:text-slate-700 prose-a:text-cyan-600 prose-strong:text-slate-900'
+                  }`}
                   dangerouslySetInnerHTML={{ __html: activeArticle.content }}
                 />
               )}
 
               {/* Step-by-Step Instructions */}
               {activeArticle.steps && activeArticle.steps.length > 0 && (
-                <div id="steps-section" className="space-y-4 pt-2">
-                  <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-2.5">
-                    <ListOrdered className="w-4 h-4 text-cyan-400" />
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Step-by-Step Instructions</h3>
+                <div id="steps-section" className="space-y-4 pt-4">
+                  <div className={`flex items-center space-x-2 border-b pb-3 ${isDark ? 'border-slate-800/80' : 'border-slate-200'}`}>
+                    <ListOrdered className="w-4 h-4 text-cyan-500" />
+                    <h3 className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      Step-by-Step Instructions
+                    </h3>
                   </div>
 
                   <div className="space-y-4">
@@ -479,23 +637,33 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                       <div 
                         key={idx} 
                         id={`step-${idx}`}
-                        className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-2 hover:border-slate-700/80 transition"
+                        className={`border rounded-2xl p-5 space-y-2.5 transition ${
+                          isDark 
+                            ? 'bg-slate-900/60 border-slate-800 hover:border-slate-700/80' 
+                            : 'bg-white border-slate-200 shadow-xs hover:border-slate-300'
+                        }`}
                       >
-                        <div className="flex items-center space-x-2.5">
-                          <span className="w-6 h-6 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-extrabold text-xs flex items-center justify-center shrink-0">
+                        <div className="flex items-center space-x-3">
+                          <span className={`w-7 h-7 rounded-lg border font-extrabold text-xs flex items-center justify-center shrink-0 ${
+                            isDark 
+                              ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' 
+                              : 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                          }`}>
                             {idx + 1}
                           </span>
-                          <h4 className="font-bold text-slate-100 text-xs sm:text-sm">{step.title}</h4>
+                          <h4 className={`font-bold text-sm sm:text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {step.title}
+                          </h4>
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed pl-8">
+                        <p className={`text-xs sm:text-sm leading-relaxed pl-10 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                           {step.desc}
                         </p>
                         {step.image && (
-                          <div className="pl-8 pt-2">
+                          <div className="pl-10 pt-2">
                             <img 
                               src={step.image} 
                               alt={step.title} 
-                              className="rounded-lg border border-slate-800 max-h-72 object-cover shadow-md"
+                              className="rounded-xl border max-h-80 object-cover shadow-md"
                             />
                           </div>
                         )}
@@ -507,23 +675,27 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
 
               {/* Images Reference */}
               {activeArticle.images && activeArticle.images.length > 0 && (
-                <div id="gallery-section" className="space-y-3 pt-2">
-                  <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-2.5">
-                    <ImageIcon className="w-4 h-4 text-cyan-400" />
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Visual Reference</h3>
+                <div id="gallery-section" className="space-y-3 pt-4">
+                  <div className={`flex items-center space-x-2 border-b pb-3 ${isDark ? 'border-slate-800/80' : 'border-slate-200'}`}>
+                    <ImageIcon className="w-4 h-4 text-cyan-500" />
+                    <h3 className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      Visual Reference
+                    </h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {activeArticle.images.map((imgUrl, i) => (
                       <a 
                         key={i} 
                         href={imgUrl} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="group relative rounded-xl overflow-hidden border border-slate-800 hover:border-cyan-500/40 transition bg-slate-900 block"
+                        className={`group relative rounded-2xl overflow-hidden border transition block ${
+                          isDark ? 'border-slate-800 bg-slate-900 hover:border-cyan-500/40' : 'border-slate-200 bg-slate-100 hover:border-cyan-500'
+                        }`}
                       >
-                        <img src={imgUrl} alt={`Ref ${i}`} className="w-full h-40 object-cover group-hover:scale-105 transition duration-300" />
-                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs font-bold text-white gap-1">
-                          <ExternalLink className="w-3.5 h-3.5" /> Expand
+                        <img src={imgUrl} alt={`Ref ${i}`} className="w-full h-44 object-cover group-hover:scale-105 transition duration-300" />
+                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs font-bold text-white gap-1.5">
+                          <ExternalLink className="w-4 h-4" /> Expand Image
                         </div>
                       </a>
                     ))}
@@ -532,16 +704,24 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
               )}
 
               {/* Navigation Pagination Buttons */}
-              <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className={`pt-8 mt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4 ${
+                isDark ? 'border-slate-800/80' : 'border-slate-200'
+              }`}>
                 {prevArticle ? (
                   <button
                     onClick={() => navigate(`/docs/${prevArticle.slug || prevArticle.id}`)}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition text-left group flex items-center space-x-3"
+                    className={`w-full sm:w-auto px-5 py-3.5 rounded-2xl border transition text-left group flex items-center space-x-3 ${
+                      isDark 
+                        ? 'bg-slate-900/80 hover:bg-slate-800 border-slate-800' 
+                        : 'bg-white hover:bg-slate-100 border-slate-200 shadow-xs'
+                    }`}
                   >
-                    <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition" />
+                    <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-cyan-500 transition" />
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Previous</span>
-                      <p className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 truncate max-w-[180px]">
+                      <p className={`text-xs font-semibold truncate max-w-[200px] group-hover:text-cyan-500 ${
+                        isDark ? 'text-slate-200' : 'text-slate-800'
+                      }`}>
                         {prevArticle.title}
                       </p>
                     </div>
@@ -551,15 +731,21 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                 {nextArticle ? (
                   <button
                     onClick={() => navigate(`/docs/${nextArticle.slug || nextArticle.id}`)}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition text-right group flex items-center justify-end space-x-3 ml-auto"
+                    className={`w-full sm:w-auto px-5 py-3.5 rounded-2xl border transition text-right group flex items-center justify-end space-x-3 ml-auto ${
+                      isDark 
+                        ? 'bg-slate-900/80 hover:bg-slate-800 border-slate-800' 
+                        : 'bg-white hover:bg-slate-100 border-slate-200 shadow-xs'
+                    }`}
                   >
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Next</span>
-                      <p className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 truncate max-w-[180px]">
+                      <p className={`text-xs font-semibold truncate max-w-[200px] group-hover:text-cyan-500 ${
+                        isDark ? 'text-slate-200' : 'text-slate-800'
+                      }`}>
                         {nextArticle.title}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-500 transition" />
                   </button>
                 ) : <div />}
               </div>
@@ -567,30 +753,32 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
             </article>
           ) : (
             <div className="text-center py-20 space-y-3">
-              <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-300">No article selected</h3>
-              <p className="text-xs text-slate-500">Select a guide from the sidebar index to view content.</p>
+              <BookOpen className="w-12 h-12 text-slate-400 mx-auto" />
+              <h3 className="text-base font-bold">No article selected</h3>
+              <p className="text-xs text-slate-400">Select a guide from the sidebar index to view content.</p>
             </div>
           )}
         </main>
 
         {/* Right Table of Contents */}
-        <aside className="hidden xl:block w-56 h-[calc(100vh-57px)] sticky top-[57px] p-5 overflow-y-auto shrink-0">
-          <div className="space-y-4">
+        <aside className="hidden xl:block w-60 h-[calc(100vh-73px)] sticky top-[73px] p-6 overflow-y-auto shrink-0">
+          <div className="space-y-5">
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+              <FileText className="w-4 h-4 text-cyan-500" />
               On This Page
             </p>
 
             {tableOfContents.length > 0 ? (
-              <nav className="space-y-1 text-xs">
+              <nav className="space-y-1.5 text-xs">
                 {tableOfContents.map((item, idx) => (
                   <a
                     key={idx}
                     href={`#${item.id}`}
                     className={`
-                      block truncate transition hover:text-cyan-400 py-0.5
-                      ${item.level === 1 ? 'font-semibold text-slate-300' : 'pl-2.5 text-slate-400'}
+                      block truncate transition hover:text-cyan-500 py-0.5
+                      ${item.level === 1 
+                        ? (isDark ? 'font-bold text-slate-200' : 'font-bold text-slate-800') 
+                        : (isDark ? 'pl-3 text-slate-400' : 'pl-3 text-slate-600')}
                     `}
                   >
                     {item.text}
@@ -598,21 +786,23 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                 ))}
               </nav>
             ) : (
-              <p className="text-xs text-slate-500 italic">No section headers</p>
+              <p className="text-xs text-slate-400 italic">No section headers</p>
             )}
 
-            <div className="pt-5 border-t border-slate-800 space-y-2">
-              <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-1.5">
-                <p className="text-xs font-bold text-cyan-400">Need Assistance?</p>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Have questions about setup or custom APIs? Contact merchant support.
+            <div className={`pt-6 border-t space-y-3 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div className={`p-4 rounded-2xl border space-y-2 ${
+                isDark ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-cyan-50/80 border-cyan-200'
+              }`}>
+                <p className="text-xs font-bold text-cyan-500">Merchant Support</p>
+                <p className={`text-[11px] leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Need help with setup or custom domain mapping? Contact system operations.
                 </p>
                 <Link
                   to="/contact"
-                  className="inline-flex items-center space-x-1 text-xs font-semibold text-cyan-400 hover:underline pt-1"
+                  className="inline-flex items-center space-x-1 text-xs font-bold text-cyan-500 hover:underline pt-1"
                 >
                   <span>Contact Support</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>

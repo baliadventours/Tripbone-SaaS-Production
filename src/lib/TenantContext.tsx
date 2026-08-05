@@ -244,13 +244,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
 
     // 4. Resolve subdomain or custom domain
-    if (isSuperAdminRoute) {
-      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
-    }
-
     const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
     const RESERVED_SUBDOMAINS = ['www', 'app', 'docs', 'api', 'admin', 'system', 'superadmin', 'status', 'guide', 'panduan'];
     const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+
+    if (isSuperAdminRoute && (isMainDomain || isAiStudio)) {
+      return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+    }
 
     if (isAiStudio) {
       return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: isAppSubdomain, isExplicitImpersonate: false };

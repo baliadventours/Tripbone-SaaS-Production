@@ -4,7 +4,7 @@
  */
 
 import { Suspense, lazy, useEffect, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
@@ -433,6 +433,7 @@ function AppContent() {
               <Route path="/destinations" element={<Destinations />} />
               <Route path="/tour/:slug" element={<TourDetail />} />
               <Route path="/checkout/:tourId" element={<Checkout />} />
+              <Route path="/superadmin/*" element={<Navigate to="/admin" replace />} />
               <Route path="/admin/*" element={<Admin />} />
               <Route path="/supplier/*" element={<Admin />} />
               <Route path="/agent/*" element={<Admin />} />
