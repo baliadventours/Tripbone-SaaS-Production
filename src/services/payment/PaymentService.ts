@@ -33,6 +33,19 @@ export interface TenantPaymentSettings {
   updatedAt: string;
 }
 
+function sanitizeFirestoreData(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeFirestoreData);
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      sanitized[key] = sanitizeFirestoreData(value);
+    }
+  }
+  return sanitized;
+}
+
 export class PaymentService {
   private static registry = PaymentGatewayRegistry.getInstance();
 
@@ -151,12 +164,12 @@ export class PaymentService {
         providerConfigs,
         depositType: data.depositType || 'percentage',
         depositPercentage: data.depositPercentage !== undefined ? data.depositPercentage : 100,
-        fixedDepositAmount: data.fixedDepositAmount,
-        depositCurrency: data.depositCurrency,
+        fixedDepositAmount: data.fixedDepositAmount !== undefined ? data.fixedDepositAmount : 50,
+        depositCurrency: data.depositCurrency || 'USD',
         autoConfirmOnPayment: data.autoConfirmOnPayment !== undefined ? data.autoConfirmOnPayment : true,
         currencyConversionEnabled: !!data.currencyConversionEnabled,
-        customExchangeRates: data.customExchangeRates,
-        lastDiagnostic: data.lastDiagnostic,
+        customExchangeRates: data.customExchangeRates || {},
+        lastDiagnostic: data.lastDiagnostic || null,
         updatedAt: data.updatedAt || new Date().toISOString(),
       };
     } catch (err: any) {
@@ -277,12 +290,14 @@ export class PaymentService {
       mode: (activeConfig as GatewayConfig)?.mode || 'sandbox',
     };
 
+    const sanitizedFields = sanitizeFirestoreData(flatLegacyFields);
+
     const docRef = doc(db, 'paymentSettings', tenantId);
-    await setDoc(docRef, flatLegacyFields, { merge: true });
+    await setDoc(docRef, sanitizedFields, { merge: true });
 
     // Sync to legacy document path as well
     const legacyDocRef = doc(db, 'settings', 'payment_' + tenantId);
-    await setDoc(legacyDocRef, flatLegacyFields, { merge: true });
+    await setDoc(legacyDocRef, sanitizedFields, { merge: true });
 
     PaymentLogger.logInfo('system', 'saveTenantSettings', { activeProviderId: updatedSettings.activeProviderId });
   }

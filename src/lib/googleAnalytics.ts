@@ -80,6 +80,11 @@ export const clearGATracking = () => {
 
     const existingCustom = document.getElementById('ga-custom-script-injection');
     if (existingCustom) existingCustom.remove();
+
+    // Reset dataLayer if present to prevent cross-tenant tag pollution
+    if (window.dataLayer && Array.isArray(window.dataLayer)) {
+      window.dataLayer.length = 0;
+    }
   }
 };
 
@@ -197,10 +202,12 @@ export const setupGATags = (measurementId: string) => {
     // Fire js initialization event
     window.gtag('js', new Date());
 
-    // Configure tracking ID
+    // Configure tracking ID with strict domain scoping
     window.gtag('config', cleanId, {
       page_path: window.location.pathname + window.location.search,
-      send_page_view: true
+      send_page_view: true,
+      cookie_domain: window.location.hostname === 'localhost' ? 'none' : window.location.hostname,
+      cookie_flags: 'SameSite=None;Secure'
     });
 
     activeMeasurementId = cleanId;
