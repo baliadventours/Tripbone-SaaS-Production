@@ -598,6 +598,14 @@ export default function Checkout() {
             if (existingBooking.selectedGuideOption) {
               setSelectedGuideOption(existingBooking.selectedGuideOption);
             }
+          } else if (tourData.packages && tourData.packages.length > 0) {
+            const pkgParam = searchParams.get("package");
+            const matchedPkg = pkgParam 
+              ? tourData.packages.find(p => p.name.toLowerCase() === pkgParam.toLowerCase()) 
+              : null;
+            const defaultPkg = matchedPkg || tourData.packages[0];
+            setSelectedPackage(defaultPkg);
+            setExpandedPackage(defaultPkg.name);
           }
         }
       } catch (error) {
@@ -623,15 +631,14 @@ export default function Checkout() {
   }, []);
 
   const availableTransports = useMemo(() => {
-    // If the selected package specifies transportIds, filter by them
-    if (selectedPackage?.transportIds && selectedPackage.transportIds.length > 0) {
-      return globalTransports.filter(t => selectedPackage.transportIds!.includes(t.id));
+    const activePackage = selectedPackage || (tour?.packages && tour.packages.length > 0 ? tour.packages[0] : null);
+
+    if (activePackage && Array.isArray(activePackage.transportIds)) {
+      return globalTransports.filter(t => activePackage.transportIds!.includes(t.id));
     }
-    // If the tour specifies transportIds, filter by them
-    if (tour?.transportIds && tour.transportIds.length > 0) {
+    if (tour?.transportIds && Array.isArray(tour.transportIds) && tour.transportIds.length > 0) {
       return globalTransports.filter(t => tour.transportIds.includes(t.id));
     }
-    // Otherwise show all transports
     return globalTransports;
   }, [tour, selectedPackage, globalTransports]);
 
