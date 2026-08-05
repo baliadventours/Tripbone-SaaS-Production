@@ -51,6 +51,7 @@ export interface TourPackage {
   meetingPoint?: string; // New: map embed URL or address
   meetingPointType?: 'Meeting Point' | 'Pick up Location'; // New: selection
   tiers: PricingTier[];
+  transportIds?: string[]; // Global transports available for this package
 }
 
 export interface AddOn {

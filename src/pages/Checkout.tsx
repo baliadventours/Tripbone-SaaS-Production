@@ -623,13 +623,17 @@ export default function Checkout() {
   }, []);
 
   const availableTransports = useMemo(() => {
+    // If the selected package specifies transportIds, filter by them
+    if (selectedPackage?.transportIds && selectedPackage.transportIds.length > 0) {
+      return globalTransports.filter(t => selectedPackage.transportIds!.includes(t.id));
+    }
     // If the tour specifies transportIds, filter by them
     if (tour?.transportIds && tour.transportIds.length > 0) {
       return globalTransports.filter(t => tour.transportIds.includes(t.id));
     }
     // Otherwise show all transports
     return globalTransports;
-  }, [tour, globalTransports]);
+  }, [tour, selectedPackage, globalTransports]);
 
   // Synchronize and auto-select transport based on available transports and group size
   useEffect(() => {

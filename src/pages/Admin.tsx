@@ -13985,7 +13985,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                         <h3 className="text-2xl font-black text-gray-900 tracking-tight">Tiered Pricing Packages</h3>
                         <button 
                           type="button" 
-                          onClick={() => addArrayItem('packages', { name: '', details: '', inclusions: [], exclusions: [], meetingPoint: '', meetingPointType: 'Meeting Point', tiers: [{ minParticipants: 1, maxParticipants: 1, adultPrice: 0, childPrice: 0 }] })} 
+                          onClick={() => addArrayItem('packages', { name: '', details: '', inclusions: [], exclusions: [], meetingPoint: '', meetingPointType: 'Meeting Point', transportIds: formData.transportIds || [], tiers: [{ minParticipants: 1, maxParticipants: 1, adultPrice: 0, childPrice: 0 }] })} 
                           className="flex items-center gap-2 rounded-[10px] bg-primary px-6 py-2 text-sm font-bold text-white shadow-lg shadow-orange-100 hover:bg-orange-700 transition-all"
                         >
                           <PlusCircle className="h-4 w-4" /> New Package
@@ -14203,14 +14203,17 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                 </div>
                               </div>
 
-                              {/* Meeting Point / Pickup Location Section */}
+                              {/* Transportation Option Section */}
                               <div className="pt-8 border-t-2 border-dashed border-gray-50 space-y-6">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between flex-wrap gap-4">
                                   <div className="flex items-center gap-2">
                                     <div className="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center text-primary">
-                                      <MapPin className="h-4 w-4" />
+                                      <Car className="h-4 w-4" />
                                     </div>
-                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">Location Details</h4>
+                                    <div>
+                                      <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">Transportation Option</h4>
+                                      <p className="text-[10px] text-gray-400 font-medium">Configure global transport options available for this specific package</p>
+                                    </div>
                                   </div>
                                   <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
                                     <button
@@ -14236,18 +14239,72 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                   </div>
                                 </div>
 
+                                {/* Selectable Global Transports for this Package */}
+                                <div className="space-y-3 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">
+                                      Select Global Transports for this Package
+                                    </label>
+                                    <span className="text-[10px] font-bold text-gray-400">
+                                      {globalTransports.length} global options
+                                    </span>
+                                  </div>
+
+                                  {globalTransports.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {globalTransports.map(t => {
+                                        const currentPkgTransportIds = pkg.transportIds ?? formData.transportIds ?? globalTransports.map(gt => gt.id);
+                                        const isSelected = currentPkgTransportIds.includes(t.id);
+
+                                        return (
+                                          <div
+                                            key={t.id}
+                                            onClick={() => {
+                                              const updatedIds = isSelected
+                                                ? currentPkgTransportIds.filter(id => id !== t.id)
+                                                : [...currentPkgTransportIds, t.id];
+                                              updateArrayItem('packages', pIdx, { ...pkg, transportIds: updatedIds });
+                                            }}
+                                            className={cn(
+                                              "p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between group bg-white",
+                                              isSelected ? "border-primary bg-orange-50/20 text-gray-900 shadow-sm" : "border-gray-200 hover:border-orange-200 text-gray-500 opacity-70 hover:opacity-100"
+                                            )}
+                                          >
+                                            <div className="flex items-center gap-2.5">
+                                              <div className={cn(
+                                                "h-5 w-5 rounded-md border flex items-center justify-center transition-all",
+                                                isSelected ? "bg-primary border-primary text-white" : "border-gray-300 bg-white"
+                                              )}>
+                                                {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                                              </div>
+                                              <div>
+                                                <p className="font-bold text-xs text-gray-900 leading-tight">{t.name}</p>
+                                                <p className="text-[10px] font-extrabold uppercase text-gray-400 mt-0.5">
+                                                  Type: {t.type === 'meet' ? 'Own Transport' : t.type} • {t.type === 'meet' ? 'Free' : `${formatPrice(t.price)}`}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-gray-400 italic">No global transport options found. Please configure them in the Transports menu.</p>
+                                  )}
+                                </div>
+
                                 <div className="grid gap-6">
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                        Location Address
+                                        Location / Meeting Address
                                       </label>
                                       <textarea
                                         rows={2}
                                         placeholder="Enter the meeting point address or pick up area..."
                                         value={pkg.meetingPoint || ''}
                                         onChange={e => updateArrayItem('packages', pIdx, { ...pkg, meetingPoint: e.target.value })}
-                                        className="w-full rounded-xl border-2 border-gray-100 p-4 text-xs font-bold focus:border-primary outline-none transition-all"
+                                        className="w-full rounded-xl border-2 border-gray-100 p-4 text-xs font-bold focus:border-primary outline-none transition-all bg-white"
                                       />
                                       <p className="text-[9px] text-gray-400 font-medium italic">Example: Sanur Beach Harbor or Jimbaran Area Hotels</p>
                                     </div>
