@@ -50,6 +50,7 @@ export interface TourPackage {
   exclusions: string[];
   meetingPoint?: string; // New: map embed URL or address
   meetingPointType?: 'Meeting Point' | 'Pick up Location'; // New: selection
+  pickupAreas?: string; // Covered pickup areas served (e.g. Ubud, Canggu, Seminyak)
   tiers: PricingTier[];
   transportIds?: string[]; // Global transports available for this package
 }
@@ -154,6 +155,7 @@ export interface Tour {
   accommodations?: AccommodationOption[]; // Accommodations / Hotels with room types & prices
   multiDayGuides?: MultiDayGuideOption[]; // Multi-day guide options with prices
   meetingPoint?: string; // Tour level meeting point
+  pickupAreas?: string; // Tour level pickup areas served
   faqs: {
     question: string;
     answer: string;

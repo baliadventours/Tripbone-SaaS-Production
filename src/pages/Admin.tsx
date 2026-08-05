@@ -13985,7 +13985,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                         <h3 className="text-2xl font-black text-gray-900 tracking-tight">Tiered Pricing Packages</h3>
                         <button 
                           type="button" 
-                          onClick={() => addArrayItem('packages', { name: '', details: '', inclusions: [], exclusions: [], meetingPoint: '', meetingPointType: 'Meeting Point', transportIds: formData.transportIds || [], tiers: [{ minParticipants: 1, maxParticipants: 1, adultPrice: 0, childPrice: 0 }] })} 
+                          onClick={() => addArrayItem('packages', { name: '', details: '', inclusions: [], exclusions: [], meetingPoint: '', meetingPointType: 'Meeting Point', pickupAreas: '', transportIds: formData.transportIds || [], tiers: [{ minParticipants: 1, maxParticipants: 1, adultPrice: 0, childPrice: 0 }] })} 
                           className="flex items-center gap-2 rounded-[10px] bg-primary px-6 py-2 text-sm font-bold text-white shadow-lg shadow-orange-100 hover:bg-orange-700 transition-all"
                         >
                           <PlusCircle className="h-4 w-4" /> New Package
@@ -14293,20 +14293,75 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                   )}
                                 </div>
 
-                                <div className="grid gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
+                                  {/* Meeting Point Address & Maps URL */}
+                                  {(() => {
+                                    const rawAddress = pkg.meetingPoint || "";
+                                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                                    const match = rawAddress.match(urlRegex);
+                                    const currentLink = match ? match[0] : "";
+                                    const currentTitle = rawAddress.replace(urlRegex, "").replace(/^[\s\-,.:;]+|[\s\-,.:;]+$/g, "").trim();
+
+                                    return (
+                                      <div className="space-y-4">
+                                        <div className="flex items-center gap-2">
+                                          <MapPin className="h-4 w-4 text-primary" />
+                                          <label className="text-[11px] font-black text-gray-800 uppercase tracking-wider">
+                                            Meeting Point Location & Map Link
+                                          </label>
+                                        </div>
+                                        <div className="space-y-3">
+                                          <div>
+                                            <label className="text-[10px] font-bold text-gray-500 block mb-1">Location Title / Address</label>
+                                            <input
+                                              type="text"
+                                              placeholder="e.g. Sanur Beach Harbor Entrance"
+                                              value={currentTitle}
+                                              onChange={e => {
+                                                const newTitle = e.target.value;
+                                                const newMeetingPoint = currentLink ? `${newTitle}\n${currentLink}` : newTitle;
+                                                updateArrayItem('packages', pIdx, { ...pkg, meetingPoint: newMeetingPoint });
+                                              }}
+                                              className="w-full rounded-xl border-2 border-gray-200 p-3 text-xs font-bold text-gray-900 focus:border-primary focus:bg-white outline-none transition-all bg-white"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="text-[10px] font-bold text-gray-500 block mb-1">Google Maps URL</label>
+                                            <input
+                                              type="text"
+                                              placeholder="e.g. https://maps.app.goo.gl/..."
+                                              value={currentLink}
+                                              onChange={e => {
+                                                const newLink = e.target.value;
+                                                const newMeetingPoint = newLink ? `${currentTitle}\n${newLink}` : currentTitle;
+                                                updateArrayItem('packages', pIdx, { ...pkg, meetingPoint: newMeetingPoint });
+                                              }}
+                                              className="w-full rounded-xl border-2 border-gray-200 p-3 text-xs font-bold text-gray-900 focus:border-primary focus:bg-white outline-none transition-all bg-white"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {/* Pick Up Areas Served */}
                                   <div className="space-y-4">
-                                    <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                        Location / Meeting Address
+                                    <div className="flex items-center gap-2">
+                                      <Car className="h-4 w-4 text-primary" />
+                                      <label className="text-[11px] font-black text-gray-800 uppercase tracking-wider">
+                                        Pick Up Areas Served
                                       </label>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <label className="text-[10px] font-bold text-gray-500 block mb-1">Covered Hotel Pickup Areas</label>
                                       <textarea
-                                        rows={2}
-                                        placeholder="Enter the meeting point address or pick up area..."
-                                        value={pkg.meetingPoint || ''}
-                                        onChange={e => updateArrayItem('packages', pIdx, { ...pkg, meetingPoint: e.target.value })}
-                                        className="w-full rounded-xl border-2 border-gray-100 p-4 text-xs font-bold focus:border-primary outline-none transition-all bg-white"
+                                        rows={4}
+                                        placeholder="e.g. Hotel pickup served in Ubud, Canggu, Seminyak, Kuta, Sanur, Jimbaran, Nusa Dua, and Denpasar."
+                                        value={pkg.pickupAreas || ''}
+                                        onChange={e => updateArrayItem('packages', pIdx, { ...pkg, pickupAreas: e.target.value })}
+                                        className="w-full rounded-xl border-2 border-gray-200 p-3 text-xs font-semibold text-gray-900 focus:border-primary focus:bg-white outline-none transition-all bg-white min-h-[92px]"
                                       />
-                                      <p className="text-[9px] text-gray-400 font-medium italic">Example: Sanur Beach Harbor or Jimbaran Area Hotels</p>
+                                      <p className="text-[10px] text-gray-400 font-medium">Specify pickup zones covered for this package</p>
                                     </div>
                                   </div>
                                 </div>

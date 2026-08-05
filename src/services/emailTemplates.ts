@@ -354,26 +354,14 @@ export const bookingDetailsSection = (booking: any, siteSettings?: any, isAdmin:
   const transportOption = getTransportOptionLabel(booking);
   
   const parseMeetingPointForEmail = (text: string | null | undefined) => {
-    const defaultVenue = "Gorilla ATV Adventure";
-    const defaultAddress = "Jl. Raya Payangan No.199, Puhu, Kec. Payangan, Kabupaten Gianyar, Bali 80572";
-    const defaultUrl = "https://maps.app.goo.gl/nM2C85Qdv4BQ4BgE6";
+    const defaultVenue = booking?.packageName || booking?.tourTitle || "Tour Basecamp";
+    const defaultAddress = "Location details provided upon booking confirmation";
 
-    if (!text) {
-      return { venue: defaultVenue, address: defaultAddress, url: defaultUrl };
+    if (!text || !text.trim()) {
+      return { venue: defaultVenue, address: defaultAddress, url: "" };
     }
 
     const cleanText = text.trim();
-    if (
-      cleanText === "" ||
-      cleanText.toLowerCase().includes("meet directly at our") ||
-      cleanText.toLowerCase().includes("meet directly at main") ||
-      cleanText.toLowerCase().includes("meet directly at the") ||
-      cleanText.toLowerCase().includes("adventure basecamp") ||
-      cleanText.toLowerCase().includes("operation basecamp") ||
-      cleanText.toLowerCase().includes("operation center")
-    ) {
-      return { venue: defaultVenue, address: defaultAddress, url: defaultUrl };
-    }
 
     // Extract URL if any
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -385,17 +373,10 @@ export const bookingDetailsSection = (booking: any, siteSettings?: any, isAdmin:
     remaining = remaining.replace(/^[\s\-,.:;]+|[\s\-,.:;]+$/g, "").trim();
 
     if (!remaining) {
-      if (url && url.includes("nM2C85Qdv4BQ4BgE6")) {
-        return {
-          venue: defaultVenue,
-          address: defaultAddress,
-          url: url
-        };
-      }
       return {
-        venue: "Google Maps Location",
-        address: url || "",
-        url: url || defaultUrl
+        venue: defaultVenue,
+        address: url || defaultAddress,
+        url: url || ""
       };
     }
 

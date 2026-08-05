@@ -1523,10 +1523,28 @@ const toggleAddOn = (addon: AddOn) => {
                                         </div>
                                       );
                                     })()}
-                                    {pkg.meetingPoint && (
-                                      <div className="flex items-start gap-1.5 min-w-0">
-                                        <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                                        <span className="text-slate-600 break-words">{(pkg.meetingPointType || 'Meeting Point')}: <span className="font-semibold text-slate-500">{pkg.meetingPoint}</span></span>
+                                    {pkg.meetingPoint && (() => {
+                                      const mp = parseMeetingPoint(pkg.meetingPoint, pkg.name);
+                                      return (
+                                        <div className="flex items-start gap-1.5 min-w-0">
+                                          <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                          <div className="text-slate-600 break-words text-xs">
+                                            <span className="font-bold text-slate-800">{(pkg.meetingPointType || 'Meeting Point')}: </span>
+                                            <span className="font-semibold text-slate-700">{mp.venue}</span>
+                                            {mp.address && mp.address !== mp.venue && (
+                                              <span className="text-slate-500 block text-[11px]">{mp.address}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                    {pkg.pickupAreas && (
+                                      <div className="flex items-start gap-1.5 min-w-0 bg-orange-50/60 p-2 rounded-lg border border-orange-100">
+                                        <Car className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                        <div className="text-xs">
+                                          <span className="font-bold text-slate-800">Pick Up Areas Served: </span>
+                                          <span className="text-slate-700 font-medium">{pkg.pickupAreas}</span>
+                                        </div>
                                       </div>
                                     )}
                                     {(() => {
@@ -2082,7 +2100,8 @@ const toggleAddOn = (addon: AddOn) => {
 
                     {/* Own Transport meeting point info display */}
                     {selectedTransportType === 'meet' && (() => {
-                      const mp = parseMeetingPoint(tour?.meetingPoint);
+                      const activeMpText = selectedPackage?.meetingPoint || tour?.meetingPoint;
+                      const mp = parseMeetingPoint(activeMpText, selectedPackage?.name || tour?.title);
                       return (
                         <div className="mt-4 bg-orange-50/50 border border-primary/25 rounded-xl p-5 text-left animate-in fade-in duration-200">
                           <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] block mb-2">Meeting Point Location:</span>
@@ -2096,21 +2115,38 @@ const toggleAddOn = (addon: AddOn) => {
                                 )}
                               </div>
                             </div>
-                            <div className="pl-6 border-t border-orange-200/40 pt-2.5">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Direct Google Maps Link:</span>
-                              <a 
-                                href={mp.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs font-extrabold text-primary hover:underline break-all inline-block"
-                              >
-                                {mp.url}
-                              </a>
-                            </div>
+                            {mp.url && (
+                              <div className="pl-6 border-t border-orange-200/40 pt-2.5">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Direct Google Maps Link:</span>
+                                <a 
+                                  href={mp.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-extrabold text-primary hover:underline break-all inline-block"
+                                >
+                                  {mp.url}
+                                </a>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })()}
+
+                    {/* Pick Up Areas Served display for Transfers */}
+                    {selectedTransportType !== 'meet' && (selectedPackage?.pickupAreas || tour?.pickupAreas) && (
+                      <div className="mt-4 bg-blue-50/60 border border-blue-200/60 rounded-xl p-4 text-left animate-in fade-in duration-200 flex items-start gap-3">
+                        <Car className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block mb-0.5">
+                            Pick Up Areas Served ({selectedPackage?.name || "Package"}):
+                          </span>
+                          <p className="text-xs text-slate-700 font-semibold leading-relaxed">
+                            {selectedPackage?.pickupAreas || tour?.pickupAreas}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Sub-options for Private Transfer (car list matching capacity) */}
                     {selectedTransportType === 'private' && (

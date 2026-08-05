@@ -190,6 +190,16 @@ export default function PriceList() {
                         </div>
                       )}
 
+                      {pkg.pickupAreas && (
+                        <div className="flex items-start gap-2 px-1 py-1 bg-blue-50/50 rounded-lg border border-blue-100/30">
+                          <Car className="h-3 w-3 text-blue-600 shrink-0 mt-0.5" />
+                          <div className="flex flex-col">
+                            <span className="text-[8px] font-black uppercase text-blue-600 tracking-tighter opacity-70 leading-none mb-0.5">Pick Up Areas Served</span>
+                            <span className="text-[10px] font-bold text-gray-600 leading-tight">{pkg.pickupAreas}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {(() => {
                         const pkgTransports = pkg.transportIds && pkg.transportIds.length > 0
                           ? globalTransports.filter(gt => pkg.transportIds!.includes(gt.id))
