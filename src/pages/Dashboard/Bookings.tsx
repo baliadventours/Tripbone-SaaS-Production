@@ -217,9 +217,9 @@ export default function Bookings() {
   const startEditing = async (booking: Booking) => {
     setEditingBooking(booking);
     setEditDate(booking.date);
-    setEditAdults(booking.participants.adults);
-    setEditChildren(booking.participants.children);
-    setEditSpecialReq(booking.customerData.specialRequirements || '');
+    setEditAdults((booking.participants?.adults || 0));
+    setEditChildren((booking.participants?.children || 0));
+    setEditSpecialReq(booking.customerData?.specialRequirements || "" || '');
     setEditSelectedAddOns(booking.selectedAddOns);
 
     // Fetch all possible add-ons for this tour
@@ -525,7 +525,7 @@ export default function Bookings() {
                         <Users className="h-4 w-4 text-gray-400" />
                         <div>
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Guests</p>
-                          <p className="text-sm font-bold text-gray-900">{booking.participants.adults + booking.participants.children} Persons</p>
+                          <p className="text-sm font-bold text-gray-900">{(booking.participants?.adults || 0) + (booking.participants?.children || 0)} Persons</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -652,15 +652,15 @@ export default function Bookings() {
                     <div>
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Traveler Details</h4>
                       <div className="space-y-2">
-                        <p className="text-sm font-bold text-gray-900">{selectedBooking.customerData.fullName}</p>
-                        <p className="text-sm text-gray-500">{selectedBooking.customerData.email}</p>
-                        <p className="text-sm text-gray-500">{selectedBooking.customerData.phone}</p>
+                        <p className="text-sm font-bold text-gray-900">{selectedBooking.customerData?.fullName || "N/A"}</p>
+                        <p className="text-sm text-gray-500">{selectedBooking.customerData?.email || "N/A"}</p>
+                        <p className="text-sm text-gray-500">{selectedBooking.customerData?.phone || ""}</p>
                       </div>
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Selection</h4>
                       <p className="text-sm font-bold text-gray-900">{selectedBooking.packageName}</p>
-                      <p className="text-sm text-gray-500 mt-1">{selectedBooking.participants.adults} Adults, {selectedBooking.participants.children} Children</p>
+                      <p className="text-sm text-gray-500 mt-1">{(selectedBooking.participants?.adults || 0)} Adults, {(selectedBooking.participants?.children || 0)} Children</p>
                       {selectedBooking.selectedTransport && (
                         <div className="mt-4 p-3 bg-orange-50/50 rounded-2xl border border-orange-100/50 space-y-1">
                           <span className="text-[10px] font-black uppercase text-orange-600 block">Transportation Chosen</span>

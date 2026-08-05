@@ -266,7 +266,7 @@ export default function BookingSuccess() {
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Guest(s)</p>
-                    <p className="text-base font-black text-gray-900">{booking.participants.adults + booking.participants.children} Persons</p>
+                    <p className="text-base font-black text-gray-900">{(booking.participants?.adults || 0) + (booking.participants?.children || 0)} Persons</p>
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Payment</p>
@@ -283,17 +283,17 @@ export default function BookingSuccess() {
                       booking.selectedTransport?.type === 'meet' ||
                       booking.selectedTransport?.name?.toLowerCase().includes("own transport") ||
                       booking.selectedTransport?.name?.toLowerCase().includes("meet on location") ||
-                      booking.customerData.pickupAddress.includes("Meet") || 
-                      booking.customerData.pickupAddress.toLowerCase().includes("basecamp") ||
-                      booking.customerData.pickupAddress.toLowerCase().includes("operation") ||
-                      booking.customerData.pickupAddress.includes("maps.app.goo.gl") ||
-                      booking.customerData.pickupAddress.includes("google.com/maps");
+                      booking.customerData?.pickupAddress || "".includes("Meet") || 
+                      booking.customerData?.pickupAddress || "".toLowerCase().includes("basecamp") ||
+                      booking.customerData?.pickupAddress || "".toLowerCase().includes("operation") ||
+                      booking.customerData?.pickupAddress || "".includes("maps.app.goo.gl") ||
+                      booking.customerData?.pickupAddress || "".includes("google.com/maps");
                     
                     if (isMeetingPoint) {
                       const selectedPkg = tour?.packages?.find((p: any) => p.name === booking.packageName);
                       const rawMp = (selectedPkg?.meetingPoint && selectedPkg.meetingPoint.trim()) || 
                                     (tour?.meetingPoint && tour.meetingPoint.trim()) || 
-                                    (booking.customerData?.pickupAddress && booking.customerData.pickupAddress !== "Meet directly at our adventure basecamp." ? booking.customerData.pickupAddress : null) || 
+                                    (booking.customerData?.pickupAddress && booking.customerData?.pickupAddress || "" !== "Meet directly at our adventure basecamp." ? booking.customerData?.pickupAddress || "" : null) || 
                                     "Meet directly at our adventure basecamp.";
                       const mp = parseMeetingPoint(rawMp, booking.packageName || booking.tourTitle);
                       return (
@@ -333,7 +333,7 @@ export default function BookingSuccess() {
                           </p>
                           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                             <p className="text-sm font-bold text-gray-900 leading-relaxed">
-                              {booking.customerData.pickupAddress}
+                              {booking.customerData?.pickupAddress || ""}
                             </p>
                           </div>
                         </>
@@ -346,12 +346,12 @@ export default function BookingSuccess() {
                   <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] mb-5">Lead Guest Details</h3>
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-lg font-black text-gray-400">
-                      {booking.customerData.fullName.charAt(0)}
+                      {booking.customerData?.fullName || "N/A".charAt(0)}
                     </div>
                     <div>
-                      <p className="text-lg font-black text-gray-900">{booking.customerData.fullName}</p>
+                      <p className="text-lg font-black text-gray-900">{booking.customerData?.fullName || "N/A"}</p>
                       <div className="flex items-center gap-4 text-xs font-bold text-gray-500 mt-0.5">
-                        <span>{booking.customerData.phone}</span>
+                        <span>{booking.customerData?.phone || ""}</span>
                       </div>
                     </div>
                   </div>
@@ -422,7 +422,7 @@ export default function BookingSuccess() {
 
         <div className="mt-8 text-center no-print">
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-            A copy has been sent to {booking.customerData.email}
+            A copy has been sent to {booking.customerData?.email || ""}
           </p>
         </div>
       </div>

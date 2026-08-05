@@ -7666,8 +7666,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     const pkg = tour.packages.find(p => p.name === globalSelectedBooking.packageName);
     if (!pkg || !pkg.tiers || pkg.tiers.length === 0) return;
 
-    const adults = globalSelectedBooking.participants.adults;
-    const children = globalSelectedBooking.participants.children;
+    const adults = (globalSelectedBooking.participants?.adults || 0);
+    const children = (globalSelectedBooking.participants?.children || 0);
 
     // Pricing Logic
     const adultTier = pkg.tiers.find(
@@ -7909,11 +7909,14 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       const tourDoc = await getDoc(doc(db, 'tours', booking.tourId));
       const tour = tourDoc.exists() ? tourDoc.data() as Tour : null;
       
+      const customer = booking.customerData || {};
+      const pax = booking.participants || { adults: 0, children: 0 };
+      
       let message = `*Tour Details Assignment*\n\n`;
-      message += `Name of guest: ${booking.customerData.fullName}\n`;
-      message += `No of guest: ${booking.participants.adults} Adults, ${booking.participants.children} Children\n`;
-      message += `Pick up address: ${booking.customerData.pickupAddress || 'N/A'}\n`;
-      message += `Guest Whatsapp Number: ${booking.customerData.phone}\n`;
+      message += `Name of guest: ${customer.fullName || 'N/A'}\n`;
+      message += `No of guest: ${pax.adults || 0} Adults, ${pax.children || 0} Children\n`;
+      message += `Pick up address: ${customer.pickupAddress || 'N/A'}\n`;
+      message += `Guest Whatsapp Number: ${customer.phone || 'N/A'}\n`;
       message += `Tour date: ${booking.date}\n`;
       message += `Tours: ${booking.tourTitle}\n`;
       message += `Package Booked: ${booking.packageName}\n`;
@@ -7952,7 +7955,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         const commSettingsSnap = await getDoc(doc(db, 'communicationSettings', getActiveTenantId() || 'global'));
         const commSettings = commSettingsSnap.exists() ? commSettingsSnap.data() as CommunicationSettings : null;
         
-        let customerMsg = `*Guide Assigned*\n\nHello ${booking.customerData.fullName}, we have assigned a guide for your tour "${booking.tourTitle}" on ${booking.date}.\n\n*Your Guide:* ${guide.name}\n*Guide WhatsApp:* ${guide.whatsapp}\n\nOur guide will contact you soon for pickup details. Enjoy your trip!`;
+        let customerMsg = `*Guide Assigned*\n\nHello ${customer.fullName || 'Guest'}, we have assigned a guide for your tour "${booking.tourTitle}" on ${booking.date}.\n\n*Your Guide:* ${guide.name}\n*Guide WhatsApp:* ${guide.whatsapp}\n\nOur guide will contact you soon for pickup details. Enjoy your trip!`;
         
         if (commSettings?.whatsappTemplates?.guide_assigned?.enabled) {
           const template = commSettings.whatsappTemplates.guide_assigned.message;
@@ -7963,8 +7966,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           });
         }
         
-        await sendCustomWhatsApp(booking.customerData.phone || '', customerMsg, enrichedBookingForWhatsApp, false, true);
-        console.log(`[WhatsApp] Auto-sent notification to customer with Tour Voucher PDF: ${booking.customerData.fullName}`);
+        await sendCustomWhatsApp(customer.phone || '', customerMsg, enrichedBookingForWhatsApp, false, true);
+        console.log(`[WhatsApp] Auto-sent notification to customer with Tour Voucher PDF: ${customer.fullName || 'Guest'}`);
       } catch (waErr) {
         console.error('[WhatsApp] Failed to auto-send to customer:', waErr);
       }
@@ -8284,33 +8287,33 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     <div class="data-row">
                       <div class="data-item">
                         <span class="label">Guest Name</span>
-                        <span class="value">${booking.customerData.fullName}</span>
+                        <span class="value">${booking.customerData?.fullName || 'N/A'}</span>
                       </div>
                       <div class="data-item">
                         <span class="label">Nationality</span>
-                        <span class="value">${booking.customerData.nationality || 'N/A'}</span>
+                        <span class="value">${booking.customerData?.nationality || 'N/A'}</span>
                       </div>
                       <div class="data-item">
                         <span class="label">Contact Number</span>
-                        <span class="value">${booking.customerData.phone}</span>
+                        <span class="value">${booking.customerData?.phone || 'N/A'}</span>
                       </div>
                       <div class="data-item">
                         <span class="label">Email</span>
-                        <span class="value">${booking.customerData.email}</span>
+                        <span class="value">${booking.customerData?.email || 'N/A'}</span>
                       </div>
                     </div>
                     
                     <div class="pax-summary">
                       <div class="pax-pill">
-                        <span class="count">${booking.participants.adults}</span>
+                        <span class="count">${booking.participants?.adults || 0}</span>
                         <span class="label">Adults</span>
                       </div>
                       <div class="pax-pill">
-                        <span class="count">${booking.participants.children}</span>
+                        <span class="count">${booking.participants?.children || 0}</span>
                         <span class="label">Children</span>
                       </div>
                       <div class="pax-pill" style="background: var(--primary-light); border-color: var(--primary);">
-                        <span class="count">${booking.participants.adults + booking.participants.children}</span>
+                        <span class="count">${(booking.participants?.adults || 0) + (booking.participants?.children || 0)}</span>
                         <span class="label" style="color: var(--primary);">Total Pax</span>
                       </div>
                     </div>
@@ -8322,7 +8325,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                     <div class="info-card">
                         <div class="data-item full">
                             <span class="label">Location / Hotel Name</span>
-                            <span class="value">${booking.customerData.pickupAddress || 'No Pickup Requested'}</span>
+                            <span class="value">${booking.customerData?.pickupAddress || 'No Pickup Requested'}</span>
                         </div>
                     </div>
                 </div>
@@ -8346,7 +8349,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 <div class="section">
                     <div class="section-label">Special Requirements</div>
                     <div class="notes-area">
-                        ${booking.customerData.specialRequirements || 'No special requirements noted for this trip.'}
+                        ${booking.customerData?.specialRequirements || 'No special requirements noted for this trip.'}
                     </div>
                 </div>
 
@@ -8545,10 +8548,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
               userName: adminName
             });
         }
-        if (globalSelectedBooking.participants.adults !== originalBooking.participants.adults || globalSelectedBooking.participants.children !== originalBooking.participants.children) {
+        if ((globalSelectedBooking.participants?.adults || 0) !== (originalBooking.participants?.adults || 0) || (globalSelectedBooking.participants?.children || 0) !== (originalBooking.participants?.children || 0)) {
             newLogs.push({
               timestamp: new Date().toISOString(),
-              message: `Participants updated: ${globalSelectedBooking.participants.adults}A, ${globalSelectedBooking.participants.children}C`,
+              message: `Participants updated: ${(globalSelectedBooking.participants?.adults || 0)}A, ${(globalSelectedBooking.participants?.children || 0)}C`,
               type: 'system',
               userName: adminName
             });
@@ -8566,8 +8569,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         const statusChanged = globalSelectedBooking.status !== originalBooking.status;
         const dateChanged = globalSelectedBooking.date !== originalBooking.date;
         const participantsChanged = 
-          globalSelectedBooking.participants.adults !== originalBooking.participants.adults ||
-          globalSelectedBooking.participants.children !== originalBooking.participants.children;
+          (globalSelectedBooking.participants?.adults || 0) !== (originalBooking.participants?.adults || 0) ||
+          (globalSelectedBooking.participants?.children || 0) !== (originalBooking.participants?.children || 0);
         const addOnsChanged = JSON.stringify(globalSelectedBooking.selectedAddOns || []) !== JSON.stringify(originalBooking.selectedAddOns || []);
         
         const isApproved = statusChanged && 
@@ -9090,7 +9093,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     };
 
     const selectedDayBookings = getBookingsForDay(selectedDate);
-    const totalGuests = selectedDayBookings.reduce((sum, b) => sum + (b.participants.adults + b.participants.children), 0);
+    const totalGuests = selectedDayBookings.reduce((sum, b) => sum + ((b.participants?.adults || 0) + (b.participants?.children || 0)), 0);
     const totalRevenue = selectedDayBookings.reduce((sum, b) => sum + b.totalAmount, 0);
 
     if (loading) return <div className="flex justify-center p-20"><Icons.Loader2 className="animate-spin text-primary" /></div>;
@@ -9144,7 +9147,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
               const dayBookings = getBookingsForDay(day);
               const isSelected = isSameDay(day, selectedDate);
               const isCurrentMonth = isSameMonth(day, monthStart);
-              const guestsCount = dayBookings.reduce((sum, b) => sum + (b.participants.adults + b.participants.children), 0);
+              const guestsCount = dayBookings.reduce((sum, b) => sum + ((b.participants?.adults || 0) + (b.participants?.children || 0)), 0);
 
               return (
                 <div 
@@ -9241,15 +9244,15 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                          <div className="grid grid-cols-2 gap-x-8 gap-y-1">
                             <div className="flex items-center gap-2">
                                <span className="text-[10px] font-bold text-gray-400">Guest:</span>
-                               <span className="text-xs font-black text-gray-700">{booking.customerData.fullName}</span>
+                               <span className="text-xs font-black text-gray-700">{booking.customerData?.fullName || "N/A"}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                <span className="text-[10px] font-bold text-gray-400">Email:</span>
-                               <span className="text-xs font-bold text-gray-700">{booking.customerData.email}</span>
+                               <span className="text-xs font-bold text-gray-700">{booking.customerData?.email || "N/A"}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                <span className="text-[10px] font-bold text-gray-400">Guests:</span>
-                               <span className="text-xs font-black text-gray-700">{booking.participants.adults + booking.participants.children}</span>
+                               <span className="text-xs font-black text-gray-700">{(booking.participants?.adults || 0) + (booking.participants?.children || 0)}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                <span className="text-[10px] font-bold text-gray-400">Total:</span>
@@ -9900,12 +9903,13 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         .filter(b => {
           if (!searchQuery.trim()) return true;
           const q = searchQuery.toLowerCase();
+          const c = b.customerData || {};
           return (
-            b.id.toLowerCase().includes(q) || 
-            b.customerData.fullName.toLowerCase().includes(q) || 
-            b.customerData.email.toLowerCase().includes(q) ||
+            (b.id || '').toLowerCase().includes(q) || 
+            (c.fullName || '').toLowerCase().includes(q) || 
+            (c.email || '').toLowerCase().includes(q) ||
             (b.tourTitle || '').toLowerCase().includes(q) ||
-            (b.customerData.phone || '').toLowerCase().includes(q)
+            (c.phone || '').toLowerCase().includes(q)
           );
         });
     };
@@ -9943,12 +9947,13 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         .filter(b => {
           if (!searchQuery.trim()) return true;
           const q = searchQuery.toLowerCase();
+          const c = b.customerData || {};
           return (
-            b.id.toLowerCase().includes(q) || 
-            b.customerData.fullName.toLowerCase().includes(q) || 
-            b.customerData.email.toLowerCase().includes(q) ||
+            (b.id || '').toLowerCase().includes(q) || 
+            (c.fullName || '').toLowerCase().includes(q) || 
+            (c.email || '').toLowerCase().includes(q) ||
             (b.tourTitle || '').toLowerCase().includes(q) ||
-            (b.customerData.phone || '').toLowerCase().includes(q)
+            (c.phone || '').toLowerCase().includes(q)
           );
         })
         .sort((a, b) => {
@@ -10189,8 +10194,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                       </td>
                       <td className="px-5 py-5 border-r border-gray-50">
                         <div className="flex flex-col">
-                          <span className="text-xs font-black text-gray-900 group-hover:text-primary transition-colors leading-tight">{booking.customerData.fullName}</span>
-                          <span className="text-[10px] text-gray-400 font-bold tracking-tight mt-0.5">{booking.customerData.email}</span>
+                          <span className="text-xs font-black text-gray-900 group-hover:text-primary transition-colors leading-tight">{booking.customerData?.fullName || 'N/A'}</span>
+                          <span className="text-[10px] text-gray-400 font-bold tracking-tight mt-0.5">{booking.customerData?.email || 'N/A'}</span>
                         </div>
                       </td>
                       <td className="px-5 py-5 border-r border-gray-50">
@@ -10329,11 +10334,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                     "Hello {{customerName}}, your booking for {{tourTitle}} on {{date}} is confirmed.";
                                   const message = generateBookingMessage(template, booking);
                                   try {
-                                    await sendCustomWhatsApp(booking.customerData.phone || '', message);
+                                    await sendCustomWhatsApp(booking.customerData?.phone || "" || '', message);
                                     alert("Message sent successfully via Whapi!");
                                   } catch (err) {
                                     console.error('[WhatsApp] API Error:', err);
-                                    const link = getWhatsAppLink(booking.customerData.phone || '', message);
+                                    const link = getWhatsAppLink(booking.customerData?.phone || "" || '', message);
                                     window.open(link, '_blank');
                                   }
                                 }}
@@ -10510,10 +10515,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                               "Hello {{customerName}}, your booking for {{tourTitle}} on {{date}} is confirmed.";
                             const message = generateBookingMessage(template, booking);
                             try {
-                              await sendCustomWhatsApp(booking.customerData.phone || '', message);
+                              await sendCustomWhatsApp(booking.customerData?.phone || "" || '', message);
                               alert("Message sent successfully!");
                             } catch (err) {
-                              const link = getWhatsAppLink(booking.customerData.phone || '', message);
+                              const link = getWhatsAppLink(booking.customerData?.phone || "" || '', message);
                               window.open(link, '_blank');
                             }
                           }}
@@ -10610,8 +10615,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 
                 <div>
                   <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Customer</h5>
-                  <p className="text-xs font-black text-gray-900 mt-0.5 leading-tight truncate">{booking.customerData.fullName}</p>
-                  <p className="text-[10px] text-gray-400 tracking-tight mt-0.5 truncate">{booking.customerData.email}</p>
+                  <p className="text-xs font-black text-gray-900 mt-0.5 leading-tight truncate">{booking.customerData?.fullName || 'N/A'}</p>
+                  <p className="text-[10px] text-gray-400 tracking-tight mt-0.5 truncate">{booking.customerData?.email || 'N/A'}</p>
                 </div>
 
                 <div>
@@ -10948,13 +10953,13 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Guest Lead</span>
                           <span className="font-black text-gray-800 text-[11px] truncate max-w-[150px]">
-                            {booking.customerData.fullName}
+                            {booking.customerData?.fullName || 'N/A'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">WhatsApp</span>
                           <span className="font-bold text-gray-600 text-[10px] truncate max-w-[150px]">
-                            {booking.customerData.phone || "No Whatsapp"}
+                            {booking.customerData?.phone || "No Whatsapp"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center gap-2">
@@ -11241,13 +11246,13 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Guest Lead</span>
                           <span className="font-black text-gray-800 text-[11px] truncate max-w-[150px]">
-                            {booking.customerData.fullName}
+                            {booking.customerData?.fullName || 'N/A'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">WhatsApp</span>
                           <span className="font-bold text-gray-600 text-[10px] truncate max-w-[150px]">
-                            {booking.customerData.phone || "No Whatsapp"}
+                            {booking.customerData?.phone || "No Whatsapp"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center gap-2">
@@ -12294,7 +12299,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                       </div>
                                       <div className="min-w-0">
                                          <p className="font-bold text-gray-900 text-sm group-hover:text-primary transition-colors truncate">{booking.tourTitle}</p>
-                                         <p className="text-xs text-gray-400 font-bold truncate">{booking.customerData.fullName} • {booking.participants.adults + booking.participants.children} Pax</p>
+                                         <p className="text-xs text-gray-400 font-bold truncate">{booking.customerData?.fullName || "N/A"} • {(booking.participants?.adults || 0) + (booking.participants?.children || 0)} Pax</p>
                                       </div>
                                    </div>
                                    <div className="text-left sm:text-right shrink-0">
@@ -15715,7 +15720,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                      <div key={booking.id} className="p-4 bg-gray-50 rounded-[10px] border border-gray-100 flex items-center justify-between hover:border-primary transition-all group">
                                         <div>
                                            <p className="text-sm font-black text-gray-900 group-hover:text-primary transition-colors">{booking.tourTitle}</p>
-                                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{booking.date} • {booking.participants.adults} Pax</p>
+                                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{booking.date} • {(booking.participants?.adults || 0)} Pax</p>
                                         </div>
                                         <span className="text-[10px] font-black uppercase text-primary bg-orange-50 px-2 py-0.5 rounded-md">{booking.status}</span>
                                      </div>

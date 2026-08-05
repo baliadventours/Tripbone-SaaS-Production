@@ -73,7 +73,7 @@ export default function BookingTracker() {
 
         if (docSnap.exists()) {
           const data = docSnap.data() as Booking;
-          if (data.customerData.email.toLowerCase() === normalizedEmail) {
+          if (data.customerData?.email || "".toLowerCase() === normalizedEmail) {
             setBooking({ id: docSnap.id, ...data });
             return;
           }
@@ -214,11 +214,11 @@ export default function BookingTracker() {
                       </div>
                       <div className="space-y-1 border-l border-gray-200 pl-6">
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Adults</span>
-                        <span className="text-sm font-black text-gray-900 uppercase tracking-tight">{booking.participants.adults}</span>
+                        <span className="text-sm font-black text-gray-900 uppercase tracking-tight">{(booking.participants?.adults || 0)}</span>
                       </div>
                       <div className="space-y-1 border-l border-gray-200 pl-6">
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Children</span>
-                        <span className="text-sm font-black text-gray-900 uppercase tracking-tight">{booking.participants.children}</span>
+                        <span className="text-sm font-black text-gray-900 uppercase tracking-tight">{(booking.participants?.children || 0)}</span>
                       </div>
                    </div>
 

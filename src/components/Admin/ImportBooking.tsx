@@ -108,7 +108,7 @@ export default function ImportBooking({ onSuccess, commSettings }: ImportBooking
       const snapPax = await getDocs(qPax);
       const isDuplicatePax = snapPax.docs.some(doc => {
         const d = doc.data() as Booking;
-        return d.participants.adults === formData.adults && d.participants.children === formData.children;
+        return (d.participants?.adults || 0) === formData.adults && (d.participants?.children || 0) === formData.children;
       });
 
       if (isDuplicatePax) {

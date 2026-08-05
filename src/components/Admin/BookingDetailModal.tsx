@@ -167,7 +167,7 @@ const BookingDetailModal = ({
                           type="number"
                           disabled={!isAdmin}
                           min={1}
-                          value={booking.participants.adults}
+                          value={(booking.participants?.adults || 0)}
                           onChange={e => setBooking({ ...booking, participants: { ...booking.participants, adults: Number(e.target.value) } })}
                           className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold"
                         />
@@ -178,7 +178,7 @@ const BookingDetailModal = ({
                           type="number"
                           disabled={!isAdmin}
                           min={0}
-                          value={booking.participants.children}
+                          value={(booking.participants?.children || 0)}
                           onChange={e => setBooking({ ...booking, participants: { ...booking.participants, children: Number(e.target.value) } })}
                           className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold"
                         />
@@ -190,8 +190,8 @@ const BookingDetailModal = ({
                       <textarea
                         rows={2}
                         disabled={!isAdmin}
-                        value={booking.customerData.pickupAddress || ''}
-                        onChange={e => setBooking({ ...booking, customerData: { ...booking.customerData, pickupAddress: e.target.value } })}
+                        value={booking.customerData?.pickupAddress || ''}
+                        onChange={e => setBooking({ ...booking, customerData: { ...(booking.customerData || { fullName: '', email: '', phone: '' }), pickupAddress: e.target.value } })}
                         placeholder="Hotel name & Lobby note..."
                         className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold"
                       />
@@ -225,8 +225,8 @@ const BookingDetailModal = ({
                         <input
                           type="text"
                           disabled={!isAdmin}
-                          value={booking.customerData.fullName}
-                          onChange={e => setBooking({ ...booking, customerData: { ...booking.customerData, fullName: e.target.value } })}
+                          value={booking.customerData?.fullName || ''}
+                          onChange={e => setBooking({ ...booking, customerData: { ...(booking.customerData || { fullName: '', email: '', phone: '' }), fullName: e.target.value } })}
                           className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold"
                         />
                       </div>
@@ -234,8 +234,8 @@ const BookingDetailModal = ({
                         <label className="text-[9px] font-bold text-gray-400 uppercase">Nationality</label>
                         <select
                           disabled={!isAdmin}
-                          value={booking.customerData.nationality || ''}
-                          onChange={e => setBooking({ ...booking, customerData: { ...booking.customerData, nationality: e.target.value } })}
+                          value={booking.customerData?.nationality || ''}
+                          onChange={e => setBooking({ ...booking, customerData: { ...(booking.customerData || { fullName: '', email: '', phone: '' }), nationality: e.target.value } })}
                           className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold outline-none"
                         >
                           <option value="">(Select Country)</option>
@@ -250,8 +250,8 @@ const BookingDetailModal = ({
                         <input
                           type="tel"
                           disabled={!isAdmin}
-                          value={booking.customerData.phone}
-                          onChange={e => setBooking({ ...booking, customerData: { ...booking.customerData, phone: e.target.value } })}
+                          value={booking.customerData?.phone || ''}
+                          onChange={e => setBooking({ ...booking, customerData: { ...(booking.customerData || { fullName: '', email: '', phone: '' }), phone: e.target.value } })}
                           className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold"
                         />
                       </div>
@@ -260,8 +260,8 @@ const BookingDetailModal = ({
                         <input
                           type="email"
                           disabled={!isAdmin}
-                          value={booking.customerData.email}
-                          onChange={e => setBooking({ ...booking, customerData: { ...booking.customerData, email: e.target.value } })}
+                          value={booking.customerData?.email || ''}
+                          onChange={e => setBooking({ ...booking, customerData: { ...(booking.customerData || { fullName: '', email: '', phone: '' }), email: e.target.value } })}
                           className="w-full bg-gray-50/50 border border-gray-200 rounded-lg p-2 text-xs font-bold"
                         />
                       </div>

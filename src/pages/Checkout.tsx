@@ -533,8 +533,8 @@ export default function Checkout() {
             
             // Set initial state from booking
             setDate(bData.date);
-            setAdults(bData.participants.adults);
-            setChildren(bData.participants.children);
+            setAdults((bData.participants?.adults || 0));
+            setChildren((bData.participants?.children || 0));
             setSelectedTime(bData.time || "");
             setCustomerDataFromBooking(bData.customerData);
             setSelectedAddOns(bData.selectedAddOns || []);

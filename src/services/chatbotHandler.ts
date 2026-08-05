@@ -169,7 +169,7 @@ const getToolImplementations = (tenantId?: string | null) => {
       if (tenantId && b.tenantId !== tenantId) {
         return { error: "Booking not found in this workspace" };
       }
-      if (b.customerData.email.toLowerCase() !== email.toLowerCase()) {
+      if (!b.customerData || (b.customerData?.email || '').toLowerCase() !== email.toLowerCase()) {
         return { error: "The provided email does not match the record for this booking ID." };
       }
       
@@ -179,7 +179,7 @@ const getToolImplementations = (tenantId?: string | null) => {
         tourTitle: b.tourTitle,
         date: b.date,
         totalAmount: b.totalAmount,
-        customerName: b.customerData.fullName,
+        customerName: b.customerData?.fullName || 'Guest',
         paymentStatus: b.paymentStatus || 'pending'
       };
     }

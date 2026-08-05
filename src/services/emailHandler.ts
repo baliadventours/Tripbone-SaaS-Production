@@ -366,7 +366,7 @@ export async function handleSendEmail(reqBody: any, authHeader?: string) {
           console.log(`[Email Handler] Final Recipient resolved: ${to}`);
 
           const guestsText = booking?.participants 
-            ? `${booking.participants.adults || 0} Adults${booking.participants.children > 0 ? `, ${booking.participants.children} Children` : ""}`
+            ? `${(booking.participants?.adults || 0) || 0} Adults${(booking.participants?.children || 0) > 0 ? `, ${(booking.participants?.children || 0)} Children` : ""}`
             : "N/A";
 
           let displayDate = booking?.date || '';

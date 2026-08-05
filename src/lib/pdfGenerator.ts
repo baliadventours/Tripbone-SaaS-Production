@@ -154,7 +154,7 @@ export async function generateTourVoucherPdf(booking: any, config: any) {
   doc.setDrawColor(241, 245, 249);
   doc.rect(margin, currentY, contentWidth, 20, 'FD');
   
-  const rawAddress = booking.customerData.pickupAddress || "";
+  const rawAddress = booking.customerData?.pickupAddress || "" || "";
   const isMeetingPoint = !rawAddress || 
     rawAddress.includes("Meet") || 
     rawAddress.toLowerCase().includes("basecamp") ||

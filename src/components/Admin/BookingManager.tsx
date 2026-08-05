@@ -237,11 +237,12 @@ export default function BookingManager({
         // Text Match search queries
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
+        const c = b.customerData || {};
         return (
-          b.id.toLowerCase().includes(q) ||
-          b.customerData.fullName.toLowerCase().includes(q) ||
-          b.customerData.email.toLowerCase().includes(q) ||
-          (b.customerData.phone || "").toLowerCase().includes(q) ||
+          (b.id || "").toLowerCase().includes(q) ||
+          (c.fullName || "").toLowerCase().includes(q) ||
+          (c.email || "").toLowerCase().includes(q) ||
+          (c.phone || "").toLowerCase().includes(q) ||
           (b.tourTitle || "").toLowerCase().includes(q) ||
           (b.packageName || "").toLowerCase().includes(q) ||
           (b.assignedGuideName || "").toLowerCase().includes(q) ||
@@ -362,11 +363,13 @@ export default function BookingManager({
   // Automated notification and email services trigger
   const handleTriggerGuideDispatch = async (booking: Booking, guide: Guide) => {
     // Scaffold WhatsApp messages
+    const customer = booking.customerData || {};
+    const pax = booking.participants || { adults: 0, children: 0 };
     let dispatchMsg = `*Tour Details Assignment*\n\n`;
-    dispatchMsg += `Name of guest: ${booking.customerData.fullName}\n`;
-    dispatchMsg += `No of guest: ${booking.participants.adults} Adults, ${booking.participants.children} Children\n`;
-    dispatchMsg += `Pick up address: ${booking.customerData.pickupAddress || 'N/A'}\n`;
-    dispatchMsg += `Guest Whatsapp Number: ${booking.customerData.phone}\n`;
+    dispatchMsg += `Name of guest: ${customer.fullName || 'N/A'}\n`;
+    dispatchMsg += `No of guest: ${pax.adults || 0} Adults, ${pax.children || 0} Children\n`;
+    dispatchMsg += `Pick up address: ${customer.pickupAddress || 'N/A'}\n`;
+    dispatchMsg += `Guest Whatsapp Number: ${customer.phone || 'N/A'}\n`;
     dispatchMsg += `Tour date: ${booking.date}\n`;
     dispatchMsg += `Tours: ${booking.tourTitle}\n`;
     dispatchMsg += `Package Booked: ${booking.packageName}\n`;
@@ -397,14 +400,14 @@ export default function BookingManager({
       const settingsSnap = await getDoc(doc(db, 'communicationSettings', 'global'));
       const settings = settingsSnap.exists() ? settingsSnap.data() as CommunicationSettings : null;
       
-      let customerMsg = `*Guide Assigned*\n\nHello ${booking.customerData.fullName}, we have assigned a guide for your tour "${booking.tourTitle}" on ${booking.date}.\n\n*Your Guide:* ${guide.name}\n*Guide WhatsApp:* ${guide.whatsapp}\n\nOur guide will contact you soon for pickup details. Enjoy your trip!`;
+      let customerMsg = `*Guide Assigned*\n\nHello ${customer.fullName || 'Guest'}, we have assigned a guide for your tour "${booking.tourTitle}" on ${booking.date}.\n\n*Your Guide:* ${guide.name}\n*Guide WhatsApp:* ${guide.whatsapp}\n\nOur guide will contact you soon for pickup details. Enjoy your trip!`;
       
       if (settings?.whatsappTemplates?.guide_assigned?.enabled) {
         const template = settings.whatsappTemplates.guide_assigned.message;
         customerMsg = generateBookingMessage(template, packagedBooking);
       }
       
-      await sendCustomWhatsApp(booking.customerData.phone || '', customerMsg, packagedBooking, false, true);
+      await sendCustomWhatsApp(customer.phone || '', customerMsg, packagedBooking, false, true);
     } catch (err) {
       console.warn("Guest WhatsApp auto alert failed:", err);
     }
@@ -555,13 +558,17 @@ export default function BookingManager({
       "Source", "Dispatch Status", "Assigned Operator/Driver", "Internal Notes"
     ];
 
-    const dataCSV = listToExport.map(b => [
-      b.id, b.date, b.time || 'N/A', b.customerData.fullName, b.customerData.phone, b.customerData.email,
-      b.customerData.nationality || b.customerData.country || 'N/A', b.tourTitle, b.packageName,
-      `Adults: ${b.participants?.adults || 0} - Children: ${b.participants?.children || 0}`, b.totalAmount,
-      b.bookingSource || 'Direct', b.status, b.assignedGuideName || '🚨 UNASSIGNED',
-      (b.internalNotes || '').replace(/\r?\n|\r/g, ' ')
-    ]);
+    const dataCSV = listToExport.map(b => {
+      const c = b.customerData || {};
+      const p = b.participants || { adults: 0, children: 0 };
+      return [
+        b.id, b.date, b.time || 'N/A', c.fullName || 'N/A', c.phone || 'N/A', c.email || 'N/A',
+        c.nationality || c.country || 'N/A', b.tourTitle, b.packageName,
+        `Adults: ${p.adults || 0} - Children: ${p.children || 0}`, b.totalAmount,
+        b.bookingSource || 'Direct', b.status, b.assignedGuideName || '🚨 UNASSIGNED',
+        (b.internalNotes || '').replace(/\r?\n|\r/g, ' ')
+      ];
+    });
 
     const finalCSVString = [
       headers.join(','),
@@ -583,13 +590,16 @@ export default function BookingManager({
     const printer = window.open('', '_blank');
     if (!printer) return;
 
-    const manifestTableRows = filteredBookings.map(b => `
+    const manifestTableRows = filteredBookings.map(b => {
+      const c = b.customerData || {};
+      const p = b.participants || { adults: 0, children: 0 };
+      return `
       <tr style="border-bottom: 1px solid #e1e8ed; font-size: 11px;">
         <td style="padding: 6px 10px; font-family: monospace; font-weight: bold; color: #1e293b;">#${b.id.slice(-8)}</td>
         <td style="padding: 6px 10px;">${b.date} <br><small style="color:#64748b font-weight: bold;">${b.time || ''}</small></td>
-        <td style="padding: 6px 10px; font-weight: bold; color: #0f172a;">${b.customerData.fullName}<br><small style="color: #64748b; font-weight: normal;">+${b.customerData.phone}</small></td>
+        <td style="padding: 6px 10px; font-weight: bold; color: #0f172a;">${c.fullName || 'Guest'}<br><small style="color: #64748b; font-weight: normal;">+${c.phone || ''}</small></td>
         <td style="padding: 6px 10px;"><strong>${b.tourTitle}</strong><br><small style="color:#0ea5e9; font-weight: bold;">${b.packageName}</small></td>
-        <td style="padding: 6px 10px; font-weight: bold; text-align: center;">${(b.participants?.adults || 0) + (b.participants?.children || 0)} PAX<br><span style="font-size: 9px; color:#64748b">${b.participants?.adults}A, ${b.participants?.children}C</span></td>
+        <td style="padding: 6px 10px; font-weight: bold; text-align: center;">${(p.adults || 0) + (p.children || 0)} PAX<br><span style="font-size: 9px; color:#64748b">${p.adults || 0}A, ${p.children || 0}C</span></td>
         <td style="padding: 6px 10px; text-align: right; font-family: monospace; font-weight: bold; color: #16a34a;">${formatPrice(b.totalAmount)}</td>
         <td style="padding: 6px 10px;">
           <span style="display:inline-block; padding: 2.5px 6px; border-radius: 4px; font-size: 8px; font-weight: 900; text-transform: uppercase;
@@ -598,9 +608,10 @@ export default function BookingManager({
           </span>
         </td>
         <td style="padding: 6px 10px; font-weight: bold; font-size: 10px;">${b.assignedGuideName || '<span style="color:#e11d48; font-weight:900;">🚨 VACANT</span>'}</td>
-        <td style="padding: 6px 10px; font-size: 10px; color:#475569;">${b.internalNotes || b.customerData.pickupAddress || ''}</td>
+        <td style="padding: 6px 10px; font-size: 10px; color:#475569;">${b.internalNotes || c.pickupAddress || ''}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     printer.document.write(`
       <html>
@@ -724,12 +735,14 @@ export default function BookingManager({
 
     targetDailyBookings.forEach((b, index) => {
       if (b.status === 'cancelled') return;
+      const c = b.customerData || {};
+      const p = b.participants || { adults: 0, children: 0 };
       briefingText += `${index + 1}. *[${b.time || 'Pending Departure Time'}]* - Ref: #${b.id.slice(-8)}\n`;
       briefingText += `   *Activity:* ${b.tourTitle}\n`;
       briefingText += `   *Pkg:* ${b.packageName}\n`;
-      briefingText += `   *Customer:* ${b.customerData.fullName} (Seats: ${b.participants.adults}A, ${b.participants.children}C)\n`;
-      briefingText += `   *WhatsApp:* +${b.customerData.phone}\n`;
-      briefingText += `   *Pickup Address:* ${b.customerData.pickupAddress || 'No Address Provided'}\n`;
+      briefingText += `   *Customer:* ${c.fullName || 'Guest'} (Seats: ${p.adults || 0}A, ${p.children || 0}C)\n`;
+      briefingText += `   *WhatsApp:* +${c.phone || ''}\n`;
+      briefingText += `   *Pickup Address:* ${c.pickupAddress || 'No Address Provided'}\n`;
       briefingText += `   *Dispatch Crew:* ${b.assignedGuideName ? `✅ ${b.assignedGuideName} (+${b.assignedGuideWhatsapp})` : '🚨 UNASSIGNED - NEEDS ACTION'}\n`;
       briefingText += `   *Status:* ${b.status.toUpperCase()} | *Collect Value:* ${formatPrice(b.totalAmount)} (${b.paymentStatus === 'paid' ? 'PAID ✅' : 'COLLECT CASH 💵'})\n`;
       if (b.internalNotes) briefingText += `   *Logistics Note:* "${b.internalNotes}"\n`;
@@ -1192,13 +1205,13 @@ export default function BookingManager({
                       <td className="p-3">
                         <div className="flex flex-col">
                           <span className="font-black text-gray-900 tracking-tight leading-tight select-all">
-                            {booking.customerData.fullName}
+                            {booking.customerData?.fullName || 'N/A'}
                           </span>
                           <span className="text-[10px] text-gray-400 font-bold select-all">
-                            {booking.customerData.email}
+                            {booking.customerData?.email || 'N/A'}
                           </span>
                           <span className="text-[10px] text-gray-400 font-bold select-all">
-                            +{booking.customerData.phone}
+                            {booking.customerData?.phone ? `+${booking.customerData?.phone || ""}` : 'N/A'}
                           </span>
                         </div>
                       </td>
@@ -1530,22 +1543,22 @@ export default function BookingManager({
                     <div className="bg-gray-50/60 p-2.5 rounded-lg border border-gray-100 text-xs space-y-1">
                       <div className="flex justify-between">
                         <span className="text-gray-400 font-bold text-[10px]">Guest Lead</span>
-                        <span className="font-black text-gray-800 text-right max-w-[150px] truncate">{b.customerData.fullName}</span>
+                        <span className="font-black text-gray-800 text-right max-w-[150px] truncate">{b.customerData?.fullName || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-400 font-bold text-[10px]">Passenger Load</span>
-                        <span className="font-black text-primary font-mono">{paxCount} Seats ({b.participants?.adults}A, {b.participants?.children}C)</span>
+                        <span className="font-black text-primary font-mono">{paxCount} Seats ({b.participants?.adults || 0}A, {b.participants?.children || 0}C)</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-400 font-bold text-[10px]">Phone / Contact</span>
-                        <span className="font-bold text-gray-655 select-all text-[10px] truncate">+{b.customerData.phone}</span>
+                        <span className="font-bold text-gray-655 select-all text-[10px] truncate">{b.customerData?.phone ? `+${b.customerData?.phone || ""}` : 'N/A'}</span>
                       </div>
                     </div>
 
-                    {b.customerData.pickupAddress && (
+                    {b.customerData?.pickupAddress && (
                       <div className="text-[10px] font-bold text-gray-500 flex items-start gap-1 p-1">
                         <Icons.MapPin className="h-3 w-3 text-red-400 shrink-0 mt-0.5" />
-                        <span className="line-clamp-2 leading-tight">Pickup: {b.customerData.pickupAddress}</span>
+                        <span className="line-clamp-2 leading-tight">Pickup: {b.customerData?.pickupAddress}</span>
                       </div>
                     )}
                   </div>
