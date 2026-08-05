@@ -249,6 +249,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
 
     const mainDomains = ['tripbone.com', 'localhost', '127.0.0.1'];
+    const RESERVED_SUBDOMAINS = ['www', 'app', 'docs', 'api', 'admin', 'system', 'superadmin', 'status', 'guide', 'panduan'];
     const isMainDomain = mainDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
 
     if (isAiStudio) {
@@ -259,13 +260,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     
     if (isMainDomain) {
       if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
-        if (parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== 'app') {
+        if (!RESERVED_SUBDOMAINS.includes(parts[0])) {
           return { slug: parts[0].toLowerCase(), customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
         }
       } else if (parts.length > 2) {
-        const subdomain = parts[0];
-        if (subdomain !== 'www' && subdomain !== 'app') {
-          return { slug: subdomain.toLowerCase(), customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
+        const subdomain = parts[0].toLowerCase();
+        if (!RESERVED_SUBDOMAINS.includes(subdomain)) {
+          return { slug: subdomain, customDomain: null, impersonateId: null, isAppGateHost: false, isExplicitImpersonate: false };
         }
       }
       return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: isAppSubdomain, isExplicitImpersonate: false };

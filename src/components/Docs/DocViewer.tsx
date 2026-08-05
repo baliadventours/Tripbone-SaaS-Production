@@ -3,10 +3,10 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { 
   BookOpen, Search, ChevronRight, ChevronLeft, Image as ImageIcon, 
   ExternalLink, Layers, Copy, Check, Sparkles, FileText,
-  HelpCircle, ArrowLeft, ArrowRight, Menu, X, Edit3, Plus, Globe,
+  HelpCircle, ArrowLeft, Menu, X, Plus, Globe,
   CheckCircle2, ListOrdered, Share2
 } from 'lucide-react';
-import { db, collection, getDocs, onSnapshot, query, where, orderBy } from '../../lib/firebase';
+import { db, collection, onSnapshot } from '../../lib/firebase';
 import { useTenant } from '../../lib/TenantContext';
 
 export interface DocArticle {
@@ -140,7 +140,6 @@ interface DocViewerProps {
 export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: DocViewerProps) {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
-  const { isMaster } = useTenant();
 
   const [articles, setArticles] = useState<DocArticle[]>(DEFAULT_DOC_ARTICLES);
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,7 +179,6 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
       groups[cat].push(art);
     });
 
-    // Sort items within each category
     Object.keys(groups).forEach(cat => {
       groups[cat].sort((a, b) => (a.order || 0) - (b.order || 0));
     });
@@ -226,7 +224,7 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
   const prevArticle = currentIndex > 0 ? flatArticles[currentIndex - 1] : null;
   const nextArticle = currentIndex < flatArticles.length - 1 ? flatArticles[currentIndex + 1] : null;
 
-  // Generate Table of Contents (ToC) from active article
+  // Table of Contents
   const tableOfContents = useMemo(() => {
     if (!activeArticle) return [];
     const toc: { id: string; text: string; level: number }[] = [];
@@ -234,10 +232,6 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
     if (activeArticle.subTitle) {
       toc.push({ id: 'overview-subtitle', text: activeArticle.subTitle, level: 1 });
     }
-    if (activeArticle.subSubTitle) {
-      toc.push({ id: 'overview-subsubtitle', text: activeArticle.subSubTitle, level: 2 });
-    }
-
     if (activeArticle.steps && activeArticle.steps.length > 0) {
       toc.push({ id: 'steps-section', text: 'Step-by-Step Instructions', level: 1 });
       activeArticle.steps.forEach((step, idx) => {
@@ -259,67 +253,68 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Top Header / Brand Nav */}
-      <header className="sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
+    <div className="min-h-screen bg-[#090d16] text-slate-100 font-sans antialiased selection:bg-cyan-500/20 selection:text-cyan-300">
+      
+      {/* Top Bar Navigation */}
+      <header className="sticky top-0 z-40 bg-[#090d16]/95 backdrop-blur-md border-b border-slate-800/60 px-4 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+              className="lg:hidden p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/50"
             >
               {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <Link to="/docs" className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black shadow-lg shadow-cyan-500/20">
-                <BookOpen className="w-5 h-5" />
+            <Link to="/docs" className="flex items-center space-x-3 group">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center font-bold transition group-hover:bg-cyan-500/20">
+                <BookOpen className="w-4 h-4" />
               </div>
-              <div>
-                <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
+              <div className="flex items-center space-x-2">
+                <span className="font-extrabold text-sm tracking-tight text-white group-hover:text-cyan-400 transition">
                   docs.tripbone.com
-                  <span className="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                    v2.5
-                  </span>
                 </span>
-                <p className="text-[10px] text-slate-400 font-medium">Tripbone SaaS Knowledge Engine</p>
+                <span className="text-[10px] font-mono font-bold bg-slate-800/90 text-cyan-400 border border-slate-700 px-1.5 py-0.5 rounded">
+                  v2.5
+                </span>
               </div>
             </Link>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-md hidden sm:block">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-sm hidden sm:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search guides, APIs, steps, keywords..."
+              placeholder="Search documentation..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-800/80 border border-slate-700/70 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-slate-200 placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+              className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs font-medium text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60 transition"
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-xs font-bold"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-[11px]"
               >
                 Clear
               </button>
             )}
           </div>
 
-          {/* Action buttons */}
+          {/* Action Links */}
           <div className="flex items-center space-x-2">
             {onOpenManageModal && (
               <button
                 onClick={onOpenManageModal}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-cyan-500/20 transition"
+                className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 font-bold text-xs flex items-center space-x-1.5 transition"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Manage Docs</span>
               </button>
             )}
             <Link
               to="/admin"
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center space-x-1 border border-slate-700/60"
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center space-x-1.5 border border-slate-700/60 transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Back office</span>
@@ -327,39 +322,38 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
           </div>
         </div>
 
-        {/* Mobile Search Bar */}
-        <div className="mt-3 sm:hidden">
+        {/* Mobile Search */}
+        <div className="mt-2.5 sm:hidden">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
               placeholder="Search docs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
             />
           </div>
         </div>
       </header>
 
-      {/* Main Docusaurus Layout Container */}
-      <div className="max-w-7xl mx-auto flex min-h-[calc(100vh-65px)]">
+      {/* Main Documentation Grid Layout */}
+      <div className="max-w-7xl mx-auto flex min-h-[calc(100vh-57px)]">
         
-        {/* Left Sidebar Navigation */}
+        {/* Sidebar Index Navigation */}
         <aside className={`
-          fixed lg:sticky top-[65px] z-30 w-72 h-[calc(100vh-65px)] bg-[#0f172a] lg:bg-transparent border-r border-slate-800/80 
-          overflow-y-auto p-5 transition-transform duration-200 shrink-0
+          fixed lg:sticky top-[57px] z-30 w-64 h-[calc(100vh-57px)] bg-[#090d16] lg:bg-transparent border-r border-slate-800/60
+          overflow-y-auto p-4 transition-transform duration-200 shrink-0
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
-          {/* Search Dropdown overlay if search active */}
           {searchQuery && (
-            <div className="mb-6 bg-slate-800/90 border border-slate-700 rounded-2xl p-3 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-                <span>Search Results ({searchResults.length})</span>
-                <button onClick={() => setSearchQuery('')} className="text-cyan-400">Close</button>
+            <div className="mb-4 bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                <span>Search ({searchResults.length})</span>
+                <button onClick={() => setSearchQuery('')} className="text-cyan-400">Clear</button>
               </div>
               {searchResults.length === 0 ? (
-                <p className="text-xs text-slate-400 p-2">No matching documentation found.</p>
+                <p className="text-xs text-slate-500">No matching docs.</p>
               ) : (
                 searchResults.map(art => (
                   <button
@@ -369,10 +363,10 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                       setSearchQuery('');
                       setIsSidebarOpen(false);
                     }}
-                    className="w-full text-left p-2 rounded-lg hover:bg-slate-700/60 transition group"
+                    className="w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition group"
                   >
                     <p className="text-xs font-bold text-slate-200 group-hover:text-cyan-400">{art.title}</p>
-                    <p className="text-[10px] text-slate-400 line-clamp-1">{art.category} • {art.description}</p>
+                    <p className="text-[10px] text-slate-400 line-clamp-1">{art.category}</p>
                   </button>
                 ))
               )}
@@ -380,144 +374,128 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
           )}
 
           <div className="space-y-6">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-3 px-2 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                Documentation Index
-              </p>
-              
-              <div className="space-y-5">
-                {Object.keys(groupedCategories).map((category) => (
-                  <div key={category} className="space-y-1">
-                    <h4 className="text-xs font-extrabold text-slate-300 px-2 py-1 tracking-wide flex items-center justify-between">
-                      <span>{category}</span>
-                      <span className="text-[10px] font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">
-                        {groupedCategories[category].length}
-                      </span>
-                    </h4>
+            {Object.keys(groupedCategories).map((category) => (
+              <div key={category} className="space-y-1">
+                <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-2 py-1 flex items-center justify-between">
+                  <span>{category}</span>
+                  <span className="text-[10px] font-mono bg-slate-800/80 px-1.5 py-0.2 rounded text-slate-400">
+                    {groupedCategories[category].length}
+                  </span>
+                </h4>
 
-                    <div className="space-y-0.5 pl-1 border-l border-slate-800 ml-2">
-                      {groupedCategories[category].map((art) => {
-                        const isActive = activeArticle?.id === art.id || activeArticle?.slug === art.slug;
-                        return (
-                          <button
-                            key={art.id}
-                            onClick={() => {
-                              navigate(`/docs/${art.slug || art.id}`);
-                              setIsSidebarOpen(false);
-                            }}
-                            className={`
-                              w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center justify-between group
-                              ${isActive 
-                                ? 'bg-cyan-500/10 text-cyan-400 font-bold border-l-2 border-cyan-400 -ml-[1px]' 
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'}
-                            `}
-                          >
-                            <span className="truncate">{art.title}</span>
-                            {isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                <div className="space-y-0.5 border-l border-slate-800 ml-2 pl-2">
+                  {groupedCategories[category].map((art) => {
+                    const isActive = activeArticle?.id === art.id || activeArticle?.slug === art.slug;
+                    return (
+                      <button
+                        key={art.id}
+                        onClick={() => {
+                          navigate(`/docs/${art.slug || art.id}`);
+                          setIsSidebarOpen(false);
+                        }}
+                        className={`
+                          w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition flex items-center justify-between group
+                          ${isActive 
+                            ? 'bg-cyan-500/10 text-cyan-400 font-semibold border-l-2 border-cyan-400 -ml-[9px] pl-3' 
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'}
+                        `}
+                      >
+                        <span className="truncate">{art.title}</span>
+                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </aside>
 
-        {/* Center Main Article Content */}
-        <main className="flex-1 min-w-0 p-6 lg:p-10 border-r border-slate-800/80">
+        {/* Center Main Doc Reader */}
+        <main className="flex-1 min-w-0 p-6 lg:p-10 border-r border-slate-800/60">
           {activeArticle ? (
             <article className="max-w-3xl space-y-8">
               
-              {/* Breadcrumbs */}
+              {/* Breadcrumb */}
               <div className="flex items-center space-x-2 text-xs font-medium text-slate-400">
-                <Link to="/docs" className="hover:text-cyan-400">Docs</Link>
+                <Link to="/docs" className="hover:text-cyan-400 transition">Docs</Link>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
                 <span className="text-slate-300">{activeArticle.category}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-                <span className="text-cyan-400 font-bold truncate">{activeArticle.title}</span>
+                <span className="text-cyan-400 font-medium truncate">{activeArticle.title}</span>
               </div>
 
-              {/* Title & Titles Stack */}
-              <div className="space-y-3 pb-6 border-b border-slate-800">
+              {/* Title Section */}
+              <div className="space-y-3 pb-6 border-b border-slate-800/80">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 mb-2">
+                  <div className="space-y-2">
+                    <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                       {activeArticle.category}
                     </span>
-                    <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
                       {activeArticle.title}
                     </h1>
                   </div>
 
                   <button
                     onClick={handleCopyShare}
-                    title="Share Documentation Link"
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs shrink-0"
+                    title="Share Link"
+                    className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs shrink-0 border border-slate-700/50"
                   >
-                    {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
                     <span className="hidden sm:inline">{copiedLink ? 'Copied' : 'Share'}</span>
                   </button>
                 </div>
 
                 {activeArticle.subTitle && (
-                  <h2 id="overview-subtitle" className="text-lg font-bold text-slate-300">
+                  <h2 id="overview-subtitle" className="text-base font-semibold text-slate-300">
                     {activeArticle.subTitle}
                   </h2>
                 )}
 
-                {activeArticle.subSubTitle && (
-                  <h3 id="overview-subsubtitle" className="text-sm font-semibold text-cyan-400/90 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    {activeArticle.subSubTitle}
-                  </h3>
-                )}
-
-                <p className="text-sm text-slate-300 leading-relaxed font-normal pt-2">
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pt-1">
                   {activeArticle.description}
                 </p>
               </div>
 
-              {/* HTML / Markdown Description Body */}
+              {/* HTML / Body Content */}
               {activeArticle.content && (
                 <div 
-                  className="prose prose-invert prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-100 prose-p:text-slate-300 prose-a:text-cyan-400 prose-strong:text-slate-100 text-sm leading-relaxed space-y-4"
+                  className="prose prose-invert prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-100 prose-p:text-slate-300 prose-a:text-cyan-400 prose-strong:text-slate-100 text-xs sm:text-sm leading-relaxed space-y-4"
                   dangerouslySetInnerHTML={{ __html: activeArticle.content }}
                 />
               )}
 
-              {/* Structured Steps Section */}
+              {/* Step-by-Step Instructions */}
               {activeArticle.steps && activeArticle.steps.length > 0 && (
-                <div id="steps-section" className="space-y-6 pt-4">
-                  <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
-                    <ListOrdered className="w-5 h-5 text-cyan-400" />
-                    <h3 className="text-lg font-bold text-white">Step-by-Step Instructions</h3>
+                <div id="steps-section" className="space-y-4 pt-2">
+                  <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-2.5">
+                    <ListOrdered className="w-4 h-4 text-cyan-400" />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Step-by-Step Instructions</h3>
                   </div>
 
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {activeArticle.steps.map((step, idx) => (
                       <div 
                         key={idx} 
                         id={`step-${idx}`}
-                        className="bg-slate-800/40 border border-slate-800 rounded-2xl p-5 space-y-3 transition hover:border-slate-700"
+                        className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-2 hover:border-slate-700/80 transition"
                       >
-                        <div className="flex items-center space-x-3">
-                          <span className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-extrabold text-xs flex items-center justify-center shrink-0">
+                        <div className="flex items-center space-x-2.5">
+                          <span className="w-6 h-6 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-extrabold text-xs flex items-center justify-center shrink-0">
                             {idx + 1}
                           </span>
-                          <h4 className="font-bold text-slate-100 text-sm">{step.title}</h4>
+                          <h4 className="font-bold text-slate-100 text-xs sm:text-sm">{step.title}</h4>
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed pl-10">
+                        <p className="text-xs text-slate-300 leading-relaxed pl-8">
                           {step.desc}
                         </p>
                         {step.image && (
-                          <div className="pl-10 pt-2">
+                          <div className="pl-8 pt-2">
                             <img 
                               src={step.image} 
                               alt={step.title} 
-                              className="rounded-xl border border-slate-700/60 max-h-80 object-cover shadow-lg"
+                              className="rounded-lg border border-slate-800 max-h-72 object-cover shadow-md"
                             />
                           </div>
                         )}
@@ -527,25 +505,25 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                 </div>
               )}
 
-              {/* Visual Reference / Image Gallery */}
+              {/* Images Reference */}
               {activeArticle.images && activeArticle.images.length > 0 && (
-                <div id="gallery-section" className="space-y-4 pt-4">
-                  <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
-                    <ImageIcon className="w-5 h-5 text-cyan-400" />
-                    <h3 className="text-lg font-bold text-white">Visual Reference</h3>
+                <div id="gallery-section" className="space-y-3 pt-2">
+                  <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-2.5">
+                    <ImageIcon className="w-4 h-4 text-cyan-400" />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Visual Reference</h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {activeArticle.images.map((imgUrl, i) => (
                       <a 
                         key={i} 
                         href={imgUrl} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="group relative rounded-2xl overflow-hidden border border-slate-800 hover:border-cyan-500/50 transition bg-slate-900 block"
+                        className="group relative rounded-xl overflow-hidden border border-slate-800 hover:border-cyan-500/40 transition bg-slate-900 block"
                       >
-                        <img src={imgUrl} alt={`Ref ${i}`} className="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />
+                        <img src={imgUrl} alt={`Ref ${i}`} className="w-full h-40 object-cover group-hover:scale-105 transition duration-300" />
                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs font-bold text-white gap-1">
-                          <ExternalLink className="w-4 h-4" /> Expand
+                          <ExternalLink className="w-3.5 h-3.5" /> Expand
                         </div>
                       </a>
                     ))}
@@ -553,17 +531,17 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                 </div>
               )}
 
-              {/* Previous & Next Page Buttons */}
-              <div className="pt-10 mt-10 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Navigation Pagination Buttons */}
+              <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 {prevArticle ? (
                   <button
                     onClick={() => navigate(`/docs/${prevArticle.slug || prevArticle.id}`)}
-                    className="w-full sm:w-auto p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition text-left group flex items-center space-x-3"
+                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition text-left group flex items-center space-x-3"
                   >
-                    <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition" />
+                    <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition" />
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous</span>
-                      <p className="text-xs font-bold text-slate-200 group-hover:text-cyan-400 truncate max-w-[180px] sm:max-w-[220px]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Previous</span>
+                      <p className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 truncate max-w-[180px]">
                         {prevArticle.title}
                       </p>
                     </div>
@@ -573,46 +551,46 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                 {nextArticle ? (
                   <button
                     onClick={() => navigate(`/docs/${nextArticle.slug || nextArticle.id}`)}
-                    className="w-full sm:w-auto p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition text-right group flex items-center justify-end space-x-3 ml-auto"
+                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition text-right group flex items-center justify-end space-x-3 ml-auto"
                   >
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Next</span>
-                      <p className="text-xs font-bold text-slate-200 group-hover:text-cyan-400 truncate max-w-[180px] sm:max-w-[220px]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Next</span>
+                      <p className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 truncate max-w-[180px]">
                         {nextArticle.title}
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition" />
                   </button>
                 ) : <div />}
               </div>
 
             </article>
           ) : (
-            <div className="text-center py-20 space-y-4">
-              <BookOpen className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="text-lg font-bold text-slate-300">No article selected</h3>
-              <p className="text-xs text-slate-400">Select a guide from the sidebar navigation to get started.</p>
+            <div className="text-center py-20 space-y-3">
+              <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-300">No article selected</h3>
+              <p className="text-xs text-slate-500">Select a guide from the sidebar index to view content.</p>
             </div>
           )}
         </main>
 
-        {/* Right Sidebar: Dynamic Table of Contents (ToC) */}
-        <aside className="hidden xl:block w-64 h-[calc(100vh-65px)] sticky top-[65px] p-6 overflow-y-auto shrink-0">
+        {/* Right Table of Contents */}
+        <aside className="hidden xl:block w-56 h-[calc(100vh-57px)] sticky top-[57px] p-5 overflow-y-auto shrink-0">
           <div className="space-y-4">
-            <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-cyan-400" />
               On This Page
             </p>
 
             {tableOfContents.length > 0 ? (
-              <nav className="space-y-1.5 text-xs">
+              <nav className="space-y-1 text-xs">
                 {tableOfContents.map((item, idx) => (
                   <a
                     key={idx}
                     href={`#${item.id}`}
                     className={`
-                      block truncate transition hover:text-cyan-400
-                      ${item.level === 1 ? 'font-bold text-slate-300' : 'pl-3 font-normal text-slate-400'}
+                      block truncate transition hover:text-cyan-400 py-0.5
+                      ${item.level === 1 ? 'font-semibold text-slate-300' : 'pl-2.5 text-slate-400'}
                     `}
                   >
                     {item.text}
@@ -620,18 +598,18 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                 ))}
               </nav>
             ) : (
-              <p className="text-xs text-slate-400 italic">No section headers</p>
+              <p className="text-xs text-slate-500 italic">No section headers</p>
             )}
 
-            <div className="pt-6 border-t border-slate-800 space-y-3">
-              <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 space-y-2">
-                <p className="text-xs font-bold text-cyan-300">Need Assistance?</p>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Have questions about setup or custom API integration? Contact merchant support.
+            <div className="pt-5 border-t border-slate-800 space-y-2">
+              <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 space-y-1.5">
+                <p className="text-xs font-bold text-cyan-400">Need Assistance?</p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Have questions about setup or custom APIs? Contact merchant support.
                 </p>
                 <Link
                   to="/contact"
-                  className="inline-flex items-center space-x-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 pt-1"
+                  className="inline-flex items-center space-x-1 text-xs font-semibold text-cyan-400 hover:underline pt-1"
                 >
                   <span>Contact Support</span>
                   <ExternalLink className="w-3 h-3" />

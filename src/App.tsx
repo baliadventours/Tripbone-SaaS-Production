@@ -17,7 +17,7 @@ import GlobalPopup from './components/GlobalPopup';
 import MobileNav from './components/MobileNav';
 import { cn } from './lib/utils';
 import Loader from './components/Loader';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Globe } from 'lucide-react';
 import { initGA, trackGAPageview } from './lib/googleAnalytics';
 import { logSimplePageView } from './lib/simpleAnalytics';
 import ChunkErrorBoundary from './components/ChunkErrorBoundary';
@@ -201,7 +201,28 @@ function AppContent() {
     );
   }
 
+  const isDocsSubdomain = typeof window !== 'undefined' && window.location.hostname.toLowerCase().startsWith('docs.');
+
   if (isMaster) {
+    if (isDocsSubdomain) {
+      return (
+        <div className="flex min-h-screen flex-col font-sans antialiased text-gray-100 bg-[#0f172a] w-full max-w-full overflow-x-hidden">
+          {isImpersonating && <ImpersonateBar />}
+          <ChunkErrorBoundary>
+            <Suspense fallback={<Loader />}>
+              <Routes>
+                <Route path="/" element={<DocsPage />} />
+                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/docs/:slug" element={<DocsPage />} />
+                <Route path="/:slug" element={<DocsPage />} />
+                <Route path="*" element={<DocsPage />} />
+              </Routes>
+            </Suspense>
+          </ChunkErrorBoundary>
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen flex-col font-sans antialiased text-gray-100 bg-[#070b13] w-full max-w-full overflow-x-hidden">
         {isImpersonating && <ImpersonateBar />}
@@ -214,6 +235,8 @@ function AppContent() {
               <Route path="/signup" element={<SaaSHome />} />
               <Route path="/redeem" element={<AppSumoRedeem />} />
               <Route path="/appsumo" element={<AppSumoRedeem />} />
+              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/docs/:slug" element={<DocsPage />} />
               
               {/* SaaS App Gate (Legacy Mode) */}
               {isAppGate && (
@@ -246,6 +269,8 @@ function AppContent() {
                   <Route path="/contact" element={<SaaSContact />} />
                   <Route path="/blog" element={<BlogArchive />} />
                   <Route path="/blog/:slug" element={<BlogPostDetail />} />
+                  <Route path="/docs" element={<DocsPage />} />
+                  <Route path="/docs/:slug" element={<DocsPage />} />
                   <Route path="/terms" element={<SaaSTerms />} />
                   <Route path="/privacy" element={<SaaSPrivacy />} />
                   <Route path="/cookies" element={<SaasCookies />} />
@@ -292,6 +317,39 @@ function AppContent() {
   };
 
   const dynamicStatus = !isMaster && tenant ? getDynamicStatus(tenant) : 'active';
+
+  // Handle non-existent tenant (e.g., test123.tripbone.com or sample123.tripbone.com)
+  if (!isMaster && !tenant) {
+    return (
+      <div className="min-h-screen bg-[#070b13] text-gray-100 flex flex-col items-center justify-center p-6 text-center font-sans antialiased">
+        <div className="max-w-md w-full bg-[#0b0f19] border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6">
+          <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
+            <Globe className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-black text-white">Workspace Not Found</h1>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              The travel workspace at <span className="font-mono text-cyan-400">{window.location.hostname}</span> is not registered or may have been deleted.
+            </p>
+          </div>
+          <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-2.5">
+            <a
+              href="https://tripbone.com"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500 transition"
+            >
+              Go to Tripbone SaaS
+            </a>
+            <a
+              href="https://tripbone.com/signup"
+              className="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs hover:text-white hover:bg-slate-700 transition border border-slate-700/60"
+            >
+              Create Your Own Website
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Completely block visitor access if suspended
   if (!isMaster && tenant && dynamicStatus === 'suspended') {
