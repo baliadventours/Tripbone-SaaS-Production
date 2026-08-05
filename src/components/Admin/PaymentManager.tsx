@@ -32,9 +32,27 @@ export default function PaymentManager() {
       try {
         const data = await PaymentService.getTenantSettings(activeTenantId);
         setTenantSettings(data);
-        setSelectedProviderId(data.activeProviderId || 'stripe');
+        setSelectedProviderId(data?.activeProviderId || 'stripe');
       } catch (err: any) {
         console.error('Error loading BYOPG settings:', err);
+        setTenantSettings({
+          activeProviderId: 'bank_transfer',
+          providerConfigs: {
+            stripe: { providerId: 'stripe', mode: 'sandbox', enabled: false },
+            xendit: { providerId: 'xendit', mode: 'sandbox', enabled: false },
+            razorpay: { providerId: 'razorpay', mode: 'sandbox', enabled: false },
+            adyen: { providerId: 'adyen', mode: 'sandbox', enabled: false },
+            paypal: { providerId: 'paypal', mode: 'sandbox', enabled: false },
+            midtrans: { providerId: 'midtrans', mode: 'sandbox', enabled: false },
+            bank_transfer: { providerId: 'bank_transfer', mode: 'live', enabled: true },
+            pay_on_arrival: { providerId: 'pay_on_arrival', mode: 'live', enabled: true },
+          },
+          depositType: 'percentage',
+          depositPercentage: 100,
+          autoConfirmOnPayment: true,
+          currencyConversionEnabled: false,
+          updatedAt: new Date().toISOString(),
+        });
       } finally {
         setLoading(false);
       }

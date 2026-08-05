@@ -161,7 +161,25 @@ export class PaymentService {
       };
     } catch (err: any) {
       PaymentLogger.logError('system', 'getTenantSettings', err);
-      throw err;
+      const defaultConfigs: Record<string, GatewayConfig> = {
+        stripe: { providerId: 'stripe', mode: 'sandbox', enabled: false },
+        xendit: { providerId: 'xendit', mode: 'sandbox', enabled: false },
+        razorpay: { providerId: 'razorpay', mode: 'sandbox', enabled: false },
+        adyen: { providerId: 'adyen', mode: 'sandbox', enabled: false },
+        paypal: { providerId: 'paypal', mode: 'sandbox', enabled: false },
+        midtrans: { providerId: 'midtrans', mode: 'sandbox', enabled: false },
+        bank_transfer: { providerId: 'bank_transfer', mode: 'live', enabled: true },
+        pay_on_arrival: { providerId: 'pay_on_arrival', mode: 'live', enabled: true },
+      };
+      return {
+        activeProviderId: 'bank_transfer',
+        providerConfigs: defaultConfigs,
+        depositType: 'percentage',
+        depositPercentage: 100,
+        autoConfirmOnPayment: true,
+        currencyConversionEnabled: false,
+        updatedAt: new Date().toISOString(),
+      };
     }
   }
 

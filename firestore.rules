@@ -99,6 +99,31 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // --- Payment Settings ---
+    match /paymentSettings/{id} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (getUserData().role == 'admin' || getUserData().role == 'superadmin')
+      );
+    }
+
+    // --- Channel Manager ---
+    match /channel_manager/{id} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (getUserData().role == 'admin' || getUserData().role == 'superadmin')
+      );
+    }
+
+    // --- Webhook Logs ---
+    match /webhookLogs/{id} {
+      allow read, write: if isSuperAdmin() || isAdmin();
+    }
+
     // --- Website Builder ---
     match /website_builder/{id} {
       allow read: if true;
