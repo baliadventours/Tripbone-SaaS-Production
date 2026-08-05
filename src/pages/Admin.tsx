@@ -7909,7 +7909,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       const tourDoc = await getDoc(doc(db, 'tours', booking.tourId));
       const tour = tourDoc.exists() ? tourDoc.data() as Tour : null;
       
-      const customer = booking.customerData || {};
+      const customer: any = booking.customerData || {};
       const pax = booking.participants || { adults: 0, children: 0 };
       
       let message = `*Tour Details Assignment*\n\n`;
@@ -9903,7 +9903,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         .filter(b => {
           if (!searchQuery.trim()) return true;
           const q = searchQuery.toLowerCase();
-          const c = b.customerData || {};
+          const c: any = b.customerData || {};
           return (
             (b.id || '').toLowerCase().includes(q) || 
             (c.fullName || '').toLowerCase().includes(q) || 
@@ -9947,7 +9947,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         .filter(b => {
           if (!searchQuery.trim()) return true;
           const q = searchQuery.toLowerCase();
-          const c = b.customerData || {};
+          const c: any = b.customerData || {};
           return (
             (b.id || '').toLowerCase().includes(q) || 
             (c.fullName || '').toLowerCase().includes(q) || 

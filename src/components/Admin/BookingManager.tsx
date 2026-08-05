@@ -237,7 +237,7 @@ export default function BookingManager({
         // Text Match search queries
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
-        const c = b.customerData || {};
+        const c: any = b.customerData || {};
         return (
           (b.id || "").toLowerCase().includes(q) ||
           (c.fullName || "").toLowerCase().includes(q) ||
@@ -363,7 +363,7 @@ export default function BookingManager({
   // Automated notification and email services trigger
   const handleTriggerGuideDispatch = async (booking: Booking, guide: Guide) => {
     // Scaffold WhatsApp messages
-    const customer = booking.customerData || {};
+    const customer: any = booking.customerData || {};
     const pax = booking.participants || { adults: 0, children: 0 };
     let dispatchMsg = `*Tour Details Assignment*\n\n`;
     dispatchMsg += `Name of guest: ${customer.fullName || 'N/A'}\n`;
@@ -559,7 +559,7 @@ export default function BookingManager({
     ];
 
     const dataCSV = listToExport.map(b => {
-      const c = b.customerData || {};
+      const c: any = b.customerData || {};
       const p = b.participants || { adults: 0, children: 0 };
       return [
         b.id, b.date, b.time || 'N/A', c.fullName || 'N/A', c.phone || 'N/A', c.email || 'N/A',
@@ -591,7 +591,7 @@ export default function BookingManager({
     if (!printer) return;
 
     const manifestTableRows = filteredBookings.map(b => {
-      const c = b.customerData || {};
+      const c: any = b.customerData || {};
       const p = b.participants || { adults: 0, children: 0 };
       return `
       <tr style="border-bottom: 1px solid #e1e8ed; font-size: 11px;">
@@ -735,7 +735,7 @@ export default function BookingManager({
 
     targetDailyBookings.forEach((b, index) => {
       if (b.status === 'cancelled') return;
-      const c = b.customerData || {};
+      const c: any = b.customerData || {};
       const p = b.participants || { adults: 0, children: 0 };
       briefingText += `${index + 1}. *[${b.time || 'Pending Departure Time'}]* - Ref: #${b.id.slice(-8)}\n`;
       briefingText += `   *Activity:* ${b.tourTitle}\n`;

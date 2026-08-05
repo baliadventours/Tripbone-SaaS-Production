@@ -293,7 +293,7 @@ export default function BookingSuccess() {
                       const selectedPkg = tour?.packages?.find((p: any) => p.name === booking.packageName);
                       const rawMp = (selectedPkg?.meetingPoint && selectedPkg.meetingPoint.trim()) || 
                                     (tour?.meetingPoint && tour.meetingPoint.trim()) || 
-                                    (booking.customerData?.pickupAddress && booking.customerData?.pickupAddress || "" !== "Meet directly at our adventure basecamp." ? booking.customerData?.pickupAddress || "" : null) || 
+                                    ((booking.customerData?.pickupAddress && booking.customerData?.pickupAddress !== "Meet directly at our adventure basecamp.") ? booking.customerData?.pickupAddress : null) || 
                                     "Meet directly at our adventure basecamp.";
                       const mp = parseMeetingPoint(rawMp, booking.packageName || booking.tourTitle);
                       return (

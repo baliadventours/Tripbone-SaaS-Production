@@ -3,6 +3,7 @@ import * as LucideIcons from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Booking, Tour, BookingLog } from '../../types';
 import { COUNTRIES } from '../../constants';
+import { PaymentTimeline } from './Payment/PaymentTimeline';
 
 interface BookingDetailModalProps {
   isOpen: boolean;
@@ -124,6 +125,9 @@ const BookingDetailModal = ({
                     </div>
                   </div>
                 </div>
+
+                {/* BYOPG Payment Timeline */}
+                <PaymentTimeline bookingData={booking} />
 
                 {/* 2. Tour Configuration */}
                 <div className="space-y-3">
