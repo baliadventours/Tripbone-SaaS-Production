@@ -1451,6 +1451,57 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
             </div>
 
             <div className="space-y-4 text-xs font-semibold">
+              {/* How to Get API Key Helper Accordion */}
+              <div className="p-4 rounded-2xl bg-orange-50/80 border border-orange-200/80 space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-orange-900 font-extrabold text-xs">
+                  <Info className="w-4 h-4 text-orange-600" />
+                  <span>How to get {editingChannel.name} API Credentials:</span>
+                </div>
+                {editingChannel.id === 'getyourguide' && (
+                  <ol className="list-decimal list-inside space-y-1 text-orange-800 font-medium text-[11px] leading-relaxed">
+                    <li>Log in to your <strong>GetYourGuide Supplier Portal</strong> (supplier.getyourguide.com).</li>
+                    <li>Navigate to <strong>Connectivity &amp; Integration Settings</strong>.</li>
+                    <li>Select <strong>OCTO / API System</strong> as your Connectivity Provider (or select Tripbone / Custom API).</li>
+                    <li>Copy your <strong>Supplier ID</strong> (e.g. <code>GYG-99482</code>) and generate a <strong>Bearer Secret Token</strong>.</li>
+                    <li>Paste the token above and copy our <strong>Webhook Endpoint URL</strong> into GYG's Notification Webhooks.</li>
+                  </ol>
+                )}
+                {editingChannel.id === 'viator' && (
+                  <ol className="list-decimal list-inside space-y-1 text-orange-800 font-medium text-[11px] leading-relaxed">
+                    <li>Log in to <strong>Viator Management Center</strong> (supplier.viator.com / mnet.viator.com).</li>
+                    <li>Go to <strong>Account -&gt; Connectivity Partner Integration</strong> (or Service Provider).</li>
+                    <li>In the dropdown list, select <strong className="text-gray-900 bg-amber-200 px-1 py-0.5 rounded">In House Custom</strong>.</li>
+                    <li>Enter your Tripbone Webhook Callback URL (<code>{window.location.origin}/api/webhooks/viator/{tenantId}</code>) and save.</li>
+                    <li>Viator will automatically route booking notifications &amp; availability calls to your Tripbone channel manager!</li>
+                  </ol>
+                )}
+                {editingChannel.id === 'airbnb' && (
+                  <ol className="list-decimal list-inside space-y-1 text-orange-800 font-medium text-[11px] leading-relaxed">
+                    <li>Open <strong>Airbnb Host / Experience Dashboard</strong>.</li>
+                    <li>Go to <strong>Settings -&gt; Connected Apps &amp; API Integrations</strong>.</li>
+                    <li>Generate an <strong>OAuth Access Token</strong> or copy your iCal Feed link.</li>
+                    <li>Copy your Host ID into the Supplier ID field.</li>
+                  </ol>
+                )}
+                {editingChannel.id === 'klook' && (
+                  <ol className="list-decimal list-inside space-y-1 text-orange-800 font-medium text-[11px] leading-relaxed">
+                    <li>Klook does <strong>not</strong> have a self-service Developer menu in <code>merchant.klook.com</code>.</li>
+                    <li>Click <strong>"Get help"</strong> (blue button at bottom right) or go to <strong>Case management</strong> in the left sidebar.</li>
+                    <li>Submit a ticket requesting: <em>"Connect In-House API / Webhook Channel Manager"</em>.</li>
+                    <li>Provide Klook Support with your Tripbone Webhook URL (<code>{window.location.origin}/api/webhooks/klook/{tenantId}</code>).</li>
+                    <li>Or use the <strong>Automated iCal Feeds</strong> tab in Tripbone to sync calendars instantly without waiting for Klook API team approval.</li>
+                  </ol>
+                )}
+                {!['getyourguide', 'viator', 'airbnb', 'klook'].includes(editingChannel.id) && (
+                  <ol className="list-decimal list-inside space-y-1 text-orange-800 font-medium text-[11px] leading-relaxed">
+                    <li>Log in to your <strong>{editingChannel.name} Supplier Portal</strong>.</li>
+                    <li>Navigate to <strong>Account / API Settings / Connectivity</strong>.</li>
+                    <li>Select <strong>OCTO Standard API</strong> or request API credentials from your partner representative.</li>
+                    <li>Copy your <strong>Supplier ID</strong> and <strong>API Key</strong> into the fields below.</li>
+                  </ol>
+                )}
+              </div>
+
               <div>
                 <label className="text-[10px] font-extrabold uppercase text-gray-500 block mb-1">
                   API Key / Access Token

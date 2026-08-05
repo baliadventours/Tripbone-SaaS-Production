@@ -483,8 +483,12 @@ export default function Header() {
       case 'airbnb-fluid':
         return (
           <div className={cn(headerClass, "h-24 md:h-28")}>
-             <Link to="/" className="flex items-center">
-                <img src={getSafeImageUrl(logoURL) || '/logo.png'} className="h-10 md:h-12 w-auto object-contain" alt={siteName} width="240" height="60" referrerPolicy="no-referrer" />
+             <Link to="/" className="flex items-center group">
+                {logoURL ? (
+                  <img src={getSafeImageUrl(logoURL)} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" alt={siteName} referrerPolicy="no-referrer" />
+                ) : (
+                  <img src="/logo.png" className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" alt={siteName} onError={(e) => { e.currentTarget.style.display = 'none'; }} referrerPolicy="no-referrer" />
+                )}
              </Link>
              
              <div className="hidden md:flex items-center bg-white border border-gray-200 rounded-full py-2 px-6 shadow-sm hover:shadow-md transition-all cursor-pointer group">
@@ -518,9 +522,15 @@ export default function Header() {
              "container mx-auto px-4 lg:px-8 flex items-center justify-between transition-all", 
              isGlass ? "bg-white/10 backdrop-blur-3xl border border-white/5 rounded-3xl mt-4 mx-4 w-auto h-16 shadow-2xl text-white" : "bg-gray-950 text-white border-b border-gray-800 h-20 w-full"
           )}>
-             <Link to="/" className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-primary text-white font-black text-xl flex items-center justify-center rounded-xl rotate-3">B</div>
-                <span className="text-xl font-black tracking-tighter hidden sm:block text-white">{siteName || 'ADV.'}</span>
+             <Link to="/" className="flex items-center gap-3 group">
+                {logoURL ? (
+                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                ) : (
+                  <>
+                    <div className="h-10 w-10 bg-primary text-white font-black text-xl flex items-center justify-center rounded-xl rotate-3">B</div>
+                    <span className="text-xl font-black tracking-tighter hidden sm:block text-white">{siteName || 'ADV.'}</span>
+                  </>
+                )}
              </Link>
   
              <nav className={cn(
@@ -555,9 +565,13 @@ export default function Header() {
       case 'minimal-type':
         return (
           <div className={cn(headerClass, "border-b border-gray-100 h-24")}>
-            <Link to="/" className="text-3xl font-black text-gray-900 uppercase tracking-tighter hover:tracking-normal transition-all">
-              {siteName || 'BALI'}
-            </Link>
+             <Link to="/" className="flex items-center gap-2 group">
+               {logoURL ? (
+                 <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+               ) : (
+                 <span className="text-3xl font-black text-gray-900 uppercase tracking-tighter hover:tracking-normal transition-all">{siteName || 'BALI'}</span>
+               )}
+             </Link>
             
             <nav className="hidden lg:flex items-center gap-12 font-mono text-[10px] uppercase tracking-[0.3em] text-gray-400">
                {customLinks ? (
@@ -602,9 +616,15 @@ export default function Header() {
                )}
             </div>
   
-            <Link to="/" className="absolute left-1/2 -translate-x-1/2 text-center group">
-               <span className={cn("block font-serif text-4xl italic leading-none transition-transform group-hover:scale-105", isDark ? "text-white" : "text-gray-900")}>{siteName || 'Bali'}</span>
-               <span className="block text-[8px] font-black tracking-[0.5em] uppercase text-amber-500 mt-2">Private Expeditions</span>
+            <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center group">
+               {logoURL ? (
+                 <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+               ) : (
+                 <div className="text-center">
+                   <span className={cn("block font-serif text-4xl italic leading-none transition-transform group-hover:scale-105", isDark ? "text-white" : "text-gray-900")}>{siteName || 'Bali'}</span>
+                   <span className="block text-[8px] font-black tracking-[0.5em] uppercase text-amber-500 mt-2">Private Expeditions</span>
+                 </div>
+               )}
             </Link>
   
             <div className="flex items-center gap-10">
@@ -631,8 +651,14 @@ export default function Header() {
           <div className={cn(headerClass, "h-16")}>
             <div className="flex items-center gap-12">
                <Link to="/" className="flex items-center gap-2.5 group">
-                  <div className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-xl shadow-primary/20 group-hover:rotate-6 transition-transform"><Zap className="h-5 w-5" /></div>
-                  <span className="font-extrabold text-xl tracking-tight text-gray-900">BaliEngine</span>
+                  {logoURL ? (
+                    <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                  ) : (
+                    <>
+                      <div className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-xl shadow-primary/20 group-hover:rotate-6 transition-transform"><Zap className="h-5 w-5" /></div>
+                      <span className="font-extrabold text-xl tracking-tight text-gray-900">{siteName || 'BaliEngine'}</span>
+                    </>
+                  )}
                </Link>
                <nav className="hidden lg:flex items-center gap-8 text-xs font-black uppercase tracking-widest text-gray-400">
                   {customLinks ? (
@@ -669,13 +695,12 @@ export default function Header() {
                 <Link to="/planner" className="hover:text-primary transition-colors">AI Trip Planner</Link>
              </nav>
 
-             <Link to="/" className="flex flex-col items-center group">
+             <Link to="/" className="flex items-center justify-center group">
                 {logoURL ? (
-                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain" referrerPolicy="no-referrer" />
+                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
                 ) : (
                   <span className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight uppercase group-hover:text-primary transition-colors">{siteName}</span>
                 )}
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-0.5">Explore Paradise</span>
              </Link>
 
              <div className="flex items-center gap-4">
@@ -689,9 +714,9 @@ export default function Header() {
         return (
           <div className="container mx-auto px-4 py-4 fixed top-2 left-0 right-0 z-50 pointer-events-none">
              <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-2xl border border-gray-200/80 rounded-full px-6 py-3 shadow-2xl flex items-center justify-between pointer-events-auto transition-all hover:border-gray-300">
-                <Link to="/" className="flex items-center gap-2">
+                <Link to="/" className="flex items-center gap-2 group">
                    {logoURL ? (
-                     <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-8 w-auto object-contain" referrerPolicy="no-referrer" />
+                     <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
                    ) : (
                      <span className="font-black text-lg text-gray-900 tracking-tight">{siteName}</span>
                    )}
@@ -722,9 +747,15 @@ export default function Header() {
       case 'split-action':
         return (
           <div className={cn(headerClass, "h-20 bg-gray-900 text-white px-6 md:px-12")}>
-             <Link to="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary text-white rounded-xl font-black text-xl flex items-center justify-center shadow-lg shadow-primary/30">B</div>
-                <span className="font-extrabold text-xl tracking-tight text-white">{siteName}</span>
+             <Link to="/" className="flex items-center gap-3 group">
+                {logoURL ? (
+                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                ) : (
+                  <>
+                    <div className="w-10 h-10 bg-primary text-white rounded-xl font-black text-xl flex items-center justify-center shadow-lg shadow-primary/30">B</div>
+                    <span className="font-extrabold text-xl tracking-tight text-white">{siteName}</span>
+                  </>
+                )}
              </Link>
 
              <nav className="hidden lg:flex items-center gap-8 text-xs font-black uppercase tracking-widest text-gray-300">
@@ -749,8 +780,12 @@ export default function Header() {
       case 'lux-editorial':
         return (
           <div className={cn(headerClass, "h-24 bg-[#FAF8F5] border-b border-[#E8E2D9] px-6 lg:px-12")}>
-             <Link to="/" className="font-serif text-3xl italic text-gray-900 tracking-tight">
-                {siteName}
+             <Link to="/" className="flex items-center group">
+                {logoURL ? (
+                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="font-serif text-3xl italic text-gray-900 tracking-tight">{siteName}</span>
+                )}
              </Link>
 
              <nav className="hidden lg:flex items-center gap-10 font-sans text-[11px] font-black uppercase tracking-[0.25em] text-gray-500">
@@ -771,8 +806,12 @@ export default function Header() {
       case 'brutalist-bold':
         return (
           <div className={cn(headerClass, "h-20 bg-yellow-400 border-b-4 border-black px-6 lg:px-10")}>
-             <Link to="/" className="font-black text-2xl uppercase tracking-tighter text-black hover:skew-x-2 transition-transform">
-                {siteName} ★
+             <Link to="/" className="flex items-center group">
+                {logoURL ? (
+                  <img src={getSafeImageUrl(logoURL)} alt={siteName} className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="font-black text-2xl uppercase tracking-tighter text-black hover:skew-x-2 transition-transform">{siteName} ★</span>
+                )}
              </Link>
 
              <nav className="hidden lg:flex items-center gap-8 font-mono text-xs font-black uppercase text-black">
