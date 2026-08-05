@@ -69,6 +69,8 @@ import { Tenant } from '../types';
 import { createCreemCheckoutSession } from '../services/creemService';
 import SaaSBlogManager from '../components/SaaS/SaaSBlogManager';
 import SaaSKnowledgeBase from '../components/SaaS/SaaSKnowledgeBase';
+import DocViewer from '../components/Docs/DocViewer';
+import DocManager from '../components/Docs/DocManager';
 import { MailjetTester } from '../components/Admin/MailjetTester';
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -118,7 +120,7 @@ export default function SaaSSuperAdmin() {
     'operators' | 'end_users' | 'demo_leads' |
     'packages' | 'transactions' | 'coupons' | 'invoices' |
     'tickets' | 'announcements' |
-    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase' | 'blogs' | 'knowledge_base'
+    'integrations' | 'branding' | 'mailjet' | 'security' | 'showcase' | 'blogs' | 'knowledge_base' | 'docs_engine'
   >('overview');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -133,6 +135,7 @@ export default function SaaSSuperAdmin() {
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [tenantModalTab, setTenantModalTab] = useState<'overview' | 'billing' | 'transactions'>('overview');
+  const [isDocManagerOpen, setIsDocManagerOpen] = useState(false);
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
@@ -2133,6 +2136,7 @@ export default function SaaSSuperAdmin() {
             {renderSidebarItem('blogs', 'Blog', FileText)}
             {renderSidebarItem('announcements', 'Announcement & Promotion', Megaphone)}
             {renderSidebarItem('knowledge_base', 'Knowledge Base', BookOpen)}
+            {renderSidebarItem('docs_engine', 'Docs Engine (docs.tripbone.com)', Globe)}
           </div>
         )}
       </div>
@@ -5271,6 +5275,32 @@ export default function SaaSSuperAdmin() {
 
         {activeTab === 'knowledge_base' && (
           <SaaSKnowledgeBase isDarkMode={isDarkMode} isSuperAdmin={true} />
+        )}
+
+        {activeTab === 'docs_engine' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between bg-[#0f172a] text-white p-6 rounded-2xl border border-slate-800">
+              <div>
+                <h3 className="text-xl font-extrabold flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-cyan-400" />
+                  docs.tripbone.com Documentation Engine
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Manage public, multi-tenant, and operator guides with titles, subtitles, step-by-step instructions, image uploads, and table of contents.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsDocManagerOpen(true)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Open Doc Manager</span>
+              </button>
+            </div>
+
+            <DocViewer onOpenManageModal={() => setIsDocManagerOpen(true)} isSuperAdmin={true} />
+            <DocManager isOpen={isDocManagerOpen} onClose={() => setIsDocManagerOpen(false)} />
+          </div>
         )}
 
         {activeTab === 'tickets' && (

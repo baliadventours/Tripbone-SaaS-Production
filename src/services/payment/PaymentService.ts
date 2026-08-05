@@ -33,7 +33,7 @@ export interface TenantPaymentSettings {
   updatedAt: string;
 }
 
-function sanitizeFirestoreData(obj: any): any {
+export function sanitizeFirestoreData(obj: any): any {
   if (obj === undefined) return null;
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(sanitizeFirestoreData);
