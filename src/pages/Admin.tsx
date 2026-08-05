@@ -7734,6 +7734,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         icon: Briefcase,
         children: [
           { id: 'bookings', label: 'Booking List' },
+          { id: 'guides', label: 'Drivers & Guides' },
           { id: 'channel-manager', label: 'Channel Manager (OTAs)', hidden: isAgent || isSupplier },
           { id: 'import-bookings', label: 'Import Booking', hidden: isAgent || isSupplier },
           { id: 'schedule', label: 'Calendar', hidden: isAgent },
@@ -7753,6 +7754,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           { id: 'labels', label: 'Labels', hidden: isSupplier },
           { id: 'addons', label: 'Add Ons', hidden: isSupplier },
           { id: 'transports', label: 'Transport', hidden: isSupplier },
+          { id: 'guides', label: 'Drivers & Guides' },
           { id: 'urgency-points', label: 'Urgency Features', hidden: isSupplier }
         ].filter(c => !c.hidden)
       },
@@ -7818,6 +7820,12 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         label: 'Reviews',
         icon: Star,
         hidden: isSupplier || isAgent
+      },
+      {
+        id: 'guides',
+        label: 'Drivers & Guides',
+        icon: UserCheck,
+        hidden: isAgent
       },
       {
         id: 'users',
@@ -13228,11 +13236,6 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
               <CommunicationManager />
             </div>
-          )}
-          {activeMenu === 'users' && (
-             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-                <UserManager users={users} setUsers={setUsers} currentUserProfile={currentUserProfile} />
-             </div>
           )}
           {activeMenu === 'payment-settings' && (
              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
