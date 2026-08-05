@@ -72,10 +72,16 @@ import SaaSKnowledgeBase from '../components/SaaS/SaaSKnowledgeBase';
 import DocViewer from '../components/Docs/DocViewer';
 import DocManager from '../components/Docs/DocManager';
 import { MailjetTester } from '../components/Admin/MailjetTester';
+import ForbiddenSuperAdmin from '../components/Admin/ForbiddenSuperAdmin';
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis } from 'recharts';
 
 export default function SaaSSuperAdmin() {
-  const { setPreviewTenant, impersonateTenant } = useTenant();
+  const { tenant, isMaster, isImpersonating, setPreviewTenant, impersonateTenant } = useTenant();
+
+  // Guard: If accessed from a tenant site or active tenant context (without superadmin impersonation)
+  if ((!isMaster || tenant) && !isImpersonating) {
+    return <ForbiddenSuperAdmin />;
+  }
 
   const hexToRgb = (hexStr: string): string => {
     let cleanHex = (hexStr || '#1db3cd').replace('#', '');

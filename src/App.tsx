@@ -60,6 +60,7 @@ const ProposalView = lazyWithRetry(() => import('./pages/ProposalView'));
 
 const SaaSHome = lazyWithRetry(() => import('./pages/SaaSHome'));
 const SaaSSuperAdmin = lazyWithRetry(() => import('./pages/SaaSSuperAdmin'));
+const ForbiddenSuperAdmin = lazyWithRetry(() => import('./components/Admin/ForbiddenSuperAdmin'));
 const SaaSMarketing = lazyWithRetry(() => import('./pages/SaaSMarketing'));
 const SaaSShowcase = lazyWithRetry(() => import('./pages/SaaSShowcase'));
 const SaaSLayout = lazyWithRetry(() => import('./components/SaaS/SaaSLayout'));
@@ -433,7 +434,7 @@ function AppContent() {
               <Route path="/destinations" element={<Destinations />} />
               <Route path="/tour/:slug" element={<TourDetail />} />
               <Route path="/checkout/:tourId" element={<Checkout />} />
-              <Route path="/superadmin/*" element={<Navigate to="/admin" replace />} />
+              <Route path="/superadmin/*" element={<ForbiddenSuperAdmin />} />
               <Route path="/admin/*" element={<Admin />} />
               <Route path="/supplier/*" element={<Admin />} />
               <Route path="/agent/*" element={<Admin />} />

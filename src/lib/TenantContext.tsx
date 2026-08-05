@@ -233,7 +233,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const isAiStudio = hostname.includes('run.app');
     const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
 
-    if (cachedTenant && !isExplicitImpersonate && isAiStudio && !isSuperAdminRoute) {
+    if (cachedTenant && !isExplicitImpersonate && isAiStudio) {
       return { 
         slug: cachedTenant.toLowerCase(), 
         customDomain: null, 
