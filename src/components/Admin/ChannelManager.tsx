@@ -74,82 +74,14 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
   // Dynamic Stop-Sell & iCal Feed State
   const [globalStopSellThreshold, setGlobalStopSellThreshold] = useState<number>(2);
   const [autoStopSellEnabled, setAutoStopSellEnabled] = useState<boolean>(true);
-  const [stopSellLogs, setStopSellLogs] = useState<any[]>([
-    {
-      id: 'ss-101',
-      tourTitle: 'Mount Batur Sunrise Trekking & Hot Springs',
-      date: new Date().toISOString().split('T')[0],
-      remainingSeats: 2,
-      threshold: 2,
-      triggeredBy: 'GetYourGuide Callback (GYG-9942819)',
-      status: 'ACTIVE_CLOSURE',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString()
-    }
-  ]);
+  const [stopSellLogs, setStopSellLogs] = useState<any[]>([]);
   const [testingStopSell, setTestingStopSell] = useState<boolean>(false);
   const [stopSellTestResult, setStopSellTestResult] = useState<any>(null);
   const [copiedIcalUrl, setCopiedIcalUrl] = useState<string | null>(null);
 
   // Webhook Test Simulator State
   const [simulatingWebhook, setSimulatingWebhook] = useState(false);
-  const [webhookLogs, setWebhookLogs] = useState<ChannelWebhookLog[]>([
-    {
-      id: 'log-101',
-      timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-      channelId: 'getyourguide',
-      channelName: 'GetYourGuide',
-      eventType: 'booking.created',
-      otaBookingRef: 'GYG-9942819',
-      tourTitle: 'Mount Batur Sunrise Trekking & Hot Springs',
-      customerName: 'Sophie Muller',
-      paxCount: 2,
-      totalAmount: 140,
-      status: 'success',
-      details: 'Instant confirmation synced. Inventory slot deducted.'
-    },
-    {
-      id: 'log-102',
-      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-      channelId: 'viator',
-      channelName: 'Viator / TripAdvisor',
-      eventType: 'booking.created',
-      otaBookingRef: 'BR-88392010',
-      tourTitle: 'Nusa Penida Island Day Tour by Speedboat',
-      customerName: 'Marcus Vance',
-      paxCount: 4,
-      totalAmount: 360,
-      status: 'success',
-      details: 'Voucher BR-88392010 redeemed & synced to calendar.'
-    },
-    {
-      id: 'log-103',
-      timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      channelId: 'klook',
-      channelName: 'Klook Travel',
-      eventType: 'availability.check',
-      otaBookingRef: 'N/A',
-      tourTitle: 'Ubud Waterfalls & Jungle Swing Experience',
-      customerName: 'System Query',
-      paxCount: 0,
-      totalAmount: 0,
-      status: 'success',
-      details: 'Real-time inventory lookup: 18 slots available.'
-    },
-    {
-      id: 'log-104',
-      timestamp: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-      channelId: 'airbnb',
-      channelName: 'Airbnb Experiences',
-      eventType: 'booking.cancelled',
-      otaBookingRef: 'HM2091823',
-      tourTitle: 'Ubud Waterfalls & Jungle Swing Experience',
-      customerName: 'David Lee',
-      paxCount: 2,
-      totalAmount: 110,
-      status: 'success',
-      details: 'Cancellation received. 2 seats restored to master availability.'
-    }
-  ]);
+  const [webhookLogs, setWebhookLogs] = useState<ChannelWebhookLog[]>([]);
 
   // OTA Channels list setup
   const [channels, setChannels] = useState<OTAChannel[]>([
@@ -160,19 +92,18 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
       logoBg: 'bg-red-600',
       logoTextColor: 'text-white',
       shortCode: 'GYG',
-      status: 'connected',
+      status: 'disconnected',
       protocol: 'OCTO API v2',
       environment: 'live',
-      apiKey: 'gyg_live_sec_883920194827',
-      supplierId: 'SUP-77291',
+      apiKey: '',
+      supplierId: '',
       webhookUrl: `${window.location.origin}/api/webhooks/getyourguide?tenant=${tenantId}`,
-      webhookSecret: 'whsec_gyg_88429104',
+      webhookSecret: '',
       commissionRate: 20,
       markupPercent: 10,
-      lastSyncAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-      activeMappedProducts: 12,
-      totalBookingsThisMonth: 48,
-      grossRevenueThisMonth: 6420
+      activeMappedProducts: 0,
+      totalBookingsThisMonth: 0,
+      grossRevenueThisMonth: 0
     },
     {
       id: 'viator',
@@ -181,19 +112,18 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
       logoBg: 'bg-emerald-700',
       logoTextColor: 'text-white',
       shortCode: 'VTR',
-      status: 'connected',
+      status: 'disconnected',
       protocol: 'OCTO API v2',
       environment: 'live',
-      apiKey: 'vtr_key_99201827402',
-      supplierId: 'V-882910',
+      apiKey: '',
+      supplierId: '',
       webhookUrl: `${window.location.origin}/api/webhooks/viator?tenant=${tenantId}`,
-      webhookSecret: 'whsec_vtr_99302194',
+      webhookSecret: '',
       commissionRate: 22,
       markupPercent: 12,
-      lastSyncAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      activeMappedProducts: 10,
-      totalBookingsThisMonth: 62,
-      grossRevenueThisMonth: 8900
+      activeMappedProducts: 0,
+      totalBookingsThisMonth: 0,
+      grossRevenueThisMonth: 0
     },
     {
       id: 'airbnb',
@@ -202,19 +132,18 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
       logoBg: 'bg-rose-500',
       logoTextColor: 'text-white',
       shortCode: 'ABB',
-      status: 'connected',
+      status: 'disconnected',
       protocol: 'Direct REST API',
       environment: 'live',
-      apiKey: 'abb_oauth_token_77281',
-      supplierId: 'HOST-291048',
+      apiKey: '',
+      supplierId: '',
       webhookUrl: `${window.location.origin}/api/webhooks/airbnb?tenant=${tenantId}`,
-      webhookSecret: 'whsec_abb_4482019',
+      webhookSecret: '',
       commissionRate: 20,
       markupPercent: 5,
-      lastSyncAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      activeMappedProducts: 6,
-      totalBookingsThisMonth: 28,
-      grossRevenueThisMonth: 3410
+      activeMappedProducts: 0,
+      totalBookingsThisMonth: 0,
+      grossRevenueThisMonth: 0
     },
     {
       id: 'klook',
@@ -223,19 +152,18 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
       logoBg: 'bg-orange-500',
       logoTextColor: 'text-white',
       shortCode: 'KLK',
-      status: 'connected',
+      status: 'disconnected',
       protocol: 'OCTO API v2',
       environment: 'live',
-      apiKey: 'klk_live_4482019382',
-      supplierId: 'KLK-SUP-551',
+      apiKey: '',
+      supplierId: '',
       webhookUrl: `${window.location.origin}/api/webhooks/klook?tenant=${tenantId}`,
-      webhookSecret: 'whsec_klk_1120938',
+      webhookSecret: '',
       commissionRate: 18,
       markupPercent: 8,
-      lastSyncAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-      activeMappedProducts: 8,
-      totalBookingsThisMonth: 35,
-      grossRevenueThisMonth: 4120
+      activeMappedProducts: 0,
+      totalBookingsThisMonth: 0,
+      grossRevenueThisMonth: 0
     },
     {
       id: 'musement',
@@ -244,19 +172,18 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
       logoBg: 'bg-indigo-600',
       logoTextColor: 'text-white',
       shortCode: 'MSM',
-      status: 'paused',
+      status: 'disconnected',
       protocol: 'Direct REST API',
       environment: 'live',
-      apiKey: 'msm_live_901284',
-      supplierId: 'MSM-8821',
+      apiKey: '',
+      supplierId: '',
       webhookUrl: `${window.location.origin}/api/webhooks/musement?tenant=${tenantId}`,
-      webhookSecret: 'whsec_msm_90182',
+      webhookSecret: '',
       commissionRate: 20,
       markupPercent: 10,
-      lastSyncAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-      activeMappedProducts: 4,
-      totalBookingsThisMonth: 14,
-      grossRevenueThisMonth: 1850
+      activeMappedProducts: 0,
+      totalBookingsThisMonth: 0,
+      grossRevenueThisMonth: 0
     },
     {
       id: 'expedia',
@@ -265,7 +192,7 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
       logoBg: 'bg-yellow-500',
       logoTextColor: 'text-slate-950',
       shortCode: 'EXP',
-      status: 'needs_auth',
+      status: 'disconnected',
       protocol: 'Direct REST API',
       environment: 'sandbox',
       apiKey: '',
@@ -318,68 +245,7 @@ export default function ChannelManager({ allTours = [] }: { allTours?: any[] }) 
   ]);
 
   // Product Mappings State
-  const [mappings, setMappings] = useState<ProductMapping[]>([
-    {
-      id: 'map-1',
-      tourId: allTours[0]?.id || 'tour-batur',
-      tourTitle: allTours[0]?.title || 'Mount Batur Sunrise Trekking & Hot Springs',
-      channelId: 'getyourguide',
-      channelName: 'GetYourGuide',
-      otaProductId: 'GYG-ACT-88219',
-      otaOptionId: 'OPT-SUNRISE-STANDARD',
-      channelPriceAdult: 65,
-      channelPriceChild: 45,
-      autoSyncAvailability: true,
-      instantConfirmation: true,
-      status: 'active',
-      lastSyncedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString()
-    },
-    {
-      id: 'map-2',
-      tourId: allTours[0]?.id || 'tour-batur',
-      tourTitle: allTours[0]?.title || 'Mount Batur Sunrise Trekking & Hot Springs',
-      channelId: 'viator',
-      channelName: 'Viator / TripAdvisor',
-      otaProductId: '102938P1',
-      otaOptionId: 'OPT-01-STANDARD',
-      channelPriceAdult: 68,
-      channelPriceChild: 48,
-      autoSyncAvailability: true,
-      instantConfirmation: true,
-      status: 'active',
-      lastSyncedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString()
-    },
-    {
-      id: 'map-3',
-      tourId: allTours[1]?.id || 'tour-penida',
-      tourTitle: allTours[1]?.title || 'Nusa Penida Island Day Tour by Speedboat',
-      channelId: 'getyourguide',
-      channelName: 'GetYourGuide',
-      otaProductId: 'GYG-ACT-90124',
-      otaOptionId: 'OPT-PENIDA-WEST',
-      channelPriceAdult: 90,
-      channelPriceChild: 65,
-      autoSyncAvailability: true,
-      instantConfirmation: true,
-      status: 'active',
-      lastSyncedAt: new Date(Date.now() - 1000 * 60 * 20).toISOString()
-    },
-    {
-      id: 'map-4',
-      tourId: allTours[1]?.id || 'tour-penida',
-      tourTitle: allTours[1]?.title || 'Nusa Penida Island Day Tour by Speedboat',
-      channelId: 'klook',
-      channelName: 'Klook Travel',
-      otaProductId: 'KLK-882194',
-      otaOptionId: 'KLK-OPT-01',
-      channelPriceAdult: 88,
-      channelPriceChild: 60,
-      autoSyncAvailability: true,
-      instantConfirmation: true,
-      status: 'active',
-      lastSyncedAt: new Date(Date.now() - 1000 * 60 * 40).toISOString()
-    }
-  ]);
+  const [mappings, setMappings] = useState<ProductMapping[]>([]);
 
   // Load Channel Settings from Firestore
   useEffect(() => {

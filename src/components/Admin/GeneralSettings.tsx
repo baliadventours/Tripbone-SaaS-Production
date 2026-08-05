@@ -1944,36 +1944,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
         </div>
       )}
 
-      {/* Database Maintenance */}
-      {(activeTab === 'all' || activeTab === 'builder' || activeTab === 'website') && (
-        <div className="bg-gray-900 rounded-[32px] p-10 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-10 opacity-10">
-            <Database className="h-40 w-40" />
-          </div>
-          <div className="relative space-y-6 max-w-2xl">
-            <div className="flex items-center gap-3">
-               <div className="p-2 bg-white/10 rounded-xl">
-                  <Database className="h-6 w-6 text-primary" />
-               </div>
-               <h3 className="text-2xl font-black tracking-tight">System Seeding & Testing</h3>
-            </div>
-            <p className="text-gray-400 font-medium">Generate dummy bookings, customers, and payouts for testing the system. <strong>Warning:</strong> This will add 5 fake records to each collection.</p>
-            
-            <button
-              type="button"
-              disabled={saving}
-              onClick={async () => {
-                if (confirm("Proceed with seeding 5 dummy records for testing? This will affect your live database.")) {
-                   handleSeedData();
-                }
-              }}
-              className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm tracking-widest uppercase shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {saving ? 'Processing...' : 'Seed Test Data'}
-            </button>
-          </div>
-        </div>
-      )}
+
     </form>
   );
 }

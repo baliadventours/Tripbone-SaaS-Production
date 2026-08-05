@@ -12037,12 +12037,6 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 )}
               </div>
 
-              <button 
-                onClick={seedDummyData} 
-                className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition-all border border-amber-100"
-              >
-                <Database className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Seed</span>
-              </button>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-red-50 text-red-700 text-xs font-black hover:bg-red-100 transition-all border border-red-100"
