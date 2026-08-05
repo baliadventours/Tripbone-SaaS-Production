@@ -255,13 +255,22 @@ export default function PaymentManager() {
         <div className="space-y-8">
           {/* Active Provider Selector Grid */}
           <div>
-            <div className="mb-4">
-              <h3 className="text-sm font-black uppercase text-gray-400 tracking-wider">
-                1. Select Active Tenant Gateway
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Each tenant configures only ONE active payment provider for online checkouts.
-              </p>
+            <div className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-black uppercase text-gray-900 tracking-wider flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />
+                  Multi Payment Gateway Architecture Activated
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Enable multiple payment providers below. All enabled gateways will automatically be presented as customer options during checkout.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-bold text-sky-700 bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200">
+                <span>Enabled Gateways:</span>
+                <span className="font-black text-sky-900">
+                  {Object.values(tenantSettings.providerConfigs).filter(c => c?.enabled).length} / {allGateways.length}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -269,6 +278,7 @@ export default function PaymentManager() {
                 const isActive = tenantSettings.activeProviderId === gw.providerId;
                 const isSelected = selectedProviderId === gw.providerId;
                 const cfg = tenantSettings.providerConfigs[gw.providerId];
+                const isEnabled = cfg?.enabled ?? false;
                 const isConnected = cfg?.verificationMeta?.connectionStatus === 'connected';
 
                 return (
@@ -279,22 +289,26 @@ export default function PaymentManager() {
                       setSelectedProviderId(gw.providerId);
                       setVerificationResult(null);
                     }}
-                    className={`p-4 rounded-2xl border text-left transition relative flex flex-col justify-between h-32 ${
+                    className={`p-4 rounded-2xl border text-left transition relative flex flex-col justify-between min-h-[140px] ${
                       isSelected
                         ? 'border-sky-500 bg-sky-50/50 ring-2 ring-sky-500/20 shadow-md'
+                        : isEnabled
+                        ? 'border-emerald-200 bg-emerald-50/20 hover:border-emerald-300'
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-start justify-between w-full">
                       <span className="font-black text-sm text-gray-900 block">{gw.name}</span>
-                      {isActive && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider">
-                          ACTIVE
-                        </span>
-                      )}
+                      <span className={`px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider ${
+                        isEnabled 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {isEnabled ? 'ENABLED' : 'OFF'}
+                      </span>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 my-2">
                       <div className="flex items-center gap-1.5">
                         <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                         <span className="text-[10px] font-bold text-gray-500">
@@ -306,24 +320,23 @@ export default function PaymentManager() {
                       </span>
                     </div>
 
-                    {/* Radio indicator to activate as primary */}
-                    <div className="mt-2 flex items-center justify-between border-t border-gray-100/80 pt-1.5 w-full">
+                    {/* Enable toggle & Configure button */}
+                    <div className="mt-2 flex items-center justify-between border-t border-gray-100/80 pt-2 w-full">
                       <span className="text-[9px] text-sky-700 font-bold">Configure →</span>
-                      {isActive ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTenantSettings({ ...tenantSettings, activeProviderId: gw.providerId });
-                            setSelectedProviderId(gw.providerId);
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <label className="text-[9px] font-bold text-gray-500 cursor-pointer">
+                          {isEnabled ? 'Active' : 'Enable'}
+                        </label>
+                        <input
+                          type="checkbox"
+                          checked={isEnabled}
+                          onChange={(e) => {
+                            const updated = e.target.checked;
+                            handleConfigChange('enabled', updated);
                           }}
-                          className="text-[9px] font-bold text-gray-400 hover:text-sky-600 underline"
-                        >
-                          Set Active
-                        </button>
-                      )}
+                          className="h-3.5 w-3.5 text-sky-600 rounded border-gray-300 cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </button>
                 );

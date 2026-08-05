@@ -248,7 +248,16 @@ export class PaymentService {
       providerConfigs: updatedSettings.providerConfigs,
       lastDiagnostic: updatedSettings.lastDiagnostic || null,
       updatedAt: updatedSettings.updatedAt,
-      // Flat syncs for legacy components:
+      // Flat syncs for legacy components & multi gateway flags:
+      isStripeEnabled: updatedSettings.providerConfigs.stripe?.enabled ?? false,
+      isXenditEnabled: updatedSettings.providerConfigs.xendit?.enabled ?? false,
+      isRazorpayEnabled: updatedSettings.providerConfigs.razorpay?.enabled ?? false,
+      isAdyenEnabled: updatedSettings.providerConfigs.adyen?.enabled ?? false,
+      isPaypalEnabled: updatedSettings.providerConfigs.paypal?.enabled ?? false,
+      creditCardEnabled: (updatedSettings.providerConfigs.paypal?.enabled || updatedSettings.providerConfigs.stripe?.enabled) ?? false,
+      isMidtransEnabled: updatedSettings.providerConfigs.midtrans?.enabled ?? false,
+      isBankTransferEnabled: updatedSettings.providerConfigs.bank_transfer?.enabled ?? true,
+      isPayOnArrivalEnabled: updatedSettings.providerConfigs.pay_on_arrival?.enabled ?? true,
       stripePublicKey: updatedSettings.providerConfigs.stripe?.publicKey || '',
       stripeSecretKey: updatedSettings.providerConfigs.stripe?.secretKey || '',
       stripeWebhookSecret: updatedSettings.providerConfigs.stripe?.webhookSecret || '',
@@ -270,11 +279,16 @@ export class PaymentService {
 
     const docRef = doc(db, 'paymentSettings', tenantId);
     await setDoc(docRef, flatLegacyFields, { merge: true });
+
+    // Sync to legacy document path as well
+    const legacyDocRef = doc(db, 'settings', 'payment_' + tenantId);
+    await setDoc(legacyDocRef, flatLegacyFields, { merge: true });
+
     PaymentLogger.logInfo('system', 'saveTenantSettings', { activeProviderId: updatedSettings.activeProviderId });
   }
 
   /**
-   * Initiates payment checkout for a booking using the active gateway.
+   * Initiates payment checkout for a booking using the active gateway or specified provider.
    */
   public static async createCheckoutForBooking(
     booking: {
@@ -285,10 +299,11 @@ export class PaymentService {
       currency?: string;
     },
     tenantId: string = 'global',
-    baseUrl: string = window.location.origin
+    baseUrl: string = window.location.origin,
+    selectedProviderId?: PaymentProviderId
   ): Promise<CheckoutResult> {
     const settings = await PaymentService.getTenantSettings(tenantId);
-    const providerId = settings.activeProviderId;
+    const providerId = selectedProviderId || settings.activeProviderId;
     const gatewayConfig = settings.providerConfigs[providerId];
 
     if (!gatewayConfig) {

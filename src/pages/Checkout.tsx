@@ -29,6 +29,7 @@ import {
   Banknote,
   DollarSign,
   QrCode,
+  Zap,
   Loader2,
   ArrowLeft,
   Calendar,
@@ -56,9 +57,10 @@ import { useCurrency } from "../lib/CurrencyContext";
 import { motion, AnimatePresence } from "motion/react";
 import { sendBookingEmail } from "../lib/emailService";
 import { sendWhatsAppNotification } from "../lib/whatsappService";
+import { PaymentService } from "../services/payment/PaymentService";
 
 type CheckoutStep = "selection" | "customer" | "payment";
-type PaymentMethod = "stripe" | "midtrans" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
+type PaymentMethod = "stripe" | "midtrans" | "xendit" | "razorpay" | "adyen" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
 
 interface CountryWithPhoneCode {
   name: string;
@@ -467,13 +469,16 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState<React.ReactNode>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState<{
-    paypalClientId: string;
+    paypalClientId?: string;
     paypalSandboxClientId?: string;
     paypalMode?: 'live' | 'sandbox';
-    isPaypalEnabled: boolean;
-    creditCardEnabled: boolean;
+    isPaypalEnabled?: boolean;
+    creditCardEnabled?: boolean;
     isStripeEnabled?: boolean;
     isMidtransEnabled?: boolean;
+    isXenditEnabled?: boolean;
+    isRazorpayEnabled?: boolean;
+    isAdyenEnabled?: boolean;
     isBankTransferEnabled?: boolean;
     isPayOnArrivalEnabled?: boolean;
     bankName?: string;
@@ -481,14 +486,19 @@ export default function Checkout() {
     swiftCode?: string;
     accountHolder?: string;
     bankInstructions?: string;
+    providerConfigs?: Record<string, any>;
   } | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const activeId = tenantId || getActiveTenantId() || "global";
-        const docRef = doc(db, "settings", "payment_" + activeId);
-        const docSnap = await getDoc(docRef);
+        const docRef = doc(db, "paymentSettings", activeId);
+        let docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          const legacyRef = doc(db, "settings", "payment_" + activeId);
+          docSnap = await getDoc(legacyRef);
+        }
         if (docSnap.exists()) {
           const settings = docSnap.data() as any;
           setPaymentSettings(settings);
@@ -1161,6 +1171,34 @@ const toggleAddOn = (addon: AddOn) => {
         console.error("Booking notification error:", err);
       });
       
+      // Trigger online payment gateway checkout session if applicable
+      if (['stripe', 'midtrans', 'xendit', 'razorpay', 'adyen'].includes(paymentMethod)) {
+        try {
+          const checkoutRes = await PaymentService.createCheckoutForBooking(
+            {
+              id: finalBookingId,
+              tourTitle: tour?.title || 'Tour Booking',
+              customerData: {
+                fullName: customerData.fullName,
+                email: customerEmailNormalized,
+                phone: customerData.phone,
+              },
+              totalAmount: summary.grandTotal,
+              currency: 'USD',
+            },
+            tenantId || 'global',
+            window.location.origin,
+            paymentMethod as any
+          );
+          if (checkoutRes.checkoutUrl) {
+            window.location.href = checkoutRes.checkoutUrl;
+            return;
+          }
+        } catch (checkoutErr) {
+          console.error("Online gateway checkout creation error:", checkoutErr);
+        }
+      }
+
       navigate(`/booking-success/${finalBookingId}`);
     } catch (error: any) {
       console.error("Booking failed", error);
@@ -2585,42 +2623,63 @@ const toggleAddOn = (addon: AddOn) => {
                       label: "Credit / Debit Card (Stripe)",
                       icon: CreditCard,
                       des: "Fast, secure card payment processed by Stripe",
-                      enabled: paymentSettings?.isStripeEnabled ?? false,
+                      enabled: paymentSettings?.isStripeEnabled ?? (paymentSettings?.providerConfigs?.stripe?.enabled ?? false),
                     },
                     {
                       id: "midtrans",
                       label: "QRIS / GoPay / Indo Banks (Midtrans)",
                       icon: QrCode,
                       des: "Instant QRIS code, GoPay, ShopeePay, BCA, Mandiri VA",
-                      enabled: paymentSettings?.isMidtransEnabled ?? false,
+                      enabled: paymentSettings?.isMidtransEnabled ?? (paymentSettings?.providerConfigs?.midtrans?.enabled ?? false),
+                    },
+                    {
+                      id: "xendit",
+                      label: "E-Wallets & Virtual Accounts (Xendit)",
+                      icon: Zap,
+                      des: "Instant e-wallets, virtual accounts & credit cards across SE Asia",
+                      enabled: paymentSettings?.isXenditEnabled ?? (paymentSettings?.providerConfigs?.xendit?.enabled ?? false),
+                    },
+                    {
+                      id: "razorpay",
+                      label: "UPI / NetBanking / Cards (Razorpay)",
+                      icon: CreditCard,
+                      des: "UPI, NetBanking, and credit cards across India and global",
+                      enabled: paymentSettings?.isRazorpayEnabled ?? (paymentSettings?.providerConfigs?.razorpay?.enabled ?? false),
+                    },
+                    {
+                      id: "adyen",
+                      label: "Global Card & Regional Payments (Adyen)",
+                      icon: CreditCard,
+                      des: "Enterprise global credit cards and regional payment options",
+                      enabled: paymentSettings?.isAdyenEnabled ?? (paymentSettings?.providerConfigs?.adyen?.enabled ?? false),
                     },
                     {
                       id: "paypal",
-                      label: "PayPal",
+                      label: "PayPal Account",
                       icon: Wallet,
                       des: "Fast and secure payment with your PayPal account",
-                      enabled: paymentSettings?.isPaypalEnabled ?? true,
+                      enabled: paymentSettings?.isPaypalEnabled ?? (paymentSettings?.providerConfigs?.paypal?.enabled ?? true),
                     },
                     {
                       id: "card",
                       label: "Credit Card (by PayPal)",
                       icon: CreditCard,
                       des: "All major cards accepted. Handled securely by PayPal",
-                      enabled: paymentSettings?.creditCardEnabled ?? true,
+                      enabled: paymentSettings?.creditCardEnabled ?? (paymentSettings?.providerConfigs?.paypal?.enabled ?? true),
                     },
                     {
                       id: "bank_transfer",
                       label: "Manual Bank Transfer",
                       icon: Banknote,
                       des: "Direct deposit to our merchant account",
-                      enabled: paymentSettings?.isBankTransferEnabled ?? true,
+                      enabled: paymentSettings?.isBankTransferEnabled ?? (paymentSettings?.providerConfigs?.bank_transfer?.enabled ?? true),
                     },
                     {
                       id: "pay_on_arrival",
                       label: "Cash on Arrival",
                       icon: DollarSign,
                       des: "Pay cash on the day of the activity",
-                      enabled: paymentSettings?.isPayOnArrivalEnabled ?? true,
+                      enabled: paymentSettings?.isPayOnArrivalEnabled ?? (paymentSettings?.providerConfigs?.pay_on_arrival?.enabled ?? true),
                     },
                   ]
                     .filter((m) => m.enabled)
@@ -2811,6 +2870,11 @@ const toggleAddOn = (addon: AddOn) => {
 
                   {paymentMethod === "bank_transfer" ||
                   paymentMethod === "pay_on_arrival" ||
+                  paymentMethod === "stripe" ||
+                  paymentMethod === "midtrans" ||
+                  paymentMethod === "xendit" ||
+                  paymentMethod === "razorpay" ||
+                  paymentMethod === "adyen" ||
                   summary.grandTotal <= 0 ? (
                     <div className="hidden md:flex justify-end">
                       <button
@@ -2822,7 +2886,13 @@ const toggleAddOn = (addon: AddOn) => {
                           <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                           <>
-                            Complete Booking <Check className="h-5 w-5" />
+                            {paymentMethod === "stripe" && "Pay with Credit Card (Stripe)"}
+                            {paymentMethod === "midtrans" && "Pay with Midtrans (QRIS/E-Wallet)"}
+                            {paymentMethod === "xendit" && "Pay with Xendit (E-Wallet/VA)"}
+                            {paymentMethod === "razorpay" && "Pay with Razorpay (UPI/Card)"}
+                            {paymentMethod === "adyen" && "Pay with Adyen"}
+                            {(paymentMethod === "bank_transfer" || paymentMethod === "pay_on_arrival" || summary.grandTotal <= 0) && "Complete Booking"}
+                            <Check className="h-5 w-5" />
                           </>
                         )}
                       </button>
