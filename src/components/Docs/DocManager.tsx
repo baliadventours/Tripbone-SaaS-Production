@@ -4,7 +4,7 @@ import {
   Layers, Check, Sparkles, AlertCircle, Loader2, ListOrdered, BookOpen,
   FolderPlus, Tag, Folder, Settings
 } from 'lucide-react';
-import { db, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, serverTimestamp } from '../../lib/firebase';
+import { db, collection, addDoc, updateDoc, setDoc, doc, deleteDoc, onSnapshot, serverTimestamp } from '../../lib/firebase';
 import { uploadImage } from '../../lib/imgbb';
 import { DocArticle, DocCategory, DEFAULT_DOC_ARTICLES, DEFAULT_DOC_CATEGORIES } from './DocViewer';
 import { sanitizeFirestoreData } from '../../services/payment/PaymentService';
@@ -177,7 +177,13 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
     setIsSavingArticle(true);
     try {
       const slug = articleForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      const filteredSteps = (articleForm.steps || []).filter(s => s.title.trim() || s.desc.trim());
+      const filteredSteps = (articleForm.steps || [])
+        .map(s => ({
+          title: (s.title || '').trim(),
+          desc: (s.desc || '').trim(),
+          image: (s.image || '').trim()
+        }))
+        .filter(s => s.title || s.desc || s.image);
 
       const payload = sanitizeFirestoreData({
         slug,
@@ -195,7 +201,7 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
       });
 
       if (articleForm.id) {
-        await updateDoc(doc(db, 'documentation_articles', articleForm.id), payload);
+        await setDoc(doc(db, 'documentation_articles', articleForm.id), payload, { merge: true });
       } else {
         await addDoc(collection(db, 'documentation_articles'), {
           ...payload,
@@ -205,9 +211,9 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
 
       setIsEditingArticle(false);
       setArticleForm({});
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving documentation article:", err);
-      alert("Failed to save article.");
+      alert(`Failed to save article: ${err?.message || err}`);
     } finally {
       setIsSavingArticle(false);
     }
@@ -255,7 +261,7 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
       });
 
       if (categoryForm.id) {
-        await updateDoc(doc(db, 'documentation_categories', categoryForm.id), payload);
+        await setDoc(doc(db, 'documentation_categories', categoryForm.id), payload, { merge: true });
       } else {
         await addDoc(collection(db, 'documentation_categories'), {
           ...payload,
@@ -265,9 +271,9 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
 
       setIsEditingCategory(false);
       setCategoryForm({});
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving documentation category:", err);
-      alert("Failed to save category.");
+      alert(`Failed to save category: ${err?.message || err}`);
     } finally {
       setIsSavingCategory(false);
     }
