@@ -641,8 +641,8 @@ export default function Checkout() {
 
     const totalParticipants = adults + children;
 
-    // If no transport is currently selected, choose a default one
-    if (!selectedTransport) {
+    // If no transport is currently selected or selected transport is not in availableTransports, choose a default one
+    if (!selectedTransport || !availableTransports.some(t => t.id === selectedTransport.id)) {
       const meetOpt = availableTransports.find(t => t.type === 'meet');
       const sharedOpt = availableTransports.find(t => t.type === 'shared');
       const privateOpt = availableTransports.find(t => t.type === 'private');
@@ -1502,6 +1502,20 @@ const toggleAddOn = (addon: AddOn) => {
                                       <Clock className="h-4 w-4 text-slate-400" />
                                       <span>Duration: {tour.duration || "10 hours"}</span>
                                     </div>
+                                    {(() => {
+                                      const pkgTransports = pkg.transportIds && pkg.transportIds.length > 0
+                                        ? globalTransports.filter(gt => pkg.transportIds!.includes(gt.id))
+                                        : globalTransports;
+
+                                      if (!pkgTransports || pkgTransports.length === 0) return null;
+
+                                      return (
+                                        <div className="flex items-center gap-1 shrink-0 text-orange-950 bg-orange-50/80 px-2 py-0.5 rounded border border-orange-200/60 font-bold">
+                                          <Car className="h-3.5 w-3.5 text-primary shrink-0" />
+                                          <span>Transports: {pkgTransports.map(t => t.name).join(', ')}</span>
+                                        </div>
+                                      );
+                                    })()}
                                     {pkg.meetingPoint && (
                                       <div className="flex items-start gap-1.5 min-w-0">
                                         <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />

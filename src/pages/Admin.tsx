@@ -8654,6 +8654,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         languages: languagesText.split('\n').filter(line => line.trim() !== ''),
         packages: (formData.packages || []).map(pkg => ({
           ...pkg,
+          transportIds: pkg.transportIds ?? (formData.transportIds && formData.transportIds.length > 0 ? formData.transportIds : globalTransports.map(gt => gt.id)),
           inclusions: (pkg.inclusions || []).filter(l => l.trim() !== ''),
           exclusions: (pkg.exclusions || []).filter(l => l.trim() !== '')
         })),
@@ -8939,7 +8940,6 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       { id: 'guides' as Tab, label: 'Guide Options', icon: UserCheck },
     ] : []),
     { id: 'addOns', label: 'Add-ons', icon: PlusCircle },
-    { id: 'transports', label: 'Transports', icon: Car },
     { id: 'info', label: 'Important Info', icon: ShieldAlert },
     { id: 'faq', label: 'Policies & FAQ', icon: Info },
     { id: 'seo', label: 'SEO Settings', icon: Globe },

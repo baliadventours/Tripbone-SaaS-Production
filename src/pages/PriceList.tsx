@@ -3,7 +3,7 @@ import { collection, query, where, getDocs, orderBy } from '@/src/lib/firebase';
 import { db } from '../lib/firebase';
 import { Tour } from '../types';
 import { motion } from 'motion/react';
-import { Loader2, Users, ChevronRight, Search, Filter, MapPin } from 'lucide-react';
+import { Loader2, Users, ChevronRight, Search, Filter, MapPin, Car } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import FormattedPrice from '../components/FormattedPrice';
 import { cn } from '../lib/utils';
@@ -16,6 +16,7 @@ export default function PriceList() {
   const [tours, setTours] = useState<Tour[]>([]);
   const pageTitle = formatPageTitle('Price List', settings?.siteName || 'Bali Adventours', settings?.pageTitleFormat);
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [globalTransports, setGlobalTransports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
@@ -23,13 +24,15 @@ export default function PriceList() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [toursSnap, catsSnap] = await Promise.all([
+        const [toursSnap, catsSnap, transportsSnap] = await Promise.all([
           getDocs(query(collection(db, 'tours'), where('status', '==', 'active'), orderBy('title', 'asc'))),
-          getDocs(collection(db, 'categories'))
+          getDocs(collection(db, 'categories')),
+          getDocs(collection(db, 'globalTransports'))
         ]);
 
         setTours(toursSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tour)));
         setCategories(catsSnap.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
+        setGlobalTransports(transportsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (error) {
         console.error('Error fetching data for price list:', error);
       } finally {
@@ -186,6 +189,24 @@ export default function PriceList() {
                           </div>
                         </div>
                       )}
+
+                      {(() => {
+                        const pkgTransports = pkg.transportIds && pkg.transportIds.length > 0
+                          ? globalTransports.filter(gt => pkg.transportIds!.includes(gt.id))
+                          : globalTransports;
+
+                        if (!pkgTransports || pkgTransports.length === 0) return null;
+
+                        return (
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50/80 rounded-lg border border-gray-100">
+                            <Car className="h-3 w-3 text-primary shrink-0" />
+                            <span className="text-[9px] font-bold text-gray-500">Transports:</span>
+                            <span className="text-[10px] font-bold text-gray-700 truncate">
+                              {pkgTransports.map(t => t.name).join(', ')}
+                            </span>
+                          </div>
+                        );
+                      })()}
                       
                       <div className="grid grid-cols-3 gap-1">
                         <div className="text-[9px] font-black text-gray-400 uppercase tracking-tighter px-2">Group Size</div>
