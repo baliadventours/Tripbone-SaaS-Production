@@ -351,6 +351,140 @@ REQUIREMENTS:
   }
 });
 
+// API Route: AI Powered Documentation Generator
+router.post("/generate-docs", async (req, res) => {
+  try {
+    const { topic, category, detailLevel, customPrompt, apiKey, tenantId } = req.body;
+    if (!topic || typeof topic !== 'string') {
+      return res.status(400).json({ error: "Missing required field: topic" });
+    }
+
+    // Moderate content
+    try {
+      await moderateCreemContent(topic + ' ' + (customPrompt || ''));
+    } catch (modErr: any) {
+      console.warn("[Moderation blocked prompt]:", modErr.message);
+      return res.status(400).json({ error: "Prompt blocked by moderation policy." });
+    }
+
+    const tenantApiKey = await resolveTenantGeminiKey(tenantId);
+    let finalKey = (tenantApiKey && tenantApiKey.length > 10) ? tenantApiKey : (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 10 ? apiKey.trim() : process.env.GEMINI_API_KEY?.trim());
+    if (!finalKey) {
+      return res.status(400).json({ error: "Gemini API Key is not configured on the server." });
+    }
+
+    const { GoogleGenAI, Type } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey: finalKey });
+
+    const suggestedCategories = [
+      'Getting Started', 'Requirement', 'Installation', 'Website Setting',
+      'Website Builder', 'Manage Website', 'Manage Booking', 'Inquiry & Sales',
+      'Support & Ticket', 'Blog', 'Pages & Landing Page Generator', 'Pop Up',
+      'Reviews', 'User Management', 'Finance Report'
+    ];
+
+    const targetCategory = category && suggestedCategories.includes(category) ? category : (category || 'Getting Started');
+
+    const systemInstruction = `You are an expert SaaS technical writer and documentation architect for 'Tripbone' (app.tripbone.com) — an enterprise multi-tenant travel commerce platform for tour operators, DMCs, and agencies.
+Your task is to write high-quality, clear, deeply informative, end-user documentation and step-by-step operational guides.
+The documentation must be structured professionally for platform administrators and merchants.
+Output MUST be valid JSON matching the schema strictly.`;
+
+    const fullPrompt = `Generate a complete documentation article for the Tripbone SaaS Platform based on the following instructions:
+
+TOPIC / FEATURE: "${topic}"
+TARGET CATEGORY: "${targetCategory}"
+DETAIL LEVEL: "${detailLevel || 'Comprehensive Step-by-Step Guide'}"
+${customPrompt ? `ADDITIONAL CONTEXT & REQUIREMENTS: "${customPrompt}"` : ''}
+
+REQUIRED JSON FIELDS:
+1. "title": Clear, professional documentation article title (e.g. "Configuring BYOPG Payment Gateways (Stripe & Xendit)").
+2. "slug": URL-friendly slug (e.g. "configuring-byopg-payment-gateways").
+3. "subTitle": Primary section subtitle (e.g. "Gateway Integration Overview").
+4. "subSubTitle": Secondary sub headline for table of contents (e.g. "Stripe & Xendit Step-by-Step Setup").
+5. "category": Must be one of the suggested categories (Default: "${targetCategory}").
+6. "description": 2-3 sentence clear summary overview of what this documentation article covers and who it is for.
+7. "content": Deeply informative, HTML-formatted body content. Use <h2>, <h3>, <p>, <ul>, <li>, <strong>, <code>, and <table> tags where appropriate. Explain operational workflows, security best practices, and features thoroughly. Do NOT include <html>, <head>, or <body> wrappers.
+8. "steps": An array of 3-5 structured step-by-step instructions. Each step object must have:
+   - "title": Short step headline (e.g. "Step 1: Obtain API Keys from Stripe Dashboard").
+   - "desc": Detailed explanation of what the user should do in this step.
+   - "image": Set to a relevant Unsplash image URL (e.g. "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" or "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80" or "https://images.unsplash.com/photo-1556742049-0a67dd35a828?auto=format&fit=crop&w=1200&q=80").`;
+
+    const response = await generateContentWithFallback(ai, {
+      model: "gemini-2.5-flash",
+      contents: fullPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            slug: { type: Type.STRING },
+            subTitle: { type: Type.STRING },
+            subSubTitle: { type: Type.STRING },
+            category: { type: Type.STRING },
+            description: { type: Type.STRING },
+            content: { type: Type.STRING },
+            steps: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  desc: { type: Type.STRING },
+                  image: { type: Type.STRING }
+                },
+                required: ["title", "desc"]
+              }
+            }
+          },
+          required: ["title", "subTitle", "subSubTitle", "category", "description", "content", "steps"]
+        }
+      }
+    });
+
+    let text = response.text || "";
+    if (text.includes("```json")) {
+      text = text.split("```json")[1].split("```")[0].trim();
+    } else if (text.includes("```")) {
+      text = text.split("```")[1].split("```")[0].trim();
+    }
+
+    const result = JSON.parse(text);
+    if (!result.slug && result.title) {
+      result.slug = result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    }
+
+    // Default image fallbacks if steps lack images
+    const fallbackImages = [
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1556742049-0a67dd35a828?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80'
+    ];
+
+    if (Array.isArray(result.steps)) {
+      result.steps = result.steps.map((step: any, idx: number) => ({
+        ...step,
+        image: step.image || fallbackImages[idx % fallbackImages.length]
+      }));
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("[Generate Docs Server Error]:", error);
+    let message = error.message || "Failed to generate documentation article";
+    try {
+      const parsed = typeof message === 'string' && message.startsWith('{') ? JSON.parse(message) : null;
+      if (parsed?.error?.message) {
+        message = parsed.error.message;
+      }
+    } catch (_) {}
+    res.status(500).json({ error: message });
+  }
+});
+
 // API Route: Generate Custom Tour Proposal (SaaS Admin Tool)
 router.post("/generate-proposal", async (req, res) => {
   try {

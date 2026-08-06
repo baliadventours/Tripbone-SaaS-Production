@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Plus, Save, Trash2, Edit3, Image as ImageIcon, Upload, 
   Layers, Check, Sparkles, AlertCircle, Loader2, ListOrdered, BookOpen,
-  FolderPlus, Tag, Folder, Settings
+  FolderPlus, Tag, Folder, Settings, RefreshCw, Wand2, ArrowRight, CheckCircle2
 } from 'lucide-react';
 import { db, collection, addDoc, updateDoc, setDoc, doc, deleteDoc, onSnapshot, serverTimestamp } from '../../lib/firebase';
 import { uploadImage } from '../../lib/imgbb';
@@ -14,8 +14,77 @@ interface DocManagerProps {
   onClose: () => void;
 }
 
+// Preset topic suggestions for each suggested category
+const SUGGESTED_TOPICS_BY_CATEGORY: Record<string, string[]> = {
+  'Getting Started': [
+    'Introduction to Tripbone Travel SaaS',
+    'Platform Architecture & Multi-Tenant Setup',
+    'BYOPG Zero Platform Commission Model'
+  ],
+  'Requirement': [
+    'System Prerequisites: Domains, SSL & Cloudflare',
+    'Configuring Gemini AI & WhatsApp Gateway Keys'
+  ],
+  'Installation': [
+    'Step-by-Step Workspace Initialization',
+    'Custom Subdomain CNAME DNS Setup Guide'
+  ],
+  'Website Setting': [
+    'Configuring BYOPG Payment Gateways (Stripe & Xendit)',
+    'Global Currency & Real-Time FX Conversion Setup',
+    'Custom Branding, Logos & Whitelabel Settings'
+  ],
+  'Website Builder': [
+    'Customizing Header, Navigation & Hero Layouts',
+    'Preset Themes & Color Palette Configurations'
+  ],
+  'Manage Website': [
+    'Tours & Activities CRUD Management',
+    'Configuring Tiered Pricing & Driver Schedules',
+    'Transport Services & Additional Add-On Options'
+  ],
+  'Manage Booking': [
+    'Order Processing & Automated Booking Flow',
+    'Manual & CSV Booking Import Workflow',
+    'Channel Manager & Voucher PDF Generation'
+  ],
+  'Inquiry & Sales': [
+    'Managing Incoming Custom Guest Inquiries',
+    'AI Proposal Generator Setup & Quoting Flow',
+    'Discount Coupon & Promotional Rules'
+  ],
+  'Support & Ticket': [
+    'Managing Customer Support Desk Tickets',
+    'Configuring Automated Support Escalations'
+  ],
+  'Blog': [
+    'Publishing Travel News & SEO Blog Articles',
+    'AI Travel Blog Writer Integration'
+  ],
+  'Pages & Landing Page Generator': [
+    'Creating Custom Pages & Policy Terms',
+    'AI Landing Page Generator Workflow'
+  ],
+  'Pop Up': [
+    'Exit-Intent Banners & Promotional Popups',
+    'Lead Capture Form & Discount Popup Setup'
+  ],
+  'Reviews': [
+    'Moderating Guest Reviews & Star Ratings',
+    'Automated Post-Tour Review Requests'
+  ],
+  'User Management': [
+    'Staff Roles, Vendor Access & Permissions',
+    'Superadmin Workspace Impersonation'
+  ],
+  'Finance Report': [
+    'Financial Analytics & Sales Breakdowns',
+    'Payout Reports & Monthly Revenue Metrics'
+  ]
+};
+
 export default function DocManager({ isOpen, onClose }: DocManagerProps) {
-  const [activeTab, setActiveTab] = useState<'articles' | 'categories'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'categories' | 'ai-generator'>('articles');
   const [articles, setArticles] = useState<DocArticle[]>([]);
   const [categories, setCategories] = useState<DocCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +94,7 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
   const [isEditingArticle, setIsEditingArticle] = useState(false);
   const [isSavingArticle, setIsSavingArticle] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isAiDraftingInline, setIsAiDraftingInline] = useState(false);
 
   const [articleForm, setArticleForm] = useState<Partial<DocArticle>>({
     title: '',
@@ -47,6 +117,14 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
     description: '',
     order: 1
   });
+
+  // AI Generator Tab State
+  const [aiCategory, setAiCategory] = useState<string>('Getting Started');
+  const [aiTopic, setAiTopic] = useState<string>('');
+  const [aiDetailLevel, setAiDetailLevel] = useState<string>('Comprehensive Step-by-Step Guide');
+  const [aiCustomPrompt, setAiCustomPrompt] = useState<string>('');
+  const [isGeneratingAiDocs, setIsGeneratingAiDocs] = useState<boolean>(false);
+  const [aiGeneratedDoc, setAiGeneratedDoc] = useState<Partial<DocArticle> | null>(null);
 
   // Load articles real-time
   useEffect(() => {
@@ -99,6 +177,139 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
 
     return () => unsubscribe();
   }, [isOpen]);
+
+  // Helper for AI API generation
+  const callAiDocsGenerator = async (topic: string, category: string, detailLevel?: string, customPrompt?: string) => {
+    const res = await fetch('/api/gemini/generate-docs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic,
+        category,
+        detailLevel: detailLevel || 'Comprehensive Step-by-Step Guide',
+        customPrompt: customPrompt || ''
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Server responded with status ${res.status}`);
+    }
+
+    return await res.json();
+  };
+
+  // Run AI Docs Generator from Tab
+  const handleGenerateAiDocs = async () => {
+    if (!aiTopic.trim()) {
+      alert("Please enter a topic or select one of the suggested topics.");
+      return;
+    }
+
+    setIsGeneratingAiDocs(true);
+    setAiGeneratedDoc(null);
+    try {
+      const result = await callAiDocsGenerator(aiTopic, aiCategory, aiDetailLevel, aiCustomPrompt);
+      setAiGeneratedDoc({
+        ...result,
+        category: result.category || aiCategory,
+        order: (articles.length + 1),
+        status: 'published'
+      });
+    } catch (err: any) {
+      console.error("AI Generation Error:", err);
+      alert(`AI Generation Failed: ${err?.message || err}`);
+    } finally {
+      setIsGeneratingAiDocs(false);
+    }
+  };
+
+  // Save AI Generated Doc Directly
+  const handleSaveAiGeneratedDoc = async () => {
+    if (!aiGeneratedDoc || !aiGeneratedDoc.title) return;
+
+    setIsSavingArticle(true);
+    try {
+      const slug = aiGeneratedDoc.slug || aiGeneratedDoc.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const payload = sanitizeFirestoreData({
+        slug,
+        title: aiGeneratedDoc.title,
+        subTitle: aiGeneratedDoc.subTitle || '',
+        subSubTitle: aiGeneratedDoc.subSubTitle || '',
+        category: aiGeneratedDoc.category || aiCategory,
+        description: aiGeneratedDoc.description || '',
+        content: aiGeneratedDoc.content || '',
+        steps: aiGeneratedDoc.steps || [],
+        images: aiGeneratedDoc.images || [],
+        order: Number(articles.length + 1),
+        status: 'published',
+        updatedAt: new Date().toISOString()
+      });
+
+      await addDoc(collection(db, 'documentation_articles'), {
+        ...payload,
+        createdAt: serverTimestamp()
+      });
+
+      alert(`Successfully published documentation article: "${aiGeneratedDoc.title}"!`);
+      setAiGeneratedDoc(null);
+      setAiTopic('');
+      setActiveTab('articles');
+    } catch (err: any) {
+      console.error("Error saving AI doc:", err);
+      alert(`Failed to save AI generated doc: ${err?.message || err}`);
+    } finally {
+      setIsSavingArticle(false);
+    }
+  };
+
+  // Transfer AI Generated Doc to Manual Editor Form
+  const handleEditAiGeneratedDoc = () => {
+    if (!aiGeneratedDoc) return;
+    setArticleForm({
+      ...aiGeneratedDoc,
+      steps: aiGeneratedDoc.steps && aiGeneratedDoc.steps.length > 0 
+        ? aiGeneratedDoc.steps 
+        : [{ title: '', desc: '', image: '' }]
+    });
+    setAiGeneratedDoc(null);
+    setActiveTab('articles');
+    setIsEditingArticle(true);
+  };
+
+  // Inline AI Draft helper inside Article Editor
+  const handleInlineAiDraft = async () => {
+    if (!articleForm.title?.trim()) {
+      alert("Please enter an Article Title first before generating AI draft.");
+      return;
+    }
+
+    setIsAiDraftingInline(true);
+    try {
+      const result = await callAiDocsGenerator(
+        articleForm.title, 
+        articleForm.category || 'Getting Started',
+        'Comprehensive Step-by-Step Guide',
+        articleForm.description || ''
+      );
+
+      setArticleForm(prev => ({
+        ...prev,
+        title: result.title || prev.title,
+        subTitle: result.subTitle || prev.subTitle,
+        subSubTitle: result.subSubTitle || prev.subSubTitle,
+        category: result.category || prev.category,
+        description: result.description || prev.description,
+        content: result.content || prev.content,
+        steps: result.steps && result.steps.length > 0 ? result.steps : prev.steps
+      }));
+    } catch (err: any) {
+      console.error("Inline AI draft error:", err);
+      alert(`Failed to generate AI draft: ${err?.message || err}`);
+    } finally {
+      setIsAiDraftingInline(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -326,6 +537,15 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
                 <FolderPlus className="w-3.5 h-3.5" />
                 <span>Categories ({categories.length})</span>
               </button>
+              <button
+                onClick={() => { setActiveTab('ai-generator'); setIsEditingArticle(false); setIsEditingCategory(false); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                  activeTab === 'ai-generator' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+                <span>✨ AI Generator</span>
+              </button>
             </div>
 
             <button
@@ -362,7 +582,27 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
                   {/* Title, Subtitle, Category */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1 md:col-span-3">
-                      <label className="text-xs font-bold text-slate-300">Article Title *</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-300">Article Title *</label>
+                        <button
+                          type="button"
+                          disabled={isAiDraftingInline || !articleForm.title?.trim()}
+                          onClick={handleInlineAiDraft}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+                        >
+                          {isAiDraftingInline ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+                              <span>Drafting with Gemini...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3 text-cyan-400" />
+                              <span>✨ AI Auto-Fill / Draft Content</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                       <input
                         type="text"
                         required
@@ -764,8 +1004,253 @@ export default function DocManager({ isOpen, onClose }: DocManagerProps) {
             </div>
           )}
 
-        </div>
+          {/* TAB 3: AI DOCS GENERATOR */}
+          {activeTab === 'ai-generator' && (
+            <div className="space-y-6">
+              {/* Banner */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-900 to-blue-950/80 border border-cyan-500/30 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="flex items-start space-x-3.5 relative z-10">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20 shrink-0">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-white flex items-center space-x-2">
+                      <span>AI-Powered Documentation Generator</span>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                        Google Gemini 2.5
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Automatically synthesize complete, structured, multi-step documentation articles with HTML formatting, sub-headlines, and step-by-step guides categorized under your suggested categories.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
+              {/* Generator Form */}
+              <div className="bg-slate-800/40 border border-slate-800 rounded-2xl p-5 space-y-5">
+                
+                {/* 1. Category Selection */}
+                <div className="space-y-2">
+                  <label className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                    <span>1. Select Documentation Category *</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Keeping suggested categories</span>
+                  </label>
+                  <select
+                    value={aiCategory}
+                    onChange={(e) => {
+                      setAiCategory(e.target.value);
+                      const presets = SUGGESTED_TOPICS_BY_CATEGORY[e.target.value] || [];
+                      if (presets.length > 0 && !aiTopic) {
+                        setAiTopic(presets[0]);
+                      }
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    {DEFAULT_DOC_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.order}. {cat.name} — {cat.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Topic Chips Presets for selected category */}
+                {SUGGESTED_TOPICS_BY_CATEGORY[aiCategory] && (
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400">Suggested Topics for "{aiCategory}":</label>
+                    <div className="flex flex-wrap gap-2">
+                      {SUGGESTED_TOPICS_BY_CATEGORY[aiCategory].map((topicItem, tIdx) => (
+                        <button
+                          key={tIdx}
+                          type="button"
+                          onClick={() => setAiTopic(topicItem)}
+                          className={`text-xs px-3 py-1.5 rounded-xl border font-semibold transition text-left flex items-center space-x-1.5 ${
+                            aiTopic === topicItem 
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-xs' 
+                              : 'bg-slate-900/80 text-slate-300 border-slate-700/80 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span>{topicItem}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Custom Topic Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">Topic / Feature Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Setting up WhatsApp Gateway & Automated Booking Notifications"
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                {/* 4. Detail Level & Custom Context */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">Detail Level</label>
+                    <select
+                      value={aiDetailLevel}
+                      onChange={(e) => setAiDetailLevel(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="Comprehensive Step-by-Step Guide">Comprehensive Step-by-Step Guide</option>
+                      <option value="Quickstart & Core Overview">Quickstart & Core Overview</option>
+                      <option value="Technical Reference & FAQs">Technical Reference & FAQs</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">Extra Requirements / Context (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Emphasize security, zero platform fee, BYOPG setup steps..."
+                      value={aiCustomPrompt}
+                      onChange={(e) => setAiCustomPrompt(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Action */}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={handleGenerateAiDocs}
+                    disabled={isGeneratingAiDocs || !aiTopic.trim()}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs flex items-center space-x-2 shadow-lg shadow-cyan-500/25 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isGeneratingAiDocs ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span>Generating Documentation...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 text-cyan-200" />
+                        <span>✨ Generate Documentation with Gemini AI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Loading State */}
+              {isGeneratingAiDocs && (
+                <div className="py-12 bg-slate-900/90 border border-slate-800 rounded-2xl text-center space-y-4 flex flex-col items-center justify-center">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 animate-pulse">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <Loader2 className="w-16 h-16 animate-spin text-cyan-500 absolute -top-2 -left-2 opacity-60" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Gemini AI is Synthesizing Documentation</h4>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
+                      Generating structured HTML content, subtitles, step-by-step instructions, and visual asset references for <span className="text-cyan-400 font-semibold font-mono">{aiTopic}</span>...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Result Preview */}
+              {aiGeneratedDoc && !isGeneratingAiDocs && (
+                <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl p-6 space-y-6 shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                          Category: {aiGeneratedDoc.category}
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Generated & Ready</span>
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-black text-white">{aiGeneratedDoc.title}</h3>
+                      {aiGeneratedDoc.subTitle && (
+                        <p className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                          {aiGeneratedDoc.subTitle} {aiGeneratedDoc.subSubTitle ? `• ${aiGeneratedDoc.subSubTitle}` : ''}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        onClick={handleEditAiGeneratedDoc}
+                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center space-x-1.5 border border-slate-700 transition"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>✏️ Edit in Editor</span>
+                      </button>
+                      <button
+                        onClick={handleSaveAiGeneratedDoc}
+                        disabled={isSavingArticle}
+                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 transition disabled:opacity-50"
+                      >
+                        {isSavingArticle ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        <span>🚀 Publish Article</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Overview Description */}
+                  {aiGeneratedDoc.description && (
+                    <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-800">
+                      <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">Article Overview</h4>
+                      <p className="text-xs text-slate-200 leading-relaxed">{aiGeneratedDoc.description}</p>
+                    </div>
+                  )}
+
+                  {/* Body HTML Content Preview */}
+                  {aiGeneratedDoc.content && (
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Content Body Preview</h4>
+                      <div 
+                        className="p-4 rounded-xl bg-slate-950 border border-slate-800 max-h-60 overflow-y-auto text-xs text-slate-300 space-y-3 prose prose-invert prose-xs max-w-none"
+                        dangerouslySetInnerHTML={{ __html: aiGeneratedDoc.content }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Steps Preview */}
+                  {aiGeneratedDoc.steps && aiGeneratedDoc.steps.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Step-by-Step Instructions ({aiGeneratedDoc.steps.length} Steps)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {aiGeneratedDoc.steps.map((st, sIdx) => (
+                          <div key={sIdx} className="p-3.5 rounded-xl bg-slate-800/50 border border-slate-800 flex flex-col justify-between space-y-2">
+                            <div>
+                              <span className="text-[10px] font-bold text-cyan-400 font-mono">Step #{sIdx + 1}</span>
+                              <h5 className="text-xs font-bold text-white mt-0.5">{st.title}</h5>
+                              <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">{st.desc}</p>
+                            </div>
+                            {st.image && (
+                              <img src={st.image} alt={st.title} className="w-full h-20 object-cover rounded-lg border border-slate-700/60" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
