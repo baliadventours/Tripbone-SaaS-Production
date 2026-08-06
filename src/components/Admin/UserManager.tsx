@@ -40,7 +40,7 @@ export default function UserManager({ users, setUsers, currentUserProfile }: Use
     displayName: '',
     email: '',
     phoneNumber: '',
-    role: 'staff' as 'admin' | 'staff' | 'supplier' | 'agent' | 'customer',
+    role: 'staff' as 'superadmin' | 'admin' | 'staff' | 'supplier' | 'agent' | 'customer',
     status: 'active' as 'active' | 'pending' | 'suspended',
     companyName: '',
     publicEmail: '',

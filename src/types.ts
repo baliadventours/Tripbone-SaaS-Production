@@ -343,7 +343,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL: string;
-  role: 'admin' | 'staff' | 'customer' | 'supplier' | 'agent';
+  role: 'superadmin' | 'admin' | 'staff' | 'customer' | 'supplier' | 'agent';
   status: 'active' | 'pending' | 'suspended';
   commissionRate?: number; // For suppliers (percentage 0-100)
   discountRate?: number; // For agents (percentage 0-100)

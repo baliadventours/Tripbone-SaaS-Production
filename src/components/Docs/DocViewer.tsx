@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Search, ChevronRight, ChevronLeft, Image as ImageIcon, 
+  BookOpen, Search, ChevronRight, ChevronLeft, ChevronDown, Image as ImageIcon, 
   ExternalLink, Layers, Copy, Check, Sparkles, FileText,
   HelpCircle, ArrowLeft, Menu, X, Plus, Globe,
   CheckCircle2, ListOrdered, Share2, Sun, Moon, Settings, FolderPlus
@@ -67,6 +67,11 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Collapse and Expand State for Left Sidebar Navigation
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
+  const [allCollapsed, setAllCollapsed] = useState(false);
 
   // Load articles from Firestore `documentation_articles`
   useEffect(() => {
@@ -148,6 +153,55 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
     }
     return publishedArticles[0] || DEFAULT_DOC_ARTICLES[0];
   }, [slug, publishedArticles]);
+
+  // Auto-expand the category and sub headlines for the active article
+  useEffect(() => {
+    if (activeArticle) {
+      if (activeArticle.category) {
+        setCollapsedCategories(prev => ({
+          ...prev,
+          [activeArticle.category]: false
+        }));
+      }
+      setExpandedArticles(prev => ({
+        ...prev,
+        [activeArticle.id]: true
+      }));
+    }
+  }, [activeArticle]);
+
+  const toggleCategory = (catName: string) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [catName]: !prev[catName]
+    }));
+  };
+
+  const toggleArticleExpand = (artId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedArticles(prev => ({
+      ...prev,
+      [artId]: !prev[artId]
+    }));
+  };
+
+  const toggleAllCategories = () => {
+    if (allCollapsed) {
+      // Expand all
+      setCollapsedCategories({});
+      const allArtsExpanded: Record<string, boolean> = {};
+      publishedArticles.forEach(a => { allArtsExpanded[a.id] = true; });
+      setExpandedArticles(allArtsExpanded);
+      setAllCollapsed(false);
+    } else {
+      // Collapse all
+      const allCatsCollapsed: Record<string, boolean> = {};
+      Object.keys(groupedCategories).forEach(cat => { allCatsCollapsed[cat] = true; });
+      setCollapsedCategories(allCatsCollapsed);
+      setExpandedArticles({});
+      setAllCollapsed(true);
+    }
+  };
 
   // Search Results
   const searchResults = useMemo(() => {
@@ -309,7 +363,7 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
               </span>
             </button>
 
-            {onOpenManageModal && (
+            {isSuperAdmin && onOpenManageModal && (
               <button
                 onClick={onOpenManageModal}
                 className={`px-3.5 py-2 rounded-xl border font-bold text-xs flex items-center space-x-1.5 transition ${
@@ -399,49 +453,168 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
             </div>
           )}
 
-          <div className="space-y-6">
-            {Object.keys(groupedCategories).map((category) => (
-              <div key={category} className="space-y-1.5">
-                <h4 className={`text-[11px] font-extrabold uppercase tracking-wider px-2 py-1 flex items-center justify-between ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  <span>{category}</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
-                    isDark ? 'bg-slate-800/80 text-slate-400 border-slate-700/50' : 'bg-slate-200/70 text-slate-600 border-slate-300/60'
-                  }`}>
-                    {groupedCategories[category].length}
-                  </span>
-                </h4>
+          <div className="space-y-4">
+            {/* Global Expand / Collapse All Controls */}
+            <div className="flex items-center justify-between px-2 pb-2 border-b border-slate-700/30">
+              <span className={`text-[11px] font-extrabold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Categories ({Object.keys(groupedCategories).length})
+              </span>
+              <button
+                onClick={toggleAllCategories}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition flex items-center space-x-1 ${
+                  isDark 
+                    ? 'bg-slate-800/80 text-cyan-400 border-slate-700/70 hover:bg-slate-700' 
+                    : 'bg-slate-100 text-cyan-700 border-slate-200 hover:bg-slate-200'
+                }`}
+              >
+                <span>{allCollapsed ? 'Expand All' : 'Collapse All'}</span>
+              </button>
+            </div>
 
-                <div className={`space-y-1 border-l ml-2 pl-2.5 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-                  {groupedCategories[category].map((art) => {
-                    const isActive = activeArticle?.id === art.id || activeArticle?.slug === art.slug;
-                    return (
-                      <button
-                        key={art.id}
-                        onClick={() => {
-                          navigate(`/docs/${art.slug || art.id}`);
-                          setIsSidebarOpen(false);
-                        }}
-                        className={`
-                          w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between group font-medium
-                          ${isActive 
-                            ? (isDark 
-                                ? 'bg-cyan-500/10 text-cyan-400 font-bold border-l-2 border-cyan-400 -ml-[11px] pl-3' 
-                                : 'bg-cyan-50 text-cyan-700 font-bold border-l-2 border-cyan-600 -ml-[11px] pl-3')
-                            : (isDark 
-                                ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40' 
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80')}
-                        `}
-                      >
-                        <span className="truncate">{art.title}</span>
-                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-500 shrink-0 ml-1" />}
-                      </button>
-                    );
-                  })}
+            {Object.keys(groupedCategories).map((category) => {
+              const isCategoryCollapsed = Boolean(collapsedCategories[category]);
+              const categoryArticles = groupedCategories[category];
+
+              return (
+                <div key={category} className="space-y-1">
+                  {/* Category Header with Collapse/Expand Toggle */}
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className={`w-full text-left px-2 py-1.5 rounded-xl flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider transition ${
+                      isDark 
+                        ? 'text-slate-300 hover:text-white hover:bg-slate-800/60' 
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1.5 truncate">
+                      {isCategoryCollapsed ? (
+                        <ChevronRight className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                      )}
+                      <span className="truncate">{category}</span>
+                    </div>
+                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border shrink-0 ml-1 ${
+                      isDark ? 'bg-slate-800/80 text-slate-400 border-slate-700/50' : 'bg-slate-200/70 text-slate-600 border-slate-300/60'
+                    }`}>
+                      {categoryArticles.length}
+                    </span>
+                  </button>
+
+                  {/* Articles List when Category is Expanded */}
+                  {!isCategoryCollapsed && (
+                    <div className={`space-y-1 border-l ml-3 pl-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+                      {categoryArticles.map((art) => {
+                        const isActive = activeArticle?.id === art.id || activeArticle?.slug === art.slug;
+                        const hasSubHeadlines = Boolean(
+                          art.subTitle?.trim() || 
+                          art.subSubTitle?.trim() || 
+                          (art.steps && art.steps.length > 0)
+                        );
+                        const isArticleExpanded = Boolean(expandedArticles[art.id] || (isActive && expandedArticles[art.id] !== false));
+
+                        // Sub headlines list
+                        const subItems: { id: string; text: string; type: 'subtitle' | 'subsubtitle' | 'step' }[] = [];
+                        if (art.subTitle?.trim()) {
+                          subItems.push({ id: 'overview-subtitle', text: art.subTitle, type: 'subtitle' });
+                        }
+                        if (art.subSubTitle?.trim()) {
+                          subItems.push({ id: 'overview-subsubtitle', text: art.subSubTitle, type: 'subsubtitle' });
+                        }
+                        if (art.steps && art.steps.length > 0) {
+                          art.steps.forEach((step, idx) => {
+                            if (step.title?.trim()) {
+                              subItems.push({ id: `step-${idx}`, text: step.title, type: 'step' });
+                            }
+                          });
+                        }
+
+                        return (
+                          <div key={art.id} className="space-y-0.5">
+                            {/* Article Row */}
+                            <div className="flex items-center group">
+                              {hasSubHeadlines ? (
+                                <button
+                                  onClick={(e) => toggleArticleExpand(art.id, e)}
+                                  title={isArticleExpanded ? "Collapse sub headlines" : "Expand sub headlines"}
+                                  className={`p-1 rounded-md transition mr-0.5 ${
+                                    isDark ? 'text-slate-400 hover:text-cyan-400 hover:bg-slate-800' : 'text-slate-500 hover:text-cyan-600 hover:bg-slate-200'
+                                  }`}
+                                >
+                                  {isArticleExpanded ? (
+                                    <ChevronDown className="w-3 h-3 text-cyan-500 shrink-0" />
+                                  ) : (
+                                    <ChevronRight className="w-3 h-3 shrink-0" />
+                                  )}
+                                </button>
+                              ) : (
+                                <span className="w-4 shrink-0" />
+                              )}
+
+                              <button
+                                onClick={() => {
+                                  navigate(`/docs/${art.slug || art.id}`);
+                                  setIsSidebarOpen(false);
+                                }}
+                                className={`
+                                  w-full text-left px-2.5 py-1.5 rounded-xl text-xs transition flex items-center justify-between font-medium
+                                  ${isActive 
+                                    ? (isDark 
+                                        ? 'bg-cyan-500/10 text-cyan-400 font-bold border-l-2 border-cyan-400 -ml-[9px] pl-2' 
+                                        : 'bg-cyan-50 text-cyan-700 font-bold border-l-2 border-cyan-600 -ml-[9px] pl-2')
+                                    : (isDark 
+                                        ? 'text-slate-300 hover:text-white hover:bg-slate-800/40' 
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80')}
+                                `}
+                              >
+                                <span className="truncate">{art.title}</span>
+                                {isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-500 shrink-0 ml-1" />}
+                              </button>
+                            </div>
+
+                            {/* Collapsible Sub Headlines list */}
+                            {hasSubHeadlines && isArticleExpanded && (
+                              <div className={`ml-4 pl-2 border-l space-y-0.5 ${
+                                isDark ? 'border-cyan-500/20' : 'border-cyan-200'
+                              }`}>
+                                {subItems.map((sub, sIdx) => (
+                                  <button
+                                    key={sIdx}
+                                    onClick={() => {
+                                      if (!isActive) {
+                                        navigate(`/docs/${art.slug || art.id}`);
+                                      }
+                                      setIsSidebarOpen(false);
+                                      setTimeout(() => {
+                                        const el = document.getElementById(sub.id);
+                                        if (el) {
+                                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                      }, 100);
+                                    }}
+                                    className={`
+                                      w-full text-left px-2 py-1 rounded-lg text-[11px] transition block truncate font-medium
+                                      ${isDark 
+                                        ? 'text-slate-400 hover:text-cyan-300 hover:bg-slate-800/60' 
+                                        : 'text-slate-500 hover:text-cyan-700 hover:bg-slate-100'}
+                                    `}
+                                  >
+                                    <span className="opacity-60 mr-1 font-mono text-[9px]">
+                                      {sub.type === 'step' ? '•' : '↳'}
+                                    </span>
+                                    {sub.text}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </aside>
 
@@ -495,6 +668,12 @@ export default function DocViewer({ onOpenManageModal, isSuperAdmin = false }: D
                   <h2 id="overview-subtitle" className={`text-base font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                     {activeArticle.subTitle}
                   </h2>
+                )}
+
+                {activeArticle.subSubTitle && (
+                  <p id="overview-subsubtitle" className={`text-xs font-semibold uppercase tracking-wider text-cyan-500`}>
+                    {activeArticle.subSubTitle}
+                  </p>
                 )}
 
                 <p className={`text-sm sm:text-base leading-relaxed pt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
