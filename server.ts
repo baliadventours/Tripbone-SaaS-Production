@@ -6227,9 +6227,11 @@ export async function createServer() {
           }
         }
 
-        // Disable CDN caching for SSR routes to prevent cross-domain cache poisoning on shared CDNs (like Firebase Hosting)
-        // because Firebase Hosting does not support Vary: Host.
-        let cacheHeader = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+        // Enable Vercel Edge CDN caching for SSR routes to drastically reduce Fluid Active CPU usage
+        // On Vercel, Edge CDN caches rendered pages per hostname, eliminating function invocations on repeat visits.
+        let cacheHeader = process.env.VERCEL
+          ? 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400'
+          : 'public, max-age=0, s-maxage=60, stale-while-revalidate=3600';
 
         if (fs.existsSync(htmlPath)) {
           const template = await fs.promises.readFile(htmlPath, 'utf-8');
