@@ -47,7 +47,7 @@ export function useTenantSEO() {
 
     let title = siteName;
     if (isMaster && !isCustomDomain) {
-      title = globalSEO?.title || 'Tripbone - Tour Operator Booking & Management Platform';
+      title = globalSEO?.title || 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder';
     } else {
       const isTourDetail = location.pathname.startsWith('/tour/');
       if (location.pathname === '/') {

@@ -62,7 +62,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         setGlobalSEO(docSnap.data());
       } else {
         setGlobalSEO({
-          title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+          title: 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
           description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
           image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
           siteName: 'Tripbone SaaS'
@@ -71,7 +71,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }, (err) => {
       console.error('Error fetching global SEO:', err);
       setGlobalSEO({
-        title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+        title: 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
         description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
         image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
         siteName: 'Tripbone SaaS'

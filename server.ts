@@ -5547,7 +5547,7 @@ export async function createServer() {
     // Default to Master SaaS marketing details
     let siteName = 'Tripbone';
     let siteDescription = 'Tripbone is an enterprise multi-tenant SaaS platform for tour operators and agencies. Built with AI-powered trip planning, secure billing, and modern booking workflows.';
-    let defaultTitle = 'Tripbone - Enterprise Multi Tenant SaaS Platform';
+    let defaultTitle = 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder';
     
     try {
       const metaPath = path.join(process.cwd(), 'metadata.json');
@@ -6257,7 +6257,7 @@ export async function createServer() {
         console.error("[SEO Prod Error]:", error);
         try {
           const fallbackSeo = {
-            title: 'Tripbone - Enterprise Multi Tenant SaaS Platform',
+            title: 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
             description: 'Tripbone is an enterprise multi-tenant SaaS platform for tour operators and agencies. Built with AI-powered trip planning, secure billing, and modern booking workflows.',
             image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
             siteName: 'Tripbone',
