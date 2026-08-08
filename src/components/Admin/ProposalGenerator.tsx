@@ -59,8 +59,10 @@ import {
 export interface InventoryItem {
   id: string;
   name: string;
-  type: 'Ticket' | 'Transport' | 'Hotel' | 'Food' | 'Guide' | 'Extra' | string;
+  type: 'Attraction' | 'Transportation' | 'Accommodation' | 'Meal' | 'Other' | string;
   price: number;
+  adultPrice?: number;
+  childPrice?: number;
   priceType: 'Per person' | 'Per car' | 'Per room' | 'Per day' | 'Flat rate' | string;
   description?: string;
   createdAt?: any;
@@ -71,6 +73,8 @@ export interface ProposalLineItem {
   name: string;
   type: string;
   price: number;
+  adultPrice?: number;
+  childPrice?: number;
   priceType: string;
   quantity: number;
   subtotal: number;
@@ -86,32 +90,20 @@ export function getItemDescription(item: { name: string; type?: string; descript
   const nameLower = (item.name || '').toLowerCase();
   const typeLower = (item.type || '').toLowerCase();
 
-  if (nameLower.includes('bebek tepi sawah') || nameLower.includes('lunch')) {
-    return 'A delicious lunch served in a traditional restaurant with rice terrace view';
+  if (nameLower.includes('bebek tepi sawah') || nameLower.includes('lunch') || typeLower.includes('meal')) {
+    return 'A delicious dining experience featuring authentic local delicacies and scenic views';
   }
-  if (nameLower.includes('airport transfer') || (typeLower === 'transport' && nameLower.includes('airport'))) {
-    return 'Comfortable transfer to the airport with AC car';
+  if (nameLower.includes('airport transfer') || nameLower.includes('transportation') || typeLower.includes('transportation')) {
+    return 'Comfortable vehicle charter with dedicated AC car, fuel, and driver included';
   }
-  if (nameLower.includes('maya ubud') || nameLower.includes('hotel') || nameLower.includes('resort')) {
-    return 'Luxurious resort stay surrounded by lush tropical valley greenery';
+  if (nameLower.includes('hotel') || nameLower.includes('resort') || typeLower.includes('accommodation')) {
+    return 'Luxurious resort stay surrounded by lush tropical landscapes';
   }
-  if (nameLower.includes('lempuyang') || nameLower.includes('temple')) {
-    return 'Spiritual temple entry ticket featuring the iconic Gates of Heaven photo spot';
+  if (nameLower.includes('lempuyang') || nameLower.includes('temple') || typeLower.includes('attraction')) {
+    return 'Popular cultural attraction entry ticket with priority access';
   }
-  if (nameLower.includes('barong') || nameLower.includes('dance')) {
-    return 'Traditional Balinese cultural performance ticket showcasing local mythology and music';
-  }
-  if (nameLower.includes('car charter') || nameLower.includes('avanza') || typeLower === 'transport') {
-    return 'Private AC vehicle charter with dedicated driver, petrol, and parking included';
-  }
-  if (typeLower === 'guide') {
-    return 'Licensed English-speaking local expert guide for personalized cultural commentary';
-  }
-  if (typeLower === 'ticket') {
-    return 'Official entry ticket with fast-track access included';
-  }
-  if (typeLower === 'food') {
-    return 'Authentic local dining experience featuring signature Balinese delicacies';
+  if (typeLower.includes('other')) {
+    return 'Licensed tour guide and expert service for personalized commentary';
   }
 
   return 'Premium included logistics service for a seamless travel experience';
@@ -130,70 +122,61 @@ export function toRoman(num: number): string {
   return roman || String(num);
 }
 
-export const getCategoryKey = (type?: string): 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion' => {
+export const getCategoryKey = (type?: string): 'Attraction' | 'Transportation' | 'Accommodation' | 'Meal' | 'Other' => {
   const safeType = (type || '').toLowerCase();
-  if (['transport', 'car', 'boat', 'transfer', 'driver', 'flight'].includes(safeType)) return 'transport';
-  if (['hotel', 'villa', 'resort', 'stay', 'accommodation', 'room'].includes(safeType)) return 'accommodation';
-  if (['food', 'dining', 'meal', 'restaurant', 'breakfast', 'lunch', 'dinner'].includes(safeType)) return 'food';
-  if (['inclusion', 'included', 'permit'].includes(safeType)) return 'inclusion';
-  if (['exclusion', 'excluded'].includes(safeType)) return 'exclusion';
-  return 'itinerary';
+  if (['attraction', 'ticket', 'sightseeing', 'tour', 'itinerary', 'entry', 'activity'].some(k => safeType.includes(k))) return 'Attraction';
+  if (['transportation', 'transport', 'car', 'boat', 'transfer', 'driver', 'flight', 'vehicle'].some(k => safeType.includes(k))) return 'Transportation';
+  if (['accommodation', 'hotel', 'villa', 'resort', 'stay', 'room'].some(k => safeType.includes(k))) return 'Accommodation';
+  if (['meal', 'food', 'dining', 'restaurant', 'breakfast', 'lunch', 'dinner'].some(k => safeType.includes(k))) return 'Meal';
+  return 'Other';
 };
 
 export const CATEGORY_SECTIONS = [
   { 
-    id: 'itinerary', 
-    label: 'Itinerary (Activities & Attractions)', 
+    id: 'Attraction', 
+    label: 'Attraction', 
     icon: Compass, 
     color: 'orange',
     badgeClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
   },
   { 
-    id: 'transport', 
+    id: 'Transportation', 
     label: 'Transportation', 
     icon: Car, 
     color: 'blue',
     badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
   },
   { 
-    id: 'accommodation', 
+    id: 'Accommodation', 
     label: 'Accommodation', 
     icon: Hotel, 
     color: 'purple',
     badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
   },
   { 
-    id: 'food', 
-    label: 'Food & Dining', 
+    id: 'Meal', 
+    label: 'Meal', 
     icon: Utensils, 
     color: 'amber',
     badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
   },
   { 
-    id: 'inclusion', 
-    label: 'Inclusion', 
-    icon: CheckCircle2, 
+    id: 'Other', 
+    label: 'Other', 
+    icon: Package, 
     color: 'emerald',
     badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-  },
-  { 
-    id: 'exclusion', 
-    label: 'Exclusion', 
-    icon: XCircle, 
-    color: 'rose',
-    badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
   },
 ] as const;
 
 export const getCategoryBadgeClass = (type?: string) => {
   const key = getCategoryKey(type);
   switch (key) {
-    case 'itinerary': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
-    case 'transport': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-    case 'accommodation': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-    case 'food': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-    case 'inclusion': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-    case 'exclusion': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+    case 'Attraction': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
+    case 'Transportation': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+    case 'Accommodation': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+    case 'Meal': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+    case 'Other': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
     default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
   }
 };
@@ -201,13 +184,12 @@ export const getCategoryBadgeClass = (type?: string) => {
 export const getCategoryIcon = (type?: string) => {
   const key = getCategoryKey(type);
   switch (key) {
-    case 'itinerary': return <Compass className="w-3.5 h-3.5" />;
-    case 'transport': return <Car className="w-3.5 h-3.5" />;
-    case 'accommodation': return <Hotel className="w-3.5 h-3.5" />;
-    case 'food': return <Utensils className="w-3.5 h-3.5" />;
-    case 'inclusion': return <CheckCircle2 className="w-3.5 h-3.5" />;
-    case 'exclusion': return <XCircle className="w-3.5 h-3.5" />;
-    default: return <Package className="w-3.5 h-3.5" />;
+    case 'Attraction': return <Compass className="w-3.5 h-3.5 mr-1" />;
+    case 'Transportation': return <Car className="w-3.5 h-3.5 mr-1" />;
+    case 'Accommodation': return <Hotel className="w-3.5 h-3.5 mr-1" />;
+    case 'Meal': return <Utensils className="w-3.5 h-3.5 mr-1" />;
+    case 'Other': return <Package className="w-3.5 h-3.5 mr-1" />;
+    default: return <Package className="w-3.5 h-3.5 mr-1" />;
   }
 };
 
@@ -373,6 +355,8 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [nationality, setNationality] = useState('');
+  const [adultsCount, setAdultsCount] = useState<number>(2);
+  const [childrenCount, setChildrenCount] = useState<number>(0);
   const [paxCount, setPaxCount] = useState<number>(2);
   const [durationDays, setDurationDays] = useState<number>(3);
   const [marginPercentage, setMarginPercentage] = useState<number>(15);
@@ -422,7 +406,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   } | null>(null);
   const [activeDropZone, setActiveDropZone] = useState<{ 
     day: number; 
-    target: 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion' 
+    target: 'Attraction' | 'Transportation' | 'Accommodation' | 'Meal' | 'Other' | string
   } | null>(null);
 
   // Legacy Drag State compatibility
@@ -535,13 +519,13 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Load Inventory from Firestore
   useEffect(() => {
     const defaultSeedItems: InventoryItem[] = [
-      { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Ticket', price: 100000, priceType: 'Per person', description: 'Spiritual temple entry ticket featuring the iconic Gates of Heaven photo spot' },
-      { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transport', price: 600000, priceType: 'Per car', description: 'Private AC vehicle charter with dedicated driver, petrol, and parking included' },
-      { id: 'seed-3', name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Hotel', price: 1200000, priceType: 'Per room', description: 'Luxurious resort stay surrounded by lush tropical valley greenery' },
-      { id: 'seed-4', name: 'Lunch at Bebek Tepi Sawah', type: 'Food', price: 150000, priceType: 'Per person', description: 'A delicious lunch served in a traditional restaurant with rice terrace view' },
-      { id: 'seed-5', name: 'Private Licensed English Tour Guide', type: 'Guide', price: 400000, priceType: 'Per day', description: 'Licensed English-speaking local expert guide for personalized cultural commentary' },
-      { id: 'seed-6', name: 'Traditional Balinese Barong Dance Ticket', type: 'Ticket', price: 150000, priceType: 'Per person', description: 'Traditional Balinese cultural performance ticket showcasing local mythology and music' },
-      { id: 'seed-7', name: 'Airport Transfer', type: 'Transport', price: 350000, priceType: 'Per car', description: 'Comfortable transfer to the airport with AC car' }
+      { id: 'seed-1', name: 'Lempuyang Temple Entrance Ticket', type: 'Attraction', price: 100000, adultPrice: 100000, childPrice: 50000, priceType: 'Per person', description: 'Spiritual temple entry ticket featuring the iconic Gates of Heaven photo spot' },
+      { id: 'seed-2', name: 'Avanza MPV Private Car Charter', type: 'Transportation', price: 600000, adultPrice: 600000, childPrice: 0, priceType: 'Per car', description: 'Private AC vehicle charter with dedicated driver, petrol, and parking included' },
+      { id: 'seed-3', name: 'Maya Ubud Resort & Spa (Deluxe Room)', type: 'Accommodation', price: 1200000, adultPrice: 1200000, childPrice: 0, priceType: 'Per room', description: 'Luxurious resort stay surrounded by lush tropical valley greenery' },
+      { id: 'seed-4', name: 'Lunch at Bebek Tepi Sawah', type: 'Meal', price: 150000, adultPrice: 150000, childPrice: 90000, priceType: 'Per person', description: 'A delicious lunch served in a traditional restaurant with rice terrace view' },
+      { id: 'seed-5', name: 'Private Licensed English Tour Guide', type: 'Other', price: 400000, adultPrice: 400000, childPrice: 0, priceType: 'Per day', description: 'Licensed English-speaking local expert guide for personalized cultural commentary' },
+      { id: 'seed-6', name: 'Traditional Balinese Barong Dance Ticket', type: 'Attraction', price: 150000, adultPrice: 150000, childPrice: 75000, priceType: 'Per person', description: 'Traditional Balinese cultural performance ticket showcasing local mythology and music' },
+      { id: 'seed-7', name: 'Airport Transfer (Private AC Van)', type: 'Transportation', price: 350000, adultPrice: 350000, childPrice: 0, priceType: 'Per car', description: 'Comfortable transfer to the airport with AC car' }
     ];
 
     let unsubscribe = () => {};
@@ -554,14 +538,21 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
           return;
         }
 
-        const items = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          name: docSnap.data().name || 'Untitled Item',
-          type: docSnap.data().type || 'Extra',
-          price: Number(docSnap.data().price) || 0,
-          priceType: docSnap.data().priceType || 'Flat rate',
-          description: docSnap.data().description || ''
-        })) as InventoryItem[];
+        const items = snapshot.docs.map(docSnap => {
+          const d = docSnap.data();
+          const adultP = Number(d.adultPrice ?? d.price) || 0;
+          const childP = Number(d.childPrice) || 0;
+          return {
+            id: docSnap.id,
+            name: d.name || 'Untitled Item',
+            type: getCategoryKey(d.type),
+            price: adultP,
+            adultPrice: adultP,
+            childPrice: childP,
+            priceType: d.priceType || 'Per person',
+            description: d.description || ''
+          };
+        }) as InventoryItem[];
 
         setInventoryList(items);
         setLoadingInventory(false);
@@ -813,8 +804,15 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
   // Calculations
   const baseSubtotal = useMemo(() => {
-    return selectedLineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  }, [selectedLineItems]);
+    return selectedLineItems.reduce((sum, item) => {
+      const adultP = item.adultPrice ?? item.price ?? 0;
+      const childP = item.childPrice ?? 0;
+      if (item.priceType === 'Per person') {
+        return sum + ((item.quantity || 1) * ((adultsCount * adultP) + (childrenCount * childP)));
+      }
+      return sum + ((item.quantity || 1) * adultP);
+    }, 0);
+  }, [selectedLineItems, adultsCount, childrenCount]);
 
   const marginAmount = useMemo(() => {
     return (baseSubtotal * (marginPercentage || 0)) / 100;
@@ -828,8 +826,10 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const handleOpenAddInventory = () => {
     setEditingInventoryItem({
       name: '',
-      type: 'Ticket',
+      type: 'Attraction',
       price: 100000,
+      adultPrice: 100000,
+      childPrice: 50000,
       priceType: 'Per person',
       description: ''
     });
@@ -837,7 +837,12 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   };
 
   const handleEditInventory = (item: InventoryItem) => {
-    setEditingInventoryItem(item);
+    setEditingInventoryItem({
+      ...item,
+      type: getCategoryKey(item.type),
+      adultPrice: item.adultPrice ?? item.price ?? 0,
+      childPrice: item.childPrice ?? 0
+    });
     setIsInventoryModalOpen(true);
   };
 
@@ -851,17 +856,26 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   };
 
   const handleSaveInventoryItem = async () => {
-    if (!editingInventoryItem?.name?.trim() || editingInventoryItem?.price === undefined || editingInventoryItem?.price === null || isNaN(Number(editingInventoryItem?.price))) {
-      alert("Please provide item name and a valid price (0 is allowed).");
+    if (!editingInventoryItem?.name?.trim()) {
+      alert("Please enter an item name.");
       return;
     }
 
     setIsSavingInventory(true);
     try {
+      const adultPrice = Number(editingInventoryItem.adultPrice ?? editingInventoryItem.price) >= 0 
+        ? Number(editingInventoryItem.adultPrice ?? editingInventoryItem.price) 
+        : 0;
+      const childPrice = Number(editingInventoryItem.childPrice) >= 0 
+        ? Number(editingInventoryItem.childPrice) 
+        : 0;
+
       const data = {
         name: editingInventoryItem.name.trim(),
-        type: editingInventoryItem.type || 'Ticket',
-        price: Number(editingInventoryItem.price) >= 0 ? Number(editingInventoryItem.price) : 0,
+        type: getCategoryKey(editingInventoryItem.type || 'Attraction'),
+        price: adultPrice,
+        adultPrice: adultPrice,
+        childPrice: childPrice,
         priceType: editingInventoryItem.priceType || 'Per person',
         description: editingInventoryItem.description || ''
       };
@@ -1053,16 +1067,27 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   // Assign item to Day handler (Click or Drag & Drop)
   const addItemToDay = (inv: InventoryItem, targetDay: number) => {
     let defaultQty = 1;
-    if (inv.priceType === 'Per person') defaultQty = paxCount || 1;
+    const adultP = inv.adultPrice ?? inv.price ?? 0;
+    const childP = inv.childPrice ?? 0;
+
+    let subtotal = 0;
+    if (inv.priceType === 'Per person') {
+      defaultQty = 1;
+      subtotal = (adultsCount * adultP) + (childrenCount * childP);
+    } else {
+      subtotal = defaultQty * adultP;
+    }
 
     const newLineItem: ProposalLineItem = {
       inventoryId: inv.id,
       name: inv.name,
-      type: inv.type,
-      price: inv.price,
+      type: getCategoryKey(inv.type),
+      price: adultP,
+      adultPrice: adultP,
+      childPrice: childP,
       priceType: inv.priceType,
       quantity: defaultQty,
-      subtotal: inv.price * defaultQty,
+      subtotal: subtotal,
       day: targetDay,
       description: inv.description || getItemDescription(inv)
     };
@@ -1155,7 +1180,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const handleDropToDayZone = (
     e: React.DragEvent, 
     targetDay: number, 
-    targetZone: 'itinerary' | 'transport' | 'accommodation' | 'food' | 'inclusion' | 'exclusion'
+    targetZone: 'Attraction' | 'Transportation' | 'Accommodation' | 'Meal' | 'Other' | string
   ) => {
     e.preventDefault();
     setActiveDropZone(null);
@@ -1163,24 +1188,10 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
     // If drag source exists
     if (draggedCatalogItem) {
-      if (targetZone === 'inclusion') {
-        if (typeof draggedCatalogItem.data === 'string') {
-          handleAddDayInclusion(targetDay, draggedCatalogItem.data);
-        } else {
-          handleAddDayInclusion(targetDay, (draggedCatalogItem.data as InventoryItem).name);
-        }
-      } else if (targetZone === 'exclusion') {
-        if (typeof draggedCatalogItem.data === 'string') {
-          handleAddDayExclusion(targetDay, draggedCatalogItem.data);
-        } else {
-          handleAddDayExclusion(targetDay, (draggedCatalogItem.data as InventoryItem).name);
-        }
-      } else {
-        if (draggedCatalogItem.kind === 'inventory') {
-          addItemToDay(draggedCatalogItem.data as InventoryItem, targetDay);
-        } else if (typeof draggedCatalogItem.data === 'string') {
-          handleAddDayInclusion(targetDay, draggedCatalogItem.data);
-        }
+      if (draggedCatalogItem.kind === 'inventory') {
+        addItemToDay(draggedCatalogItem.data as InventoryItem, targetDay);
+      } else if (typeof draggedCatalogItem.data === 'string') {
+        handleAddDayInclusion(targetDay, draggedCatalogItem.data);
       }
       setDraggedCatalogItem(null);
       setDraggedInventoryItem(null);
@@ -1194,7 +1205,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   };
 
   const handleDropToDay = (e: React.DragEvent, targetDay: number) => {
-    handleDropToDayZone(e, targetDay, 'itinerary');
+    handleDropToDayZone(e, targetDay, 'Attraction');
   };
 
   const handleRemoveLineItem = (index: number) => {
@@ -1205,10 +1216,16 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     if (newQty <= 0) return;
     setSelectedLineItems(prev => prev.map((item, i) => {
       if (i === index) {
+        const adultP = item.adultPrice ?? item.price ?? 0;
+        const childP = item.childPrice ?? 0;
+        const subtotal = item.priceType === 'Per person' 
+          ? newQty * ((adultsCount * adultP) + (childrenCount * childP))
+          : newQty * adultP;
+
         return {
           ...item,
           quantity: newQty,
-          subtotal: item.price * newQty
+          subtotal: subtotal
         };
       }
       return item;
@@ -1419,29 +1436,27 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     text += `📌 *Day by day Itinerary:*\n`;
     p.itineraryNarrative.forEach(day => {
       const dayLogistics = p.selectedItems.filter(i => i.day === day.dayNumber);
-      const dayItineraryItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'itinerary');
-      const dayTransportItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'transport');
-      const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'accommodation');
-      const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'food');
+      const dayItineraryItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Attraction');
+      const dayTransportItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Transportation');
+      const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Accommodation');
+      const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Meal');
+      const dayOtherItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Other');
 
-      const dayInclusionsList = [
-        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'inclusion').map(i => i.name),
-        ...(p.dayInclusions?.[day.dayNumber] || [])
-      ];
-
-      const dayExclusionsList = [
-        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'exclusion').map(i => i.name),
-        ...(p.dayExclusions?.[day.dayNumber] || [])
-      ];
+      const dayInclusionsList = p.dayInclusions?.[day.dayNumber] || [];
+      const dayExclusionsList = p.dayExclusions?.[day.dayNumber] || [];
 
       text += `\n*Day ${toRoman(day.dayNumber)}: ${day.title}*\n`;
       if (day.summary) {
         text += `${day.summary}\n`;
       }
 
-      text += `Itinerary:\n` + (dayItineraryItems.length > 0 ? dayItineraryItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
-      text += `Transportation Option:\n` + (dayTransportItems.length > 0 ? dayTransportItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Attraction:\n` + (dayItineraryItems.length > 0 ? dayItineraryItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Transportation:\n` + (dayTransportItems.length > 0 ? dayTransportItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
       text += `Accommodation:\n` + (dayAccommodationItems.length > 0 ? dayAccommodationItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      text += `Meal:\n` + (dayDiningItems.length > 0 ? dayDiningItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
+      if (dayOtherItems.length > 0) {
+        text += `Other:\n` + dayOtherItems.map(i => `- ${i.name}`).join('\n') + `\n`;
+      }
       text += `Dining:\n` + (dayDiningItems.length > 0 ? dayDiningItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
       text += `Inclusion:\n` + (dayInclusionsList.length > 0 ? dayInclusionsList.map(i => `- ${i}`).join('\n') : `-`) + `\n`;
       text += `Exclusion:\n` + (dayExclusionsList.length > 0 ? dayExclusionsList.map(i => `- ${i}`).join('\n') : `-`) + `\n`;
@@ -1834,16 +1849,44 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                      Pax Count (Guests)
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                      <span>Adult Guests *</span>
+                      <span className="text-[10px] text-orange-600 font-semibold">Adult Rate</span>
                     </label>
                     <div className="relative">
-                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
                       <input
                         type="number"
                         min="1"
-                        value={paxCount}
-                        onChange={(e) => setPaxCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        value={adultsCount}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          setAdultsCount(val);
+                          setPaxCount(val + childrenCount);
+                        }}
+                        className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                      <span>Children Guests</span>
+                      <span className="text-[10px] text-blue-600 font-semibold">Child Rate</span>
+                    </label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                      <input
+                        type="number"
+                        min="0"
+                        value={childrenCount}
+                        onChange={(e) => {
+                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                          setChildrenCount(val);
+                          setPaxCount(adultsCount + val);
+                        }}
                         className={`w-full pl-9 pr-3.5 py-2.5 text-xs font-bold rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
                           isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
                         }`}
@@ -2071,169 +2114,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                               const sectionKey = `d${dayNum}-${section.id}`;
                               const isSectionCollapsed = !!collapsedDaySections[sectionKey];
 
-                              if (section.id === 'inclusion') {
-                                return (
-                                  <div
-                                    key={`day-${dayNum}-sec-inclusion`}
-                                    onDragOver={(e) => {
-                                      e.preventDefault();
-                                      setActiveDropZone({ day: dayNum, target: 'inclusion' });
-                                    }}
-                                    onDragLeave={() => setActiveDropZone(null)}
-                                    onDrop={(e) => handleDropToDayZone(e, dayNum, 'inclusion')}
-                                    className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
-                                      activeDropZone?.day === dayNum && activeDropZone.target === 'inclusion'
-                                        ? 'border-dashed border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30'
-                                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center space-x-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleDaySectionCollapse(dayNum, 'inclusion')}
-                                          className="p-1 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 cursor-pointer"
-                                        >
-                                          {isSectionCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-                                        </button>
-                                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
-                                          <CheckCircle2 className="w-3.5 h-3.5" />
-                                          <span>Inclusion ({currentInclusions.length})</span>
-                                        </span>
-                                      </div>
-                                      <span className="text-[10px] text-gray-400">Drag inclusion here or type below</span>
-                                    </div>
-
-                                    {!isSectionCollapsed && (
-                                      <>
-                                        <div className="space-y-1.5 min-h-[40px]">
-                                          {currentInclusions.length === 0 ? (
-                                            <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
-                                              No inclusions added for Day {dayNum}. Drag from catalog or type below.
-                                            </p>
-                                          ) : (
-                                            currentInclusions.map((incText, incIdx) => (
-                                              <div key={`day-inc-chip-${incIdx}`} className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-semibold flex items-center justify-between">
-                                                <span className="truncate pr-2">✓ {incText}</span>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleRemoveDayInclusion(dayNum, incIdx)}
-                                                  className="text-red-400 hover:text-red-600 shrink-0"
-                                                >
-                                                  <X className="w-3.5 h-3.5" />
-                                                </button>
-                                              </div>
-                                            ))
-                                          )}
-                                        </div>
-
-                                        <div className="flex items-center space-x-1.5 pt-1">
-                                          <input
-                                            type="text"
-                                            placeholder={`Add inclusion for Day ${dayNum}...`}
-                                            value={dayInclusionInputs[dayNum] || ''}
-                                            onChange={(e) => setDayInclusionInputs({ ...dayInclusionInputs, [dayNum]: e.target.value })}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
-                                            className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
-                                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                                            }`}
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => handleAddDayInclusion(dayNum, dayInclusionInputs[dayNum] || '')}
-                                            className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                                          >
-                                            + Add
-                                          </button>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                );
-                              }
-
-                              if (section.id === 'exclusion') {
-                                return (
-                                  <div
-                                    key={`day-${dayNum}-sec-exclusion`}
-                                    onDragOver={(e) => {
-                                      e.preventDefault();
-                                      setActiveDropZone({ day: dayNum, target: 'exclusion' });
-                                    }}
-                                    onDragLeave={() => setActiveDropZone(null)}
-                                    onDrop={(e) => handleDropToDayZone(e, dayNum, 'exclusion')}
-                                    className={`p-3.5 rounded-2xl border-2 transition-all space-y-2.5 ${
-                                      activeDropZone?.day === dayNum && activeDropZone.target === 'exclusion'
-                                        ? 'border-dashed border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/30'
-                                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-gray-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center space-x-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleDaySectionCollapse(dayNum, 'exclusion')}
-                                          className="p-1 rounded bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 cursor-pointer"
-                                        >
-                                          {isSectionCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-                                        </button>
-                                        <span className="text-xs font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
-                                          <XCircle className="w-3.5 h-3.5" />
-                                          <span>Exclusion ({currentExclusions.length})</span>
-                                        </span>
-                                      </div>
-                                      <span className="text-[10px] text-gray-400">Drag exclusion here or type below</span>
-                                    </div>
-
-                                    {!isSectionCollapsed && (
-                                      <>
-                                        <div className="space-y-1.5 min-h-[40px]">
-                                          {currentExclusions.length === 0 ? (
-                                            <p className="text-[11px] text-gray-400 italic py-2 text-center border border-dashed border-gray-200 dark:border-slate-800 rounded-xl">
-                                              No exclusions added for Day {dayNum}. Drag from catalog or type below.
-                                            </p>
-                                          ) : (
-                                            currentExclusions.map((excText, excIdx) => (
-                                              <div key={`day-exc-chip-${excIdx}`} className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center justify-between">
-                                                <span className="truncate pr-2">✕ {excText}</span>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleRemoveDayExclusion(dayNum, excIdx)}
-                                                  className="text-red-400 hover:text-red-600 shrink-0"
-                                                >
-                                                  <X className="w-3.5 h-3.5" />
-                                                </button>
-                                              </div>
-                                            ))
-                                          )}
-                                        </div>
-
-                                        <div className="flex items-center space-x-1.5 pt-1">
-                                          <input
-                                            type="text"
-                                            placeholder={`Add exclusion for Day ${dayNum}...`}
-                                            value={dayExclusionInputs[dayNum] || ''}
-                                            onChange={(e) => setDayExclusionInputs({ ...dayExclusionInputs, [dayNum]: e.target.value })}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
-                                            className={`flex-1 px-3 py-1 text-xs rounded-xl border ${
-                                              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-gray-200 text-gray-900'
-                                            }`}
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => handleAddDayExclusion(dayNum, dayExclusionInputs[dayNum] || '')}
-                                            className="px-2.5 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer"
-                                          >
-                                            + Add
-                                          </button>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                );
-                              }
-
-                              // Line item category sections (Itinerary, Transportation, Accommodation, Food & Dining)
+                              // Line item category sections (Attraction, Transportation, Accommodation, Meal, Other)
                               const categoryItems = itemsInThisDay.filter(item => getCategoryKey(item.type) === section.id);
 
                               return (
@@ -3101,20 +2982,14 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       const dayLogistics = generatedProposal.selectedItems.filter(i => i.day === day.dayNumber);
                       const isDocCollapsed = !!collapsedDocDays[day.dayNumber];
 
-                      const dayItineraryItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'itinerary');
-                      const dayTransportItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'transport');
-                      const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'accommodation');
-                      const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'food');
+                      const dayItineraryItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Attraction');
+                      const dayTransportItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Transportation');
+                      const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Accommodation');
+                      const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Meal');
+                      const dayOtherItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Other');
 
-                      const dayInclusionsList = [
-                        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'inclusion').map(i => i.name),
-                        ...(generatedProposal.dayInclusions?.[day.dayNumber] || [])
-                      ];
-
-                      const dayExclusionsList = [
-                        ...dayLogistics.filter(i => getCategoryKey(i.type) === 'exclusion').map(i => i.name),
-                        ...(generatedProposal.dayExclusions?.[day.dayNumber] || [])
-                      ];
+                      const dayInclusionsList = generatedProposal.dayInclusions?.[day.dayNumber] || [];
+                      const dayExclusionsList = generatedProposal.dayExclusions?.[day.dayNumber] || [];
 
                       return (
                         <div key={`doc-day-${day.dayNumber}`} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4 print-page-break">
@@ -3508,50 +3383,69 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 No inventory items match the selected category or search query.
               </div>
             ) : (
-              filteredInventory.map(item => (
-                <div
-                  key={`cat-list-${item.id}`}
-                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 shadow-xs hover:shadow-md ${
-                    isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/50 border-gray-200'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2 gap-2">
-                      <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
-                        {getCategoryIcon(item.type)}
-                        <span>{item.type}</span>
-                      </span>
-                      <span className="text-xs font-black text-orange-600 dark:text-orange-400">
-                        {currency} {Number(item.price).toLocaleString()}
-                      </span>
-                    </div>
-                    <h3 className="text-xs font-bold text-gray-900 dark:text-white leading-snug">{item.name}</h3>
-                    <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">{item.description || getItemDescription(item)}</p>
-                  </div>
+              filteredInventory.map(item => {
+                const adultP = Number(item.adultPrice ?? item.price ?? 0);
+                const childP = Number(item.childPrice ?? 0);
 
-                  <div className="flex items-center justify-between pt-2.5 border-t border-gray-200/60 dark:border-slate-800 text-xs">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{item.priceType}</span>
-                    <div className="flex items-center space-x-1">
-                      <button
-                        type="button"
-                        onClick={() => handleEditInventory(item)}
-                        className="p-1.5 rounded-lg text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                        title="Edit Item"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteInventory(item.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                        title="Delete Item"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                return (
+                  <div
+                    key={`cat-list-${item.id}`}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 shadow-xs hover:shadow-md ${
+                      isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/50 border-gray-200'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border flex items-center space-x-1 ${getCategoryBadgeClass(item.type)}`}>
+                          {getCategoryIcon(item.type)}
+                          <span>{item.type}</span>
+                        </span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                          {item.priceType}
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-bold text-gray-900 dark:text-white leading-snug">{item.name}</h3>
+                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">{item.description || getItemDescription(item)}</p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-gray-200/60 dark:border-slate-800">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 rounded-xl bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/10">
+                          <span className="block text-[9px] font-bold text-gray-400 uppercase">Adult Rate</span>
+                          <span className="text-xs font-black text-orange-600 dark:text-orange-400">
+                            {currency} {adultP.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/10">
+                          <span className="block text-[9px] font-bold text-gray-400 uppercase">Child Rate</span>
+                          <span className="text-xs font-black text-blue-600 dark:text-blue-400">
+                            {childP > 0 ? `${currency} ${childP.toLocaleString()}` : 'Free / N/A'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end space-x-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEditInventory(item)}
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                          title="Edit Item"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteInventory(item.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                          title="Delete Item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -3876,18 +3770,17 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Type Category</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Category *</label>
                   <select
-                    value={editingInventoryItem.type || 'Ticket'}
+                    value={editingInventoryItem.type || 'Attraction'}
                     onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, type: e.target.value })}
-                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 cursor-pointer"
                   >
-                    <option value="Ticket">Ticket</option>
-                    <option value="Transport">Transport</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="Food">Food</option>
-                    <option value="Guide">Guide</option>
-                    <option value="Extra">Extra</option>
+                    <option value="Attraction">Attraction</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Accommodation">Accommodation</option>
+                    <option value="Meal">Meal</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
 
@@ -3896,7 +3789,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   <select
                     value={editingInventoryItem.priceType || 'Per person'}
                     onChange={(e) => setEditingInventoryItem({ ...editingInventoryItem, priceType: e.target.value })}
-                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 cursor-pointer"
                   >
                     <option value="Per person">Per person</option>
                     <option value="Per car">Per car</option>
@@ -3907,23 +3800,46 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Base Price (IDR) *</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={editingInventoryItem.price !== undefined && editingInventoryItem.price !== null ? editingInventoryItem.price : ''}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const parsed = parseFloat(raw);
-                    setEditingInventoryItem({
-                      ...editingInventoryItem,
-                      price: raw === '' ? ('' as any) : (isNaN(parsed) ? 0 : parsed)
-                    });
-                  }}
-                  className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Adult Price ({currency}) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={editingInventoryItem.adultPrice !== undefined ? editingInventoryItem.adultPrice : (editingInventoryItem.price !== undefined ? editingInventoryItem.price : '')}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const parsed = parseFloat(raw);
+                      const val = raw === '' ? 0 : (isNaN(parsed) ? 0 : parsed);
+                      setEditingInventoryItem({
+                        ...editingInventoryItem,
+                        price: val,
+                        adultPrice: val
+                      });
+                    }}
+                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Children Price ({currency})</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={editingInventoryItem.childPrice !== undefined ? editingInventoryItem.childPrice : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const parsed = parseFloat(raw);
+                      setEditingInventoryItem({
+                        ...editingInventoryItem,
+                        childPrice: raw === '' ? 0 : (isNaN(parsed) ? 0 : parsed)
+                      });
+                    }}
+                    className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                  />
+                </div>
               </div>
 
               <div>
