@@ -200,6 +200,20 @@ export interface ItineraryDayNarrative {
   activities: string[];
 }
 
+export function formatPaxBreakdown(adults?: number, children?: number, fallbackPax?: number): string {
+  const a = Number(adults ?? 0);
+  const c = Number(children ?? 0);
+  if (a > 0 || c > 0) {
+    const adultStr = `${a} Adult${a !== 1 ? 's' : ''}`;
+    if (c > 0) {
+      return `${adultStr}, ${c} Child${c !== 1 ? 'ren' : ''}`;
+    }
+    return adultStr;
+  }
+  const fallback = Number(fallbackPax ?? 1);
+  return `${fallback} Guest${fallback !== 1 ? 's' : ''}`;
+}
+
 export interface Proposal {
   id?: string;
   proposalTitle: string;
@@ -208,16 +222,21 @@ export interface Proposal {
   phone: string;
   nationality: string;
   paxCount: number;
+  adultsCount?: number;
+  childrenCount?: number;
+  paxBreakdown?: string;
   durationDays: number;
   marginPercentage: number;
   baseSubtotal: number;
+  adultsSubtotal?: number;
+  childrenSubtotal?: number;
   marginAmount: number;
   totalPrice: number;
+  isCustomPriceEnabled?: boolean;
+  customTotalPrice?: number | string;
   currency: string;
   selectedItems: ProposalLineItem[];
   lineItems?: ProposalLineItem[];
-  dayInclusions?: Record<number, string[]>;
-  dayExclusions?: Record<number, string[]>;
   companyName?: string;
   companyLogo?: string;
   companyEmail?: string;
@@ -358,10 +377,19 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [adultsCount, setAdultsCount] = useState<number>(2);
   const [childrenCount, setChildrenCount] = useState<number>(0);
   const [paxCount, setPaxCount] = useState<number>(2);
+
+  useEffect(() => {
+    setPaxCount((adultsCount || 0) + (childrenCount || 0));
+  }, [adultsCount, childrenCount]);
+
   const [durationDays, setDurationDays] = useState<number>(3);
   const [marginPercentage, setMarginPercentage] = useState<number>(15);
   const [currency, setCurrency] = useState('IDR');
   const [specialNotes, setSpecialNotes] = useState('');
+
+  // Manual Total Price Override State
+  const [isCustomPriceEnabled, setIsCustomPriceEnabled] = useState<boolean>(false);
+  const [customTotalPrice, setCustomTotalPrice] = useState<number | string>('');
 
   // Itinerary Line Items (Day assigned)
   const [selectedLineItems, setSelectedLineItems] = useState<ProposalLineItem[]>([]);
@@ -373,6 +401,11 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [newMasterInclusionInput, setNewMasterInclusionInput] = useState('');
   const [newMasterExclusionInput, setNewMasterExclusionInput] = useState('');
 
+  // Bank Picker Modal State for Inclusions, Exclusions & Terms
+  const [bankPickerModal, setBankPickerModal] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
+  const [bankPickerSearch, setBankPickerSearch] = useState('');
+  const [bankPickerCustomInput, setBankPickerCustomInput] = useState('');
+
   // Brand config saving state
   const [isSavingBrand, setIsSavingBrand] = useState(false);
   const [brandSaveSuccess, setBrandSaveSuccess] = useState(false);
@@ -382,12 +415,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
   const [customerEmailInput, setCustomerEmailInput] = useState('');
   const [emailSubjectInput, setEmailSubjectInput] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
-
-  // Per-Day Inclusions & Exclusions State
-  const [dayInclusions, setDayInclusions] = useState<Record<number, string[]>>({});
-  const [dayExclusions, setDayExclusions] = useState<Record<number, string[]>>({});
-  const [dayInclusionInputs, setDayInclusionInputs] = useState<Record<number, string>>({});
-  const [dayExclusionInputs, setDayExclusionInputs] = useState<Record<number, string>>({});
 
   // Inventory / Attraction Picker Modal State
   const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
@@ -802,25 +829,46 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     });
   }, [inventoryList, inventoryCategoryFilter, inventorySearch, inventorySortMethod]);
 
-  // Calculations
-  const baseSubtotal = useMemo(() => {
-    return selectedLineItems.reduce((sum, item) => {
-      const adultP = item.adultPrice ?? item.price ?? 0;
-      const childP = item.childPrice ?? 0;
+  // Detailed Pricing Calculations (Adults Subtotal, Children Subtotal, Base Subtotal, Margin, Custom Override)
+  const pricingBreakdown = useMemo(() => {
+    let adultsSubtotal = 0;
+    let childrenSubtotal = 0;
+
+    selectedLineItems.forEach(item => {
+      const adultP = Number(item.adultPrice ?? item.price ?? 0);
+      const childP = Number(item.childPrice ?? 0);
+      const qty = Number(item.quantity || 1);
+
       if (item.priceType === 'Per person') {
-        return sum + ((item.quantity || 1) * ((adultsCount * adultP) + (childrenCount * childP)));
+        adultsSubtotal += qty * (adultsCount || 0) * adultP;
+        childrenSubtotal += qty * (childrenCount || 0) * childP;
+      } else {
+        adultsSubtotal += qty * adultP;
       }
-      return sum + ((item.quantity || 1) * adultP);
-    }, 0);
-  }, [selectedLineItems, adultsCount, childrenCount]);
+    });
 
-  const marginAmount = useMemo(() => {
-    return (baseSubtotal * (marginPercentage || 0)) / 100;
-  }, [baseSubtotal, marginPercentage]);
+    const baseSubtotal = adultsSubtotal + childrenSubtotal;
+    const marginAmount = (baseSubtotal * (marginPercentage || 0)) / 100;
+    const calculatedTotalPrice = baseSubtotal + marginAmount;
 
-  const totalPrice = useMemo(() => {
-    return baseSubtotal + marginAmount;
-  }, [baseSubtotal, marginAmount]);
+    let finalTotalPrice = calculatedTotalPrice;
+    if (isCustomPriceEnabled && customTotalPrice !== '' && !isNaN(Number(customTotalPrice))) {
+      finalTotalPrice = Number(customTotalPrice);
+    }
+
+    return {
+      adultsSubtotal,
+      childrenSubtotal,
+      baseSubtotal,
+      marginAmount,
+      calculatedTotalPrice,
+      finalTotalPrice
+    };
+  }, [selectedLineItems, adultsCount, childrenCount, marginPercentage, isCustomPriceEnabled, customTotalPrice]);
+
+  const baseSubtotal = pricingBreakdown.baseSubtotal;
+  const marginAmount = pricingBreakdown.marginAmount;
+  const totalPrice = pricingBreakdown.finalTotalPrice;
 
   // Inventory Item Management Functions
   const handleOpenAddInventory = () => {
@@ -881,7 +929,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       };
 
       if (editingInventoryItem.id) {
-        await updateDoc(doc(db, 'inventory_items', editingInventoryItem.id), data);
+        await setDoc(doc(db, 'inventory_items', editingInventoryItem.id), data, { merge: true });
       } else {
         await addDoc(collection(db, 'inventory_items'), {
           ...data,
@@ -1029,41 +1077,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     savePresetData('terms', updated);
   };
 
-  // Day-specific Inclusions & Exclusions Handlers
-  const handleAddDayInclusion = (dayNum: number, text: string) => {
-    if (!text || !text.trim()) return;
-    const clean = text.trim();
-    setDayInclusions(prev => ({
-      ...prev,
-      [dayNum]: [...(prev[dayNum] || []), clean]
-    }));
-    setDayInclusionInputs(prev => ({ ...prev, [dayNum]: '' }));
-  };
-
-  const handleRemoveDayInclusion = (dayNum: number, index: number) => {
-    setDayInclusions(prev => ({
-      ...prev,
-      [dayNum]: (prev[dayNum] || []).filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleAddDayExclusion = (dayNum: number, text: string) => {
-    if (!text || !text.trim()) return;
-    const clean = text.trim();
-    setDayExclusions(prev => ({
-      ...prev,
-      [dayNum]: [...(prev[dayNum] || []), clean]
-    }));
-    setDayExclusionInputs(prev => ({ ...prev, [dayNum]: '' }));
-  };
-
-  const handleRemoveDayExclusion = (dayNum: number, index: number) => {
-    setDayExclusions(prev => ({
-      ...prev,
-      [dayNum]: (prev[dayNum] || []).filter((_, i) => i !== index)
-    }));
-  };
-
   // Assign item to Day handler (Click or Drag & Drop)
   const addItemToDay = (inv: InventoryItem, targetDay: number) => {
     let defaultQty = 1;
@@ -1146,21 +1159,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       return item;
     }));
 
-    setDayInclusions(prev => {
-      const updated = { ...prev };
-      const tempInc = updated[dayNum] || [];
-      updated[dayNum] = updated[targetDayNum] || [];
-      updated[targetDayNum] = tempInc;
-      return updated;
-    });
 
-    setDayExclusions(prev => {
-      const updated = { ...prev };
-      const tempExc = updated[dayNum] || [];
-      updated[dayNum] = updated[targetDayNum] || [];
-      updated[targetDayNum] = tempExc;
-      return updated;
-    });
   };
 
   // Drag & drop handlers
@@ -1191,7 +1190,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       if (draggedCatalogItem.kind === 'inventory') {
         addItemToDay(draggedCatalogItem.data as InventoryItem, targetDay);
       } else if (typeof draggedCatalogItem.data === 'string') {
-        handleAddDayInclusion(targetDay, draggedCatalogItem.data);
+        setSelectedInclusions(prev => [...prev, draggedCatalogItem.data as string]);
       }
       setDraggedCatalogItem(null);
       setDraggedInventoryItem(null);
@@ -1362,15 +1361,20 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
         phone,
         nationality,
         paxCount,
+        adultsCount,
+        childrenCount,
+        paxBreakdown: formatPaxBreakdown(adultsCount, childrenCount),
         durationDays,
         marginPercentage,
         baseSubtotal,
+        adultsSubtotal: pricingBreakdown.adultsSubtotal,
+        childrenSubtotal: pricingBreakdown.childrenSubtotal,
         marginAmount,
         totalPrice,
+        isCustomPriceEnabled,
+        customTotalPrice,
         currency,
         selectedItems: updatedLineItems,
-        dayInclusions: dayInclusions,
-        dayExclusions: dayExclusions,
         companyName,
         companyLogo,
         companyEmail,
@@ -1432,6 +1436,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
 
     let text = `✨ *${p.proposalTitle}* ✨\n\n`;
     text += `${p.welcomeMessage}\n\n`;
+    text += `👥 *Pax:* ${formatPaxBreakdown(p.adultsCount || p.paxCount, p.childrenCount)}\n\n`;
 
     text += `📌 *Day by day Itinerary:*\n`;
     p.itineraryNarrative.forEach(day => {
@@ -1441,9 +1446,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       const dayAccommodationItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Accommodation');
       const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Meal');
       const dayOtherItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Other');
-
-      const dayInclusionsList = p.dayInclusions?.[day.dayNumber] || [];
-      const dayExclusionsList = p.dayExclusions?.[day.dayNumber] || [];
 
       text += `\n*Day ${toRoman(day.dayNumber)}: ${day.title}*\n`;
       if (day.summary) {
@@ -1457,9 +1459,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
       if (dayOtherItems.length > 0) {
         text += `Other:\n` + dayOtherItems.map(i => `- ${i.name}`).join('\n') + `\n`;
       }
-      text += `Dining:\n` + (dayDiningItems.length > 0 ? dayDiningItems.map(i => `- ${i.name}`).join('\n') : `-`) + `\n`;
-      text += `Inclusion:\n` + (dayInclusionsList.length > 0 ? dayInclusionsList.map(i => `- ${i}`).join('\n') : `-`) + `\n`;
-      text += `Exclusion:\n` + (dayExclusionsList.length > 0 ? dayExclusionsList.map(i => `- ${i}`).join('\n') : `-`) + `\n`;
     });
 
     text += `\n*What is included:*\n` + p.inclusions.map(i => `- ${i}`).join('\n') + `\n`;
@@ -1533,8 +1532,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
     if (p.paxCount) setPaxCount(p.paxCount);
     if (p.durationDays) setDurationDays(p.durationDays);
     if (p.selectedItems || p.lineItems) setSelectedLineItems(p.selectedItems || p.lineItems || []);
-    if (p.dayInclusions) setDayInclusions(p.dayInclusions);
-    if (p.dayExclusions) setDayExclusions(p.dayExclusions);
     if (p.inclusions) setSelectedInclusions(p.inclusions);
     if (p.exclusions) setSelectedExclusions(p.exclusions);
     if (p.termsAndConditions) setSelectedTerms(p.termsAndConditions);
@@ -2029,8 +2026,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                     const dayNum = idx + 1;
                     const itemsInThisDay = selectedLineItems.filter(i => i.day === dayNum);
                     const daySubtotal = itemsInThisDay.reduce((sum, item) => sum + item.subtotal, 0);
-                    const currentInclusions = dayInclusions[dayNum] || [];
-                    const currentExclusions = dayExclusions[dayNum] || [];
                     const isBuilderCollapsed = !!collapsedBuilderDays[dayNum];
 
                     return (
@@ -2049,7 +2044,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                               DAY {dayNum}
                             </span>
                             <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                              {itemsInThisDay.length} itinerary item(s) • {currentInclusions.length} inclusion(s) • {currentExclusions.length} exclusion(s)
+                              {itemsInThisDay.length} itinerary item(s)
                             </span>
                           </div>
 
@@ -2261,7 +2256,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 </div>
               </div>
 
-              {/* Section 3: Inclusions, Exclusions & Terms Selector (Drag / Preset / Custom) */}
+              {/* Section 3: Inclusions, Exclusions & Terms Customization */}
               <div className={`p-6 rounded-3xl border shadow-xs space-y-6 ${
                 isDarkMode ? 'bg-[#111928] border-slate-800' : 'bg-white border-gray-200'
               }`}>
@@ -2270,7 +2265,7 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                     03
                   </div>
                   <h3 className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Inclusions, Exclusions & Terms Customization
+                    General Inclusions, Exclusions & Terms
                   </h3>
                 </div>
 
@@ -2281,18 +2276,28 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       <span>Inclusions ({selectedInclusions.length})</span>
                     </label>
-                    <span className="text-[10px] text-gray-400">Click presets below to toggle</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBankPickerModal('inclusions');
+                        setBankPickerSearch('');
+                      }}
+                      className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-extrabold text-xs flex items-center space-x-1 cursor-pointer transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Pick from Inclusions Bank</span>
+                    </button>
                   </div>
 
                   {/* Selected Inclusions Tags */}
                   <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 min-h-[60px]">
                     {selectedInclusions.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">No inclusions selected yet.</p>
+                      <p className="text-xs text-gray-400 italic">No inclusions selected yet. Click "Pick from Inclusions Bank" or select below.</p>
                     ) : (
                       selectedInclusions.map((item, i) => (
                         <span key={`inc-${i}`} className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center space-x-1.5">
                           <span>✓ {item}</span>
-                          <button onClick={() => toggleInclusionPreset(item)} className="hover:text-red-500">
+                          <button onClick={() => toggleInclusionPreset(item)} className="hover:text-red-500 cursor-pointer">
                             <X className="w-3 h-3" />
                           </button>
                         </span>
@@ -2381,17 +2386,28 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       <X className="w-4 h-4 text-rose-500" />
                       <span>Exclusions ({selectedExclusions.length})</span>
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBankPickerModal('exclusions');
+                        setBankPickerSearch('');
+                      }}
+                      className="px-3 py-1 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 font-extrabold text-xs flex items-center space-x-1 cursor-pointer transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Pick from Exclusions Bank</span>
+                    </button>
                   </div>
 
                   {/* Selected Exclusions Tags */}
                   <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 min-h-[60px]">
                     {selectedExclusions.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">No exclusions selected.</p>
+                      <p className="text-xs text-gray-400 italic">No exclusions selected. Click "Pick from Exclusions Bank" or select below.</p>
                     ) : (
                       selectedExclusions.map((item, i) => (
                         <span key={`exc-${i}`} className="px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center space-x-1.5">
                           <span>✕ {item}</span>
-                          <button onClick={() => toggleExclusionPreset(item)} className="hover:text-red-500">
+                          <button onClick={() => toggleExclusionPreset(item)} className="hover:text-red-500 cursor-pointer">
                             <X className="w-3 h-3" />
                           </button>
                         </span>
@@ -2480,17 +2496,28 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       <FileCheck className="w-4 h-4 text-amber-500" />
                       <span>Terms & Conditions ({selectedTerms.length})</span>
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBankPickerModal('terms');
+                        setBankPickerSearch('');
+                      }}
+                      className="px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 font-extrabold text-xs flex items-center space-x-1 cursor-pointer transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Pick from Terms Bank</span>
+                    </button>
                   </div>
 
                   {/* Selected Terms List */}
                   <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
                     {selectedTerms.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">No terms specified.</p>
+                      <p className="text-xs text-gray-400 italic">No terms specified. Click "Pick from Terms Bank" or select below.</p>
                     ) : (
                       selectedTerms.map((term, i) => (
                         <div key={`term-${i}`} className="flex items-start justify-between gap-2 p-1.5 text-xs text-gray-700 dark:text-gray-300">
                           <span className="font-semibold">{i + 1}. {term}</span>
-                          <button onClick={() => toggleTermsPreset(term)} className="text-red-500 hover:text-red-700 shrink-0">
+                          <button onClick={() => toggleTermsPreset(term)} className="text-red-500 hover:text-red-700 shrink-0 cursor-pointer">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -2605,18 +2632,34 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                {/* Price breakdown cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                  {/* Adults Subtotal */}
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'}`}>
-                    <span className="text-xs text-gray-500 font-bold block mb-1">Base Logistics Subtotal</span>
-                    <span className="text-lg font-black text-gray-900 dark:text-white">
-                      {currency} {baseSubtotal.toLocaleString()}
+                    <span className="text-xs text-gray-500 font-bold block mb-1">
+                      Adults Subtotal ({adultsCount} Adult{adultsCount !== 1 ? 's' : ''})
                     </span>
-                    <span className="text-[10px] text-gray-400 block mt-0.5">{selectedLineItems.length} selected items</span>
+                    <span className="text-lg font-black text-gray-900 dark:text-white">
+                      {currency} {pricingBreakdown.adultsSubtotal.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block mt-0.5">Calculated adult rates</span>
                   </div>
 
+                  {/* Children Subtotal */}
+                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'}`}>
+                    <span className="text-xs text-gray-500 font-bold block mb-1">
+                      Children Subtotal ({childrenCount} Child{childrenCount !== 1 ? 'ren' : ''})
+                    </span>
+                    <span className="text-lg font-black text-gray-900 dark:text-white">
+                      {currency} {pricingBreakdown.childrenSubtotal.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block mt-0.5">Calculated child rates</span>
+                  </div>
+
+                  {/* Agency Margin */}
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-gray-200'}`}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-500 font-bold">Agency Margin / Markup</span>
+                      <span className="text-xs text-gray-500 font-bold">Margin / Markup</span>
                       <div className="flex items-center space-x-1">
                         <input
                           type="number"
@@ -2632,18 +2675,50 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       </div>
                     </div>
                     <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                      + {currency} {marginAmount.toLocaleString()}
+                      + {currency} {pricingBreakdown.marginAmount.toLocaleString()}
                     </span>
                     <span className="text-[10px] text-emerald-500 block mt-0.5">Estimated Profit</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md flex items-center justify-between">
+                  {/* Final Total Package Price with Override */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md flex flex-col justify-between">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-extrabold text-orange-100">Total Investment Price</p>
-                      <p className="text-xl font-black">{currency} {totalPrice.toLocaleString()}</p>
-                      <p className="text-[10px] text-orange-100/80 mt-0.5">Includes taxes & guide fees</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] uppercase tracking-wider font-extrabold text-orange-100">Total Investment Price</p>
+                        <DollarSign className="w-5 h-5 opacity-80 shrink-0" />
+                      </div>
+                      <p className="text-xl font-black mt-1">{currency} {pricingBreakdown.finalTotalPrice.toLocaleString()}</p>
                     </div>
-                    <DollarSign className="w-8 h-8 opacity-80 shrink-0" />
+
+                    {/* Override Price Input */}
+                    <div className="mt-2 pt-2 border-t border-white/20">
+                      <label className="flex items-center space-x-2 text-[11px] text-orange-100 font-bold cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isCustomPriceEnabled}
+                          onChange={(e) => {
+                            setIsCustomPriceEnabled(e.target.checked);
+                            if (e.target.checked && customTotalPrice === '') {
+                              setCustomTotalPrice(pricingBreakdown.calculatedTotalPrice);
+                            }
+                          }}
+                          className="rounded text-orange-600 focus:ring-0 cursor-pointer"
+                        />
+                        <span>Override Total Price</span>
+                      </label>
+                      {isCustomPriceEnabled && (
+                        <div className="mt-1 flex items-center space-x-1">
+                          <span className="text-xs font-black">{currency}</span>
+                          <input
+                            type="number"
+                            placeholder="Custom total..."
+                            value={customTotalPrice}
+                            onChange={(e) => setCustomTotalPrice(e.target.value)}
+                            className="w-full px-2 py-1 text-xs text-gray-900 font-extrabold bg-white rounded-lg border-0 focus:ring-2 focus:ring-orange-300"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2988,9 +3063,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                       const dayDiningItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Meal');
                       const dayOtherItems = dayLogistics.filter(i => getCategoryKey(i.type) === 'Other');
 
-                      const dayInclusionsList = generatedProposal.dayInclusions?.[day.dayNumber] || [];
-                      const dayExclusionsList = generatedProposal.dayExclusions?.[day.dayNumber] || [];
-
                       return (
                         <div key={`doc-day-${day.dayNumber}`} className="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4 print-page-break">
                           {/* Day Header & AI Generated Narrative Description */}
@@ -3112,46 +3184,6 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                                           <p className="text-[11px] text-slate-500 font-normal leading-tight">{item.description}</p>
                                         )}
                                       </div>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
-                              )}
-                            </div>
-
-                            {/* 5. Inclusion */}
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 flex items-center space-x-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Inclusion:</span>
-                              </span>
-                              {dayInclusionsList.length > 0 ? (
-                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
-                                  {dayInclusionsList.map((inc, iIdx) => (
-                                    <li key={`day-inc-${iIdx}`} className="flex items-start space-x-1.5">
-                                      <span className="text-emerald-600 font-bold">•</span>
-                                      <span>{inc}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-xs text-slate-400 pl-2 italic">-</p>
-                              )}
-                            </div>
-
-                            {/* 6. Exclusion */}
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-rose-600 flex items-center space-x-1.5">
-                                <XCircle className="w-3.5 h-3.5" />
-                                <span>Exclusion:</span>
-                              </span>
-                              {dayExclusionsList.length > 0 ? (
-                                <ul className="space-y-1 pl-2 text-xs font-medium text-slate-800">
-                                  {dayExclusionsList.map((exc, eIdx) => (
-                                    <li key={`day-exc-${eIdx}`} className="flex items-start space-x-1.5">
-                                      <span className="text-rose-600 font-bold">•</span>
-                                      <span>{exc}</span>
                                     </li>
                                   ))}
                                 </ul>
@@ -4264,6 +4296,165 @@ export default function ProposalGenerator({ isDarkMode = false, tenantId }: Prop
                 className="px-5 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 shadow-sm cursor-pointer"
               >
                 Save Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* BANK ITEM PICKER MODAL (FOR INCLUSIONS, EXCLUSIONS & TERMS) */}
+      {bankPickerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className={`w-full max-w-2xl rounded-3xl border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden ${
+            isDarkMode ? 'bg-[#111928] border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+          }`}>
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-2">
+                <div className={`p-2 rounded-xl text-white font-black text-xs ${
+                  bankPickerModal === 'inclusions' ? 'bg-emerald-600' : bankPickerModal === 'exclusions' ? 'bg-rose-600' : 'bg-amber-600'
+                }`}>
+                  Bank Picker
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold capitalize">
+                    Pick or Add {bankPickerModal}
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    Select items from your master bank to include in this proposal.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBankPickerModal(null)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Search & Custom Input */}
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={`Search ${bankPickerModal} bank...`}
+                  value={bankPickerSearch}
+                  onChange={(e) => setBankPickerSearch(e.target.value)}
+                  className={`w-full pl-9 pr-3.5 py-2 text-xs font-semibold rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-gray-200 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              {/* Add Custom Directly to Selected & Master Bank */}
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder={`Type custom ${bankPickerModal} item...`}
+                  value={bankPickerCustomInput}
+                  onChange={(e) => setBankPickerCustomInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && bankPickerCustomInput.trim()) {
+                      const val = bankPickerCustomInput.trim();
+                      if (bankPickerModal === 'inclusions') {
+                        if (!selectedInclusions.includes(val)) setSelectedInclusions(prev => [...prev, val]);
+                        if (!masterInclusions.includes(val)) setMasterInclusions(prev => [...prev, val]);
+                      } else if (bankPickerModal === 'exclusions') {
+                        if (!selectedExclusions.includes(val)) setSelectedExclusions(prev => [...prev, val]);
+                        if (!masterExclusions.includes(val)) setMasterExclusions(prev => [...prev, val]);
+                      } else if (bankPickerModal === 'terms') {
+                        if (!selectedTerms.includes(val)) setSelectedTerms(prev => [...prev, val]);
+                        if (!masterTerms.includes(val)) setMasterTerms(prev => [...prev, val]);
+                      }
+                      setBankPickerCustomInput('');
+                    }
+                  }}
+                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-gray-200 text-gray-900'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!bankPickerCustomInput.trim()) return;
+                    const val = bankPickerCustomInput.trim();
+                    if (bankPickerModal === 'inclusions') {
+                      if (!selectedInclusions.includes(val)) setSelectedInclusions(prev => [...prev, val]);
+                      if (!masterInclusions.includes(val)) setMasterInclusions(prev => [...prev, val]);
+                    } else if (bankPickerModal === 'exclusions') {
+                      if (!selectedExclusions.includes(val)) setSelectedExclusions(prev => [...prev, val]);
+                      if (!masterExclusions.includes(val)) setMasterExclusions(prev => [...prev, val]);
+                    } else if (bankPickerModal === 'terms') {
+                      if (!selectedTerms.includes(val)) setSelectedTerms(prev => [...prev, val]);
+                      if (!masterTerms.includes(val)) setMasterTerms(prev => [...prev, val]);
+                    }
+                    setBankPickerCustomInput('');
+                  }}
+                  className={`px-4 py-2 rounded-xl text-white font-bold text-xs cursor-pointer ${
+                    bankPickerModal === 'inclusions' ? 'bg-emerald-600 hover:bg-emerald-700' : bankPickerModal === 'exclusions' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
+                >
+                  Add Custom
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Items List */}
+            <div className="p-4 overflow-y-auto space-y-2 flex-1">
+              {(() => {
+                const list = bankPickerModal === 'inclusions' ? masterInclusions : bankPickerModal === 'exclusions' ? masterExclusions : masterTerms;
+                const activeSelected = bankPickerModal === 'inclusions' ? selectedInclusions : bankPickerModal === 'exclusions' ? selectedExclusions : selectedTerms;
+                const filtered = list.filter(item => item.toLowerCase().includes(bankPickerSearch.toLowerCase().trim()));
+
+                if (filtered.length === 0) {
+                  return <p className="text-xs text-gray-400 italic text-center py-6">No matching items found in bank.</p>;
+                }
+
+                return filtered.map((item, idx) => {
+                  const isSelected = activeSelected.includes(item);
+                  return (
+                    <div
+                      key={`bank-item-${idx}`}
+                      onClick={() => {
+                        if (bankPickerModal === 'inclusions') toggleInclusionPreset(item);
+                        else if (bankPickerModal === 'exclusions') toggleExclusionPreset(item);
+                        else if (bankPickerModal === 'terms') toggleTermsPreset(item);
+                      }}
+                      className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                        isSelected
+                          ? bankPickerModal === 'inclusions'
+                            ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+                            : bankPickerModal === 'exclusions'
+                            ? 'bg-rose-500/10 border-rose-500 text-rose-700 dark:text-rose-300 font-bold'
+                            : 'bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-300 font-bold'
+                          : isDarkMode ? 'bg-slate-900 border-slate-800 text-gray-300 hover:border-gray-600' : 'bg-slate-50 border-gray-200 text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xs">{item}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-lg font-bold ${
+                        isSelected ? 'bg-white/80 dark:bg-black/30 shadow-xs' : 'text-gray-400'
+                      }`}>
+                        {isSelected ? '✓ Selected' : '+ Select'}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
+              <span className="text-xs font-semibold text-gray-500">
+                Selected: {(bankPickerModal === 'inclusions' ? selectedInclusions : bankPickerModal === 'exclusions' ? selectedExclusions : selectedTerms).length} item(s)
+              </span>
+              <button
+                type="button"
+                onClick={() => setBankPickerModal(null)}
+                className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Done
               </button>
             </div>
           </div>

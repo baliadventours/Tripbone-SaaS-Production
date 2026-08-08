@@ -28,6 +28,9 @@ interface ProposalData {
   proposalTitle?: string;
   guestName?: string;
   paxCount?: number;
+  adultsCount?: number;
+  childrenCount?: number;
+  paxBreakdown?: string;
   durationDays?: number;
   nationality?: string;
   currency?: string;
@@ -248,7 +251,9 @@ export default function ProposalView() {
               </div>
               <div>
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pax Count</div>
-                <div className="font-extrabold text-white print:text-slate-900">{p.paxCount || 1} Person(s)</div>
+                <div className="font-extrabold text-white print:text-slate-900">
+                  {p.paxBreakdown || (p.adultsCount ? `${p.adultsCount} Adult${p.adultsCount !== 1 ? 's' : ''}${p.childrenCount ? `, ${p.childrenCount} Child${p.childrenCount !== 1 ? 'ren' : ''}` : ''}` : `${p.paxCount || 1} Person(s)`)}
+                </div>
               </div>
             </div>
 
