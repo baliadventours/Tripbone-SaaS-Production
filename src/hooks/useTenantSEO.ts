@@ -103,5 +103,18 @@ export function useTenantSEO() {
        updateMeta('keywords', siteKeywords);
     }
 
+    const siteFavicon = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalSEO?.favicon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
+    if (siteFavicon) {
+      ['icon', 'apple-touch-icon'].forEach(rel => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        link.href = siteFavicon;
+      });
+    }
+
   }, [tenant, settings, isMaster, globalSEO, location.pathname]);
 }

@@ -82,7 +82,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const faviconUrl = settings?.faviconURL || globalBrand?.faviconUrl;
+    const faviconUrl = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalBrand?.faviconUrl;
     if (faviconUrl) {
       let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
       if (!link) {
@@ -92,7 +92,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
       link.href = faviconUrl;
     }
-  }, [globalBrand?.faviconUrl, settings?.faviconURL]);
+  }, [globalBrand?.faviconUrl, settings?.faviconURL, tenant?.favicon, tenant?.logo]);
 
   useEffect(() => {
     if (tenantLoading) return;
@@ -164,17 +164,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [tenantId, tenantLoading]);
 
   useEffect(() => {
-    const favicon = settings?.faviconURL || globalBrand?.faviconUrl;
+    const favicon = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalBrand?.faviconUrl;
     if (favicon) {
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.head.appendChild(link);
-      }
-      link.href = favicon;
+      ['icon', 'apple-touch-icon'].forEach(rel => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        link.href = favicon;
+      });
     }
-  }, [settings?.faviconURL, globalBrand?.faviconUrl]);
+  }, [settings?.faviconURL, tenant?.favicon, tenant?.logo, globalBrand?.faviconUrl]);
 
 
   function applySettings(data: SiteSettings) {

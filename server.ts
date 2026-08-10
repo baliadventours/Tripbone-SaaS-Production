@@ -5763,6 +5763,7 @@ export async function createServer() {
       title: defaultTitle,
       description: siteDescription,
       image: tenantDoc?.logo || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+      favicon: tenantDoc?.favicon || tenantDoc?.logo || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
       siteName: siteName,
       isProduct: false,
       isArticle: false,
@@ -5854,6 +5855,7 @@ export async function createServer() {
     if (settings && (tenantDoc || (!resolvedCustomDomain && !resolvedSlug))) {
       seo.siteName = settings.siteName || tenantDoc?.companyName || seo.siteName;
       seo.image = settings.ogImage || settings.heroImage || settings.logoURL || tenantDoc?.logo || seo.image;
+      seo.favicon = settings.faviconURL || tenantDoc?.favicon || tenantDoc?.logo || seo.favicon;
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
@@ -6011,6 +6013,7 @@ export async function createServer() {
     const safeDesc = (seo.description || '').replace(/"/g, '&quot;');
     const safeKeywords = (seo.keywords || '').replace(/"/g, '&quot;');
     const safeImage = seo.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
+    const safeFavicon = seo.favicon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
     const safeType = seo.isProduct ? 'product' : (seo.isArticle ? 'article' : 'website');
     const safeSiteName = (seo.siteName || 'Tripbone').replace(/"/g, '&quot;');
 
@@ -6029,6 +6032,7 @@ export async function createServer() {
     modified = modified.replace(/__SEO_DESCRIPTION__/g, safeDesc);
     modified = modified.replace(/__SEO_KEYWORDS__/g, safeKeywords);
     modified = modified.replace(/__SEO_IMAGE__/g, safeImage);
+    modified = modified.replace(/__SEO_FAVICON__/g, safeFavicon);
     modified = modified.replace(/__SEO_TYPE__/g, safeType);
     modified = modified.replace(/__SEO_SITE_NAME__/g, safeSiteName);
 
@@ -6045,6 +6049,8 @@ export async function createServer() {
     modified = modified.replace(/<meta\s+[^>]*name=["']twitter:[^"']*["'][^>]*\/?>/gi, '');
     // Strip apple-mobile-web-app-title
     modified = modified.replace(/<meta\s+[^>]*name=["']apple-mobile-web-app-title["'][^>]*\/?>/gi, '');
+    // Strip favicon links
+    modified = modified.replace(/<link\s+[^>]*rel=["'](icon|shortcut icon|apple-touch-icon)["'][^>]*\/?>/gi, '');
 
     // 3. Inject fully compiled fresh tags right before </head>
     const ogTags = `
@@ -6052,6 +6058,8 @@ export async function createServer() {
     <meta name="description" content="${safeDesc}" />
     <meta name="keywords" content="${safeKeywords}" />
     <meta name="apple-mobile-web-app-title" content="${safeSiteName}" />
+    <link rel="icon" href="${safeFavicon}" />
+    <link rel="apple-touch-icon" href="${safeFavicon}" />
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:description" content="${safeDesc}" />
     <meta property="og:image" content="${safeImage}" />

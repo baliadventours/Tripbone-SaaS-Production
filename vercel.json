@@ -5,29 +5,28 @@
       "includeFiles": "{dist/**,firebase-applet-config.json,firebase.json}"
     }
   },
-  "headers": [
+  "routes": [
     {
-      "source": "/assets/(.*)",
+      "src": "/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
         }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      ],
+      "continue": true
     },
     {
-      "source": "/",
-      "destination": "/api/ssr"
+      "src": "/(favicon\\.ico|robots\\.txt|sitemap\\.xml)",
+      "dest": "/$1"
     },
     {
-      "source": "/((?!assets/|favicon.ico|robots.txt|sitemap.xml).*)",
-      "destination": "/api/ssr"
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/ssr"
     }
   ]
 }
