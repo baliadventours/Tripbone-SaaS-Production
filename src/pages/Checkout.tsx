@@ -437,7 +437,7 @@ export default function Checkout() {
       const applicable = tier || pkg.tiers[0];
       return applicable?.adultPrice || pkg.tiers[0]?.adultPrice || 0;
     }
-    return pkg.regularPrice || tour?.discountPrice || tour?.regularPrice || 0;
+    return (pkg as any).regularPrice || tour?.discountPrice || tour?.regularPrice || 0;
   };
 
   // Inventory tracking
@@ -1332,24 +1332,122 @@ const toggleAddOn = (addon: AddOn) => {
           {/* STEP 1: Date & Participant Picker */}
           {mobileStep === 'date' && (
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              {/* Stylized Custom Date Picker */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <h2>Select Travel Date</h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <h2>Select Travel Date</h2>
+                  </div>
+                  {date && (
+                    <span className="text-xs font-bold text-primary bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100">
+                      {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  )}
                 </div>
-                
-                <input
-                  type="date"
-                  value={date}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-3 text-sm font-bold border-2 border-slate-200 rounded-xl focus:border-primary focus:outline-none bg-slate-50"
-                />
+
+                {/* Custom Month Header Navigation */}
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newM = new Date(currentMonth);
+                        newM.setMonth(newM.getMonth() - 1);
+                        const today = new Date();
+                        if (newM.getFullYear() > today.getFullYear() || (newM.getFullYear() === today.getFullYear() && newM.getMonth() >= today.getMonth())) {
+                          setCurrentMonth(newM);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
+                      {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newM = new Date(currentMonth);
+                        newM.setMonth(newM.getMonth() + 1);
+                        setCurrentMonth(newM);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Day of week headers */}
+                  <div className="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-400 uppercase tracking-wider">
+                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                      <div key={d} className="py-1">{d}</div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days Grid */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {(() => {
+                      const year = currentMonth.getFullYear();
+                      const month = currentMonth.getMonth();
+                      const firstDay = new Date(year, month, 1).getDay();
+                      const daysInMonth = new Date(year, month + 1, 0).getDate();
+                      const today = new Date(); 
+                      today.setHours(0, 0, 0, 0);
+
+                      const cells = [];
+                      for (let i = 0; i < firstDay; i++) {
+                        cells.push(<div key={`empty-${i}`} />);
+                      }
+
+                      for (let d = 1; d <= daysInMonth; d++) {
+                        const dateObj = new Date(year, month, d);
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const isPast = dateObj < today;
+                        const isSelected = date === dateStr;
+
+                        cells.push(
+                          <button
+                            key={d}
+                            type="button"
+                            disabled={isPast}
+                            onClick={() => setDate(dateStr)}
+                            className={cn(
+                              "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all cursor-pointer",
+                              isSelected 
+                                ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
+                                : isPast 
+                                  ? "text-slate-300 line-through opacity-40 cursor-not-allowed" 
+                                  : "text-slate-800 bg-white border border-slate-200 hover:border-primary hover:bg-orange-50"
+                            )}
+                          >
+                            {d}
+                          </button>
+                        );
+                      }
+                      return cells;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Capacity & Availability Indicator */}
+                {date && spotsLeft !== null && (
+                  <div className={cn(
+                    "p-3 rounded-xl text-xs font-bold flex items-center justify-between border",
+                    isSoldOut ? "bg-rose-50 border-rose-200 text-rose-700" : isLowCapacity ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  )}>
+                    <span>Availability status:</span>
+                    <span className="font-black">
+                      {isSoldOut ? 'Sold Out' : isLowCapacity ? `Only ${spotsLeft} spots left!` : `${spotsLeft} spots available`}
+                    </span>
+                  </div>
+                )}
 
                 {/* Preferred Departure Time */}
                 {tour.timeSlots && tour.timeSlots.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    <label className="text-xs font-bold text-slate-600">Preferred Time Slot</label>
+                  <div className="space-y-2 pt-1">
+                    <label className="text-xs font-bold text-slate-700 block">Preferred Departure Time</label>
                     <div className="grid grid-cols-2 gap-2">
                       {tour.timeSlots.map(time => (
                         <button
@@ -1359,8 +1457,8 @@ const toggleAddOn = (addon: AddOn) => {
                           className={cn(
                             "py-2.5 text-xs font-bold rounded-xl border-2 transition-all cursor-pointer",
                             selectedTime === time
-                              ? "bg-primary border-primary text-white"
-                              : "bg-white border-slate-200 text-slate-700"
+                              ? "bg-primary border-primary text-white shadow-sm"
+                              : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
                           )}
                         >
                           {time}
@@ -1389,18 +1487,24 @@ const toggleAddOn = (addon: AddOn) => {
                       <button
                         type="button"
                         onClick={() => setAdults(Math.max(1, adults - 1))}
-                        disabled={adults <= 1}
-                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 disabled:opacity-40"
+                        disabled={adults <= 1 || (adults + children) <= minRequired}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 disabled:opacity-40 cursor-pointer"
                       >
-                        -
+                        <Minus className="h-3.5 w-3.5" />
                       </button>
                       <span className="font-black text-base w-6 text-center text-slate-900">{adults}</span>
                       <button
                         type="button"
-                        onClick={() => setAdults(adults + 1)}
-                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600"
+                        onClick={() => {
+                          if (spotsLeft !== null && (adults + children + 1) > spotsLeft) {
+                            alert(`Only ${spotsLeft} spots available.`);
+                            return;
+                          }
+                          setAdults(adults + 1);
+                        }}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 cursor-pointer"
                       >
-                        +
+                        <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -1415,25 +1519,31 @@ const toggleAddOn = (addon: AddOn) => {
                       <button
                         type="button"
                         onClick={() => setChildren(Math.max(0, children - 1))}
-                        disabled={children <= 0}
-                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 disabled:opacity-40"
+                        disabled={children <= 0 || (adults + children) <= minRequired}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 disabled:opacity-40 cursor-pointer"
                       >
-                        -
+                        <Minus className="h-3.5 w-3.5" />
                       </button>
                       <span className="font-black text-base w-6 text-center text-slate-900">{children}</span>
                       <button
                         type="button"
-                        onClick={() => setChildren(children + 1)}
-                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600"
+                        onClick={() => {
+                          if (spotsLeft !== null && (adults + children + 1) > spotsLeft) {
+                            alert(`Only ${spotsLeft} spots available.`);
+                            return;
+                          }
+                          setChildren(children + 1);
+                        }}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 cursor-pointer"
                       >
-                        +
+                        <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* Pax Summary Badge */}
-                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-orange-900">
+                <div className="bg-orange-50/80 border border-orange-100 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-orange-950">
                   <span>Total Pax Breakdown:</span>
                   <span className="font-black">{adults} Adult{adults > 1 ? 's' : ''}{children > 0 ? `, ${children} Child${children > 1 ? 'ren' : ''}` : ''}</span>
                 </div>
@@ -1441,25 +1551,28 @@ const toggleAddOn = (addon: AddOn) => {
             </div>
           )}
 
-          {/* STEP 2: Package Selection Modal (Collapsed by default) */}
+          {/* STEP 2: Package Selection Modal (Collapsed by default, rich details on expand) */}
           {mobileStep === 'package' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <div className="space-y-1">
                 <h2 className="text-lg font-black text-slate-900">Choose Package</h2>
-                <p className="text-xs text-slate-500">Tap a package to view details and select.</p>
+                <p className="text-xs text-slate-500">Tap a package to view complete details, group rates & inclusions.</p>
               </div>
 
               <div className="space-y-3">
                 {tour.packages.map((pkg, idx) => {
                   const isSelected = selectedPackage?.name === pkg.name;
                   const isExpanded = expandedPackage === pkg.name;
+                  const pkgTotal = calculatePackagePrice(pkg);
+                  const minReq = pkg.tiers && pkg.tiers.length > 0 ? Math.min(...pkg.tiers.map(t => t.minParticipants)) : 1;
+                  const isUnderMin = (adults + children) < minReq;
 
                   return (
                     <div
                       key={idx}
                       className={cn(
                         "border-2 rounded-2xl overflow-hidden bg-white shadow-xs transition-all",
-                        isSelected ? "border-primary ring-2 ring-primary/20" : "border-slate-200"
+                        isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "border-slate-200"
                       )}
                     >
                       {/* Collapsed view: Package Name & Price/Person */}
@@ -1472,16 +1585,16 @@ const toggleAddOn = (addon: AddOn) => {
                             setExpandedPackage(pkg.name);
                           }
                         }}
-                        className="flex items-center justify-between p-4 cursor-pointer bg-white"
+                        className="flex items-center justify-between p-4 cursor-pointer bg-white hover:bg-slate-50 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <div className={cn(
-                            "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                            "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
                             isSelected ? "border-primary bg-primary" : "border-slate-300"
                           )}>
                             {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
                           </div>
-                          <h3 className="font-extrabold text-sm text-slate-900">{pkg.name}</h3>
+                          <h3 className="font-extrabold text-sm text-slate-900 leading-snug">{pkg.name}</h3>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1491,44 +1604,142 @@ const toggleAddOn = (addon: AddOn) => {
                             </span>
                             <span className="text-[10px] text-slate-400 block font-bold">/ person</span>
                           </div>
-                          <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", isExpanded && "rotate-180")} />
+                          <div className="p-1 rounded-full bg-slate-100 text-slate-500">
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                          </div>
                         </div>
                       </div>
 
-                      {/* Expanded View */}
+                      {/* Expanded View: Rich details matching desktop */}
                       {isExpanded && (
-                        <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-4 text-xs">
-                          {pkg.details && (
-                            <p className="text-slate-600 font-medium leading-relaxed">{pkg.details}</p>
-                          )}
-
-                          {pkg.inclusions && pkg.inclusions.filter(Boolean).length > 0 && (
-                            <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
-                              <span className="font-black text-slate-800 uppercase tracking-wider text-[10px] block">Includes:</span>
-                              <ul className="space-y-1">
-                                {pkg.inclusions.filter(Boolean).map((inc, i) => (
-                                  <li key={i} className="flex items-center gap-1.5 text-slate-600">
-                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                    <span>{inc}</span>
-                                  </li>
-                                ))}
-                              </ul>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50/50 space-y-4 text-xs">
+                          {/* Minimum Travelers Restriction Warning */}
+                          {isUnderMin && (
+                            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-left">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-xs font-black text-rose-700 uppercase tracking-wider">Requirement Notice</p>
+                                  <p className="text-[11px] text-rose-600 font-medium mt-0.5">
+                                    Requires at least <span className="font-black underline">{minReq} travelers</span>. Currently selected: <span className="font-black">{adults + children} pax</span>.
+                                  </p>
+                                </div>
+                              </div>
                             </div>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedPackage(pkg);
-                              setExpandedPackage(pkg.name);
-                            }}
-                            className={cn(
-                              "w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer",
-                              isSelected ? "bg-primary text-white" : "bg-slate-200 text-slate-800"
+                          {/* Package Description */}
+                          {(pkg.details || (pkg as any).description) && (
+                            <p className="text-slate-600 font-medium leading-relaxed bg-white p-3 rounded-xl border border-slate-100">
+                              {pkg.details || (pkg as any).description}
+                            </p>
+                          )}
+
+                          {/* Dynamic Group Rates Breakdown */}
+                          {pkg.tiers && pkg.tiers.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider">Group Rates & Tier Pricing</span>
+                                <span className="text-[9px] font-black text-primary bg-orange-50 px-2 py-0.5 rounded border border-orange-200 font-mono">
+                                  Current: {adults} adult{adults > 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                                {pkg.tiers.map((tier, tIdx) => {
+                                  const isActive = adults >= tier.minParticipants && adults <= tier.maxParticipants;
+                                  return (
+                                    <div
+                                      key={tIdx}
+                                      className={cn(
+                                        "p-2.5 flex items-center justify-between text-[11px] transition-colors",
+                                        isActive ? "bg-orange-50/60 font-bold" : "text-slate-600"
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-1.5">
+                                        <span>
+                                          {tier.maxParticipants >= 99 
+                                            ? `${tier.minParticipants}+ pax` 
+                                            : tier.minParticipants === tier.maxParticipants 
+                                              ? `${tier.minParticipants} pax` 
+                                              : `${tier.minParticipants}-${tier.maxParticipants} pax`}
+                                        </span>
+                                        {isActive && (
+                                          <span className="text-[8px] font-black text-primary bg-orange-100 px-1.5 py-0.5 rounded uppercase">
+                                            Active
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-3 font-mono font-bold">
+                                        <span>Adult: <FormattedPrice amount={tier.adultPrice} /></span>
+                                        {tier.childPrice > 0 && <span className="text-slate-500">Child: <FormattedPrice amount={tier.childPrice} /></span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Free Cancellation Guarantee */}
+                          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 p-2.5 rounded-xl text-emerald-800 text-[11px] font-bold">
+                            <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <span>Free cancellation prior to travel date</span>
+                          </div>
+
+                          {/* Inclusions & Exclusions */}
+                          <div className="space-y-3 pt-2 border-t border-slate-200/80">
+                            {pkg.inclusions && pkg.inclusions.filter(Boolean).length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="font-black text-slate-800 uppercase tracking-wider text-[10px] block">What's Included:</span>
+                                <ul className="space-y-1">
+                                  {pkg.inclusions.filter(Boolean).map((inc, i) => (
+                                    <li key={i} className="flex items-start gap-1.5 text-slate-600 text-xs">
+                                      <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                      <span>{inc}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
                             )}
-                          >
-                            {isSelected ? 'Package Selected' : 'Select Package'}
-                          </button>
+
+                            {pkg.exclusions && pkg.exclusions.filter(Boolean).length > 0 && (
+                              <div className="space-y-1.5 pt-1">
+                                <span className="font-black text-rose-700 uppercase tracking-wider text-[10px] block">What's Excluded:</span>
+                                <ul className="space-y-1">
+                                  {pkg.exclusions.filter(Boolean).map((exc, i) => (
+                                    <li key={i} className="flex items-start gap-1.5 text-slate-400 text-xs line-through">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-rose-300 mt-1.5 shrink-0" />
+                                      <span>{exc}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Price & Action Button */}
+                          <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase">Calculated Total</span>
+                              <span className="font-black text-base text-slate-900 font-display">
+                                <FormattedPrice amount={pkgTotal} />
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPackage(pkg);
+                                setExpandedPackage(pkg.name);
+                              }}
+                              className={cn(
+                                "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm",
+                                isSelected ? "bg-primary text-white" : "bg-slate-900 text-white hover:bg-slate-800"
+                              )}
+                            >
+                              {isSelected ? 'Package Selected' : 'Select Package'}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1550,30 +1761,31 @@ const toggleAddOn = (addon: AddOn) => {
 
                 <div className="space-y-2">
                   {[
-                    { id: 'meet', name: 'Meet directly at basecamp / meeting point', price: 0, desc: 'No transport required' },
+                    { id: 'meet', name: 'Meet directly at meeting point / basecamp', price: 0, desc: 'No pickup service required' },
                     ...(globalTransports.map(gt => ({ id: gt.id, name: gt.name, price: gt.price, desc: gt.priceType === 'per_person' ? 'Per Person' : 'Group Transport' })))
                   ].map(t => (
                     <div
                       key={t.id}
                       onClick={() => {
-                        setSelectedTransportType(t.id);
-                        if (t.id === 'meet') setSelectedTransport(null);
-                        else {
+                        setSelectedTransportType(t.id as any);
+                        if (t.id === 'meet') {
+                          setSelectedTransport(null);
+                        } else {
                           const matched = globalTransports.find(gt => gt.id === t.id);
                           if (matched) setSelectedTransport(matched);
                         }
                       }}
                       className={cn(
                         "p-3.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all",
-                        selectedTransportType === t.id ? "border-primary bg-orange-50/20" : "border-slate-200"
+                        (selectedTransportType === t.id || (t.id === 'meet' && selectedTransportType === 'meet')) ? "border-primary bg-orange-50/20" : "border-slate-200 hover:border-slate-300"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                          selectedTransportType === t.id ? "border-primary bg-primary" : "border-slate-300"
+                          (selectedTransportType === t.id || (t.id === 'meet' && selectedTransportType === 'meet')) ? "border-primary bg-primary" : "border-slate-300"
                         )}>
-                          {selectedTransportType === t.id && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                          {(selectedTransportType === t.id || (t.id === 'meet' && selectedTransportType === 'meet')) && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                         </div>
                         <div>
                           <span className="font-extrabold text-xs text-slate-900 block">{t.name}</span>
@@ -1590,7 +1802,7 @@ const toggleAddOn = (addon: AddOn) => {
               </div>
 
               {/* Add-ons List */}
-              {availableAddOns && availableAddOns.length > 0 && (
+              {tour.addOns && tour.addOns.length > 0 && (
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
                     <Plus className="h-5 w-5 text-primary" />
@@ -1598,41 +1810,47 @@ const toggleAddOn = (addon: AddOn) => {
                   </div>
 
                   <div className="space-y-3">
-                    {availableAddOns.map(addon => {
-                      const qty = selectedAddOns[addon.id] || 0;
+                    {tour.addOns.map(addon => {
+                      const existing = selectedAddOns.find(a => a.id === addon.id);
+                      const qty = existing ? existing.quantity : 0;
+
                       return (
-                        <div key={addon.id} className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                        <div key={addon.id} className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between bg-white">
                           <div>
                             <span className="font-extrabold text-xs text-slate-900 block">{addon.name}</span>
-                            <span className="text-[10px] text-slate-500 font-black">
-                              <FormattedPrice amount={addon.price} /> / {addon.priceType || 'unit'}
+                            <span className="text-[10px] text-slate-500 font-bold">
+                              <FormattedPrice amount={addon.price} /> {addon.unit ? `/ ${addon.unit}` : ''}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newQty = Math.max(0, qty - 1);
-                                if (newQty === 0) {
-                                  const { [addon.id]: _, ...rest } = selectedAddOns;
-                                  setSelectedAddOns(rest);
-                                } else {
-                                  setSelectedAddOns({ ...selectedAddOns, [addon.id]: newQty });
-                                }
-                              }}
-                              className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer"
-                            >
-                              -
-                            </button>
-                            <span className="font-black text-xs w-5 text-center">{qty}</span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAddOns({ ...selectedAddOns, [addon.id]: qty + 1 })}
-                              className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer"
-                            >
-                              +
-                            </button>
+                            {qty === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleAddOn(addon)}
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-primary hover:text-white text-slate-800 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                              >
+                                + Add
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => updateAddOnQuantity(addon.id, -1)}
+                                  className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-slate-100"
+                                >
+                                  -
+                                </button>
+                                <span className="font-black text-xs w-5 text-center">{qty}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateAddOnQuantity(addon.id, 1)}
+                                  className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-slate-100"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -1650,7 +1868,7 @@ const toggleAddOn = (addon: AddOn) => {
                 <h2 className="font-black text-base text-slate-900">Booking Summary</h2>
 
                 <div className="flex gap-3 pb-3 border-b border-slate-100">
-                  <img src={tour.featuredImage} alt={tour.title} className="h-16 w-16 object-cover rounded-xl" />
+                  <img src={tour.featuredImage} alt={tour.title} className="h-16 w-16 object-cover rounded-xl shrink-0" />
                   <div>
                     <h3 className="font-extrabold text-slate-900 line-clamp-1">{tour.title}</h3>
                     <p className="text-slate-500 font-bold mt-0.5">Package: {selectedPackage?.name}</p>
@@ -1664,45 +1882,55 @@ const toggleAddOn = (addon: AddOn) => {
                     <span className="font-bold text-slate-900">{adults} Adult{adults > 1 ? 's' : ''}{children > 0 ? `, ${children} Child${children > 1 ? 'ren' : ''}` : ''}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Package Price:</span>
+                    <span>Package Total:</span>
                     <span className="font-bold text-slate-900"><FormattedPrice amount={summary.packageTotal} /></span>
                   </div>
                   {summary.transportTotal > 0 && (
                     <div className="flex justify-between">
-                      <span>Transport Option:</span>
+                      <span>Transport Service:</span>
                       <span className="font-bold text-slate-900"><FormattedPrice amount={summary.transportTotal} /></span>
                     </div>
                   )}
-                  {summary.addOnsTotal > 0 && (
+                  {summary.addonsTotal > 0 && (
                     <div className="flex justify-between">
                       <span>Add-ons Total:</span>
-                      <span className="font-bold text-slate-900"><FormattedPrice amount={summary.addOnsTotal} /></span>
+                      <span className="font-bold text-slate-900"><FormattedPrice amount={summary.addonsTotal} /></span>
                     </div>
                   )}
                   {summary.discount > 0 && (
-                    <div className="flex justify-between text-green-600 font-bold">
-                      <span>Discount Coupon:</span>
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Discount:</span>
                       <span>-<FormattedPrice amount={summary.discount} /></span>
                     </div>
                   )}
                 </div>
 
                 {/* Coupon Code Input */}
-                <div className="pt-3 border-t border-slate-100 flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Coupon Code"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    className="flex-1 px-3 py-2 border border-slate-200 rounded-xl font-bold uppercase text-xs focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplyCoupon}
-                    className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs cursor-pointer"
-                  >
-                    Apply
-                  </button>
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Coupon Code"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl font-bold uppercase text-xs focus:outline-none focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isValidatingCoupon}
+                      className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs cursor-pointer hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {isValidatingCoupon ? 'Checking...' : 'Apply'}
+                    </button>
+                  </div>
+                  {couponError && <p className="text-[11px] text-rose-600 font-bold">{couponError}</p>}
+                  {appliedCoupon && (
+                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-lg text-[11px] font-bold flex justify-between items-center">
+                      <span>Coupon Applied: {appliedCoupon.code}</span>
+                      <button type="button" onClick={() => setAppliedCoupon(null)} className="text-rose-600 font-bold underline">Remove</button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
@@ -1799,7 +2027,7 @@ const toggleAddOn = (addon: AddOn) => {
                       onClick={() => setPaymentMethod(pm.id as any)}
                       className={cn(
                         "p-3.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all",
-                        paymentMethod === pm.id ? "border-primary bg-orange-50/20" : "border-slate-200"
+                        paymentMethod === pm.id ? "border-primary bg-orange-50/20" : "border-slate-200 hover:border-slate-300"
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -1906,7 +2134,7 @@ const toggleAddOn = (addon: AddOn) => {
             {mobileStep === 'payment' && (
               <button
                 type="button"
-                onClick={handleBooking}
+                onClick={() => handleFinalBooking()}
                 disabled={isBooking || !agreedToTerms}
                 className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
               >
