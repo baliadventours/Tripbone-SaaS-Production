@@ -49,6 +49,7 @@ import {
   UserCheck,
   Building2,
   X,
+  Edit2,
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { cn, parseMeetingPoint } from "../lib/utils";
@@ -406,6 +407,8 @@ export default function Checkout() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [expandedPackage, setExpandedPackage] = useState<string | null>(null);
+  const [expandedTransport, setExpandedTransport] = useState<string | null>('meet');
+  const [showSidebarEdit, setShowSidebarEdit] = useState(false);
   const [pricingTiersExpanded, setPricingTiersExpanded] = useState<string | null>(null);
   const [expandedAddOn, setExpandedAddOn] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -2522,163 +2525,6 @@ const toggleAddOn = (addon: AddOn) => {
             {/* Step 1: Selection (Packages & Add-ons) */}
             {step === "selection" && (
               <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
-                {/* Date & Travelers - Consolidated Configuration with Dark Contrast */}
-                <section id="selection-header" className="space-y-4">
-                  <div>
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">
-                      Trip Configuration
-                    </h2>
-                    <p className="text-sm text-gray-500 font-medium">
-                      Pick your preferred date and travelers count.
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-[10px] border border-slate-200 shadow-md overflow-hidden">
-                    <div className="p-5 space-y-5">
-                      {/* Date Picker Trigger */}
-                      <button 
-                        type="button"
-                        id="date-picker-mobile"
-                        onClick={() => setShowDatePicker(!showDatePicker)}
-                        className={cn(
-                          "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all bg-white cursor-pointer",
-                          date ? "border-primary ring-1 ring-primary/10 shadow-sm" : "border-slate-300 hover:border-slate-400"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
-                            date ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
-                          )}>
-                            <Calendar className="h-5 w-5" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Travel Date</p>
-                            <p className={cn("text-sm font-black leading-none", date ? "text-slate-900" : "text-slate-400")}>
-                              {date ? new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Select Date'}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronDown className={cn("h-4 w-4 transition-transform text-slate-500", showDatePicker && "rotate-180")} />
-                      </button>
-
-                      <AnimatePresence>
-                        {showDatePicker && (
-                          <motion.div 
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="pt-2 pb-4 px-1">
-                              <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-extrabold text-slate-800 uppercase tracking-widest text-xs">
-                                  {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                </h3>
-                                <div className="flex items-center gap-1">
-                                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"><ChevronLeft className="h-4 w-4 text-slate-700" /></button>
-                                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"><ChevronRight className="h-4 w-4 text-slate-700" /></button>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-7 gap-1">
-                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                                  <div key={day} className="text-[10px] font-black text-slate-400 text-center uppercase py-1">{day}</div>
-                                ))}
-                                {(() => {
-                                  const year = currentMonth.getFullYear();
-                                  const month = currentMonth.getMonth();
-                                  const firstDay = new Date(year, month, 1).getDay();
-                                  const daysInMonth = new Date(year, month + 1, 0).getDate();
-                                  const today = new Date(); today.setHours(0,0,0,0);
-                                  const cells = [];
-                                  for (let i = 0; i < firstDay; i++) cells.push(<div key={`empty-${i}`} />);
-                                  for (let d = 1; d <= daysInMonth; d++) {
-                                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                                    const isPast = new Date(year, month, d) < today;
-                                    cells.push(
-                                      <button
-                                        key={d}
-                                        disabled={isPast}
-                                        onClick={() => { setDate(dateStr); setShowDatePicker(false); }}
-                                        className={cn(
-                                          "aspect-square rounded-lg flex items-center justify-center text-xs font-black transition-all cursor-pointer",
-                                          date === dateStr 
-                                            ? "bg-primary text-white shadow-md shadow-primary/20" 
-                                            : isPast 
-                                              ? "text-slate-300 line-through opacity-40 cursor-not-allowed" 
-                                              : "text-slate-900 bg-slate-50 border border-slate-100 hover:border-primary hover:bg-orange-50"
-                                        )}
-                                      >
-                                        {d}
-                                      </button>
-                                    );
-                                  }
-                                  return cells;
-                                })()}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
- 
-                      {/* Travelers Selection (High Contrast Row Inputs) */}
-                      <div id="traveler-selection-mobile" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Adults */}
-                        <div className="flex items-center justify-between p-4 rounded-xl border-2 border-slate-300 bg-slate-50/50 hover:bg-white hover:border-primary transition-all shadow-sm">
-                          <div>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Adults</p>
-                            <p className="text-sm font-black text-slate-900 leading-none">Age 12+</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <button disabled={adults <= 1 || (adults + children) <= minRequired} onClick={() => setAdults(Math.max(1, adults - 1))} className={cn("h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer", (adults <= 1 || (adults + children) <= minRequired) && "opacity-50 cursor-not-allowed hover:bg-slate-950")}><Minus className="h-3.5 w-3.5" /></button>
-                            <span className="text-sm font-black text-slate-950 w-5 text-center">{adults}</span>
-                            <button 
-                              onClick={() => {
-                                if (spotsLeft !== null && (adults + children + 1) > spotsLeft) { alert(`Only ${spotsLeft} spots available.`); return; }
-                                setAdults(adults + 1);
-                              }} 
-                              className={cn("h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer", (spotsLeft !== null && (adults + children + 1) > spotsLeft) && "opacity-50")}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
- 
-                        {/* Children */}
-                        <div className="flex items-center justify-between p-4 rounded-xl border-2 border-slate-300 bg-slate-50/50 hover:bg-white hover:border-primary transition-all shadow-sm">
-                          <div>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Children</p>
-                            <p className="text-sm font-black text-slate-900 leading-none">Age 3-11</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <button disabled={children <= 0 || (adults + children) <= minRequired} onClick={() => setChildren(Math.max(0, children - 1))} className={cn("h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer", (children <= 0 || (adults + children) <= minRequired) && "opacity-50 cursor-not-allowed hover:bg-slate-950")}><Minus className="h-3.5 w-3.5" /></button>
-                            <span className="text-sm font-black text-slate-950 w-5 text-center">{children}</span>
-                            <button 
-                              onClick={() => {
-                                if (spotsLeft !== null && (adults + children + 1) > spotsLeft) { alert(`Only ${spotsLeft} spots available.`); return; }
-                                setChildren(children + 1);
-                              }} 
-                              className={cn("h-8 w-8 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer", (spotsLeft !== null && (adults + children + 1) > spotsLeft) && "opacity-50")}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Capacity Indicator (Integrated) */}
-                    {date && spotsLeft !== null && (
-                      <div className={cn(
-                        "px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-center border-t border-slate-200",
-                        isSoldOut ? "bg-rose-50 text-rose-600" : isLowCapacity ? "bg-amber-50 text-amber-700" : "bg-orange-50 text-primary"
-                      )}>
-                        {isSoldOut ? 'Sold Out' : isLowCapacity ? `Limited Availability: Only ${spotsLeft} spots left!` : `Excellent: ${spotsLeft} spots available`}
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-
                 {/* Package Selection */}
                 <section id="package-selection" className="space-y-6">
                   <div>
@@ -3097,118 +2943,218 @@ const toggleAddOn = (addon: AddOn) => {
                 {availableTransports.length > 0 && (
                   <section id="transport-selection" className="space-y-6">
                     <div>
-                      <h2 className="text-2xl font-black text-gray-900 tracking-tight">
-                        Pick a Transport Option
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                        <Car className="h-6 w-6 text-primary" /> Pick a Transport Option
                       </h2>
                       <p className="text-sm text-gray-500 font-medium">
                         Select your preferred transfer or meeting arrangement. Vehicles are automatically checked to accommodate your group of <span className="text-primary font-black">{adults + children}</span> traveler(s).
                       </p>
                     </div>
 
-                    {/* 3 Main Options */}
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {/* 1. Own Transport */}
-                      {availableTransports.some(t => t.type === 'meet') && (
-                        <div
-                          onClick={() => {
-                            setSelectedTransportType('meet');
-                            const opt = availableTransports.find(t => t.type === 'meet');
-                            if (opt) setSelectedTransport(opt);
-                            setCustomerData(prev => ({
-                              ...prev,
-                              pickupAddress: selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp."
-                            }));
-                          }}
-                          className={cn(
-                            "border-2 rounded-[15px] p-5 transition-all bg-white relative cursor-pointer group flex flex-col justify-between gap-4",
-                            selectedTransportType === 'meet'
-                              ? "border-primary bg-orange-50/10 shadow-md shadow-primary/5"
-                              : "border-gray-150 hover:border-primary/20"
-                          )}
-                        >
-                          <div className="space-y-3 text-left">
-                            <div className="flex items-center gap-3">
-                              <div className={cn(
-                                "h-10 w-10 rounded-[10px] flex items-center justify-center transition-colors",
-                                selectedTransportType === 'meet' ? "bg-primary text-white" : "bg-orange-50 text-primary"
-                              )}>
-                                <MapPin className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <h3 className="font-extrabold text-gray-950 text-sm leading-snug group-hover:text-primary transition-colors">
-                                  Own Transport
-                                </h3>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                                  Self-Arrival
-                                </p>
-                              </div>
-                            </div>
-                            <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                              Come directly to our operation basecamp on your own. No pickup service.
-                            </p>
-                          </div>
-                          <div className="border-t border-gray-50 pt-3 flex items-center justify-between text-left">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rate</span>
-                            <span className="text-sm font-black text-primary">Free</span>
-                          </div>
-                        </div>
-                      )}
+                    <div className="space-y-4">
+                      {/* 1. Own Transport Option */}
+                      {availableTransports.some(t => t.type === 'meet') && (() => {
+                        const isSelected = selectedTransportType === 'meet';
+                        const isExpanded = expandedTransport === 'meet';
+                        const activeMpText = selectedPackage?.meetingPoint || tour?.meetingPoint;
+                        const mp = parseMeetingPoint(activeMpText, selectedPackage?.name || tour?.title);
 
-                      {/* 2. Shared Transfer */}
-                      {availableTransports.some(t => t.type === 'shared') && (() => {
-                        const sOpt = availableTransports.find(t => t.type === 'shared');
-                        const rateText = sOpt ? `${formatPrice(sOpt.price)}/person` : "Available";
                         return (
                           <div
-                            onClick={() => {
-                              setSelectedTransportType('shared');
-                              if (sOpt) setSelectedTransport(sOpt);
-                              setCustomerData(prev => {
-                                const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
-                                const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
-                                return {
-                                  ...prev,
-                                  pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
-                                };
-                              });
-                            }}
                             className={cn(
-                              "border-2 rounded-[15px] p-5 transition-all bg-white relative cursor-pointer group flex flex-col justify-between gap-4",
-                              selectedTransportType === 'shared'
-                                ? "border-primary bg-orange-50/10 shadow-md shadow-primary/5"
-                                : "border-gray-150 hover:border-primary/20"
+                              "border-2 rounded-2xl transition-all overflow-hidden bg-white shadow-xs",
+                              isSelected
+                                ? "border-primary shadow-md shadow-primary/5 ring-1 ring-primary/20"
+                                : "border-slate-200 hover:border-slate-300"
                             )}
                           >
-                            <div className="space-y-3 text-left">
+                            {/* Header */}
+                            <div
+                              onClick={() => {
+                                setSelectedTransportType('meet');
+                                const opt = availableTransports.find(t => t.type === 'meet');
+                                if (opt) setSelectedTransport(opt);
+                                setCustomerData(prev => ({
+                                  ...prev,
+                                  pickupAddress: selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp."
+                                }));
+                                setExpandedTransport(isExpanded ? null : 'meet');
+                              }}
+                              className="flex items-center justify-between p-4 md:p-5 cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+                            >
                               <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  "h-10 w-10 rounded-[10px] flex items-center justify-center transition-colors",
-                                  selectedTransportType === 'shared' ? "bg-primary text-white" : "bg-orange-50 text-primary"
-                                )}>
-                                  <Bus className="h-5 w-5" />
+                                <div
+                                  className={cn(
+                                    "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                                    isSelected ? "border-primary bg-primary" : "border-slate-300 bg-white"
+                                  )}
+                                >
+                                  {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
                                 </div>
-                                <div>
-                                  <h3 className="font-extrabold text-gray-950 text-sm leading-snug group-hover:text-primary transition-colors">
-                                    Shared Transfer
-                                  </h3>
-                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                                    Shuttle service
-                                  </p>
+                                <div className="flex items-center gap-2.5">
+                                  <div className={cn(
+                                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                    isSelected ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                                  )}>
+                                    <MapPin className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm md:text-base leading-snug">
+                                      Own Transport
+                                    </h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                      Self-Arrival / Basecamp
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                              <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                                Pickup & drop-off shared with other travelers. Fixed timings by area.
-                              </p>
+
+                              <div className="flex items-center gap-3">
+                                <span className="font-black text-primary text-xs md:text-sm bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                                  Free
+                                </span>
+                                <div className="p-1 rounded-full bg-slate-100 text-slate-500">
+                                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                                </div>
+                              </div>
                             </div>
-                            <div className="border-t border-gray-50 pt-3 flex items-center justify-between text-left">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rate</span>
-                              <span className="text-sm font-black text-primary">{rateText}</span>
-                            </div>
+
+                            {/* Expanded Body */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden border-t border-slate-200 bg-slate-50/50"
+                                >
+                                  <div className="p-5 space-y-4 text-left">
+                                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                      Come directly to our operation basecamp or meeting point on your own. No pickup service is included.
+                                    </p>
+                                    <div className="bg-white border border-primary/20 rounded-xl p-4 space-y-2">
+                                      <span className="text-[10px] font-black text-primary uppercase tracking-wider block">Meeting Point Location:</span>
+                                      <p className="text-sm font-black text-slate-900">{mp.venue}</p>
+                                      {mp.address && mp.address !== mp.venue && (
+                                        <p className="text-xs text-slate-600 font-bold">{mp.address}</p>
+                                      )}
+                                      {mp.url && (
+                                        <a
+                                          href={mp.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs font-extrabold text-primary hover:underline block pt-1"
+                                        >
+                                          📍 Open Google Maps Location
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         );
                       })()}
 
-                      {/* 3. Private Transfer */}
+                      {/* 2. Shared Transfer Option */}
+                      {availableTransports.some(t => t.type === 'shared') && (() => {
+                        const sOpt = availableTransports.find(t => t.type === 'shared');
+                        const isSelected = selectedTransportType === 'shared';
+                        const isExpanded = expandedTransport === 'shared';
+                        const rateText = sOpt ? `${formatPrice(sOpt.price)}/person` : "Available";
+
+                        return (
+                          <div
+                            className={cn(
+                              "border-2 rounded-2xl transition-all overflow-hidden bg-white shadow-xs",
+                              isSelected
+                                ? "border-primary shadow-md shadow-primary/5 ring-1 ring-primary/20"
+                                : "border-slate-200 hover:border-slate-300"
+                            )}
+                          >
+                            {/* Header */}
+                            <div
+                              onClick={() => {
+                                setSelectedTransportType('shared');
+                                if (sOpt) setSelectedTransport(sOpt);
+                                setCustomerData(prev => {
+                                  const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+                                  const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
+                                  return {
+                                    ...prev,
+                                    pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
+                                  };
+                                });
+                                setExpandedTransport(isExpanded ? null : 'shared');
+                              }}
+                              className="flex items-center justify-between p-4 md:p-5 cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={cn(
+                                    "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                                    isSelected ? "border-primary bg-primary" : "border-slate-300 bg-white"
+                                  )}
+                                >
+                                  {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                                </div>
+                                <div className="flex items-center gap-2.5">
+                                  <div className={cn(
+                                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                    isSelected ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                                  )}>
+                                    <Bus className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm md:text-base leading-snug">
+                                      Shared Shuttle Transfer
+                                    </h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                      Shared Pickup & Drop-off
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <span className="font-black text-primary text-xs md:text-sm bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                                  {rateText}
+                                </span>
+                                <div className="p-1 rounded-full bg-slate-100 text-slate-500">
+                                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Expanded Body */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden border-t border-slate-200 bg-slate-50/50"
+                                >
+                                  <div className="p-5 space-y-4 text-left">
+                                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                      Pickup & drop-off shared with other travelers going to the same tour. Pickup schedule will be confirmed based on your hotel area.
+                                    </p>
+                                    {(selectedPackage?.pickupAreas || tour?.pickupAreas) && (
+                                      <div className="bg-blue-50/60 border border-blue-200/60 rounded-xl p-3.5 text-xs text-slate-700 font-semibold">
+                                        <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block mb-1">Served Areas:</span>
+                                        {selectedPackage?.pickupAreas || tour?.pickupAreas}
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })()}
+
+                      {/* 3. Private Transfer Option */}
                       {availableTransports.some(t => t.type === 'private') && (() => {
                         const pOpts = availableTransports.filter(t => t.type === 'private');
                         const totalParticipants = adults + children;
@@ -3216,175 +3162,141 @@ const toggleAddOn = (addon: AddOn) => {
                         const lowestPrice = matchingCars.length > 0 
                           ? Math.min(...matchingCars.map(c => c.price)) 
                           : pOpts.length > 0 ? Math.min(...pOpts.map(c => c.price)) : 0;
+                        const isSelected = selectedTransportType === 'private';
+                        const isExpanded = expandedTransport === 'private';
                         const rateText = lowestPrice > 0 ? `From ${formatPrice(lowestPrice)}/car` : "Available";
 
                         return (
                           <div
-                            onClick={() => {
-                              setSelectedTransportType('private');
-                              const bestPrivateOpt = matchingCars[0] || pOpts[0];
-                              if (bestPrivateOpt) setSelectedTransport(bestPrivateOpt);
-                              setCustomerData(prev => {
-                                const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
-                                const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
-                                return {
-                                  ...prev,
-                                  pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
-                                };
-                              });
-                            }}
                             className={cn(
-                              "border-2 rounded-[15px] p-5 transition-all bg-white relative cursor-pointer group flex flex-col justify-between gap-4",
-                              selectedTransportType === 'private'
-                                ? "border-primary bg-orange-50/10 shadow-md shadow-primary/5"
-                                : "border-gray-150 hover:border-primary/20"
+                              "border-2 rounded-2xl transition-all overflow-hidden bg-white shadow-xs",
+                              isSelected
+                                ? "border-primary shadow-md shadow-primary/5 ring-1 ring-primary/20"
+                                : "border-slate-200 hover:border-slate-300"
                             )}
                           >
-                            <div className="space-y-3 text-left">
+                            {/* Header */}
+                            <div
+                              onClick={() => {
+                                setSelectedTransportType('private');
+                                const bestPrivateOpt = matchingCars[0] || pOpts[0];
+                                if (bestPrivateOpt) setSelectedTransport(bestPrivateOpt);
+                                setCustomerData(prev => {
+                                  const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+                                  const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
+                                  return {
+                                    ...prev,
+                                    pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
+                                  };
+                                });
+                                setExpandedTransport(isExpanded ? null : 'private');
+                              }}
+                              className="flex items-center justify-between p-4 md:p-5 cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+                            >
                               <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  "h-10 w-10 rounded-[10px] flex items-center justify-center transition-colors",
-                                  selectedTransportType === 'private' ? "bg-primary text-white" : "bg-orange-50 text-primary"
-                                )}>
-                                  <Car className="h-5 w-5" />
+                                <div
+                                  className={cn(
+                                    "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                                    isSelected ? "border-primary bg-primary" : "border-slate-300 bg-white"
+                                  )}
+                                >
+                                  {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
                                 </div>
-                                <div>
-                                  <h3 className="font-extrabold text-gray-950 text-sm leading-snug group-hover:text-primary transition-colors">
-                                    Private Transfer
-                                  </h3>
-                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                                    Dedicated car
-                                  </p>
+                                <div className="flex items-center gap-2.5">
+                                  <div className={cn(
+                                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                    isSelected ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                                  )}>
+                                    <Car className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm md:text-base leading-snug">
+                                      Private Transfer
+                                    </h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                      Dedicated Vehicle & Driver
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                              <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                                AC vehicle with professional driver exclusively for your group.
-                              </p>
+
+                              <div className="flex items-center gap-3">
+                                <span className="font-black text-primary text-xs md:text-sm bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                                  {rateText}
+                                </span>
+                                <div className="p-1 rounded-full bg-slate-100 text-slate-500">
+                                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                                </div>
+                              </div>
                             </div>
-                            <div className="border-t border-gray-50 pt-3 flex items-center justify-between text-left">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rate</span>
-                              <span className="text-sm font-black text-primary">{rateText}</span>
-                            </div>
+
+                            {/* Expanded Body */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden border-t border-slate-200 bg-slate-50/50"
+                                >
+                                  <div className="p-5 space-y-4 text-left">
+                                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                      Air-conditioned vehicle with professional driver exclusively for your group. Select your preferred vehicle below:
+                                    </p>
+
+                                    {(selectedPackage?.pickupAreas || tour?.pickupAreas) && (
+                                      <div className="bg-blue-50/60 border border-blue-200/60 rounded-xl p-3 text-xs text-slate-700 font-semibold mb-3">
+                                        <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block mb-0.5">Served Areas:</span>
+                                        {selectedPackage?.pickupAreas || tour?.pickupAreas}
+                                      </div>
+                                    )}
+
+                                    {/* Vehicle Selection Grid */}
+                                    <div className="grid sm:grid-cols-2 gap-3 pt-2">
+                                      {pOpts.map((t, idx) => {
+                                        const isCarSelected = selectedTransport?.id === t.id;
+                                        const hasCapacity = t.maxCapacity === undefined || t.maxCapacity === null || totalParticipants <= t.maxCapacity;
+
+                                        if (!hasCapacity) return null;
+
+                                        return (
+                                          <button
+                                            key={t.id || idx}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedTransport(t);
+                                            }}
+                                            className={cn(
+                                              "border-2 rounded-xl p-3.5 transition-all bg-white cursor-pointer flex flex-col justify-between gap-2 text-left",
+                                              isCarSelected
+                                                ? "border-primary bg-orange-50/20 ring-1 ring-primary/20 shadow-xs"
+                                                : "border-slate-200 hover:border-slate-300"
+                                            )}
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                <Car className={cn("h-4 w-4", isCarSelected ? "text-primary" : "text-slate-400")} />
+                                                <span className="font-extrabold text-slate-900 text-xs">{t.name}</span>
+                                              </div>
+                                              {isCarSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                                            </div>
+                                            <div className="flex items-center justify-between text-[11px] font-bold border-t border-slate-100 pt-2">
+                                              <span className="text-slate-400">Cap: {t.maxCapacity} pax</span>
+                                              <span className="text-primary font-black"><FormattedPrice amount={t.price} /> / car</span>
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         );
                       })()}
                     </div>
-
-                    {/* Own Transport meeting point info display */}
-                    {selectedTransportType === 'meet' && (() => {
-                      const activeMpText = selectedPackage?.meetingPoint || tour?.meetingPoint;
-                      const mp = parseMeetingPoint(activeMpText, selectedPackage?.name || tour?.title);
-                      return (
-                        <div className="mt-4 bg-orange-50/50 border border-primary/25 rounded-xl p-5 text-left animate-in fade-in duration-200">
-                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] block mb-2">Meeting Point Location:</span>
-                          <div className="space-y-2.5">
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-                              <div className="space-y-1">
-                                <span className="text-sm font-black text-slate-900 block">{mp.venue}</span>
-                                {mp.address && mp.address !== mp.venue && (
-                                  <p className="text-xs text-slate-600 font-bold leading-relaxed">{mp.address}</p>
-                                )}
-                              </div>
-                            </div>
-                            {mp.url && (
-                              <div className="pl-6 border-t border-orange-200/40 pt-2.5">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Direct Google Maps Link:</span>
-                                <a 
-                                  href={mp.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs font-extrabold text-primary hover:underline break-all inline-block"
-                                >
-                                  {mp.url}
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Pick Up Areas Served display for Transfers */}
-                    {selectedTransportType !== 'meet' && (selectedPackage?.pickupAreas || tour?.pickupAreas) && (
-                      <div className="mt-4 bg-blue-50/60 border border-blue-200/60 rounded-xl p-4 text-left animate-in fade-in duration-200 flex items-start gap-3">
-                        <Car className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block mb-0.5">
-                            Pick Up Areas Served ({selectedPackage?.name || "Package"}):
-                          </span>
-                          <p className="text-xs text-slate-700 font-semibold leading-relaxed">
-                            {selectedPackage?.pickupAreas || tour?.pickupAreas}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Sub-options for Private Transfer (car list matching capacity) */}
-                    {selectedTransportType === 'private' && (
-                      <div className="space-y-4 pt-4 border-t border-gray-100 animate-in fade-in duration-200">
-                        <div>
-                          <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">
-                            Select Your Vehicle
-                          </h3>
-                          <p className="text-xs text-gray-500 font-medium">
-                            Choose from vehicles that match your group size of <span className="text-primary font-bold">{adults + children}</span> pax.
-                          </p>
-                        </div>
-
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          {availableTransports
-                            .filter(t => t.type === 'private')
-                            .map((t, idx) => {
-                              const isSelected = selectedTransport?.id === t.id;
-                              const totalParticipants = adults + children;
-                              const hasCapacity = t.maxCapacity === undefined || t.maxCapacity === null || totalParticipants <= t.maxCapacity;
-
-                              if (!hasCapacity) return null; // Only show cars that match participant count
-
-                              return (
-                                <div
-                                  key={t.id || idx}
-                                  onClick={() => setSelectedTransport(t)}
-                                  className={cn(
-                                    "border-2 rounded-xl p-4 transition-all bg-white cursor-pointer flex flex-col justify-between gap-3 text-left",
-                                    isSelected
-                                      ? "border-primary bg-orange-50/10"
-                                      : "border-gray-100 hover:border-primary/20"
-                                  )}
-                                >
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className={cn(
-                                        "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-                                        isSelected ? "bg-primary text-white" : "bg-gray-50 text-gray-500"
-                                      )}>
-                                        <Car className="h-4 w-4" />
-                                      </div>
-                                      <div>
-                                        <h4 className="font-extrabold text-gray-900 text-sm">
-                                          {t.name}
-                                        </h4>
-                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                                          Capacity: {t.maxCapacity} pax
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <span className="text-xs font-black text-primary">
-                                      {formatPrice(t.price)}/car
-                                    </span>
-                                  </div>
-                                  {t.description && (
-                                    <p className="text-xs text-gray-500 font-medium leading-normal pl-10">
-                                      {t.description}
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Hotel Address Input Form for Shared and Private Transfer */}
                     {(selectedTransportType === 'shared' || selectedTransportType === 'private') && (
@@ -4125,29 +4037,191 @@ const toggleAddOn = (addon: AddOn) => {
                   )}
 
                   {/* Details Strip */}
-                  <div className="flex items-center justify-between border-b border-gray-50 pb-6 gap-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 tracking-tighter">
-                          Date
-                        </p>
-                        <p className="font-extrabold text-gray-900 text-xs">
-                          {new Date(date).toLocaleDateString()}
-                        </p>
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Calendar className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Date</p>
+                            <p className="font-extrabold text-slate-900 text-xs truncate">
+                              {date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select Date'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="h-6 w-[1px] bg-slate-200 shrink-0" />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Users className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Travelers</p>
+                            <p className="font-extrabold text-slate-900 text-xs truncate">
+                              {adults + children} Total ({adults}A{children > 0 ? `, ${children}C` : ''})
+                            </p>
+                          </div>
+                        </div>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowSidebarEdit(!showSidebarEdit)}
+                        className="text-xs font-black text-primary hover:text-orange-600 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-xl border border-orange-200 transition-colors cursor-pointer shrink-0 flex items-center gap-1 shadow-xs"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                        <span>{showSidebarEdit ? "Done" : "Change"}</span>
+                      </button>
                     </div>
-                    <div className="flex items-center gap-3 text-right">
-                      <Users className="h-4 w-4 text-primary" />
-                      <div className="flex-1">
-                        <p className="text-[10px] font-black text-gray-400 tracking-tighter">
-                          Travelers
-                        </p>
-                        <p className="font-extrabold text-gray-900 text-xs">
-                          {adults + children} Total
-                        </p>
-                      </div>
-                    </div>
+
+                    {/* Collapsible Sidebar Date & Participant Editor */}
+                    <AnimatePresence>
+                      {showSidebarEdit && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden pt-3 border-t border-slate-200 space-y-3"
+                        >
+                          {/* Mini Date Selector */}
+                          <div className="space-y-1.5 text-left">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                              Select Travel Date
+                            </label>
+                            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                              <div className="flex items-center justify-between mb-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newM = new Date(currentMonth);
+                                    newM.setMonth(newM.getMonth() - 1);
+                                    setCurrentMonth(newM);
+                                  }}
+                                  className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+                                >
+                                  <ChevronLeft className="h-3.5 w-3.5" />
+                                </button>
+                                <span className="font-black text-[11px] text-slate-800 uppercase tracking-wider">
+                                  {currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newM = new Date(currentMonth);
+                                    newM.setMonth(newM.getMonth() + 1);
+                                    setCurrentMonth(newM);
+                                  }}
+                                  className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+                                >
+                                  <ChevronRight className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-7 gap-1 text-center font-bold text-[9px] text-slate-400 uppercase py-0.5">
+                                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
+                              </div>
+                              <div className="grid grid-cols-7 gap-1">
+                                {(() => {
+                                  const year = currentMonth.getFullYear();
+                                  const month = currentMonth.getMonth();
+                                  const firstDay = new Date(year, month, 1).getDay();
+                                  const daysInMonth = new Date(year, month + 1, 0).getDate();
+                                  const today = new Date(); today.setHours(0,0,0,0);
+                                  const cells = [];
+                                  for (let i = 0; i < firstDay; i++) cells.push(<div key={`sb-empty-${i}`} />);
+                                  for (let d = 1; d <= daysInMonth; d++) {
+                                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                                    const isPast = new Date(year, month, d) < today;
+                                    const isSelected = date === dateStr;
+                                    cells.push(
+                                      <button
+                                        key={`sb-${d}`}
+                                        type="button"
+                                        disabled={isPast}
+                                        onClick={() => setDate(dateStr)}
+                                        className={cn(
+                                          "h-6 w-full rounded flex items-center justify-center text-[10px] font-extrabold transition-all cursor-pointer",
+                                          isSelected ? "bg-primary text-white shadow-xs" : isPast ? "text-slate-300 opacity-40 line-through cursor-not-allowed" : "text-slate-800 bg-slate-50 hover:bg-orange-50 hover:text-primary"
+                                        )}
+                                      >
+                                        {d}
+                                      </button>
+                                    );
+                                  }
+                                  return cells;
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Travelers Adjuster */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-200 text-left">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                              Adjust Travelers
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {/* Adults */}
+                              <div className="bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between">
+                                <div>
+                                  <p className="text-[9px] font-black text-slate-400 uppercase">Adults</p>
+                                  <p className="text-xs font-black text-slate-900">{adults}</p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={adults <= 1 || (adults + children) <= minRequired}
+                                    onClick={() => setAdults(Math.max(1, adults - 1))}
+                                    className="h-6 w-6 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold flex items-center justify-center text-xs disabled:opacity-40 cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (spotsLeft !== null && (adults + children + 1) > spotsLeft) {
+                                        alert(`Only ${spotsLeft} spots available.`);
+                                        return;
+                                      }
+                                      setAdults(adults + 1);
+                                    }}
+                                    className="h-6 w-6 rounded-md bg-slate-900 text-white font-bold flex items-center justify-center text-xs cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Children */}
+                              <div className="bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between">
+                                <div>
+                                  <p className="text-[9px] font-black text-slate-400 uppercase">Children</p>
+                                  <p className="text-xs font-black text-slate-900">{children}</p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={children <= 0 || (adults + children) <= minRequired}
+                                    onClick={() => setChildren(Math.max(0, children - 1))}
+                                    className="h-6 w-6 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold flex items-center justify-center text-xs disabled:opacity-40 cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (spotsLeft !== null && (adults + children + 1) > spotsLeft) {
+                                        alert(`Only ${spotsLeft} spots available.`);
+                                        return;
+                                      }
+                                      setChildren(children + 1);
+                                    }}
+                                    className="h-6 w-6 rounded-md bg-slate-900 text-white font-bold flex items-center justify-center text-xs cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Pricing Breakdown */}
