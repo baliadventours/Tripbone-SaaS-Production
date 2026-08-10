@@ -1669,7 +1669,7 @@ const toggleAddOn = (addon: AddOn) => {
                                           </span>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-3 font-mono font-bold">
+                                      <div className="flex items-center gap-3 font-extrabold text-slate-800">
                                         <span>Adult: <FormattedPrice amount={tier.adultPrice} /></span>
                                         {tier.childPrice > 0 && <span className="text-slate-500">Child: <FormattedPrice amount={tier.childPrice} /></span>}
                                       </div>
@@ -1753,111 +1753,366 @@ const toggleAddOn = (addon: AddOn) => {
           {mobileStep === 'addons' && (
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
               {/* Transport Selection */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
-                  <Car className="h-5 w-5 text-primary" />
-                  <h2>Transportation Option</h2>
-                </div>
+              {availableTransports.length > 0 && (
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-left">
+                  <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                    <Car className="h-5 w-5 text-primary" />
+                    <h2>Transportation Option</h2>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Select your preferred transfer or meeting arrangement. Vehicles accommodate <span className="text-primary font-black">{adults + children}</span> traveler(s).
+                  </p>
 
-                <div className="space-y-2">
-                  {[
-                    { id: 'meet', name: 'Meet directly at meeting point / basecamp', price: 0, desc: 'No pickup service required' },
-                    ...(globalTransports.map(gt => ({ id: gt.id, name: gt.name, price: gt.price, desc: gt.priceType === 'per_person' ? 'Per Person' : 'Group Transport' })))
-                  ].map(t => (
-                    <div
-                      key={t.id}
-                      onClick={() => {
-                        setSelectedTransportType(t.id as any);
-                        if (t.id === 'meet') {
-                          setSelectedTransport(null);
-                        } else {
-                          const matched = globalTransports.find(gt => gt.id === t.id);
-                          if (matched) setSelectedTransport(matched);
-                        }
-                      }}
-                      className={cn(
-                        "p-3.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all",
-                        (selectedTransportType === t.id || (t.id === 'meet' && selectedTransportType === 'meet')) ? "border-primary bg-orange-50/20" : "border-slate-200 hover:border-slate-300"
+                  <div className="space-y-3">
+                    {/* 1. Own Transport */}
+                    {availableTransports.some(t => t.type === 'meet') && (
+                      <div
+                        onClick={() => {
+                          setSelectedTransportType('meet');
+                          const opt = availableTransports.find(t => t.type === 'meet');
+                          if (opt) setSelectedTransport(opt);
+                          setCustomerData(prev => ({
+                            ...prev,
+                            pickupAddress: selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp."
+                          }));
+                        }}
+                        className={cn(
+                          "p-4 rounded-xl border-2 transition-all cursor-pointer bg-white relative flex flex-col gap-2",
+                          selectedTransportType === 'meet'
+                            ? "border-primary bg-orange-50/20 shadow-xs"
+                            : "border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                              selectedTransportType === 'meet' ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                            )}>
+                              <MapPin className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h3 className="font-extrabold text-slate-900 text-xs">Own Transport</h3>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Self-Arrival</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black text-primary">Free</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium pl-12">
+                          Come directly to our operation basecamp on your own. No pickup service.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 2. Shared Transfer */}
+                    {availableTransports.some(t => t.type === 'shared') && (() => {
+                      const sOpt = availableTransports.find(t => t.type === 'shared');
+                      return (
+                        <div
+                          onClick={() => {
+                            setSelectedTransportType('shared');
+                            if (sOpt) setSelectedTransport(sOpt);
+                            setCustomerData(prev => {
+                              const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+                              const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
+                              return {
+                                ...prev,
+                                pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
+                              };
+                            });
+                          }}
+                          className={cn(
+                            "p-4 rounded-xl border-2 transition-all cursor-pointer bg-white relative flex flex-col gap-2",
+                            selectedTransportType === 'shared'
+                              ? "border-primary bg-orange-50/20 shadow-xs"
+                              : "border-slate-200 hover:border-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                                selectedTransportType === 'shared' ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                              )}>
+                                <Bus className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h3 className="font-extrabold text-slate-900 text-xs">Shared Transfer</h3>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Shuttle service</p>
+                              </div>
+                            </div>
+                            <span className="text-xs font-black text-primary">
+                              {sOpt ? <FormattedPrice amount={sOpt.price} /> : "Available"}/pax
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium pl-12">
+                            Pickup & drop-off shared with other travelers. Fixed timings by area.
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 3. Private Transfer */}
+                    {availableTransports.some(t => t.type === 'private') && (() => {
+                      const pOpts = availableTransports.filter(t => t.type === 'private');
+                      const totalParticipants = adults + children;
+                      const matchingCars = pOpts.filter(t => t.maxCapacity === undefined || t.maxCapacity === null || totalParticipants <= t.maxCapacity);
+                      const lowestPrice = matchingCars.length > 0 
+                        ? Math.min(...matchingCars.map(c => c.price)) 
+                        : pOpts.length > 0 ? Math.min(...pOpts.map(c => c.price)) : 0;
+
+                      return (
+                        <div
+                          onClick={() => {
+                            setSelectedTransportType('private');
+                            const bestPrivateOpt = matchingCars[0] || pOpts[0];
+                            if (bestPrivateOpt) setSelectedTransport(bestPrivateOpt);
+                            setCustomerData(prev => {
+                              const activeMp = selectedPackage?.meetingPoint || tour?.meetingPoint || "Meet directly at our adventure basecamp.";
+                              const isMeetingPoint = prev.pickupAddress === activeMp || prev.pickupAddress === tour?.meetingPoint || prev.pickupAddress === "Meet directly at our adventure basecamp.";
+                              return {
+                                ...prev,
+                                pickupAddress: isMeetingPoint ? "" : prev.pickupAddress
+                              };
+                            });
+                          }}
+                          className={cn(
+                            "p-4 rounded-xl border-2 transition-all cursor-pointer bg-white relative flex flex-col gap-2",
+                            selectedTransportType === 'private'
+                              ? "border-primary bg-orange-50/20 shadow-xs"
+                              : "border-slate-200 hover:border-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                                selectedTransportType === 'private' ? "bg-primary text-white" : "bg-orange-50 text-primary"
+                              )}>
+                                <Car className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h3 className="font-extrabold text-slate-900 text-xs">Private Transfer</h3>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Dedicated car</p>
+                              </div>
+                            </div>
+                            <span className="text-xs font-black text-primary">
+                              {lowestPrice > 0 ? <>From <FormattedPrice amount={lowestPrice} />/car</> : "Available"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium pl-12">
+                            AC vehicle with professional driver exclusively for your group.
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Own Transport meeting point location card */}
+                  {selectedTransportType === 'meet' && (() => {
+                    const activeMpText = selectedPackage?.meetingPoint || tour?.meetingPoint;
+                    const mp = parseMeetingPoint(activeMpText, selectedPackage?.name || tour?.title);
+                    return (
+                      <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-3.5 text-left space-y-2">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-wider block">Meeting Point Location:</span>
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                          <div className="space-y-1">
+                            <span className="text-xs font-extrabold text-slate-900 block">{mp.venue}</span>
+                            {mp.address && mp.address !== mp.venue && (
+                              <p className="text-[11px] text-slate-600 font-bold">{mp.address}</p>
+                            )}
+                          </div>
+                        </div>
+                        {mp.url && (
+                          <div className="pt-2 border-t border-orange-200/50">
+                            <a
+                              href={mp.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-extrabold text-primary hover:underline break-all inline-block"
+                            >
+                              Open in Google Maps →
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Pickup Areas Served & Hotel Address Input for Transfers */}
+                  {selectedTransportType !== 'meet' && (
+                    <div className="space-y-3 pt-2">
+                      {(selectedPackage?.pickupAreas || tour?.pickupAreas) && (
+                        <div className="bg-blue-50/70 border border-blue-200/60 rounded-xl p-3 text-left flex items-start gap-2.5">
+                          <Car className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block">
+                              Pick Up Areas Served ({selectedPackage?.name || "Package"}):
+                            </span>
+                            <p className="text-xs text-slate-700 font-semibold leading-relaxed">
+                              {selectedPackage?.pickupAreas || tour?.pickupAreas}
+                            </p>
+                          </div>
+                        </div>
                       )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                          (selectedTransportType === t.id || (t.id === 'meet' && selectedTransportType === 'meet')) ? "border-primary bg-primary" : "border-slate-300"
-                        )}>
-                          {(selectedTransportType === t.id || (t.id === 'meet' && selectedTransportType === 'meet')) && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                        </div>
-                        <div>
-                          <span className="font-extrabold text-xs text-slate-900 block">{t.name}</span>
-                          <span className="text-[10px] text-slate-400 font-medium">{t.desc}</span>
-                        </div>
+
+                      {/* Hotel Address Input */}
+                      <div className="space-y-1.5 text-left">
+                        <label className="text-xs font-extrabold text-slate-800 block">
+                          Hotel Name & Address (For Pickup)
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={customerData.pickupAddress}
+                          onChange={(e) => setCustomerData(prev => ({ ...prev, pickupAddress: e.target.value }))}
+                          placeholder="Enter hotel name, lobby address or villa location..."
+                          className="w-full text-xs p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Private Transfer Car Model Selection */}
+                  {selectedTransportType === 'private' && (
+                    <div className="space-y-3 pt-3 border-t border-slate-100 text-left">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Select Your Vehicle</h3>
+                        <p className="text-[10px] text-slate-500 font-medium">Matching your group size of {adults + children} pax</p>
                       </div>
 
-                      <span className="font-black text-xs text-slate-900">
-                        {t.price === 0 ? 'Free' : <FormattedPrice amount={t.price} />}
-                      </span>
+                      <div className="space-y-2">
+                        {availableTransports
+                          .filter(t => t.type === 'private')
+                          .map((t, idx) => {
+                            const isSelected = selectedTransport?.id === t.id;
+                            const totalParticipants = adults + children;
+                            const hasCapacity = t.maxCapacity === undefined || t.maxCapacity === null || totalParticipants <= t.maxCapacity;
+
+                            if (!hasCapacity) return null;
+
+                            return (
+                              <div
+                                key={t.id || idx}
+                                onClick={() => setSelectedTransport(t)}
+                                className={cn(
+                                  "p-3 rounded-xl border-2 transition-all bg-white cursor-pointer flex items-center justify-between",
+                                  isSelected ? "border-primary bg-orange-50/20" : "border-slate-200 hover:border-slate-300"
+                                )}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                                    isSelected ? "border-primary bg-primary" : "border-slate-300"
+                                  )}>
+                                    {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-xs text-slate-900 block">{t.name}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold">Up to {t.maxCapacity || 6} Pax</span>
+                                  </div>
+                                </div>
+
+                                <span className="font-black text-xs text-slate-900">
+                                  <FormattedPrice amount={t.price} />/car
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Add-ons List */}
-              {tour.addOns && tour.addOns.length > 0 && (
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-left">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
                     <Plus className="h-5 w-5 text-primary" />
                     <h2>Add-on Extras</h2>
                   </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Optional</span>
+                </div>
 
-                  <div className="space-y-3">
-                    {tour.addOns.map(addon => {
-                      const existing = selectedAddOns.find(a => a.id === addon.id);
-                      const qty = existing ? existing.quantity : 0;
+                <div className="space-y-3">
+                  {tour.addOns && tour.addOns.length > 0 && tour.addOns.map(addon => {
+                    const existing = selectedAddOns.find(a => a.id === addon.id);
+                    const qty = existing ? existing.quantity : 0;
 
-                      return (
-                        <div key={addon.id} className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between bg-white">
-                          <div>
-                            <span className="font-extrabold text-xs text-slate-900 block">{addon.name}</span>
-                            <span className="text-[10px] text-slate-500 font-bold">
-                              <FormattedPrice amount={addon.price} /> {addon.unit ? `/ ${addon.unit}` : ''}
-                            </span>
-                          </div>
+                    return (
+                      <div key={addon.id} className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between bg-white">
+                        <div>
+                          <span className="font-extrabold text-xs text-slate-900 block">{addon.name}</span>
+                          <span className="text-[10px] text-slate-500 font-bold">
+                            <FormattedPrice amount={addon.price} /> {addon.unit ? `/ ${addon.unit}` : ''}
+                          </span>
+                        </div>
 
-                          <div className="flex items-center gap-2">
-                            {qty === 0 ? (
+                        <div className="flex items-center gap-2">
+                          {qty === 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleAddOn(addon)}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-primary hover:text-white text-slate-800 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                            >
+                              + Add
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => toggleAddOn(addon)}
-                                className="px-3 py-1.5 bg-slate-100 hover:bg-primary hover:text-white text-slate-800 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                                onClick={() => updateAddOnQuantity(addon.id, -1)}
+                                className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-slate-100"
                               >
-                                + Add
+                                -
                               </button>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => updateAddOnQuantity(addon.id, -1)}
-                                  className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-slate-100"
-                                >
-                                  -
-                                </button>
-                                <span className="font-black text-xs w-5 text-center">{qty}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => updateAddOnQuantity(addon.id, 1)}
-                                  className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-slate-100"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                              <span className="font-black text-xs w-5 text-center">{qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateAddOnQuantity(addon.id, 1)}
+                                className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-slate-100"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      );
-                    })}
+                      </div>
+                    );
+                  })}
+
+                  {/* Option: No Add-Ons (At the last, default selection when empty) */}
+                  <div
+                    onClick={() => setSelectedAddOns([])}
+                    className={cn(
+                      "p-3.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all bg-white",
+                      selectedAddOns.length === 0
+                        ? "border-primary bg-orange-50/20 shadow-xs"
+                        : "border-slate-200 hover:border-slate-300"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                        selectedAddOns.length === 0 ? "border-primary bg-primary" : "border-slate-300"
+                      )}>
+                        {selectedAddOns.length === 0 && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <span className="font-extrabold text-xs text-slate-900 block">No Add-Ons</span>
+                        <span className="text-[10px] text-slate-400 font-medium">Continue with basic tour package items only</span>
+                      </div>
+                    </div>
+
+                    {selectedAddOns.length === 0 && (
+                      <span className="text-[9px] font-black uppercase text-primary bg-orange-100 px-2 py-0.5 rounded">
+                        Selected
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -4254,74 +4509,6 @@ const toggleAddOn = (addon: AddOn) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 z-50 md:hidden flex items-center justify-between">
-        <button 
-          onClick={() => setShowMobileSummary(true)}
-          className="flex items-center gap-3 text-left"
-        >
-          <div>
-            <div className="flex items-center gap-1.5">
-              <p className="text-xl font-black text-secondary"><FormattedPrice amount={summary.amountToPay} /></p>
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              {existingBooking ? 'Pay Balance' : 'View Summary'}
-            </p>
-          </div>
-        </button>
-
-        <div className="flex flex-col items-end">
-          {validationErrors.length > 0 && (
-            <p className="text-[8px] font-black text-red-500 uppercase tracking-tighter mb-1 animate-pulse">
-              {validationErrors[0]}
-            </p>
-          )}
-          {step === "selection" ? (
-            <button
-              onClick={() => updateStep("customer")}
-              disabled={isSoldOut || (spotsLeft !== null && (adults + children) > spotsLeft) || isUnderMinParticipants}
-              className={cn(
-                "px-8 py-4 rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg transition-all",
-                (date && selectedPackage && (adults + children > 0) && !isUnderMinParticipants) 
-                  ? "bg-primary text-white shadow-primary/20" 
-                  : "bg-gray-100 text-gray-400 shadow-none border border-gray-200"
-              )}
-            >
-              {isSoldOut ? 'Sold Out' : (spotsLeft !== null && (adults + children) > spotsLeft) ? 'No Spots' : 
-               isUnderMinParticipants ? 'Under Min' :
-               !date ? 'Pick Date' : !selectedPackage ? 'Pick Package' : 'Continue'}
-            </button>
-          ) : step === "customer" ? (
-            <button
-              onClick={() => {
-                if (validateStep("customer")) {
-                  updateStep("payment");
-                } else {
-                  alert(validationErrors[0]);
-                }
-              }}
-              className={cn(
-                "px-8 py-4 rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg transition-all",
-                (customerData.fullName && customerData.email && customerData.phone)
-                  ? "bg-primary text-white shadow-primary/20 hover:opacity-90"
-                  : "bg-gray-100 text-gray-400 shadow-none border border-gray-200"
-              )}
-            >
-              Next Step
-            </button>
-          ) : (
-            <button
-              onClick={() => handleFinalBooking()}
-              disabled={isBooking || !agreedToTerms || (paymentMethod === "paypal" && !!paymentSettings?.paypalClientId)}
-              className="bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50"
-            >
-              {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 
-               (paymentMethod === "paypal" && (paymentSettings?.paypalClientId || paymentSettings?.paypalSandboxClientId) ? "Pay with PayPal" : "Confirm Booking")}
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
