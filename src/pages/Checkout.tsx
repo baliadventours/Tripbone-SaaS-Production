@@ -413,12 +413,12 @@ export default function Checkout() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const [mobileStep, setMobileStep] = useState<'date' | 'package' | 'addons' | 'summary' | 'customer' | 'payment'>(() => {
+  const [mobileStep, setMobileStep] = useState<'package' | 'date' | 'addons' | 'summary' | 'customer' | 'payment'>(() => {
     const stepParam = searchParams.get('mobileStep');
-    if (stepParam && ['date', 'package', 'addons', 'summary', 'customer', 'payment'].includes(stepParam)) {
+    if (stepParam && ['package', 'date', 'addons', 'summary', 'customer', 'payment'].includes(stepParam)) {
       return stepParam as any;
     }
-    return 'date';
+    return 'package';
   });
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -428,6 +428,15 @@ export default function Checkout() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!showDatePicker) return;
+    const handleScroll = () => {
+      setShowDatePicker(false);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showDatePicker]);
 
   const getPackagePricePerPerson = (pkg: TourPackage) => {
     if (!pkg) return 0;
@@ -1278,9 +1287,9 @@ const toggleAddOn = (addon: AddOn) => {
         <div className="bg-white border-b border-slate-100 sticky top-0 z-50 px-4 py-3 flex items-center justify-between shadow-xs">
           <button
             onClick={() => {
-              if (mobileStep === 'date') navigate(-1);
-              else if (mobileStep === 'package') setMobileStep('date');
-              else if (mobileStep === 'addons') setMobileStep('package');
+              if (mobileStep === 'package') navigate(-1);
+              else if (mobileStep === 'date') setMobileStep('package');
+              else if (mobileStep === 'addons') setMobileStep('date');
               else if (mobileStep === 'summary') setMobileStep('addons');
               else if (mobileStep === 'customer') setMobileStep('summary');
               else if (mobileStep === 'payment') setMobileStep('customer');
@@ -1292,8 +1301,8 @@ const toggleAddOn = (addon: AddOn) => {
 
           <div className="text-center min-w-0 px-2">
             <span className="text-[10px] font-black uppercase text-primary tracking-widest block">
-              {mobileStep === 'date' && 'Step 1 of 6'}
-              {mobileStep === 'package' && 'Step 2 of 6'}
+              {mobileStep === 'package' && 'Step 1 of 6'}
+              {mobileStep === 'date' && 'Step 2 of 6'}
               {mobileStep === 'addons' && 'Step 3 of 6'}
               {mobileStep === 'summary' && 'Step 4 of 6'}
               {mobileStep === 'customer' && 'Step 5 of 6'}
@@ -1318,8 +1327,8 @@ const toggleAddOn = (addon: AddOn) => {
             className="bg-primary h-1 transition-all duration-300"
             style={{
               width:
-                mobileStep === 'date' ? '16.6%' :
-                mobileStep === 'package' ? '33.3%' :
+                mobileStep === 'package' ? '16.6%' :
+                mobileStep === 'date' ? '33.3%' :
                 mobileStep === 'addons' ? '50%' :
                 mobileStep === 'summary' ? '66.6%' :
                 mobileStep === 'customer' ? '83.3%' : '100%'
@@ -1333,103 +1342,146 @@ const toggleAddOn = (addon: AddOn) => {
           {mobileStep === 'date' && (
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
               {/* Stylized Custom Date Picker */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-left">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
                     <Calendar className="h-5 w-5 text-primary" />
                     <h2>Select Travel Date</h2>
                   </div>
-                  {date && (
-                    <span className="text-xs font-bold text-primary bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100">
-                      {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
+                </div>
+
+                {/* Clickable Date Picker Input Field */}
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className={cn(
+                    "w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between cursor-pointer text-left bg-slate-50 hover:bg-white",
+                    showDatePicker ? "border-primary bg-white shadow-xs" : "border-slate-200 hover:border-slate-300"
                   )}
-                </div>
-
-                {/* Custom Month Header Navigation */}
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newM = new Date(currentMonth);
-                        newM.setMonth(newM.getMonth() - 1);
-                        const today = new Date();
-                        if (newM.getFullYear() > today.getFullYear() || (newM.getFullYear() === today.getFullYear() && newM.getMonth() >= today.getMonth())) {
-                          setCurrentMonth(newM);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
-                      {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newM = new Date(currentMonth);
-                        newM.setMonth(newM.getMonth() + 1);
-                        setCurrentMonth(newM);
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-orange-50 border border-orange-100 text-primary flex items-center justify-center shrink-0 font-extrabold">
+                      <Calendar className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                        Travel Date
+                      </span>
+                      <span className="text-sm font-black text-slate-900 block">
+                        {date 
+                          ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                          : "Tap to choose date"}
+                      </span>
+                    </div>
                   </div>
-
-                  {/* Day of week headers */}
-                  <div className="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-400 uppercase tracking-wider">
-                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                      <div key={d} className="py-1">{d}</div>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    {date && (
+                      <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Selected
+                      </span>
+                    )}
+                    <ChevronDown className={cn("h-5 w-5 text-slate-400 transition-transform duration-200", showDatePicker && "rotate-180 text-primary")} />
                   </div>
+                </button>
 
-                  {/* Calendar Days Grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {(() => {
-                      const year = currentMonth.getFullYear();
-                      const month = currentMonth.getMonth();
-                      const firstDay = new Date(year, month, 1).getDay();
-                      const daysInMonth = new Date(year, month + 1, 0).getDate();
-                      const today = new Date(); 
-                      today.setHours(0, 0, 0, 0);
-
-                      const cells = [];
-                      for (let i = 0; i < firstDay; i++) {
-                        cells.push(<div key={`empty-${i}`} />);
-                      }
-
-                      for (let d = 1; d <= daysInMonth; d++) {
-                        const dateObj = new Date(year, month, d);
-                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                        const isPast = dateObj < today;
-                        const isSelected = date === dateStr;
-
-                        cells.push(
+                {/* Expanded Month Calendar */}
+                <AnimatePresence>
+                  {showDatePicker && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                        <div className="flex items-center justify-between">
                           <button
-                            key={d}
                             type="button"
-                            disabled={isPast}
-                            onClick={() => setDate(dateStr)}
-                            className={cn(
-                              "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all cursor-pointer",
-                              isSelected 
-                                ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
-                                : isPast 
-                                  ? "text-slate-300 line-through opacity-40 cursor-not-allowed" 
-                                  : "text-slate-800 bg-white border border-slate-200 hover:border-primary hover:bg-orange-50"
-                            )}
+                            onClick={() => {
+                              const newM = new Date(currentMonth);
+                              newM.setMonth(newM.getMonth() - 1);
+                              const today = new Date();
+                              if (newM.getFullYear() > today.getFullYear() || (newM.getFullYear() === today.getFullYear() && newM.getMonth() >= today.getMonth())) {
+                                setCurrentMonth(newM);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-white text-slate-600 hover:text-slate-900 transition-colors cursor-pointer border border-slate-200"
                           >
-                            {d}
+                            <ChevronLeft className="h-4 w-4" />
                           </button>
-                        );
-                      }
-                      return cells;
-                    })()}
-                  </div>
-                </div>
+                          <span className="font-black text-xs text-slate-800 uppercase tracking-wider">
+                            {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newM = new Date(currentMonth);
+                              newM.setMonth(newM.getMonth() + 1);
+                              setCurrentMonth(newM);
+                            }}
+                            className="p-1.5 rounded-lg bg-white text-slate-600 hover:text-slate-900 transition-colors cursor-pointer border border-slate-200"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* Day of week headers */}
+                        <div className="grid grid-cols-7 gap-1 text-center font-black text-[10px] text-slate-400 uppercase tracking-wider">
+                          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                            <div key={d} className="py-1">{d}</div>
+                          ))}
+                        </div>
+
+                        {/* Calendar Days Grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                          {(() => {
+                            const year = currentMonth.getFullYear();
+                            const month = currentMonth.getMonth();
+                            const firstDay = new Date(year, month, 1).getDay();
+                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                            const today = new Date(); 
+                            today.setHours(0, 0, 0, 0);
+
+                            const cells = [];
+                            for (let i = 0; i < firstDay; i++) {
+                              cells.push(<div key={`empty-${i}`} />);
+                            }
+
+                            for (let d = 1; d <= daysInMonth; d++) {
+                              const dateObj = new Date(year, month, d);
+                              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                              const isPast = dateObj < today;
+                              const isSelected = date === dateStr;
+
+                              cells.push(
+                                <button
+                                  key={d}
+                                  type="button"
+                                  disabled={isPast}
+                                  onClick={() => {
+                                    setDate(dateStr);
+                                    setShowDatePicker(false); // Disappears/collapses upon selection
+                                  }}
+                                  className={cn(
+                                    "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all cursor-pointer",
+                                    isSelected 
+                                      ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
+                                      : isPast 
+                                        ? "text-slate-300 line-through opacity-40 cursor-not-allowed" 
+                                        : "text-slate-800 bg-white border border-slate-200 hover:border-primary hover:bg-orange-50"
+                                  )}
+                                >
+                                  {d}
+                                </button>
+                              );
+                            }
+                            return cells;
+                          })()}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Capacity & Availability Indicator */}
                 {date && spotsLeft !== null && (
@@ -2328,25 +2380,25 @@ const toggleAddOn = (addon: AddOn) => {
               </span>
             </div>
 
-            {mobileStep === 'date' && (
-              <button
-                type="button"
-                onClick={() => setMobileStep('package')}
-                disabled={!date}
-                className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
-              >
-                Pick a Package
-              </button>
-            )}
-
             {mobileStep === 'package' && (
               <button
                 type="button"
-                onClick={() => setMobileStep('addons')}
+                onClick={() => setMobileStep('date')}
                 disabled={!selectedPackage}
                 className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
               >
-                Continue
+                Select Date & Travelers
+              </button>
+            )}
+
+            {mobileStep === 'date' && (
+              <button
+                type="button"
+                onClick={() => setMobileStep('addons')}
+                disabled={!date}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Continue to Options
               </button>
             )}
 

@@ -340,20 +340,6 @@ export default function TourDetail() {
           )}
         </AnimatePresence>
 
-        {/* Sticky Book Now Bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-[70] bg-white border-t border-gray-100 p-4 flex items-center justify-between gap-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] md:hidden">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Starting from</span>
-            <span className="text-2xl font-black text-primary"><FormattedPrice amount={tour.discountPrice || tour.regularPrice} /></span>
-          </div>
-          <Link 
-            to={`/checkout/${tour.id}`}
-            className="flex-1 bg-primary text-white py-4 rounded-[50px] font-black text-sm text-center shadow-lg shadow-orange-100 active:scale-95 transition-all"
-          >
-            Book Now
-          </Link>
-        </div>
-
         {/* Content Section */}
         <div className="px-6 py-10 space-y-12 pb-32">
           {/* Overview */}
@@ -608,14 +594,14 @@ export default function TourDetail() {
             <div>
               <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Starting From</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-gray-900 font-display">
+                <span className="text-xl font-black text-gray-900">
                   <FormattedPrice amount={tour.discountPrice || tour.regularPrice} />
                 </span>
                 <span className="text-[10px] text-gray-400 font-bold">/ person</span>
               </div>
             </div>
             <button
-              onClick={() => navigate(`/checkout/${tour.id}?mobileStep=date`)}
+              onClick={() => navigate(`/checkout/${tour.id}?mobileStep=package`)}
               className="bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-lg active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
               Book Now <ChevronRight className="h-4 w-4" />
