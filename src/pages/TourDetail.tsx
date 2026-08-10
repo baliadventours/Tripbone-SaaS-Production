@@ -597,11 +597,30 @@ export default function TourDetail() {
             </section>
           )}
 
-          {/* Booking Widget (Inline for mobile screens, replacing the fixed footer) */}
-          <section className="md:hidden space-y-4 pt-6 border-t border-gray-100/60">
+          {/* Booking Widget (Inline for mobile screens) */}
+          <section className="md:hidden space-y-4 pt-6 border-t border-gray-100/60 pb-16">
             <h2 className="text-xl font-black text-gray-900 tracking-tight">Select Date & Travelers</h2>
             <BookingForm tour={tour} />
           </section>
+
+          {/* Mobile Fixed Sticky Bottom Bar for Instant Booking */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-2xl flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Starting From</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-gray-900 font-display">
+                  <FormattedPrice amount={tour.discountPrice || tour.regularPrice} />
+                </span>
+                <span className="text-[10px] text-gray-400 font-bold">/ person</span>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate(`/checkout/${tour.id}?mobileStep=date`)}
+              className="bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-lg active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              Book Now <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* Important Info */}
           <section className="space-y-4">

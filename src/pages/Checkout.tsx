@@ -48,6 +48,7 @@ import {
   Bed,
   UserCheck,
   Building2,
+  X,
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { cn, parseMeetingPoint } from "../lib/utils";
@@ -412,6 +413,33 @@ export default function Checkout() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
+  const [mobileStep, setMobileStep] = useState<'date' | 'package' | 'addons' | 'summary' | 'customer' | 'payment'>(() => {
+    const stepParam = searchParams.get('mobileStep');
+    if (stepParam && ['date', 'package', 'addons', 'summary', 'customer', 'payment'].includes(stepParam)) {
+      return stepParam as any;
+    }
+    return 'date';
+  });
+
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const getPackagePricePerPerson = (pkg: TourPackage) => {
+    if (!pkg) return 0;
+    if (pkg.tiers && pkg.tiers.length > 0) {
+      const totalPax = Math.max(1, (adults || 1) + (children || 0));
+      const tier = pkg.tiers.find(t => totalPax >= t.minParticipants && totalPax <= t.maxParticipants);
+      const applicable = tier || pkg.tiers[0];
+      return applicable?.adultPrice || pkg.tiers[0]?.adultPrice || 0;
+    }
+    return pkg.regularPrice || tour?.discountPrice || tour?.regularPrice || 0;
+  };
+
   // Inventory tracking
   const [currentInventory, setCurrentInventory] = useState<{ bookedCount: number; max: number } | null>(null);
 
@@ -613,9 +641,14 @@ export default function Checkout() {
             const matchedPkg = pkgParam 
               ? tourData.packages.find(p => p.name.toLowerCase() === pkgParam.toLowerCase()) 
               : null;
-            const defaultPkg = matchedPkg || tourData.packages[0];
-            setSelectedPackage(defaultPkg);
-            setExpandedPackage(defaultPkg.name);
+            if (matchedPkg) {
+              setSelectedPackage(matchedPkg);
+              setExpandedPackage(matchedPkg.name);
+            } else {
+              // Collapsed by default
+              setSelectedPackage(null);
+              setExpandedPackage(null);
+            }
           }
         }
       } catch (error) {
@@ -1238,6 +1271,654 @@ const toggleAddOn = (addon: AddOn) => {
       </div>
     );
 
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans pb-28">
+        {/* Mobile Header */}
+        <div className="bg-white border-b border-slate-100 sticky top-0 z-50 px-4 py-3 flex items-center justify-between shadow-xs">
+          <button
+            onClick={() => {
+              if (mobileStep === 'date') navigate(-1);
+              else if (mobileStep === 'package') setMobileStep('date');
+              else if (mobileStep === 'addons') setMobileStep('package');
+              else if (mobileStep === 'summary') setMobileStep('addons');
+              else if (mobileStep === 'customer') setMobileStep('summary');
+              else if (mobileStep === 'payment') setMobileStep('customer');
+            }}
+            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+
+          <div className="text-center min-w-0 px-2">
+            <span className="text-[10px] font-black uppercase text-primary tracking-widest block">
+              {mobileStep === 'date' && 'Step 1 of 6'}
+              {mobileStep === 'package' && 'Step 2 of 6'}
+              {mobileStep === 'addons' && 'Step 3 of 6'}
+              {mobileStep === 'summary' && 'Step 4 of 6'}
+              {mobileStep === 'customer' && 'Step 5 of 6'}
+              {mobileStep === 'payment' && 'Step 6 of 6'}
+            </span>
+            <h1 className="text-xs font-bold text-slate-800 truncate max-w-[200px]">
+              {tour.title}
+            </h1>
+          </div>
+
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Step Progress Bar */}
+        <div className="w-full bg-slate-100 h-1">
+          <div
+            className="bg-primary h-1 transition-all duration-300"
+            style={{
+              width:
+                mobileStep === 'date' ? '16.6%' :
+                mobileStep === 'package' ? '33.3%' :
+                mobileStep === 'addons' ? '50%' :
+                mobileStep === 'summary' ? '66.6%' :
+                mobileStep === 'customer' ? '83.3%' : '100%'
+            }}
+          />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 p-4 max-w-lg mx-auto w-full space-y-5">
+          {/* STEP 1: Date & Participant Picker */}
+          {mobileStep === 'date' && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <h2>Select Travel Date</h2>
+                </div>
+                
+                <input
+                  type="date"
+                  value={date}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full px-4 py-3 text-sm font-bold border-2 border-slate-200 rounded-xl focus:border-primary focus:outline-none bg-slate-50"
+                />
+
+                {/* Preferred Departure Time */}
+                {tour.timeSlots && tour.timeSlots.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <label className="text-xs font-bold text-slate-600">Preferred Time Slot</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {tour.timeSlots.map(time => (
+                        <button
+                          key={time}
+                          type="button"
+                          onClick={() => setSelectedTime(time)}
+                          className={cn(
+                            "py-2.5 text-xs font-bold rounded-xl border-2 transition-all cursor-pointer",
+                            selectedTime === time
+                              ? "bg-primary border-primary text-white"
+                              : "bg-white border-slate-200 text-slate-700"
+                          )}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Participant Picker */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                  <Users className="h-5 w-5 text-primary" />
+                  <h2>Select Participants</h2>
+                </div>
+
+                <div className="space-y-4 divide-y divide-slate-100">
+                  {/* Adults */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div>
+                      <span className="font-extrabold text-sm text-slate-900 block">Adults</span>
+                      <span className="text-xs text-slate-400 font-medium">Age 12+</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setAdults(Math.max(1, adults - 1))}
+                        disabled={adults <= 1}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 disabled:opacity-40"
+                      >
+                        -
+                      </button>
+                      <span className="font-black text-base w-6 text-center text-slate-900">{adults}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAdults(adults + 1)}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Children */}
+                  <div className="flex items-center justify-between pt-4">
+                    <div>
+                      <span className="font-extrabold text-sm text-slate-900 block">Children</span>
+                      <span className="text-xs text-slate-400 font-medium">Age 2-11</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setChildren(Math.max(0, children - 1))}
+                        disabled={children <= 0}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600 disabled:opacity-40"
+                      >
+                        -
+                      </button>
+                      <span className="font-black text-base w-6 text-center text-slate-900">{children}</span>
+                      <button
+                        type="button"
+                        onClick={() => setChildren(children + 1)}
+                        className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center font-black text-slate-600"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pax Summary Badge */}
+                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-orange-900">
+                  <span>Total Pax Breakdown:</span>
+                  <span className="font-black">{adults} Adult{adults > 1 ? 's' : ''}{children > 0 ? `, ${children} Child${children > 1 ? 'ren' : ''}` : ''}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Package Selection Modal (Collapsed by default) */}
+          {mobileStep === 'package' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="space-y-1">
+                <h2 className="text-lg font-black text-slate-900">Choose Package</h2>
+                <p className="text-xs text-slate-500">Tap a package to view details and select.</p>
+              </div>
+
+              <div className="space-y-3">
+                {tour.packages.map((pkg, idx) => {
+                  const isSelected = selectedPackage?.name === pkg.name;
+                  const isExpanded = expandedPackage === pkg.name;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "border-2 rounded-2xl overflow-hidden bg-white shadow-xs transition-all",
+                        isSelected ? "border-primary ring-2 ring-primary/20" : "border-slate-200"
+                      )}
+                    >
+                      {/* Collapsed view: Package Name & Price/Person */}
+                      <div
+                        onClick={() => {
+                          if (isExpanded) {
+                            setExpandedPackage(null);
+                          } else {
+                            setSelectedPackage(pkg);
+                            setExpandedPackage(pkg.name);
+                          }
+                        }}
+                        className="flex items-center justify-between p-4 cursor-pointer bg-white"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                            isSelected ? "border-primary bg-primary" : "border-slate-300"
+                          )}>
+                            {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                          </div>
+                          <h3 className="font-extrabold text-sm text-slate-900">{pkg.name}</h3>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <span className="font-black text-slate-900 text-sm">
+                              <FormattedPrice amount={getPackagePricePerPerson(pkg)} />
+                            </span>
+                            <span className="text-[10px] text-slate-400 block font-bold">/ person</span>
+                          </div>
+                          <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", isExpanded && "rotate-180")} />
+                        </div>
+                      </div>
+
+                      {/* Expanded View */}
+                      {isExpanded && (
+                        <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-4 text-xs">
+                          {pkg.details && (
+                            <p className="text-slate-600 font-medium leading-relaxed">{pkg.details}</p>
+                          )}
+
+                          {pkg.inclusions && pkg.inclusions.filter(Boolean).length > 0 && (
+                            <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
+                              <span className="font-black text-slate-800 uppercase tracking-wider text-[10px] block">Includes:</span>
+                              <ul className="space-y-1">
+                                {pkg.inclusions.filter(Boolean).map((inc, i) => (
+                                  <li key={i} className="flex items-center gap-1.5 text-slate-600">
+                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                    <span>{inc}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPackage(pkg);
+                              setExpandedPackage(pkg.name);
+                            }}
+                            className={cn(
+                              "w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer",
+                              isSelected ? "bg-primary text-white" : "bg-slate-200 text-slate-800"
+                            )}
+                          >
+                            {isSelected ? 'Package Selected' : 'Select Package'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Transports & Add-ons */}
+          {mobileStep === 'addons' && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              {/* Transport Selection */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                  <Car className="h-5 w-5 text-primary" />
+                  <h2>Transportation Option</h2>
+                </div>
+
+                <div className="space-y-2">
+                  {[
+                    { id: 'meet', name: 'Meet directly at basecamp / meeting point', price: 0, desc: 'No transport required' },
+                    ...(globalTransports.map(gt => ({ id: gt.id, name: gt.name, price: gt.price, desc: gt.priceType === 'per_person' ? 'Per Person' : 'Group Transport' })))
+                  ].map(t => (
+                    <div
+                      key={t.id}
+                      onClick={() => {
+                        setSelectedTransportType(t.id);
+                        if (t.id === 'meet') setSelectedTransport(null);
+                        else {
+                          const matched = globalTransports.find(gt => gt.id === t.id);
+                          if (matched) setSelectedTransport(matched);
+                        }
+                      }}
+                      className={cn(
+                        "p-3.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all",
+                        selectedTransportType === t.id ? "border-primary bg-orange-50/20" : "border-slate-200"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                          selectedTransportType === t.id ? "border-primary bg-primary" : "border-slate-300"
+                        )}>
+                          {selectedTransportType === t.id && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-xs text-slate-900 block">{t.name}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{t.desc}</span>
+                        </div>
+                      </div>
+
+                      <span className="font-black text-xs text-slate-900">
+                        {t.price === 0 ? 'Free' : <FormattedPrice amount={t.price} />}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add-ons List */}
+              {availableAddOns && availableAddOns.length > 0 && (
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                  <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                    <Plus className="h-5 w-5 text-primary" />
+                    <h2>Add-on Extras</h2>
+                  </div>
+
+                  <div className="space-y-3">
+                    {availableAddOns.map(addon => {
+                      const qty = selectedAddOns[addon.id] || 0;
+                      return (
+                        <div key={addon.id} className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                          <div>
+                            <span className="font-extrabold text-xs text-slate-900 block">{addon.name}</span>
+                            <span className="text-[10px] text-slate-500 font-black">
+                              <FormattedPrice amount={addon.price} /> / {addon.priceType || 'unit'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newQty = Math.max(0, qty - 1);
+                                if (newQty === 0) {
+                                  const { [addon.id]: _, ...rest } = selectedAddOns;
+                                  setSelectedAddOns(rest);
+                                } else {
+                                  setSelectedAddOns({ ...selectedAddOns, [addon.id]: newQty });
+                                }
+                              }}
+                              className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="font-black text-xs w-5 text-center">{qty}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAddOns({ ...selectedAddOns, [addon.id]: qty + 1 })}
+                              className="h-7 w-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 4: Booking Summary Modal */}
+          {mobileStep === 'summary' && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
+                <h2 className="font-black text-base text-slate-900">Booking Summary</h2>
+
+                <div className="flex gap-3 pb-3 border-b border-slate-100">
+                  <img src={tour.featuredImage} alt={tour.title} className="h-16 w-16 object-cover rounded-xl" />
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 line-clamp-1">{tour.title}</h3>
+                    <p className="text-slate-500 font-bold mt-0.5">Package: {selectedPackage?.name}</p>
+                    <p className="text-slate-500 font-medium">Date: {date} {selectedTime ? `(${selectedTime})` : ''}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 font-medium text-slate-600">
+                  <div className="flex justify-between">
+                    <span>Pax Count:</span>
+                    <span className="font-bold text-slate-900">{adults} Adult{adults > 1 ? 's' : ''}{children > 0 ? `, ${children} Child${children > 1 ? 'ren' : ''}` : ''}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Package Price:</span>
+                    <span className="font-bold text-slate-900"><FormattedPrice amount={summary.packageTotal} /></span>
+                  </div>
+                  {summary.transportTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span>Transport Option:</span>
+                      <span className="font-bold text-slate-900"><FormattedPrice amount={summary.transportTotal} /></span>
+                    </div>
+                  )}
+                  {summary.addOnsTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span>Add-ons Total:</span>
+                      <span className="font-bold text-slate-900"><FormattedPrice amount={summary.addOnsTotal} /></span>
+                    </div>
+                  )}
+                  {summary.discount > 0 && (
+                    <div className="flex justify-between text-green-600 font-bold">
+                      <span>Discount Coupon:</span>
+                      <span>-<FormattedPrice amount={summary.discount} /></span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Coupon Code Input */}
+                <div className="pt-3 border-t border-slate-100 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Coupon Code"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-xl font-bold uppercase text-xs focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
+                  <span className="font-black text-slate-900 text-sm">Grand Total:</span>
+                  <span className="font-black text-xl text-primary font-display"><FormattedPrice amount={summary.grandTotal} /></span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: Customer Details */}
+          {mobileStep === 'customer' && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
+                <h2 className="font-black text-base text-slate-900">Customer Contact Details</h2>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      value={customerData.fullName}
+                      onChange={(e) => setCustomerData({ ...customerData, fullName: e.target.value })}
+                      placeholder="John Doe"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Email Address *</label>
+                    <input
+                      type="email"
+                      value={customerData.email}
+                      onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
+                      placeholder="john@example.com"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Phone Number *</label>
+                    <input
+                      type="tel"
+                      value={customerData.phone}
+                      onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
+                      placeholder="+123456789"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Nationality *</label>
+                    <input
+                      type="text"
+                      value={customerData.nationality}
+                      onChange={(e) => setCustomerData({ ...customerData, nationality: e.target.value })}
+                      placeholder="United States"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl font-medium focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  {selectedTransportType !== 'meet' && (
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Pickup Hotel / Address</label>
+                      <input
+                        type="text"
+                        value={customerData.pickupAddress}
+                        onChange={(e) => setCustomerData({ ...customerData, pickupAddress: e.target.value })}
+                        placeholder="Hotel name or street address"
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-xl font-medium focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 6: Payment Selection */}
+          {mobileStep === 'payment' && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
+                <h2 className="font-black text-base text-slate-900">Select Payment Method</h2>
+
+                <div className="space-y-2">
+                  {[
+                    { id: 'card', name: 'Credit / Debit Card', desc: 'Instant online payment' },
+                    { id: 'paypal', name: 'PayPal', desc: 'Pay safely with PayPal balance or card' },
+                    { id: 'bank_transfer', name: 'Bank Transfer / QRIS', desc: 'Manual transfer confirmation' },
+                    { id: 'pay_on_arrival', name: 'Pay on Arrival', desc: 'Pay cash or card on day of tour' },
+                  ].map(pm => (
+                    <div
+                      key={pm.id}
+                      onClick={() => setPaymentMethod(pm.id as any)}
+                      className={cn(
+                        "p-3.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all",
+                        paymentMethod === pm.id ? "border-primary bg-orange-50/20" : "border-slate-200"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                          paymentMethod === pm.id ? "border-primary bg-primary" : "border-slate-300"
+                        )}>
+                          {paymentMethod === pm.id && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-xs text-slate-900 block">{pm.name}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{pm.desc}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="termsCheckMobile"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="h-4 w-4 rounded text-primary border-slate-300"
+                  />
+                  <label htmlFor="termsCheckMobile" className="text-[11px] text-slate-600 font-medium">
+                    I agree to the <a href="/terms" className="underline font-bold text-slate-900">Terms & Conditions</a> and Cancellation Policy.
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky Mobile Navigation Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 shadow-2xl">
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] text-slate-400 font-bold block uppercase">Grand Total</span>
+              <span className="font-black text-lg text-slate-900 font-display">
+                <FormattedPrice amount={summary.grandTotal} />
+              </span>
+            </div>
+
+            {mobileStep === 'date' && (
+              <button
+                type="button"
+                onClick={() => setMobileStep('package')}
+                disabled={!date}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Pick a Package
+              </button>
+            )}
+
+            {mobileStep === 'package' && (
+              <button
+                type="button"
+                onClick={() => setMobileStep('addons')}
+                disabled={!selectedPackage}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Continue
+              </button>
+            )}
+
+            {mobileStep === 'addons' && (
+              <button
+                type="button"
+                onClick={() => setMobileStep('summary')}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Continue to Summary
+              </button>
+            )}
+
+            {mobileStep === 'summary' && (
+              <button
+                type="button"
+                onClick={() => setMobileStep('customer')}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Continue to Details
+              </button>
+            )}
+
+            {mobileStep === 'customer' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!customerData.fullName || !customerData.email || !customerData.phone) {
+                    alert("Please fill in required fields (Name, Email, Phone).");
+                    return;
+                  }
+                  setMobileStep('payment');
+                }}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Continue to Payment
+              </button>
+            )}
+
+            {mobileStep === 'payment' && (
+              <button
+                type="button"
+                onClick={handleBooking}
+                disabled={isBooking || !agreedToTerms}
+                className="px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              >
+                {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Complete Booking'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
       {/* Header */}
@@ -1483,156 +2164,56 @@ const toggleAddOn = (addon: AddOn) => {
                       return (
                         <div
                           key={idx}
-                          onClick={() => {
-                            setSelectedPackage(pkg);
-                            setExpandedPackage(pkg.name);
-                          }}
                           className={cn(
-                            "border-2 rounded-2xl transition-all overflow-hidden bg-white shadow-sm cursor-pointer",
+                            "border-2 rounded-2xl transition-all overflow-hidden bg-white shadow-xs",
                             isSelected
-                              ? "border-primary shadow-md shadow-primary/5"
+                              ? "border-primary shadow-md shadow-primary/5 ring-1 ring-primary/20"
                               : "border-slate-200 hover:border-slate-300",
                           )}
                         >
-                          {/* Viator columns layout */}
-                          <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-200">
-                            {/* Left Column: Details & Specific Highlight features */}
-                            <div className="flex-1 md:w-2/3 p-5 md:p-6 flex flex-col gap-4 text-left">
-                              <div className="flex items-start gap-4">
-                                {/* Custom radio check point */}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedPackage(pkg);
-                                    setExpandedPackage(pkg.name);
-                                  }}
-                                  className="mt-1 flex items-center justify-center shrink-0 cursor-pointer focus:outline-none"
-                                >
-                                  <div
-                                    className={cn(
-                                      "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                                      isSelected
-                                        ? "border-primary bg-white"
-                                        : "border-slate-300 bg-white",
-                                    )}
-                                  >
-                                    {isSelected && (
-                                      <div className="h-3 w-3 rounded-full bg-primary" />
-                                    )}
-                                  </div>
-                                </button>
-
-                                {/* Package Main information */}
-                                <div className="flex-1 text-left">
-                                  <h3
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedPackage(pkg);
-                                      setExpandedPackage(pkg.name);
-                                    }}
-                                    className="font-extrabold text-slate-900 leading-tight transition-colors cursor-pointer text-base md:text-lg"
-                                  >
-                                    {pkg.name}
-                                  </h3>
-
-                                  {pkg.details && (
-                                    <div className="mt-2 text-xs font-semibold text-slate-655 leading-relaxed text-left">
-                                      <div className={cn(!showDetailsText[pkg.name] && "line-clamp-2")}>
-                                        {pkg.details}
-                                      </div>
-                                      {pkg.details.length > 100 && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleDetailsText(pkg.name);
-                                          }}
-                                          className="text-primary hover:text-orange-700 font-extrabold inline-flex items-center gap-0.5 mt-1 cursor-pointer focus:outline-none block"
-                                        >
-                                          {showDetailsText[pkg.name] ? "Read less" : "Read more"}
-                                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showDetailsText[pkg.name] && "rotate-180")} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Duration and specs info strip */}
-                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-xs text-slate-500 font-bold text-left font-sans">
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <Clock className="h-4 w-4 text-slate-400" />
-                                      <span>Duration: {tour.duration || "10 hours"}</span>
-                                    </div>
-                                    {(() => {
-                                      const pkgTransports = pkg.transportIds && pkg.transportIds.length > 0
-                                        ? globalTransports.filter(gt => pkg.transportIds!.includes(gt.id))
-                                        : globalTransports;
-
-                                      if (!pkgTransports || pkgTransports.length === 0) return null;
-
-                                      return (
-                                        <div className="flex items-center gap-1 shrink-0 text-orange-950 bg-orange-50/80 px-2 py-0.5 rounded border border-orange-200/60 font-bold">
-                                          <Car className="h-3.5 w-3.5 text-primary shrink-0" />
-                                          <span>Transports: {pkgTransports.map(t => t.name).join(', ')}</span>
-                                        </div>
-                                      );
-                                    })()}
-                                    {pkg.meetingPoint && (() => {
-                                      const mp = parseMeetingPoint(pkg.meetingPoint, pkg.name);
-                                      return (
-                                        <div className="flex items-start gap-1.5 min-w-0">
-                                          <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                                          <div className="text-slate-600 break-words text-xs">
-                                            <span className="font-bold text-slate-800">{(pkg.meetingPointType || 'Meeting Point')}: </span>
-                                            <span className="font-semibold text-slate-700">{mp.venue}</span>
-                                            {mp.address && mp.address !== mp.venue && (
-                                              <span className="text-slate-500 block text-[11px]">{mp.address}</span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                    {pkg.pickupAreas && (
-                                      <div className="flex items-start gap-1.5 min-w-0 bg-orange-50/60 p-2 rounded-lg border border-orange-100">
-                                        <Car className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                                        <div className="text-xs">
-                                          <span className="font-bold text-slate-800">Pick Up Areas Served: </span>
-                                          <span className="text-slate-700 font-medium">{pkg.pickupAreas}</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                    {(() => {
-                                      const minRequired = pkg.tiers && pkg.tiers.length > 0 ? Math.min(...pkg.tiers.map(t => t.minParticipants)) : 1;
-                                      if (minRequired > 1) {
-                                        return (
-                                          <div className="flex items-center gap-1 shrink-0 text-red-500 font-extrabold bg-red-50/50 px-2 py-0.5 rounded border border-red-100">
-                                            <Users className="h-3.5 w-3.5 shrink-0" />
-                                            <span>Min {minRequired} travelers</span>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                  </div>
-                                </div>
+                          {/* Collapsed Header: ONLY Package Name & Price/Person */}
+                          <div
+                            onClick={() => {
+                              if (isExpanded) {
+                                setExpandedPackage(null);
+                              } else {
+                                setSelectedPackage(pkg);
+                                setExpandedPackage(pkg.name);
+                              }
+                            }}
+                            className="flex items-center justify-between p-4 md:p-5 cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                                  isSelected
+                                    ? "border-primary bg-primary"
+                                    : "border-slate-300 bg-white",
+                                )}
+                              >
+                                {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
                               </div>
+                              <h3 className="font-extrabold text-slate-900 text-sm md:text-base leading-snug">
+                                {pkg.name}
+                              </h3>
                             </div>
 
-                            {/* Right Column: Pricing Area */}
-                            <div className="md:w-1/3 p-5 md:p-6 flex flex-col justify-center items-stretch md:items-end md:text-right bg-slate-50/50">
-                              <div className="space-y-0.5 mb-2">
-                                <div className="flex justify-between md:flex-col items-baseline md:items-end">
-                                  <p className="text-xl font-black text-slate-900 font-display tracking-tight leading-none leading-none">
-                                    <FormattedPrice amount={price || (getLowestAdultPrice(pkg) * (adults || 1))} />
-                                  </p>
-                                  <span className="text-[10px] text-slate-400 font-bold">/ total</span>
-                                </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <span className="font-black text-slate-900 text-sm md:text-base">
+                                  <FormattedPrice amount={getPackagePricePerPerson(pkg)} />
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-bold block">/ person</span>
+                              </div>
+                              <div className="p-1 rounded-full bg-slate-100 text-slate-500">
+                                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
                               </div>
                             </div>
                           </div>
 
                           <AnimatePresence>
-                            {isSelected && (
+                            {isExpanded && (
                               <motion.div
                                 onClick={(e) => e.stopPropagation()}
                                 initial={{ height: 0, opacity: 0 }}
