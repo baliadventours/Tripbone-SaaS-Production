@@ -6,7 +6,7 @@ import { Tour, UrgencyPoint } from '../types';
 import { 
   Share2, MapPin, Clock, Star, 
   ChevronRight, Calendar, Users, 
-  Info, Languages, MessageCircle, ShieldCheck, LucideIcon, ArrowLeft, Globe, CheckCircle2, ChevronDown, Check, X,
+  Info, Languages, MessageCircle, ShieldCheck, LucideIcon, ArrowLeft, Globe, CheckCircle2, ChevronDown, ChevronUp, Check, X,
   Hotel, Bed, UserCheck
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
@@ -589,25 +589,6 @@ export default function TourDetail() {
             <BookingForm tour={tour} />
           </section>
 
-          {/* Mobile Fixed Sticky Bottom Bar for Instant Booking */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-2xl flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Starting From</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-gray-900">
-                  <FormattedPrice amount={tour.discountPrice || tour.regularPrice} />
-                </span>
-                <span className="text-[10px] text-gray-400 font-bold">/ person</span>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate(`/checkout/${tour.id}?mobileStep=package`)}
-              className="bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-lg active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-            >
-              Book Now <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
           {/* Important Info */}
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900">Important Information</h2>
@@ -809,6 +790,46 @@ export default function TourDetail() {
         </main>
       </div>
       )}
+
+      {/* Mobile Fixed Sticky Bottom Bar for Instant Booking & Summary */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.12)] flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById('package');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="text-left cursor-pointer group"
+        >
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+            <span>Starting From</span>
+            <span className="text-primary font-bold flex items-center gap-0.5 underline">
+              Details <ChevronUp className="h-3 w-3" />
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-black text-slate-900 font-display">
+              <FormattedPrice amount={tour.discountPrice || tour.regularPrice} />
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold">/ person</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById('package');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              navigate(`/checkout/${tour.id}?mobileStep=package`);
+            }
+          }}
+          className="bg-primary hover:bg-orange-600 text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-md active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+        >
+          Book Now <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

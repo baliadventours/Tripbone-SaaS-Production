@@ -20,6 +20,8 @@ import { useTenant } from "../lib/TenantContext";
 import {
   ChevronRight,
   ChevronDown,
+  ChevronUp,
+  Receipt,
   Check,
   Clock,
   Info,
@@ -2374,14 +2376,23 @@ const toggleAddOn = (addon: AddOn) => {
         </div>
 
         {/* Sticky Mobile Navigation Bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 shadow-2xl">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.12)]">
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Grand Total</span>
-              <span className="font-black text-lg text-slate-900 font-display">
+            <button
+              type="button"
+              onClick={() => setShowMobileSummary(true)}
+              className="text-left cursor-pointer group hover:opacity-90 transition-opacity"
+            >
+              <div className="flex items-center gap-1 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                <span>Grand Total</span>
+                <span className="text-primary font-bold flex items-center gap-0.5 underline">
+                  Summary <ChevronUp className="h-3 w-3" />
+                </span>
+              </div>
+              <span className="font-black text-lg text-slate-900 font-display block leading-tight">
                 <FormattedPrice amount={summary.grandTotal} />
               </span>
-            </div>
+            </button>
 
             {mobileStep === 'package' && (
               <button
