@@ -29,8 +29,8 @@ const defaultSettings: SiteSettings = {
   officeAddress: 'Jl. Raya Ubud, Gianyar, Bali, Indonesia 80571',
   primaryColor: '#FF7A00',
   secondaryColor: '#1F3B1F',
-  bodyFont: 'Poppins',
-  headingFont: 'Oswald',
+  bodyFont: 'Plus Jakarta Sans',
+  headingFont: 'Plus Jakarta Sans',
   currency: 'USD',
   destinationRegion: 'Bali',
   externalReviewsEnabled: true,
@@ -212,8 +212,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             document.head.appendChild(link);
         }
         
-        let headingFont = data.headingFont || 'Oswald';
-        let bodyFont = data.bodyFont || 'Poppins';
+        let headingFont = (data.headingFont && data.headingFont !== 'Oswald') ? data.headingFont : 'Plus Jakarta Sans';
+        let bodyFont = data.bodyFont || 'Plus Jakarta Sans';
 
         if (activePreset === 'swiss-minimalist') {
             headingFont = 'Inter';

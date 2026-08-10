@@ -3,7 +3,7 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Oswald", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Instrument Serif", serif;
 
   /* Map weights to the requested specific Poppins weights (200-800) */
@@ -25,7 +25,7 @@
   --primary-color: #FF7A00;
   --secondary-color: #1F3B1F;
   --font-body: "Plus Jakarta Sans";
-  --font-heading: "Oswald";
+  --font-heading: "Plus Jakarta Sans";
 }
 
 @layer base {

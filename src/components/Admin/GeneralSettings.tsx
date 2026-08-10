@@ -1325,7 +1325,7 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                     desc: 'Your custom primary/secondary colors and custom Google Fonts selections.',
                     badge: 'Fully Custom',
                     colorClass: 'from-[#FF7A00] to-[#1F3B1F]',
-                    fontLabel: 'Poppins & Oswald'
+                    fontLabel: 'Plus Jakarta Sans'
                   },
                   {
                     id: 'swiss-minimalist',
