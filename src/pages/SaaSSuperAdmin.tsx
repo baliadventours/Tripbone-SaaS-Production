@@ -527,12 +527,32 @@ export default function SaaSSuperAdmin() {
         const userData = userSnap.data();
         const role = userData?.role;
 
-        const isMasterAdminEmail = user.email && (
-          user.email.toLowerCase() === 'baliadventours@gmail.com' ||
-          user.email.toLowerCase() === (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
-        );
+        const isMasterAdminEmail = user.email && [
+          'baliadventours@gmail.com',
+          'admin@tripbone.com',
+          'kuotabox@gmail.com',
+          (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
+        ].filter(Boolean).includes(user.email.toLowerCase());
 
         if (role === 'superadmin' || isMasterAdminEmail) {
+          // Auto-repair/restore deleted or missing superadmin profile document in Firestore
+          if (!userData || userData.role !== 'superadmin' || userData.tenantId !== null) {
+            try {
+              await setDoc(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName || userData?.displayName || 'SaaS Superadmin',
+                role: 'superadmin',
+                tenantId: null,
+                status: 'active',
+                updatedAt: serverTimestamp()
+              }, { merge: true });
+              console.log("[Superadmin Auto-Repair] Restored superadmin user profile document for UID:", user.uid);
+            } catch (repairErr) {
+              console.warn("[Superadmin Auto-Repair] Failed to restore superadmin user document:", repairErr);
+            }
+          }
+
           // Check if OTP was already verified during this session
           const isOtpVerified = sessionStorage.getItem(`tripbone_superadmin_otp_verified_${user.uid}`) === 'true';
           
@@ -1236,6 +1256,19 @@ export default function SaaSSuperAdmin() {
 
     if (entered === generatedOtp) {
       if (tempSuperadminUser) {
+        try {
+          await setDoc(doc(db, 'users', tempSuperadminUser.uid), {
+            uid: tempSuperadminUser.uid,
+            email: tempSuperadminUser.email,
+            displayName: tempSuperadminUser.displayName || 'SaaS Superadmin',
+            role: 'superadmin',
+            tenantId: null,
+            status: 'active',
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (restoreErr) {
+          console.warn("[Superadmin OTP Restore] Could not sync superadmin user profile:", restoreErr);
+        }
         sessionStorage.setItem(`tripbone_superadmin_otp_verified_${tempSuperadminUser.uid}`, 'true');
         setIsAuthorized(true);
         setIsOtpPending(false);

@@ -1896,18 +1896,33 @@ export async function createServer() {
         }
       };
 
-      // 1. Fetch all users for this tenant to delete Auth accounts
+      const SUPERADMIN_EMAILS = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'];
+      
+      // 1. Fetch non-superadmin users for this tenant to delete Auth accounts
       try {
         let uidsToDelete: string[] = [];
         if (db && !db._isFallback) {
           const usersSnap = await db.collection("users").where("tenantId", "==", tenantId).get();
-          usersSnap.forEach((doc: any) => uidsToDelete.push(doc.id));
+          usersSnap.forEach((docSnap: any) => {
+            const data = docSnap.data();
+            const isSuperadmin = data?.role === 'superadmin' || SUPERADMIN_EMAILS.includes(data?.email?.toLowerCase());
+            if (!isSuperadmin) {
+              uidsToDelete.push(docSnap.id);
+            } else {
+              console.log(`[Delete API] Preserving superadmin account ${data?.email} (${docSnap.id})`);
+            }
+          });
         } else {
           const docs = await fetchFromREST("users", undefined, {
             whereFilters: [{ field: "tenantId", op: "EQUAL", value: tenantId }]
           });
           if (docs && docs.length > 0) {
-            uidsToDelete = docs.map((d: any) => d.id);
+            docs.forEach((d: any) => {
+              const isSuperadmin = d.role === 'superadmin' || SUPERADMIN_EMAILS.includes(d.email?.toLowerCase());
+              if (!isSuperadmin) {
+                uidsToDelete.push(d.id);
+              }
+            });
           }
         }
         
