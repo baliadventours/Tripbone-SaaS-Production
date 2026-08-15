@@ -29,6 +29,12 @@ export default function ExternalReviewsWidget({ onFilterChange, activeFilter = '
   const googleEnabled = settings?.googleReviewsEnabled ?? true;
   const tripadvisorEnabled = settings?.tripadvisorEnabled ?? true;
   const airbnbEnabled = settings?.airbnbEnabled ?? true;
+  const viatorEnabled = settings?.viatorEnabled || Boolean(settings?.viatorUrl && settings.viatorUrl.trim());
+  const gygEnabled = settings?.getyourguideEnabled || Boolean(settings?.getyourguideUrl && settings.getyourguideUrl.trim());
+  const trustpilotEnabled = settings?.trustpilotEnabled || Boolean(settings?.trustpilotUrl && settings.trustpilotUrl.trim());
+  const klookEnabled = settings?.klookEnabled || Boolean(settings?.klookUrl && settings.klookUrl.trim());
+  const bookingEnabled = settings?.bookingEnabled || Boolean(settings?.bookingUrl && settings.bookingUrl.trim());
+  const customEnabled = settings?.customReviewEnabled || Boolean(settings?.customReviewUrl && settings.customReviewUrl.trim());
 
   const googleRating = settings?.googleRating ?? 4.9;
   const googleCount = settings?.googleReviewCount ?? 520;
@@ -41,6 +47,31 @@ export default function ExternalReviewsWidget({ onFilterChange, activeFilter = '
   const abRating = settings?.airbnbRating ?? 4.95;
   const abCount = settings?.airbnbReviewCount ?? 185;
   const abUrl = settings?.airbnbUrl || 'https://www.airbnb.com';
+
+  const viatorRating = settings?.viatorRating ?? 4.9;
+  const viatorCount = settings?.viatorReviewCount ?? 120;
+  const viatorUrl = settings?.viatorUrl || 'https://www.viator.com';
+
+  const gygRating = settings?.getyourguideRating ?? 4.8;
+  const gygCount = settings?.getyourguideReviewCount ?? 95;
+  const gygUrl = settings?.getyourguideUrl || 'https://www.getyourguide.com';
+
+  const trustpilotRating = settings?.trustpilotRating ?? 4.9;
+  const trustpilotCount = settings?.trustpilotReviewCount ?? 150;
+  const trustpilotUrl = settings?.trustpilotUrl || 'https://www.trustpilot.com';
+
+  const klookRating = settings?.klookRating ?? 4.9;
+  const klookCount = settings?.klookReviewCount ?? 88;
+  const klookUrl = settings?.klookUrl || 'https://www.klook.com';
+
+  const bookingRating = settings?.bookingRating ?? 9.6;
+  const bookingCount = settings?.bookingReviewCount ?? 210;
+  const bookingUrl = settings?.bookingUrl || 'https://www.booking.com';
+
+  const customPlatformName = settings?.customReviewPlatformName || 'Verified Reviews';
+  const customRating = settings?.customReviewRating ?? 5.0;
+  const customCount = settings?.customReviewCount ?? 50;
+  const customUrl = settings?.customReviewUrl || '';
 
   if (!enabled) return null;
 
@@ -225,6 +256,194 @@ export default function ExternalReviewsWidget({ onFilterChange, activeFilter = '
               </a>
             )}
 
+            {/* Viator Badge */}
+            {viatorEnabled && (
+              <a
+                href={viatorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleFilterClick('viator')}
+                className={`group flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all cursor-pointer ${
+                  activeFilter === 'viator'
+                    ? 'bg-amber-600/20 border-amber-400/60 text-white shadow-lg'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-200'
+                }`}
+                title="View Viator Reviews"
+              >
+                <div className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] flex items-center justify-center shrink-0">
+                  V
+                </div>
+                <div className="text-left leading-tight min-w-0">
+                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs">
+                    <span className="truncate">Viator</span>
+                    <span className="text-amber-400 font-black flex items-center shrink-0">
+                      {viatorRating.toFixed(1)} <Star className="w-2.5 h-2.5 fill-amber-400 ml-0.5 inline" />
+                    </span>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 truncate">
+                    {viatorCount}+ reviews
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-amber-400 ml-auto shrink-0 hidden sm:block" />
+              </a>
+            )}
+
+            {/* GetYourGuide Badge */}
+            {gygEnabled && (
+              <a
+                href={gygUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleFilterClick('getyourguide')}
+                className={`group flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all cursor-pointer ${
+                  activeFilter === 'getyourguide'
+                    ? 'bg-red-600/20 border-red-400/60 text-white shadow-lg'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-200'
+                }`}
+                title="View GetYourGuide Reviews"
+              >
+                <div className="w-4 h-4 rounded-full bg-red-600 text-white font-black text-[7px] flex items-center justify-center shrink-0">
+                  GYG
+                </div>
+                <div className="text-left leading-tight min-w-0">
+                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs">
+                    <span className="truncate">GetYourGuide</span>
+                    <span className="text-red-400 font-black flex items-center shrink-0">
+                      {gygRating.toFixed(1)} <Star className="w-2.5 h-2.5 fill-red-400 ml-0.5 inline" />
+                    </span>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 truncate">
+                    {gygCount}+ reviews
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-red-400 ml-auto shrink-0 hidden sm:block" />
+              </a>
+            )}
+
+            {/* Trustpilot Badge */}
+            {trustpilotEnabled && (
+              <a
+                href={trustpilotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleFilterClick('trustpilot')}
+                className={`group flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all cursor-pointer ${
+                  activeFilter === 'trustpilot'
+                    ? 'bg-emerald-600/20 border-emerald-400/60 text-white shadow-lg'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-200'
+                }`}
+                title="View Trustpilot Reviews"
+              >
+                <Star className="w-4 h-4 text-emerald-400 fill-emerald-400 shrink-0" />
+                <div className="text-left leading-tight min-w-0">
+                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs">
+                    <span className="truncate">Trustpilot</span>
+                    <span className="text-emerald-400 font-black flex items-center shrink-0">
+                      {trustpilotRating.toFixed(1)} <Star className="w-2.5 h-2.5 fill-emerald-400 ml-0.5 inline" />
+                    </span>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 truncate">
+                    {trustpilotCount}+ reviews
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-emerald-400 ml-auto shrink-0 hidden sm:block" />
+              </a>
+            )}
+
+            {/* Klook Badge */}
+            {klookEnabled && (
+              <a
+                href={klookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleFilterClick('klook')}
+                className={`group flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all cursor-pointer ${
+                  activeFilter === 'klook'
+                    ? 'bg-orange-600/20 border-orange-400/60 text-white shadow-lg'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-200'
+                }`}
+                title="View Klook Reviews"
+              >
+                <div className="w-4 h-4 rounded-full bg-orange-500 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                  K
+                </div>
+                <div className="text-left leading-tight min-w-0">
+                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs">
+                    <span className="truncate">Klook</span>
+                    <span className="text-orange-400 font-black flex items-center shrink-0">
+                      {klookRating.toFixed(1)} <Star className="w-2.5 h-2.5 fill-orange-400 ml-0.5 inline" />
+                    </span>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 truncate">
+                    {klookCount}+ reviews
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-orange-400 ml-auto shrink-0 hidden sm:block" />
+              </a>
+            )}
+
+            {/* Booking.com Badge */}
+            {bookingEnabled && (
+              <a
+                href={bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleFilterClick('booking')}
+                className={`group flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all cursor-pointer ${
+                  activeFilter === 'booking'
+                    ? 'bg-blue-700/20 border-blue-500/60 text-white shadow-lg'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-200'
+                }`}
+                title="View Booking.com Reviews"
+              >
+                <div className="w-4 h-4 rounded-full bg-blue-700 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                  B.
+                </div>
+                <div className="text-left leading-tight min-w-0">
+                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs">
+                    <span className="truncate">Booking</span>
+                    <span className="text-blue-400 font-black flex items-center shrink-0">
+                      {bookingRating.toFixed(1)} <Star className="w-2.5 h-2.5 fill-blue-400 ml-0.5 inline" />
+                    </span>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 truncate">
+                    {bookingCount}+ reviews
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-blue-400 ml-auto shrink-0 hidden sm:block" />
+              </a>
+            )}
+
+            {/* Custom Review Source Badge */}
+            {customEnabled && customUrl && (
+              <a
+                href={customUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleFilterClick('custom')}
+                className={`group flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all cursor-pointer ${
+                  activeFilter === 'custom'
+                    ? 'bg-amber-600/20 border-amber-400/60 text-white shadow-lg'
+                    : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700/80 text-slate-200'
+                }`}
+                title={`View ${customPlatformName}`}
+              >
+                <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="text-left leading-tight min-w-0">
+                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-xs">
+                    <span className="truncate">{customPlatformName}</span>
+                    <span className="text-amber-400 font-black flex items-center shrink-0">
+                      {customRating.toFixed(1)} <Star className="w-2.5 h-2.5 fill-amber-400 ml-0.5 inline" />
+                    </span>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 truncate">
+                    {customCount}+ reviews
+                  </div>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-amber-400 ml-auto shrink-0 hidden sm:block" />
+              </a>
+            )}
+
             {/* Review Collection Action Button */}
             <button
               onClick={() => setShowCollectModal(true)}
@@ -353,6 +572,106 @@ export default function ExternalReviewsWidget({ onFilterChange, activeFilter = '
                     <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-rose-400" />
                   </a>
                 )}
+
+                {viatorEnabled && viatorUrl && (
+                  <a
+                    href={viatorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black text-sm flex items-center justify-center shrink-0">
+                        V
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white group-hover:text-amber-400 transition-colors">Review on Viator</h4>
+                        <p className="text-xs text-slate-400">Share your experience on Viator Experience Platform</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-amber-400" />
+                  </a>
+                )}
+
+                {gygEnabled && gygUrl && (
+                  <a
+                    href={gygUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-red-600/20 text-red-400 font-black text-xs flex items-center justify-center shrink-0">
+                        GYG
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white group-hover:text-red-400 transition-colors">Review on GetYourGuide</h4>
+                        <p className="text-xs text-slate-400">Review our activities on GetYourGuide</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-red-400" />
+                  </a>
+                )}
+
+                {trustpilotEnabled && trustpilotUrl && (
+                  <a
+                    href={trustpilotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <Star className="w-5 h-5 fill-emerald-400 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white group-hover:text-emerald-400 transition-colors">Review on Trustpilot</h4>
+                        <p className="text-xs text-slate-400">Post an honest review on Trustpilot Community</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-400" />
+                  </a>
+                )}
+
+                {klookEnabled && klookUrl && (
+                  <a
+                    href={klookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 font-black text-sm flex items-center justify-center shrink-0">
+                        K
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white group-hover:text-orange-400 transition-colors">Review on Klook</h4>
+                        <p className="text-xs text-slate-400">Rate your tour & activities on Klook</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-orange-400" />
+                  </a>
+                )}
+
+                {bookingEnabled && bookingUrl && (
+                  <a
+                    href={bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-700/20 text-blue-400 font-black text-sm flex items-center justify-center shrink-0">
+                        B.
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors">Review on Booking.com</h4>
+                        <p className="text-xs text-slate-400">Submit your verified stay review on Booking.com</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
+                  </a>
+                )}
               </div>
             ) : (
               <form onSubmit={handleDirectSubmit} className="space-y-4 text-left">
@@ -366,6 +685,11 @@ export default function ExternalReviewsWidget({ onFilterChange, activeFilter = '
                     <option value="google">Google Maps Review</option>
                     <option value="tripadvisor">TripAdvisor Review</option>
                     <option value="airbnb">Airbnb Review</option>
+                    <option value="viator">Viator Review</option>
+                    <option value="getyourguide">GetYourGuide Review</option>
+                    <option value="trustpilot">Trustpilot Review</option>
+                    <option value="klook">Klook Review</option>
+                    <option value="booking">Booking.com Review</option>
                     <option value="direct">Direct Website Review</option>
                   </select>
                 </div>

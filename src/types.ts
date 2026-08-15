@@ -505,7 +505,7 @@ export interface SiteSettings {
   topBarLink?: string;
   topBarLinkText?: string;
 
-  // External Reviews Collection Settings (TripAdvisor, Google Maps, Airbnb)
+  // External Reviews Collection Settings (TripAdvisor, Google Maps, Airbnb, Viator, GetYourGuide, Trustpilot, Klook, Booking.com, Custom)
   externalReviewsEnabled?: boolean;
   googleReviewsEnabled?: boolean;
   googlePlaceId?: string;
@@ -522,6 +522,38 @@ export interface SiteSettings {
   airbnbUrl?: string;
   airbnbRating?: number;
   airbnbReviewCount?: number;
+
+  viatorEnabled?: boolean;
+  viatorUrl?: string;
+  viatorRating?: number;
+  viatorReviewCount?: number;
+
+  getyourguideEnabled?: boolean;
+  getyourguideUrl?: string;
+  getyourguideRating?: number;
+  getyourguideReviewCount?: number;
+
+  trustpilotEnabled?: boolean;
+  trustpilotUrl?: string;
+  trustpilotRating?: number;
+  trustpilotReviewCount?: number;
+
+  klookEnabled?: boolean;
+  klookUrl?: string;
+  klookRating?: number;
+  klookReviewCount?: number;
+
+  bookingEnabled?: boolean;
+  bookingUrl?: string;
+  bookingRating?: number;
+  bookingReviewCount?: number;
+
+  customReviewEnabled?: boolean;
+  customReviewPlatformName?: string;
+  customReviewUrl?: string;
+  customReviewRating?: number;
+  customReviewCount?: number;
+
   maxDisplayReviews?: number;
 
   // Elfsight Integration
