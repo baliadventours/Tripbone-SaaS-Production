@@ -5874,6 +5874,15 @@ export async function createServer() {
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
+      // Extract tenant analytics & tag manager settings for SSR injection
+      seo.tracking = {
+        gtmId: (settings.gtmId || '').trim(),
+        googleAdsId: (settings.googleAdsId || '').trim(),
+        googleAdsConversionLabel: (settings.googleAdsConversionLabel || '').trim(),
+        gaMeasurementId: (settings.gaMeasurementId || settings.googleAnalyticsId || settings.measurementId || '').trim(),
+        gaCustomScript: (settings.gaCustomScript || settings.customScript || '').trim(),
+        gtmBodyScript: (settings.gtmBodyScript || '').trim()
+      };
       if (reqPath === '/' || reqPath === '/index.html' || reqPath === '/app.html') {
         let derivedTitle = settings.metaTitle;
         if (!derivedTitle && settings.homeTitleFormat) {
@@ -6067,7 +6076,56 @@ export async function createServer() {
     // Strip favicon links
     modified = modified.replace(/<link\s+[^>]*rel=["'](icon|shortcut icon|apple-touch-icon)["'][^>]*\/?>/gi, '');
 
-    // 3. Inject fully compiled fresh tags right before </head>
+    // 3. Assemble Tracking & Tag Manager Scripts (GTM, Google Ads, GA4, Custom Scripts)
+    let trackingHeadTags = '';
+    let trackingBodyTags = '';
+
+    const tracking = seo.tracking || {};
+    const gtmId = (tracking.gtmId || '').trim();
+    const gaId = (tracking.gaMeasurementId || '').trim();
+    const adsId = (tracking.googleAdsId || '').trim();
+    const headScript = (tracking.gaCustomScript || '').trim();
+    const bodyScript = (tracking.gtmBodyScript || '').trim();
+
+    // 3a. Official Google Tag Manager container injection
+    if (gtmId && gtmId.startsWith('GTM-')) {
+      trackingHeadTags += `\n    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','${gtmId}');</script>
+    <!-- End Google Tag Manager -->`;
+
+      trackingBodyTags += `\n    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${gtmId}"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->`;
+    }
+
+    // 3b. Official Google Tag (gtag.js) for GA4 and Google Ads
+    const primaryGtagId = gaId || adsId;
+    if (primaryGtagId) {
+      trackingHeadTags += `\n    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      ${gaId ? `gtag('config', '${gaId}', { cookie_domain: 'auto', cookie_flags: 'SameSite=None;Secure' });` : ''}
+      ${adsId ? `gtag('config', '${adsId}', { cookie_domain: 'auto', cookie_flags: 'SameSite=None;Secure' });` : ''}
+    </script>`;
+    }
+
+    // 3c. Custom script injections
+    if (headScript) {
+      trackingHeadTags += `\n    <!-- Custom Head Script -->\n    ${headScript}`;
+    }
+    if (bodyScript) {
+      trackingBodyTags += `\n    <!-- Custom Body Script -->\n    ${bodyScript}`;
+    }
+
+    // 4. Inject fully compiled fresh tags right before </head>
     const ogTags = `
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDesc}" />
@@ -6083,9 +6141,16 @@ export async function createServer() {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDesc}" />
-    <meta name="twitter:image" content="${safeImage}" />${dataScript}${preloadTags}${debugTag}`;
+    <meta name="twitter:image" content="${safeImage}" />${dataScript}${preloadTags}${debugTag}${trackingHeadTags}`;
 
-    return modified.replace('</head>', `${ogTags}</head>`);
+    modified = modified.replace('</head>', `${ogTags}</head>`);
+
+    // 5. Inject body tags right after <body>
+    if (trackingBodyTags) {
+      modified = modified.replace(/<body[^>]*>/i, (match) => `${match}${trackingBodyTags}`);
+    }
+
+    return modified;
   };
 
   // Fallback for non-API POST requests: redirect to GET using 303 to prevent HTTP 405 Method Not Allowed errors

@@ -12,6 +12,7 @@ import QRCode from 'react-qr-code';
 import { getWhatsAppLink, generateBookingMessage } from '../lib/whatsappService';
 import { collection, onSnapshot, query, where, limit } from '@/src/lib/firebase';
 import { parseMeetingPoint } from '../lib/utils';
+import { trackGAPurchase } from '../lib/googleAnalytics';
 
 export default function BookingSuccess() {
   const { settings } = useSettings();
@@ -43,6 +44,25 @@ export default function BookingSuccess() {
           const bookingData = { id: bookingSnap.id, ...bookingSnap.data() } as Booking;
           setBooking(bookingData);
           
+          // Fire Google Ads, GA4 & GTM Conversion Tracking event once per booking session
+          try {
+            const sessionKey = `tb_tracked_booking_${bookingData.id}`;
+            if (typeof window !== 'undefined' && !sessionStorage.getItem(sessionKey)) {
+              trackGAPurchase({
+                id: bookingData.id,
+                tourTitle: bookingData.tourTitle || 'Tour Booking',
+                totalAmount: Number(bookingData.totalAmount || bookingData.totalPrice) || 0,
+                paymentMethod: bookingData.paymentMethod || 'online',
+                currency: bookingData.currency || 'USD',
+                participants: (bookingData.adults || 0) + (bookingData.children || 0) || 1,
+                customerEmail: bookingData.customerDetails?.email || (bookingData as any).userEmail
+              });
+              sessionStorage.setItem(sessionKey, '1');
+            }
+          } catch (trackErr) {
+            console.warn('[Analytics] Conversion tracking notice:', trackErr);
+          }
+
           if (bookingData.tourId) {
             const tourSnap = await getDoc(doc(db, 'tours', bookingData.tourId));
             if (tourSnap.exists()) {
