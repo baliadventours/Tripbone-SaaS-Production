@@ -51,11 +51,11 @@ export default function BookingSuccess() {
               trackGAPurchase({
                 id: bookingData.id,
                 tourTitle: bookingData.tourTitle || 'Tour Booking',
-                totalAmount: Number(bookingData.totalAmount || bookingData.totalPrice) || 0,
+                totalAmount: Number(bookingData.totalAmount || (bookingData as any).totalPrice) || 0,
                 paymentMethod: bookingData.paymentMethod || 'online',
-                currency: bookingData.currency || 'USD',
-                participants: (bookingData.adults || 0) + (bookingData.children || 0) || 1,
-                customerEmail: bookingData.customerDetails?.email || (bookingData as any).userEmail
+                currency: (bookingData as any).currency || 'USD',
+                participants: ((bookingData as any).adults || 0) + ((bookingData as any).children || 0) || (bookingData as any).participants || 1,
+                customerEmail: (bookingData as any).customerDetails?.email || (bookingData as any).customerData?.email || (bookingData as any).userEmail
               });
               sessionStorage.setItem(sessionKey, '1');
             }

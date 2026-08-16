@@ -354,8 +354,8 @@ export const updateTenantGA = (
   if (typeof configOrMeasurementId === 'object' && configOrMeasurementId !== null) {
     config = { ...configOrMeasurementId };
   } else {
-    const rawId = (configOrMeasurementId || '').trim();
-    const rawScript = (legacyCustomScript || '').trim();
+    const rawId = (typeof configOrMeasurementId === 'string' ? configOrMeasurementId : '').trim();
+    const rawScript = (typeof legacyCustomScript === 'string' ? legacyCustomScript : '').trim();
 
     // Auto extract IDs from raw string or snippet
     const extractedFromId = extractTrackingIds(rawId);
@@ -473,16 +473,16 @@ export const trackGAPageview = (path: string, pageTitle?: string) => {
 
   try {
     // 1. Dispatch via gtag
-    if (typeof window.gtag === 'function') {
+    if (typeof (window as any).gtag === 'function') {
       if (gaId) {
-        window.gtag('config', gaId, {
+        (window as any).gtag('config', gaId, {
           page_path: path,
           page_title: title,
           send_page_view: true
         });
       }
       if (adsId) {
-        window.gtag('config', adsId, {
+        (window as any).gtag('config', adsId, {
           page_path: path,
           page_title: title,
           send_page_view: true
@@ -490,9 +490,9 @@ export const trackGAPageview = (path: string, pageTitle?: string) => {
       }
     } else if (gaId || adsId) {
       setupGATags(activeConfig);
-      if (typeof window.gtag === 'function') {
-        if (gaId) window.gtag('config', gaId, { page_path: path, page_title: title, send_page_view: true });
-        if (adsId) window.gtag('config', adsId, { page_path: path, page_title: title, send_page_view: true });
+      if (typeof (window as any).gtag === 'function') {
+        if (gaId) (window as any).gtag('config', gaId, { page_path: path, page_title: title, send_page_view: true });
+        if (adsId) (window as any).gtag('config', adsId, { page_path: path, page_title: title, send_page_view: true });
       }
     }
 
@@ -537,12 +537,12 @@ export const trackGAEvent = (
     };
 
     // 1. Dispatch to gtag
-    if (typeof window.gtag === 'function') {
-      window.gtag('event', action, payload);
+    if (typeof (window as any).gtag === 'function') {
+      (window as any).gtag('event', action, payload);
     } else if (activeConfig.gaMeasurementId || activeConfig.googleAdsId) {
       setupGATags(activeConfig);
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', action, payload);
+      if (typeof (window as any).gtag === 'function') {
+        (window as any).gtag('event', action, payload);
       }
     }
 

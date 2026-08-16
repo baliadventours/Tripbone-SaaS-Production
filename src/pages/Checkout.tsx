@@ -331,7 +331,7 @@ export default function Checkout() {
         trackGABeginCheckout({
           tourTitle: tour.title,
           tourId: tour.id,
-          totalAmount: totalPrice,
+          totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
           participants: (adults || 0) + (children || 0) || 1,
           currency: "USD"
         });

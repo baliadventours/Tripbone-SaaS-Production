@@ -5784,7 +5784,8 @@ export async function createServer() {
       isArticle: false,
       status: tenantDoc ? `tenant-${tenantDoc.slug}` : (resolvedCustomDomain ? `custom-domain-${resolvedCustomDomain}` : 'master-default'),
       preloadedData: null as any,
-      keywords: ''
+      keywords: '',
+      tracking: null as any
     };
 
     // 2. Specialized Logic (The "Known Pages" Layer)
