@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, ShieldCheck, ArrowRight, ArrowLeft, KeyRound, CheckCircle, RefreshCw, AlertCircle } from 'lucide-react';
 import { getActiveTenantId } from '../lib/firebase';
@@ -7,8 +7,9 @@ import { getActiveTenantId } from '../lib/firebase';
 type ResetStep = 'request' | 'verify' | 'success';
 
 export default function ForgotPassword() {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState<ResetStep>('request');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => (searchParams.get('email') || '').trim());
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

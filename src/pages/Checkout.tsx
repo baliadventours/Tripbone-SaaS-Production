@@ -62,6 +62,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { sendBookingEmail } from "../lib/emailService";
 import { sendWhatsAppNotification } from "../lib/whatsappService";
 import { PaymentService } from "../services/payment/PaymentService";
+import { trackGABeginCheckout } from "../lib/googleAnalytics";
 
 type CheckoutStep = "selection" | "customer" | "payment";
 type PaymentMethod = "stripe" | "midtrans" | "xendit" | "razorpay" | "adyen" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
@@ -324,6 +325,20 @@ export default function Checkout() {
     newParams.set("step", newStep);
     navigate({ search: newParams.toString() }, { replace: false });
     window.scrollTo(0, 0);
+
+    if (newStep === "payment" && tour) {
+      try {
+        trackGABeginCheckout({
+          tourTitle: tour.title,
+          tourId: tour.id,
+          totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
+          participants: (adults || 0) + (children || 0) || 1,
+          currency: "USD"
+        });
+      } catch (trackErr) {
+        console.warn("[Analytics] Checkout tracking notice:", trackErr);
+      }
+    }
   };
 
   const validateCustomerData = () => {

@@ -1743,27 +1743,80 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
               </div>
             </div>
 
-            {/* Google Analytics 4 (GA4) Integration Box */}
+            {/* Google Analytics, Tag Manager & Google Ads Conversion Tracking Box */}
             <div className="mt-8 pt-6 border-t border-gray-100">
-              <div className="p-5 bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 rounded-[20px] border border-orange-100 space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="p-6 bg-gradient-to-br from-orange-50/70 via-white to-amber-50/40 rounded-[20px] border border-orange-100 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 bg-orange-500 text-white rounded-xl shadow-xs">
                       <Zap className="h-4 w-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-gray-900">Google Analytics 4 (GA4) Tracker Integration</h4>
-                      <p className="text-xs text-gray-500 font-medium">Automatic pageview tracking & conversion event dispatching</p>
+                      <h4 className="text-sm font-black text-gray-900">Google Tag Manager, GA4 & Google Ads Tracking</h4>
+                      <p className="text-xs text-gray-500 font-medium">Automatic pageviews, e-commerce transactions & Google Ads conversion tracking</p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-700 bg-orange-100 rounded-full">
-                    GTAG Active
+                  <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-700 bg-orange-100 rounded-full self-start sm:self-auto">
+                    Multi-Tag Tracking Ready
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-700 block mb-1">
+                      Google Tag Manager ID
+                    </label>
+                    <input 
+                      type="text" 
+                      value={settings?.gtmId || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().trim();
+                        setSettings(s => s ? {...s, gtmId: val} : null);
+                      }}
+                      placeholder="e.g. GTM-XXXXXXX"
+                      className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2.5 text-xs font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Google Tag Manager container ID (starts with GTM-)</p>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-700 block mb-1">
+                      Google Ads ID (Conversion ID)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={settings?.googleAdsId || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().trim();
+                        setSettings(s => s ? {...s, googleAdsId: val} : null);
+                      }}
+                      placeholder="e.g. AW-123456789"
+                      className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2.5 text-xs font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Google Ads account tracking ID (starts with AW-)</p>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-700 block mb-1">
+                      Google Ads Conversion Label
+                    </label>
+                    <input 
+                      type="text" 
+                      value={settings?.googleAdsConversionLabel || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setSettings(s => s ? {...s, googleAdsConversionLabel: val} : null);
+                      }}
+                      placeholder="e.g. AbCdEfGhIjKlMnOp"
+                      className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2.5 text-xs font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Optional purchase/lead conversion label from Google Ads</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-700 block mb-1">
                       GA4 Measurement ID
                     </label>
                     <input 
@@ -1773,15 +1826,15 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                         const val = e.target.value.toUpperCase().trim();
                         setSettings(s => s ? {...s, gaMeasurementId: val} : null);
                       }}
-                      placeholder="e.g. G-ABC123XYZ"
+                      placeholder="e.g. G-XXXXXXXXXX"
                       className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2.5 text-xs font-mono font-bold text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
-                    <p className="text-[10px] text-gray-400 mt-1">Found in Google Analytics &gt; Data Streams &gt; Measurement ID (starts with G-)</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Found in GA4 &gt; Data Streams (starts with G-)</p>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">
-                      Custom Script Header Block (Optional)
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-700 block mb-1">
+                      Custom Head Scripts (&lt;head&gt;)
                     </label>
                     <textarea 
                       rows={2}
@@ -1790,7 +1843,23 @@ export default function GeneralSettings({ activeTab = 'all' }: { activeTab?: 'co
                         const val = e.target.value;
                         setSettings(s => s ? {...s, gaCustomScript: val} : null);
                       }}
-                      placeholder={`<!-- Raw Google Tag Manager / GTAG snippet -->`}
+                      placeholder={`<!-- Custom head scripts (Meta Pixel, etc.) -->`}
+                      className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2 text-[10px] font-mono text-gray-800 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-700 block mb-1">
+                      Custom Body Noscript (&lt;body&gt;)
+                    </label>
+                    <textarea 
+                      rows={2}
+                      value={settings?.gtmBodyScript || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSettings(s => s ? {...s, gtmBodyScript: val} : null);
+                      }}
+                      placeholder={`<!-- Custom body noscript iframe -->`}
                       className="w-full bg-white border border-gray-200 rounded-[12px] px-3.5 py-2 text-[10px] font-mono text-gray-800 placeholder:text-gray-300 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
                   </div>
