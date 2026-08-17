@@ -20,14 +20,13 @@ type AuthMode = 'signin' | 'signup' | 'forgot';
 
 export default function Auth() {
   const { settings } = useSettings();
-  const { tenantId, tenant, isAppGate, isImpersonating } = useTenant();
+  const { tenantId, isAppGate, isImpersonating } = useTenant();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCredentialError, setIsCredentialError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -163,38 +162,21 @@ export default function Auth() {
         // Refresh snap for role check
         const finalSnap = await getDoc(profileRef);
         const profileData = finalSnap.data() as any;
-        let userRole = profileData?.role || 'customer';
-        let userTenantId = profileData?.tenantId;
+        const userRole = profileData?.role || 'customer';
+        const userTenantId = profileData?.tenantId;
 
-        const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '') || userRole === 'superadmin';
-        const isTenantOwner = !!(tenant && tenant.adminEmail && user.email && (tenant.adminEmail.trim().toLowerCase() === user.email.trim().toLowerCase()));
+        const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '');
 
-        if (isTenantOwner && userRole !== 'admin') {
-          userRole = 'admin';
-          await setDoc(profileRef, {
-            role: 'admin',
-            tenantId: tenantId || tenant?.id || null,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        } else if (!userTenantId && tenantId && !isSuperAdminEmail) {
-          await setDoc(profileRef, {
-            tenantId: tenantId,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        }
-
-        // Enforce tenant boundary on Google sign-in only for explicit cross-tenant mismatches
-        if (!isAppGate && !isSuperAdminEmail && !isTenantOwner && tenantId && userTenantId) {
-          const matchesTenant = userTenantId === tenantId || userTenantId === tenant?.id || userTenantId === tenant?.slug;
-          if (!matchesTenant) {
+        // Enforce tenant boundary on Google sign-in
+        if (!isAppGate && !isSuperAdminEmail) {
+          if (userTenantId !== tenantId) {
             await auth.signOut();
-            throw new Error('This account is associated with another store workspace. Please sign in on your dedicated workspace.');
+            throw new Error('This account is not associated with this storefront. Please sign in on the correct workspace.');
           }
         }
 
-        if (from === '/' || from === '/login') {
-          if (userRole === 'admin' || isTenantOwner) navigate('/admin', { replace: true });
-          else if (userRole === 'superadmin' || isSuperAdminEmail) navigate('/superadmin', { replace: true });
+        if (from === '/') {
+          if (userRole === 'admin') navigate('/admin', { replace: true });
           else if (userRole === 'supplier') navigate('/supplier', { replace: true });
           else if (userRole === 'agent') navigate('/agent', { replace: true });
           else navigate('/customer/dashboard', { replace: true });
@@ -215,7 +197,6 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setIsCredentialError(false);
 
     try {
       if (mode === 'signin' || mode === 'signup') {
@@ -268,15 +249,13 @@ export default function Auth() {
             }
 
             const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '');
-            const isTenantOwner = !!(tenant && tenant.adminEmail && user.email && (tenant.adminEmail.trim().toLowerCase() === user.email.trim().toLowerCase()));
-
             await setDoc(doc(db, 'users', user.uid), {
               ...migratedData,
               uid: user.uid,
               email: user.email,
               displayName: fullName || (migratedData as any)?.displayName || 'Traveler',
               photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || (migratedData as any)?.displayName || 'T')}&background=random`,
-              role: isTenantOwner ? 'admin' : ((migratedData as any)?.role || (isSuperAdminEmail ? 'superadmin' : 'customer')),
+              role: (migratedData as any)?.role || (isSuperAdminEmail ? 'superadmin' : 'customer'),
               tenantId: tenantId || null,
               createdAt: (migratedData as any)?.createdAt || serverTimestamp(),
               updatedAt: serverTimestamp(),
@@ -284,67 +263,53 @@ export default function Auth() {
           } catch (mergeError) {
             console.error("[Auth] Merging failed, falling back to clean signup:", mergeError);
             const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '');
-            const isTenantOwner = !!(tenant && tenant.adminEmail && user.email && (tenant.adminEmail.trim().toLowerCase() === user.email.trim().toLowerCase()));
-
             // Fallback: Create basic profile even if merging fails
             await setDoc(doc(db, 'users', user.uid), {
               uid: user.uid,
               email: user.email,
               displayName: fullName || 'Traveler',
               photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || 'T')}&background=random`,
-              role: isTenantOwner ? 'admin' : (isSuperAdminEmail ? 'superadmin' : 'customer'),
+              role: isSuperAdminEmail ? 'superadmin' : 'customer',
               tenantId: tenantId || null,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             });
-          }
+            }
 
-          // --- MAILJET: Trigger Welcome & Verification Emails ---
-          try {
-            const baseHost = window.location.origin;
-            fetch(`${baseHost}/api/mail/welcome`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: user.email, name: fullName || 'Traveler' })
-            }).catch(e => console.warn('[Mailjet] Welcome fail', e));
-            
-            fetch(`${baseHost}/api/mail/verify`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: user.email })
-            }).catch(e => console.warn('[Mailjet] Verify fail', e));
-          } catch (mailError) {
-            console.warn('[Auth] Failed to send welcome/verification emails:', mailError);
-          }
-        } else {
+            // --- MAILJET: Trigger Welcome & Verification Emails ---
+            try {
+              const baseHost = window.location.origin;
+              fetch(`${baseHost}/api/mail/welcome`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, name: fullName || 'Traveler' })
+              }).catch(e => console.warn('[Mailjet] Welcome fail', e));
+              
+              fetch(`${baseHost}/api/mail/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email })
+              }).catch(e => console.warn('[Mailjet] Verify fail', e));
+            } catch (mailError) {
+              console.warn('[Auth] Failed to send welcome/verification emails:', mailError);
+            }
+          } else {
           // Double-check if the profile document exists in Firestore on Email Signin
           try {
             const profileSnap = await getDoc(doc(db, 'users', user.uid));
-            const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '');
-            const isTenantOwner = !!(tenant && tenant.adminEmail && user.email && (tenant.adminEmail.trim().toLowerCase() === user.email.trim().toLowerCase()));
-
             if (!profileSnap.exists()) {
-              console.log("[Auth] Profile does not exist in Firestore for signed-in user, initializing profile.");
+              console.log("[Auth] Profile does not exist in Firestore for signed-in user, initializing a default profile.");
+              const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '');
               await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
                 email: user.email,
                 displayName: user.displayName || email.split('@')[0] || 'Traveler',
                 photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || email.split('@')[0] || 'T')}&background=random`,
-                role: isTenantOwner ? 'admin' : (isSuperAdminEmail ? 'superadmin' : 'customer'),
+                role: isSuperAdminEmail ? 'superadmin' : 'customer',
                 tenantId: tenantId || null,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
               });
-            } else if (isTenantOwner) {
-              // Ensure tenant owner always has role admin and correct tenantId
-              const pData = profileSnap.data();
-              if (pData?.role !== 'admin' || !pData?.tenantId) {
-                await setDoc(doc(db, 'users', user.uid), {
-                  role: 'admin',
-                  tenantId: tenantId || tenant?.id || null,
-                  updatedAt: serverTimestamp()
-                }, { merge: true });
-              }
             }
           } catch (profileInitErr) {
             console.error("[Auth] Failed to verify or initialize profile during signin:", profileInitErr);
@@ -353,38 +318,21 @@ export default function Auth() {
 
         const profileSnap = await getDoc(doc(db, 'users', user.uid));
         const profileData = profileSnap.data() as any;
-        let userRole = profileData?.role || 'customer';
-        let userTenantId = profileData?.tenantId;
+        const userRole = profileData?.role || 'customer';
+        const userTenantId = profileData?.tenantId;
 
-        const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '') || userRole === 'superadmin';
-        const isTenantOwner = !!(tenant && tenant.adminEmail && user.email && (tenant.adminEmail.trim().toLowerCase() === user.email.trim().toLowerCase()));
+        const isSuperAdminEmail = ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(user.email?.toLowerCase() || '');
 
-        if (isTenantOwner && userRole !== 'admin') {
-          userRole = 'admin';
-          await setDoc(doc(db, 'users', user.uid), {
-            role: 'admin',
-            tenantId: tenantId || tenant?.id || null,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        } else if (!userTenantId && tenantId && !isSuperAdminEmail) {
-          await setDoc(doc(db, 'users', user.uid), {
-            tenantId: tenantId,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        }
-
-        // Enforce tenant boundary on email sign-in only for explicit cross-tenant mismatches
-        if (!isAppGate && !isSuperAdminEmail && !isTenantOwner && tenantId && userTenantId) {
-          const matchesTenant = userTenantId === tenantId || userTenantId === tenant?.id || userTenantId === tenant?.slug;
-          if (!matchesTenant) {
+        // Enforce tenant boundary on email sign-in
+        if (!isAppGate && !isSuperAdminEmail) {
+          if (userTenantId !== tenantId) {
             await auth.signOut();
-            throw new Error('This account is associated with another store workspace. Please sign in on your dedicated workspace.');
+            throw new Error('This account is not associated with this storefront. Please sign in on the correct workspace.');
           }
         }
 
-        if (from === '/' || from === '/login') {
-          if (userRole === 'admin' || isTenantOwner) navigate('/admin', { replace: true });
-          else if (userRole === 'superadmin' || isSuperAdminEmail) navigate('/superadmin', { replace: true });
+        if (from === '/') {
+          if (userRole === 'admin') navigate('/admin', { replace: true });
           else if (userRole === 'supplier') navigate('/supplier', { replace: true });
           else if (userRole === 'agent') navigate('/agent', { replace: true });
           else navigate('/customer/dashboard', { replace: true });
@@ -401,8 +349,7 @@ export default function Auth() {
       
       // Translating standard Firebase Auth error codes into helpful customer instructions
       if (err.code === 'auth/invalid-credential' || err.message?.includes('invalid-credential')) {
-        setIsCredentialError(true);
-        friendlyMessage = 'Invalid email address or password. Please check your spelling or reset your password.';
+        friendlyMessage = 'Invalid email address or password. Please verify your credentials and try again.';
       } else if (err.code === 'auth/email-already-in-use') {
         friendlyMessage = 'This email address is already in use. Please sign in instead or reset your password.';
       } else if (err.code === 'auth/weak-password') {
@@ -465,21 +412,8 @@ export default function Auth() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-[10px] border border-red-100 space-y-2">
-                <p className="font-medium">{error}</p>
-                {isCredentialError && (
-                  <div className="pt-2 border-t border-red-100/80 flex flex-col gap-2">
-                    <Link 
-                      to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                      className="inline-flex items-center text-xs font-bold text-[#00A651] hover:underline"
-                    >
-                      → Reset your password via secure code
-                    </Link>
-                    <p className="text-xs text-gray-500">
-                      If you registered using Google Sign-In, please use the <strong>Google</strong> button below.
-                    </p>
-                  </div>
-                )}
+              <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-[10px] border border-red-100">
+                {error}
               </div>
             )}
 
@@ -537,7 +471,7 @@ export default function Auth() {
                       <label className="text-xs font-bold text-gray-400">Password</label>
                       {mode === 'signin' && (
                         <Link 
-                          to={email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password'}
+                          to="/forgot-password"
                           className="text-xs font-bold text-[#00A651] hover:underline"
                         >
                           Forgot password?

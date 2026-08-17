@@ -130,14 +130,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const data = snapshot.data() as SiteSettings;
         setSettings(data);
         applySettings(data);
-        updateTenantGA(tenantId, {
-          gaMeasurementId: data.gaMeasurementId,
-          gtmId: data.gtmId,
-          googleAdsId: data.googleAdsId,
-          googleAdsConversionLabel: data.googleAdsConversionLabel,
-          gaCustomScript: data.gaCustomScript,
-          gtmBodyScript: data.gtmBodyScript
-        });
+        updateTenantGA(tenantId, data.gaMeasurementId, data.gaCustomScript);
       } else {
         const fallback: SiteSettings = {
           ...defaultSettings,
@@ -151,14 +144,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         };
         setSettings(fallback);
         applySettings(fallback);
-        updateTenantGA(tenantId, {
-          gaMeasurementId: fallback.gaMeasurementId,
-          gtmId: fallback.gtmId,
-          googleAdsId: fallback.googleAdsId,
-          googleAdsConversionLabel: fallback.googleAdsConversionLabel,
-          gaCustomScript: fallback.gaCustomScript,
-          gtmBodyScript: fallback.gtmBodyScript
-        });
+        updateTenantGA(tenantId, fallback.gaMeasurementId, fallback.gaCustomScript);
       }
     });
 
