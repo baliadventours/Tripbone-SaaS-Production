@@ -7339,17 +7339,22 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         let userData = snap.data() as UserProfile | undefined;
         let userRole = userData?.role;
 
-        // Auto-upgrade master admin
+        // Auto-upgrade master admin and tenant owner
+        const userEmailLower = user.email ? user.email.trim().toLowerCase() : '';
         const adminEmailRaw = (import.meta.env.VITE_ADMIN_EMAIL || 'baliadventours@gmail.com').trim().toLowerCase();
-        if (user.email && user.email.trim().toLowerCase() === adminEmailRaw && userRole !== 'admin') {
+        const isMasterAdmin = userEmailLower === adminEmailRaw || ['baliadventours@gmail.com', 'admin@tripbone.com', 'kuotabox@gmail.com'].includes(userEmailLower);
+        const isTenantOwner = !!(tenant && tenant.adminEmail && userEmailLower === tenant.adminEmail.trim().toLowerCase());
+
+        if ((isMasterAdmin || isTenantOwner) && userRole !== 'admin') {
           const profileData = {
             email: user.email,
             role: 'admin' as const,
+            tenantId: tenant?.id || (userData as any)?.tenantId || null,
             updatedAt: serverTimestamp()
           };
           await setDoc(userRef, profileData, { merge: true });
           userRole = 'admin';
-          userData = { uid: user.uid, ...profileData } as UserProfile;
+          userData = { uid: user.uid, ...(userData || {}), ...profileData } as UserProfile;
         } else if (userData) {
           userData.uid = user.uid;
         }

@@ -5,7 +5,7 @@ import { getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { formatPlanName, getPlanPrice, generateInvoiceNumber, getNextBillingDate } from '../lib/planUtils';
 import { useTenant } from '../lib/TenantContext';
 import { uploadImage } from '../lib/imgbb';
-import { LogOut, Lock, Loader2, Key } from 'lucide-react';
+import { LogOut, Lock, Loader2, Key, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import { 
   Building, 
   Users, 
@@ -140,7 +140,10 @@ export default function SaaSSuperAdmin() {
   // Modal States
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [tenantModalTab, setTenantModalTab] = useState<'overview' | 'billing' | 'transactions'>('overview');
+  const [tenantModalTab, setTenantModalTab] = useState<'overview' | 'security' | 'billing' | 'transactions'>('overview');
+  const [tenantNewPassword, setTenantNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordStatusMsg, setPasswordStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isDocManagerOpen, setIsDocManagerOpen] = useState(false);
 
   const toggleDarkMode = () => {
@@ -1508,6 +1511,80 @@ export default function SaaSSuperAdmin() {
       await changeTenantStatus(tenantId, nextStatus);
     } catch (err) {
       console.error('Error updating tenant status:', err);
+    }
+  };
+
+  const handleSetTenantPassword = async () => {
+    if (!selectedTenant) return;
+    const adminEmail = selectedTenant.adminEmail || selectedTenant.email;
+    if (!adminEmail) {
+      setPasswordStatusMsg({ type: 'error', text: 'Tenant has no admin email configured.' });
+      return;
+    }
+    if (!tenantNewPassword || tenantNewPassword.length < 6) {
+      setPasswordStatusMsg({ type: 'error', text: 'Password must be at least 6 characters.' });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordStatusMsg(null);
+    try {
+      const currentUser = auth.currentUser;
+      const idToken = currentUser ? await currentUser.getIdToken() : '';
+      const res = await fetch('/api/admin/set-tenant-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          tenantId: selectedTenant.id,
+          email: adminEmail,
+          newPassword: tenantNewPassword
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update tenant password.');
+      }
+
+      setPasswordStatusMsg({ type: 'success', text: `Password successfully updated for ${adminEmail}!` });
+      setTenantNewPassword('');
+    } catch (err: any) {
+      console.error(err);
+      setPasswordStatusMsg({ type: 'error', text: err.message || 'Error updating password.' });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleSendTenantPasswordReset = async () => {
+    if (!selectedTenant) return;
+    const adminEmail = selectedTenant.adminEmail || selectedTenant.email;
+    if (!adminEmail) {
+      setPasswordStatusMsg({ type: 'error', text: 'Tenant has no admin email configured.' });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordStatusMsg(null);
+    try {
+      const res = await fetch('/api/auth/forgot-password-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: adminEmail, tenantId: selectedTenant.id })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send password reset code.');
+      }
+      setPasswordStatusMsg({ type: 'success', text: data.message || `Reset code generated for ${adminEmail}!` });
+    } catch (err: any) {
+      console.error(err);
+      setPasswordStatusMsg({ type: 'error', text: err.message || 'Error sending reset code.' });
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -6608,17 +6685,20 @@ export default function SaaSSuperAdmin() {
 
             {/* Modal Navigation */}
             <div className={`flex border-b px-6 space-x-6 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-              {(['overview', 'billing', 'transactions'] as const).map((tab) => (
+              {(['overview', 'security', 'billing', 'transactions'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setTenantModalTab(tab)}
+                  onClick={() => {
+                    setTenantModalTab(tab);
+                    setPasswordStatusMsg(null);
+                  }}
                   className={`py-4 text-sm font-semibold capitalize border-b-2 transition-colors ${
                     tenantModalTab === tab 
                       ? 'border-indigo-500 text-indigo-500' 
                       : `border-transparent ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`
                   }`}
                 >
-                  {tab}
+                  {tab === 'security' ? 'Credentials & Access' : tab}
                 </button>
               ))}
             </div>
@@ -6634,8 +6714,16 @@ export default function SaaSSuperAdmin() {
                       <div className={`font-mono text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedTenant.email || 'Not provided'}</div>
                     </div>
                     <div>
+                      <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Admin Account Email</label>
+                      <div className={`font-mono text-sm font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{selectedTenant.adminEmail || selectedTenant.email || 'Not configured'}</div>
+                    </div>
+                    <div>
                       <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Phone</label>
                       <div className={`font-mono text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedTenant.phone || 'Not provided'}</div>
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Subdomain Slug</label>
+                      <div className={`font-mono text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedTenant.slug || 'root'}</div>
                     </div>
                     <div className="col-span-2">
                       <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Address</label>
@@ -6666,6 +6754,92 @@ export default function SaaSSuperAdmin() {
                       >
                         <ShieldAlert className="w-4 h-4" />
                         <span>Delete Workspace Permanently</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tenantModalTab === 'security' && (
+                <div className="space-y-6">
+                  {passwordStatusMsg && (
+                    <div className={`p-4 rounded-xl border flex items-center gap-3 text-sm font-medium ${
+                      passwordStatusMsg.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800'
+                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800'
+                    }`}>
+                      {passwordStatusMsg.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+                      <span>{passwordStatusMsg.text}</span>
+                    </div>
+                  )}
+
+                  <div className={`p-6 rounded-xl border ${isDarkMode ? 'border-gray-800 bg-slate-900/50' : 'border-gray-200 bg-gray-50'}`}>
+                    <h4 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tenant Account Credentials</h4>
+                    <p className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      The tenant owner can log in using either their registered email and password or Google Sign-In with their email address.
+                    </p>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Admin Login Email</label>
+                        <div className={`font-mono text-sm p-3 rounded-lg border select-all ${
+                          isDarkMode ? 'bg-slate-950 border-gray-800 text-emerald-400' : 'bg-white border-gray-200 text-emerald-700'
+                        }`}>
+                          {selectedTenant.adminEmail || selectedTenant.email || 'No admin email configured'}
+                        </div>
+                      </div>
+
+                      <div className="pt-3">
+                        <label className={`block text-xs font-semibold mb-1.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Set New Tenant Password</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Enter new strong password (min 6 chars)"
+                            value={tenantNewPassword}
+                            onChange={(e) => setTenantNewPassword(e.target.value)}
+                            className={`flex-1 rounded-lg border px-4 py-2 text-sm outline-none focus:border-indigo-500 ${
+                              isDarkMode ? 'bg-slate-950 border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                          />
+                          <button
+                            onClick={handleSetTenantPassword}
+                            disabled={isUpdatingPassword || !tenantNewPassword}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {isUpdatingPassword ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <KeyRound className="w-3.5 h-3.5" />}
+                            <span>Set Password</span>
+                          </button>
+                        </div>
+                        <p className={`text-[11px] mt-1.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                          This directly synchronizes Firebase Authentication and updates the tenant owner record instantly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`p-6 rounded-xl border ${isDarkMode ? 'border-gray-800 bg-slate-900/50' : 'border-gray-200 bg-gray-50'}`}>
+                    <h4 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Quick Access Actions</h4>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={handleSendTenantPasswordReset}
+                        disabled={isUpdatingPassword}
+                        className={`px-4 py-2 border rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+                          isDarkMode ? 'border-gray-700 hover:bg-gray-800 text-gray-200' : 'border-gray-300 hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Send 6-Digit OTP Reset Code</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsTenantModalOpen(false);
+                          impersonateTenant(selectedTenant);
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Instant Superadmin Impersonation</span>
                       </button>
                     </div>
                   </div>
