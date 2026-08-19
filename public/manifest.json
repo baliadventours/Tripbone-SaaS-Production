@@ -1,10 +1,10 @@
 {
-  "name": "Bali Adventours Admin",
-  "short_name": "Bali Adventours",
-  "description": "Bali Adventours Admin Portal & Booking Management",
-  "start_url": "/admin",
+  "name": "Tripbone",
+  "short_name": "Tripbone",
+  "description": "AI-Powered Tour Operator Software & Booking Platform",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#00A651",
+  "background_color": "#ffffff",
   "theme_color": "#00A651",
   "orientation": "portrait-primary",
   "icons": [

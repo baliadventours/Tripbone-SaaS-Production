@@ -1,8 +1,7 @@
-const CACHE_NAME = 'bali-adventours-admin-v1';
+const CACHE_NAME = 'tripbone-pwa-v3';
 const ASSETS = [
   '/',
-  '/admin',
-  '/manifest.json'
+  '/admin'
 ];
 
 // Install Event
@@ -39,17 +38,21 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(e.request.url);
 
+  // Manifests must ALWAYS be fetched fresh from network so multi-tenant branding is dynamic
+  if (url.pathname === '/manifest.json' || url.pathname === '/site.webmanifest' || url.pathname === '/manifest.webmanifest') {
+    return;
+  }
+
   // Skip Firestore, APIs, and any dynamic checkout or dynamic admin sub-paths
   if (url.pathname.includes('/api/') || 
       url.pathname.includes('firestore.googleapis.com')) {
     return;
   }
 
-  // ONLY handle static assets, the home page, the admin page, manifest, and service worker itself
+  // ONLY handle static assets, the home page, the admin page, and service worker itself
   const isStatic = url.pathname.match(/\.(js|css|gif|png|jpe?g|svg|woff2?|ico|json)$/) || 
                    url.pathname === '/' || 
-                   url.pathname === '/admin' || 
-                   url.pathname === '/manifest.json';
+                   url.pathname === '/admin';
 
   if (!isStatic) {
     return; // Let browser handle all non-static pages and checkout flows natively!
@@ -80,19 +83,19 @@ self.addEventListener('fetch', (e) => {
 
 // Listen to Background Messages or VAPID Push Notifications
 self.addEventListener('push', (e) => {
-  let data = { title: 'Bali Alert', body: 'New travel activity update!' };
+  let data = { title: 'Tripbone Alert', body: 'New travel activity update!' };
   if (e.data) {
     try {
       data = e.data.json();
     } catch (err) {
-      data = { title: 'Bali Alert', body: e.data.text() };
+      data = { title: 'Tripbone Alert', body: e.data.text() };
     }
   }
 
   const options = {
     body: data.body,
-    icon: 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
-    badge: 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+    icon: data.icon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+    badge: data.badge || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/admin'

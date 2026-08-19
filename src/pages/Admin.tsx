@@ -7093,12 +7093,13 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
 
     // 2. Dispatch a system notification
     if ('Notification' in window && Notification.permission === 'granted') {
+      const brandIcon = siteSettings?.faviconURL || tenant?.favicon || tenant?.logo || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then((reg) => {
           reg.showNotification(title, {
             body,
-            icon: 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
-            badge: 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+            icon: brandIcon,
+            badge: brandIcon,
             vibrate: [200, 100, 200],
             data: { url }
           } as any);
@@ -8023,8 +8024,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     if (!printWindow) return;
 
     const primaryColor = siteSettings?.primaryColor || '#10b981';
-    const logoUrl = siteSettings?.logoURL;
-    const siteName = siteSettings?.siteName || 'Bali Adventours';
+    const logoUrl = siteSettings?.logoURL || tenant?.logo;
+    const siteName = siteSettings?.siteName || tenant?.companyName || 'Tripbone';
 
     const manifestHtml = `
       <html>
@@ -12104,7 +12105,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                                <Icons.Download className="h-5 w-5" />
                              </div>
                              <div className="text-left py-0.5">
-                               <h4 className="font-extrabold text-xs sm:text-sm text-gray-900">Install Bali Adventours Mobile App</h4>
+                               <h4 className="font-extrabold text-xs sm:text-sm text-gray-900">Install {siteSettings?.siteName || tenant?.companyName || 'Admin'} Mobile App</h4>
                                <p className="text-[9.5px]/normal sm:text-[10px]/relaxed text-gray-500 font-semibold max-w-md mt-0.5">Add the application directly to your home screen for rapid offline-first access and push alerts.</p>
                              </div>
                            </div>

@@ -105,7 +105,7 @@ export function useTenantSEO() {
 
     const siteFavicon = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalSEO?.favicon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
     if (siteFavicon) {
-      ['icon', 'apple-touch-icon'].forEach(rel => {
+      ['icon', 'shortcut icon', 'apple-touch-icon'].forEach(rel => {
         let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
         if (!link) {
           link = document.createElement('link');
@@ -114,6 +114,52 @@ export function useTenantSEO() {
         }
         link.href = siteFavicon;
       });
+    }
+
+    // Dynamic Client-Side Web App Manifest Injection & PWA Meta Synchronization
+    const activeThemeColor = (settings as any)?.accentColor || settings?.primaryColor || '#00A651';
+    updateMeta('apple-mobile-web-app-title', siteName);
+    updateMeta('theme-color', activeThemeColor);
+
+    try {
+      const manifestObj = {
+        name: siteName,
+        short_name: siteName.length > 20 ? siteName.slice(0, 20) : siteName,
+        description: siteDescription,
+        start_url: window.location.origin + '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: activeThemeColor,
+        orientation: 'portrait-primary',
+        icons: [
+          {
+            src: siteFavicon,
+            sizes: '192x192 512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: siteFavicon,
+            sizes: '192x192 512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ]
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+      const manifestBlobUrl = URL.createObjectURL(manifestBlob);
+
+      let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+      if (!manifestLink) {
+        manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        document.head.appendChild(manifestLink);
+      }
+      manifestLink.href = manifestBlobUrl;
+    } catch (manifestErr) {
+      console.warn('Failed to construct dynamic manifest blob:', manifestErr);
     }
 
   }, [tenant, settings, isMaster, globalSEO, location.pathname]);

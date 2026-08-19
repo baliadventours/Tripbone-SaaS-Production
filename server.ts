@@ -6401,6 +6401,72 @@ export async function createServer() {
     res.redirect(303, req.originalUrl);
   });
 
+  // --- DYNAMIC MULTI-TENANT PWA WEB APP MANIFEST ROUTE ---
+  app.get(['/manifest.json', '/site.webmanifest', '/manifest.webmanifest'], async (req: any, res: any) => {
+    try {
+      const seo = await getSEOContent(req);
+      const brandName = seo.siteName || 'Tripbone';
+      const shortBrand = brandName.length > 20 ? brandName.slice(0, 20) : brandName;
+      const description = seo.description || `${brandName} - AI Tour Operator & Booking Platform`;
+      const iconUrl = seo.favicon || seo.image || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
+      
+      const themeColor = seo.preloadedData?.settings?.accentColor || seo.preloadedData?.settings?.primaryColor || '#00A651';
+      const backgroundColor = '#ffffff';
+
+      const manifest = {
+        name: brandName,
+        short_name: shortBrand,
+        description: description,
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: backgroundColor,
+        theme_color: themeColor,
+        orientation: 'portrait-primary',
+        icons: [
+          {
+            src: iconUrl,
+            sizes: '192x192 512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: iconUrl,
+            sizes: '192x192 512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ]
+      };
+
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.json(manifest);
+    } catch (manifestErr: any) {
+      console.error('[Dynamic Manifest Error]:', manifestErr);
+      return res.json({
+        name: 'Tripbone',
+        short_name: 'Tripbone',
+        description: 'AI Tour Operator & Booking Platform',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#00A651',
+        orientation: 'portrait-primary',
+        icons: [
+          {
+            src: 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          }
+        ]
+      });
+    }
+  });
+
   const isProd = 
     process.env.NODE_ENV === "production" || 
     (typeof __filename !== "undefined" && (__filename.includes("server.cjs") || __filename.includes("dist"))) ||

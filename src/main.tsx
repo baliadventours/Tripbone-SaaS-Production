@@ -9,7 +9,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('Bali Adventours PWA ServiceWorker active:', registration.scope);
+        console.log('PWA ServiceWorker active:', registration.scope);
       })
       .catch((error) => {
         console.error('ServiceWorker registration error:', error);
