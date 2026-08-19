@@ -8718,6 +8718,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       faqs: [], locationMapUrl: '',
       infoSections: [], importantInfo: '',
       maxCapacity: 0, slotCapacity: 0,
+      cutOffHours: 0,
+      cutOffNotice: '',
       supplierId: '', supplierName: '', status: 'draft',
       tourDurationType: 'single_day',
       multiDayItinerary: [],
@@ -13729,6 +13731,90 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                         <span className="text-[10px] font-bold text-gray-500">
                           {formData.timeSlots?.length || 0} time slot(s) selected
                         </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Booking Cut-Off Time Section */}
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-black text-gray-900 border-l-4 border-primary pl-4">
+                        Booking Cut-Off Time (Advance Notice)
+                      </h3>
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                        {formData.cutOffHours && formData.cutOffHours > 0
+                          ? `Bookings close ${formData.cutOffHours}h before start`
+                          : "Instant / Same-Day Booking Enabled"}
+                      </span>
+                    </div>
+                    
+                    <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                      <p className="text-xs text-gray-500 font-medium">
+                        Set how many hours before departure customers are allowed to make a booking. This ensures you have adequate time to schedule guides, arrange vehicles, and confirm operations.
+                      </p>
+
+                      {/* Quick Presets */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-gray-400">Quick Presets</label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { label: "0h (Instant / Same Day)", value: 0 },
+                            { label: "2 Hours", value: 2 },
+                            { label: "4 Hours", value: 4 },
+                            { label: "6 Hours", value: 6 },
+                            { label: "12 Hours", value: 12 },
+                            { label: "24 Hours (1 Day)", value: 24 },
+                            { label: "48 Hours (2 Days)", value: 48 },
+                            { label: "72 Hours (3 Days)", value: 72 },
+                          ].map(preset => (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, cutOffHours: preset.value })}
+                              className={cn(
+                                "px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                                (formData.cutOffHours ?? 0) === preset.value
+                                  ? "bg-primary text-white border-primary shadow-sm"
+                                  : "bg-white text-gray-700 border-gray-200 hover:border-primary hover:text-primary"
+                              )}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Custom Hours and Notice Override */}
+                      <div className="grid md:grid-cols-2 gap-4 pt-2 border-t border-gray-200/60">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                            Custom Cut-Off (Hours)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="720"
+                            value={formData.cutOffHours ?? 0}
+                            onChange={e => setFormData({ ...formData, cutOffHours: Math.max(0, parseInt(e.target.value) || 0) })}
+                            className="w-full rounded-xl border-2 border-gray-200 p-3 text-sm font-bold focus:border-primary focus:outline-none bg-white"
+                            placeholder="e.g. 12"
+                          />
+                          <p className="text-[10px] text-gray-400">0 = instant booking up to departure time.</p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                            Custom Notice to Customer (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.cutOffNotice || ''}
+                            onChange={e => setFormData({ ...formData, cutOffNotice: e.target.value })}
+                            className="w-full rounded-xl border-2 border-gray-200 p-3 text-sm font-bold focus:border-primary focus:outline-none bg-white"
+                            placeholder="e.g. Please book at least 12 hours in advance for hotel pickup"
+                          />
+                          <p className="text-[10px] text-gray-400">Leave blank to use automatic operational notice.</p>
+                        </div>
                       </div>
                     </div>
                   </div>

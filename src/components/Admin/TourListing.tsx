@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Copy, Edit2, Trash2, LayoutGrid, List, FileDown, FileUp, Loader2, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Copy, Edit2, Trash2, LayoutGrid, List, FileDown, FileUp, Loader2, X, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Tour, Category } from '../../types';
 import { cn } from '../../lib/utils';
 
@@ -305,7 +305,18 @@ const TourListing = ({
                       </div>
                       <div>
                         <p className="font-bold text-gray-900 group-hover:text-primary transition-colors">{tour.title}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{tour.duration}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{tour.duration}</p>
+                          {tour.cutOffHours !== undefined && tour.cutOffHours > 0 ? (
+                            <span className="text-[9px] font-extrabold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 flex items-center gap-1">
+                              <Clock className="h-2.5 w-2.5" /> {tour.cutOffHours}h cut-off
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                              Instant booking
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>

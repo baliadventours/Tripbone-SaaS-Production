@@ -88,13 +88,19 @@ export default function ForbiddenSuperAdmin() {
             <span>Return to Homepage</span>
           </a>
 
-          <a
-            href="/admin"
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-rose-600/20 transition"
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('tripbone_preview_tenant');
+              sessionStorage.removeItem('tripbone_impersonated_tenant_id');
+              sessionStorage.removeItem('tripbone_is_impersonating');
+              window.location.href = '/superadmin';
+            }}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-orange-600/20 transition cursor-pointer"
           >
-            <Building2 className="w-4 h-4" />
-            <span>Tenant Merchant Admin</span>
-          </a>
+            <ExternalLink className="w-4 h-4" />
+            <span>Open SaaS Superadmin</span>
+          </button>
         </div>
 
       </div>

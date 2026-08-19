@@ -161,6 +161,8 @@ export interface Tour {
     answer: string;
   }[];
   timeSlots?: string[]; // Available times e.g. ["08:00", "08:30"]
+  cutOffHours?: number; // Cut-off time in hours before departure (e.g. 0 for instant, 2, 12, 24, 48)
+  cutOffNotice?: string; // Optional custom operational notice
   maxCapacity?: number; // Maximum participants per day/tour
   slotCapacity?: number; // Optional: Maximum participants per specific time slot if different from daily
   urgencyPointIds?: string[]; // Global urgency points
@@ -486,6 +488,7 @@ export interface SiteSettings {
   bodyFont: string;
   headingFont: string;
   currency: string;
+  defaultCutOffHours?: number; // Default booking cut-off in hours (e.g. 12 or 24)
   destinationRegion?: string;
   customDomain?: string;
   heroYoutubeUrl?: string;

@@ -1,12 +1,13 @@
 import { useState, FormEvent, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Info, Rocket, Check, X, Plus, Minus, ChevronRight, ChevronLeft, ShieldCheck, Mail, Phone, User as UserIcon, CreditCard, Loader2, ChevronDown } from 'lucide-react';
+import { Calendar, Users, Info, Rocket, Check, X, Plus, Minus, ChevronRight, ChevronLeft, ShieldCheck, Mail, Phone, User as UserIcon, CreditCard, Loader2, ChevronDown, Clock, AlertTriangle } from 'lucide-react';
 import { Tour, TourPackage, PricingTier, Booking, AddOn } from '../../types';
 import { formatPrice, cn } from '../../lib/utils';
 import FormattedPrice from '../FormattedPrice';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../../lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, onSnapshot } from '@/src/lib/firebase';
+import { getEffectiveCutOffHours, isSlotCutOff, isDateFullyCutOff, formatCutOffNotice, validateBookingCutOff } from '../../lib/cutOffUtils';
 
 interface BookingFormProps {
   tour: Tour;
@@ -19,6 +20,10 @@ export default function BookingForm({ tour }: BookingFormProps) {
   const [date, setDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [cutOffError, setCutOffError] = useState<string | null>(null);
+
+  // Effective cut-off time in hours
+  const cutOffHours = useMemo(() => getEffectiveCutOffHours(tour), [tour]);
 
   const minRequired = useMemo(() => {
     if (!tour || !tour.packages || tour.packages.length === 0) return 1;
@@ -111,14 +116,30 @@ export default function BookingForm({ tour }: BookingFormProps) {
 
   const handleAvailabilityCheck = (e: FormEvent) => {
     e.preventDefault();
+    setCutOffError(null);
     if (!date) {
       alert("Please select a date first.");
       return;
     }
+
+    // Validate cut-off time
+    const validation = validateBookingCutOff(tour, date, selectedTime);
+    if (!validation.isValid) {
+      setCutOffError(validation.error || "Booking cut-off time has passed for this departure.");
+      return;
+    }
+
     // Navigate to checkout page instead of opening modal
     const timeParam = selectedTime ? `&time=${selectedTime}` : '';
     navigate(`/checkout/${tour.id}?date=${date}&adults=${adults}&children=${children}${timeParam}`);
   };
+
+  // Reset selected time if the newly selected date makes that time cut-off
+  useEffect(() => {
+    if (date && selectedTime && isSlotCutOff(date, selectedTime, cutOffHours)) {
+      setSelectedTime('');
+    }
+  }, [date, selectedTime, cutOffHours]);
 
   if (!tour.packages || tour.packages.length === 0) {
     return (
@@ -145,6 +166,30 @@ export default function BookingForm({ tour }: BookingFormProps) {
             )}
           </div>
         </div>
+
+        {/* Booking Cut-off Operational Badge */}
+        <div className="mb-6 flex items-center gap-2.5 p-3 rounded-xl bg-orange-50/70 border border-orange-100/90 text-orange-950">
+          <Clock className="h-4 w-4 text-primary shrink-0" />
+          <div className="text-left">
+            <p className="text-[11px] font-extrabold text-gray-900 tracking-tight leading-tight">
+              {formatCutOffNotice(cutOffHours)}
+            </p>
+            <p className="text-[9.5px] font-semibold text-gray-500 mt-0.5">
+              {cutOffHours > 0 
+                ? `Please complete booking at least ${cutOffHours}h prior to ensure guide & vehicle scheduling.` 
+                : `Instant confirmation with flexible last-minute booking.`}
+            </p>
+          </div>
+        </div>
+
+        {cutOffError && (
+          <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-red-700 animate-in fade-in">
+            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+            <div className="text-left text-xs font-bold leading-relaxed">
+              {cutOffError}
+            </div>
+          </div>
+        )}
 
         <form id="tour-booking-form" onSubmit={handleAvailabilityCheck} className="space-y-6">
           {/* Modern Date Picker Dropdown */}
@@ -225,23 +270,30 @@ export default function BookingForm({ tour }: BookingFormProps) {
                         const isPast = dateObj < new Date(new Date().setHours(0,0,0,0));
                         const dateString = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
                         const isSelected = date === dateString;
+                        const isCutOff = isDateFullyCutOff(dateString, tour.timeSlots, cutOffHours);
+                        const isDisabled = isPast || isCutOff;
 
                         return (
                           <button
                             key={d}
                             type="button"
-                            disabled={isPast}
+                            disabled={isDisabled}
+                            title={isPast ? "Past date" : isCutOff ? `Booking closed (Cut-off: ${cutOffHours}h before start)` : undefined}
                             onClick={() => {
                               setDate(dateString);
+                              setCutOffError(null);
                               setShowDatePicker(false);
                             }}
                             className={cn(
-                              "aspect-square rounded-[8px] text-[13px] font-bold transition-all flex items-center justify-center relative",
+                              "aspect-square rounded-[8px] text-[13px] font-bold transition-all flex flex-col items-center justify-center relative group",
                               isSelected ? "bg-primary text-white shadow-lg" : 
-                              isPast ? "text-gray-200 cursor-not-allowed" : "text-gray-600 hover:bg-primary/10 hover:text-primary"
+                              isDisabled ? "text-gray-300 cursor-not-allowed bg-gray-50/50 line-through decoration-gray-300/60" : "text-gray-700 hover:bg-primary/10 hover:text-primary"
                             )}
                           >
-                            {d}
+                            <span>{d}</span>
+                            {isCutOff && !isPast && (
+                              <span className="text-[7px] font-black text-red-400/80 -mt-1 leading-none no-underline block">Closed</span>
+                            )}
                           </button>
                         );
                       })}
@@ -255,23 +307,43 @@ export default function BookingForm({ tour }: BookingFormProps) {
           {/* Time Picker */}
           {tour.timeSlots && tour.timeSlots.length > 0 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
-              <label className="text-xs font-bold text-gray-500 block text-left">2. Preferred Time</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-500 block text-left">2. Preferred Time</label>
+                {cutOffHours > 0 && (
+                  <span className="text-[10px] text-gray-400 font-semibold flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-orange-400" /> Closes {cutOffHours}h prior
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-2">
-                {tour.timeSlots.map(time => (
-                  <button
-                    key={time}
-                    type="button"
-                    onClick={() => setSelectedTime(time)}
-                    className={cn(
-                      "py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer focus:outline-none",
-                      selectedTime === time
-                        ? "bg-primary border-primary text-white shadow-sm"
-                        : "bg-gray-50 border-gray-100 text-gray-500 hover:border-orange-200 hover:bg-white"
-                    )}
-                  >
-                    {time}
-                  </button>
-                ))}
+                {tour.timeSlots.map(time => {
+                  const slotCutOff = date ? isSlotCutOff(date, time, cutOffHours) : false;
+                  return (
+                    <button
+                      key={time}
+                      type="button"
+                      disabled={slotCutOff}
+                      onClick={() => {
+                        setSelectedTime(time);
+                        setCutOffError(null);
+                      }}
+                      title={slotCutOff ? `Cut-off threshold reached (${cutOffHours}h prior)` : undefined}
+                      className={cn(
+                        "py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer focus:outline-none flex flex-col items-center justify-center gap-0.5",
+                        slotCutOff 
+                          ? "bg-gray-100/70 border-gray-200/80 text-gray-300 cursor-not-allowed line-through"
+                          : selectedTime === time
+                            ? "bg-primary border-primary text-white shadow-sm"
+                            : "bg-gray-50 border-gray-100 text-gray-600 hover:border-orange-200 hover:bg-white"
+                      )}
+                    >
+                      <span>{time}</span>
+                      {slotCutOff && (
+                        <span className="text-[8px] font-bold text-red-400 no-underline">Cut-off</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

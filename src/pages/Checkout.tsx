@@ -17,6 +17,7 @@ import {
 } from '@/src/lib/firebase';
 import { Tour, TourPackage, Booking, AddOn, TransportOption, Coupon, UserProfile } from "../types";
 import { useTenant } from "../lib/TenantContext";
+import { getEffectiveCutOffHours, isSlotCutOff, isDateFullyCutOff, formatCutOffNotice, validateBookingCutOff } from "../lib/cutOffUtils";
 import {
   ChevronRight,
   ChevronDown,
@@ -255,6 +256,13 @@ export default function Checkout() {
   const validateStep = (currentStep: CheckoutStep): { isValid: boolean; error: string | null } => {
     if (currentStep === "selection") {
       if (!date) return { isValid: false, error: "Please select a date" };
+      
+      // Cut-off time validation
+      const cutOffCheck = validateBookingCutOff(tour, date, selectedTime);
+      if (!cutOffCheck.isValid) {
+        return { isValid: false, error: cutOffCheck.error || "The booking cut-off time for this departure has passed. Please choose another date or time." };
+      }
+
       if (!selectedPackage) return { isValid: false, error: "Please select a tour package" };
       if (availableTransports.length > 0 && !selectedTransport) return { isValid: false, error: "Please select a transport / pick-up option" };
       if (selectedTransport && selectedTransport.maxCapacity && (adults + children) > selectedTransport.maxCapacity) {
@@ -1472,26 +1480,33 @@ const toggleAddOn = (addon: AddOn) => {
                               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                               const isPast = dateObj < today;
                               const isSelected = date === dateStr;
+                              const effectiveCutOff = getEffectiveCutOffHours(tour);
+                              const isCutOff = isDateFullyCutOff(dateStr, tour.timeSlots, effectiveCutOff);
+                              const isDisabled = isPast || isCutOff;
 
                               cells.push(
                                 <button
                                   key={d}
                                   type="button"
-                                  disabled={isPast}
+                                  disabled={isDisabled}
+                                  title={isPast ? "Past date" : isCutOff ? `Cut-off reached (${effectiveCutOff}h prior)` : undefined}
                                   onClick={() => {
                                     setDate(dateStr);
                                     setShowDatePicker(false); // Disappears/collapses upon selection
                                   }}
                                   className={cn(
-                                    "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all cursor-pointer",
+                                    "aspect-square rounded-xl flex flex-col items-center justify-center text-xs font-black transition-all cursor-pointer",
                                     isSelected 
                                       ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
-                                      : isPast 
-                                        ? "text-slate-300 line-through opacity-40 cursor-not-allowed" 
+                                      : isDisabled 
+                                        ? "text-slate-300 line-through opacity-40 cursor-not-allowed bg-slate-50" 
                                         : "text-slate-800 bg-white border border-slate-200 hover:border-primary hover:bg-orange-50"
                                   )}
                                 >
-                                  {d}
+                                  <span>{d}</span>
+                                  {isCutOff && !isPast && (
+                                    <span className="text-[7px] font-black text-rose-500 no-underline leading-none">Closed</span>
+                                  )}
                                 </button>
                               );
                             }
@@ -1502,6 +1517,14 @@ const toggleAddOn = (addon: AddOn) => {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Booking Cut-off Notice */}
+                {tour && (
+                  <div className="p-3 rounded-xl text-xs font-semibold bg-orange-50/70 border border-orange-200/80 text-orange-950 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary shrink-0" />
+                    <span>{formatCutOffNotice(getEffectiveCutOffHours(tour))}</span>
+                  </div>
+                )}
 
                 {/* Capacity & Availability Indicator */}
                 {date && spotsLeft !== null && (
@@ -1519,23 +1542,41 @@ const toggleAddOn = (addon: AddOn) => {
                 {/* Preferred Departure Time */}
                 {tour.timeSlots && tour.timeSlots.length > 0 && (
                   <div className="space-y-2 pt-1">
-                    <label className="text-xs font-bold text-slate-700 block">Preferred Departure Time</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 block">Preferred Departure Time</label>
+                      {getEffectiveCutOffHours(tour) > 0 && (
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          Cut-off: {getEffectiveCutOffHours(tour)}h prior
+                        </span>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {tour.timeSlots.map(time => (
-                        <button
-                          key={time}
-                          type="button"
-                          onClick={() => setSelectedTime(time)}
-                          className={cn(
-                            "py-2.5 text-xs font-bold rounded-xl border-2 transition-all cursor-pointer",
-                            selectedTime === time
-                              ? "bg-primary border-primary text-white shadow-sm"
-                              : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-                          )}
-                        >
-                          {time}
-                        </button>
-                      ))}
+                      {tour.timeSlots.map(time => {
+                        const effectiveCutOff = getEffectiveCutOffHours(tour);
+                        const isSlotDisabled = date ? isSlotCutOff(date, time, effectiveCutOff) : false;
+                        return (
+                          <button
+                            key={time}
+                            type="button"
+                            disabled={isSlotDisabled}
+                            title={isSlotDisabled ? `Cut-off passed (${effectiveCutOff}h prior)` : undefined}
+                            onClick={() => setSelectedTime(time)}
+                            className={cn(
+                              "py-2.5 text-xs font-bold rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-0.5",
+                              isSlotDisabled
+                                ? "bg-slate-100 border-slate-200 text-slate-300 line-through cursor-not-allowed"
+                                : selectedTime === time
+                                  ? "bg-primary border-primary text-white shadow-sm"
+                                  : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 cursor-pointer"
+                            )}
+                          >
+                            <span>{time}</span>
+                            {isSlotDisabled && (
+                              <span className="text-[8px] font-black text-rose-500 no-underline">Cut-off</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

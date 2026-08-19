@@ -200,6 +200,17 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     if (isAppSubdomain && !isExplicitImpersonate) {
       return { slug: null, customDomain: null, impersonateId: null, isAppGateHost: true, isExplicitImpersonate: false };
     }
+
+    const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
+    if (isSuperAdminRoute && !isExplicitImpersonate) {
+      return { 
+        slug: null, 
+        customDomain: null, 
+        impersonateId: null, 
+        isAppGateHost: false, 
+        isExplicitImpersonate: false 
+      };
+    }
     
     // 1. Check for query parameter override
     const paramTenant = urlParams.get('tenant') || urlParams.get('preview_tenant');
@@ -231,7 +242,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     // 3. Check localStorage for preview/sticky tenant (ONLY if NOT explicit superadmin impersonation)
     const cachedTenant = localStorage.getItem('tripbone_preview_tenant');
     const isAiStudio = hostname.includes('run.app');
-    const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
 
     if (cachedTenant && !isExplicitImpersonate && isAiStudio) {
       return { 
