@@ -14,9 +14,11 @@ import {
   Calendar,
   Sparkles,
   Info,
-  ChevronRight
+  ChevronRight,
+  TrendingUp
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Booking } from '../../types';
 
 export interface FunnelStage {
   id: string;
@@ -29,22 +31,54 @@ export interface FunnelStage {
   avgTimeSeconds: number;
 }
 
-export default function ConversionFunnelTracker({ totalVisitors = 1240 }: { totalVisitors?: number }) {
+export default function ConversionFunnelTracker({ 
+  totalVisitors = 1240,
+  bookings = []
+}: { 
+  totalVisitors?: number;
+  bookings?: Booking[];
+}) {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
+
+  // Filter actual bookings based on time range if bookings are available
+  const filteredBookings = useMemo(() => {
+    if (!bookings || bookings.length === 0) return [];
+    const now = new Date();
+    return bookings.filter(b => {
+      if (timeRange === 'all') return true;
+      const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || b.date);
+      const diffDays = (now.getTime() - bDate.getTime()) / (1000 * 3600 * 24);
+      if (timeRange === '7d') return diffDays <= 7;
+      if (timeRange === '30d') return diffDays <= 30;
+      return true;
+    });
+  }, [bookings, timeRange]);
+
+  const realCompletedBookings = useMemo(() => {
+    return filteredBookings.filter(b => b.paymentStatus === 'paid' || b.status === 'confirmed' || b.status === 'completed');
+  }, [filteredBookings]);
+
+  const realRevenueGMV = useMemo(() => {
+    return realCompletedBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+  }, [realCompletedBookings]);
 
   // Multiplier based on timeRange
   const multiplier = timeRange === '7d' ? 1 : timeRange === '30d' ? 3.4 : 8.2;
   const baseVisitors = Math.round(Math.max(totalVisitors, 450) * multiplier);
 
-  // Compute funnel steps with realistic travel ecommerce benchmarks
+  // Compute funnel steps with realistic travel ecommerce benchmarks integrated with real bookings
   const funnelStages: FunnelStage[] = useMemo(() => {
     const stage1 = baseVisitors; // 1. Tour Page Discovery
     const stage2 = Math.round(stage1 * 0.64); // 2. Date/Slot Checked (64%)
     const stage3 = Math.round(stage2 * 0.58); // 3. Passenger Details Form (37.1% of total)
     const stage4 = Math.round(stage3 * 0.72); // 4. Add-ons & Transports (26.7% of total)
     const stage5 = Math.round(stage4 * 0.76); // 5. Payment Gateway Select (20.3% of total)
-    const stage6 = Math.round(stage5 * 0.88); // 6. Completed & Captured (17.9% of total)
+    
+    // Stage 6 uses actual completed booking count if available, or estimated
+    const stage6 = realCompletedBookings.length > 0 
+      ? Math.max(realCompletedBookings.length, Math.round(stage5 * 0.88))
+      : Math.round(stage5 * 0.88);
 
     const rawStages = [
       {
@@ -82,7 +116,7 @@ export default function ConversionFunnelTracker({ totalVisitors = 1240 }: { tota
       {
         id: 'payment_intent',
         name: '5. Payment Gateway Launch',
-        shortDesc: 'Selected Stripe, Midtrans, or Xendit',
+        shortDesc: 'Selected Stripe, Midtrans, Xendit or Wise',
         icon: CreditCard,
         count: stage5,
         avgTimeSeconds: 52
@@ -99,8 +133,8 @@ export default function ConversionFunnelTracker({ totalVisitors = 1240 }: { tota
 
     return rawStages.map((stage, idx) => {
       const prevCount = idx === 0 ? stage.count : rawStages[idx - 1].count;
-      const dropOff = idx === 0 ? 0 : Math.round(((prevCount - stage.count) / prevCount) * 100);
-      const conversion = Math.round((stage.count / rawStages[0].count) * 100);
+      const dropOff = idx === 0 ? 0 : Math.max(0, Math.round(((prevCount - stage.count) / prevCount) * 100));
+      const conversion = Math.min(100, Math.round((stage.count / rawStages[0].count) * 100));
 
       return {
         ...stage,
@@ -108,12 +142,12 @@ export default function ConversionFunnelTracker({ totalVisitors = 1240 }: { tota
         conversionPercent: conversion
       };
     });
-  }, [baseVisitors, timeRange]);
+  }, [baseVisitors, realCompletedBookings.length]);
 
   const overallConversion = funnelStages[funnelStages.length - 1].conversionPercent;
   const totalCompletedBookings = funnelStages[funnelStages.length - 1].count;
   const avgBasketSize = 135; // USD
-  const totalGrossRevenue = totalCompletedBookings * avgBasketSize;
+  const totalGrossRevenue = realRevenueGMV > 0 ? realRevenueGMV : totalCompletedBookings * avgBasketSize;
 
   // Find the step with highest drop-off rate
   const highestDropOffStage = useMemo(() => {

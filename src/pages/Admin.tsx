@@ -178,8 +178,9 @@ import PaymentManager from '../components/Admin/PaymentManager';
 import ChannelManager from '../components/Admin/ChannelManager';
 import WebhookLogInspector from '../components/Admin/WebhookLogInspector';
 import DisasterRecoveryBackup from '../components/Admin/DisasterRecoveryBackup';
+import ConversionFunnelTracker from '../components/Admin/ConversionFunnelTracker';
 
-type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
+type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
 
 const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'locations' | 'labels', items: (Category | TourType | LocationMeta | TourLabel)[] }) => {
@@ -7742,6 +7743,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         icon: Briefcase,
         children: [
           { id: 'bookings', label: 'Booking List' },
+          { id: 'conversion-funnel', label: 'Conversion Funnel & Drop-off', hidden: isAgent },
           { id: 'guides', label: 'Drivers & Guides' },
           { id: 'channel-manager', label: 'Channel Manager (OTAs)', hidden: isAgent || isSupplier },
           { id: 'import-bookings', label: 'Import Booking', hidden: isAgent || isSupplier },
@@ -7859,6 +7861,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         icon: Settings,
         children: [
           { id: 'analytics-integration', label: 'Analytics Integration' },
+          { id: 'backup', label: 'Disaster Recovery & Backup', hidden: isSupplier || isAgent },
           { id: 'company-info', label: 'Company Info', hidden: isSupplier || isAgent },
           { id: 'seo', label: 'SEO Setting', hidden: isSupplier || isAgent },
           { id: 'payment-settings', label: 'Payment Setting', hidden: isSupplier || isAgent },
@@ -7882,6 +7885,8 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       'tickets': 'Support & Tickets',
       'developer-hub': 'Developer Hub',
       'user-settings': 'User Profile Setting',
+      'backup': 'Disaster Recovery & 1-Click Backup',
+      'conversion-funnel': 'Checkout Conversion Funnel & Drop-off Tracker',
     };
     if (labelsMap[activeMenu]) return labelsMap[activeMenu];
 
@@ -11892,6 +11897,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
               
               {[
                 { id: 'billing', label: 'Billing & Plans', icon: CreditCard },
+                { id: 'backup', label: 'Disaster Recovery', icon: Database },
                 { id: 'custom-domain', label: 'Custom Domain', icon: Globe },
                 { id: 'tickets', label: 'Support & Ticket', icon: LifeBuoy },
                 { id: 'developer-hub', label: 'Developer Hub', icon: Terminal },
@@ -12648,6 +12654,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                   })}
                 </div>
               </div>
+            </div>
+          )}
+          {activeMenu === 'conversion-funnel' && (
+            <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+              <ConversionFunnelTracker bookings={bookings} />
             </div>
           )}
           {activeMenu === 'backup' && (
