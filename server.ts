@@ -283,10 +283,15 @@ export async function createServer() {
         }
       } catch (sdkError: any) {
         console.warn(`[Serve File] Admin SDK failed: ${sdkError.message || sdkError}. Trying REST fallback...`);
+      }
+
+      if (!data) {
         try {
-          data = await getDocViaRest("uploads", id, undefined, req);
+          data = await fetchFromREST("uploads", id);
         } catch (restError: any) {
-          console.error(`[Serve File] REST fallback failed too: ${restError.message || restError}`);
+          try {
+            data = await getDocViaRest("uploads", id, undefined, req);
+          } catch (rErr) {}
         }
       }
 
@@ -6493,11 +6498,12 @@ export async function createServer() {
       defaultTitle = `${siteName} - Book Tours and Activities in Bali`;
     }
 
+    const defaultFavicon = '/api/uploads/q08dkhNCIxtWc4kuqnrv';
     const seo = {
       title: defaultTitle,
       description: siteDescription,
       image: tenantDoc?.logo || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
-      favicon: tenantDoc?.favicon || tenantDoc?.logo || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+      favicon: tenantDoc?.favicon || tenantDoc?.logo || defaultFavicon,
       siteName: siteName,
       isProduct: false,
       isArticle: false,
@@ -6587,10 +6593,58 @@ export async function createServer() {
       }
     }
 
+    // Also fetch globalBrand and globalSEO for central SaaS branding & favicon support
+    let globalBrandData: any = null;
+    let globalSEOData: any = null;
+    try {
+      const gbSnap = await db.collection('settings').doc('globalBrand').get();
+      if (gbSnap.exists) globalBrandData = gbSnap.data();
+    } catch (e) {
+      try {
+        globalBrandData = await fetchFromREST('settings', 'globalBrand');
+      } catch (err) {}
+    }
+
+    try {
+      const gsSnap = await db.collection('settings').doc('globalSEO').get();
+      if (gsSnap.exists) globalSEOData = gsSnap.data();
+    } catch (e) {
+      try {
+        globalSEOData = await fetchFromREST('settings', 'globalSEO');
+      } catch (err) {}
+    }
+
+    if (globalBrandData) {
+      if (globalBrandData.faviconUrl && (!tenantDoc || !settings?.faviconURL)) {
+        seo.favicon = globalBrandData.faviconUrl;
+      }
+      if (globalBrandData.logoUrl && !tenantDoc) {
+        seo.image = globalBrandData.logoUrl;
+      }
+      if (globalBrandData.platformName && (!tenantDoc && !resolvedCustomDomain)) {
+        seo.siteName = globalBrandData.platformName;
+      }
+    }
+
+    if (globalSEOData) {
+      if (globalSEOData.favicon && (!tenantDoc || !settings?.faviconURL) && !globalBrandData?.faviconUrl) {
+        seo.favicon = globalSEOData.favicon;
+      }
+      if (globalSEOData.title && (!tenantDoc && !resolvedCustomDomain)) {
+        seo.title = globalSEOData.title;
+      }
+      if (globalSEOData.description && (!tenantDoc && !resolvedCustomDomain)) {
+        seo.description = globalSEOData.description;
+      }
+      if (globalSEOData.image && !globalBrandData?.logoUrl && !tenantDoc) {
+        seo.image = globalSEOData.image;
+      }
+    }
+
     if (settings && (tenantDoc || (!resolvedCustomDomain && !resolvedSlug))) {
       seo.siteName = settings.siteName || tenantDoc?.companyName || seo.siteName;
       seo.image = settings.ogImage || settings.heroImage || settings.logoURL || tenantDoc?.logo || seo.image;
-      seo.favicon = settings.faviconURL || tenantDoc?.favicon || tenantDoc?.logo || seo.favicon;
+      seo.favicon = settings.faviconURL || tenantDoc?.favicon || tenantDoc?.logo || globalBrandData?.faviconUrl || globalSEOData?.favicon || seo.favicon;
       if (settings.siteKeywords) {
         seo.keywords = settings.siteKeywords;
       }
@@ -6757,7 +6811,7 @@ export async function createServer() {
     const safeDesc = (seo.description || '').replace(/"/g, '&quot;');
     const safeKeywords = (seo.keywords || '').replace(/"/g, '&quot;');
     const safeImage = seo.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
-    const safeFavicon = seo.favicon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
+    const safeFavicon = seo.favicon || '/api/uploads/q08dkhNCIxtWc4kuqnrv';
     const safeType = seo.isProduct ? 'product' : (seo.isArticle ? 'article' : 'website');
     const safeSiteName = (seo.siteName || 'Tripbone').replace(/"/g, '&quot;');
 
@@ -6852,6 +6906,7 @@ export async function createServer() {
     <meta name="keywords" content="${safeKeywords}" />
     <meta name="apple-mobile-web-app-title" content="${safeSiteName}" />
     <link rel="icon" href="${safeFavicon}" />
+    <link rel="shortcut icon" href="${safeFavicon}" />
     <link rel="apple-touch-icon" href="${safeFavicon}" />
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:description" content="${safeDesc}" />
@@ -6889,7 +6944,7 @@ export async function createServer() {
       const brandName = seo.siteName || 'Tripbone';
       const shortBrand = brandName.length > 20 ? brandName.slice(0, 20) : brandName;
       const description = seo.description || `${brandName} - AI Tour Operator & Booking Platform`;
-      const iconUrl = seo.favicon || seo.image || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
+      const iconUrl = seo.favicon || seo.image || '/api/uploads/q08dkhNCIxtWc4kuqnrv';
       
       const themeColor = seo.preloadedData?.settings?.accentColor || seo.preloadedData?.settings?.primaryColor || '#00A651';
       const backgroundColor = '#ffffff';
@@ -6908,13 +6963,13 @@ export async function createServer() {
           {
             src: iconUrl,
             sizes: '192x192 512x512',
-            type: 'image/png',
+            type: 'image/webp',
             purpose: 'any'
           },
           {
             src: iconUrl,
             sizes: '192x192 512x512',
-            type: 'image/png',
+            type: 'image/webp',
             purpose: 'maskable'
           }
         ]
@@ -6938,9 +6993,9 @@ export async function createServer() {
         orientation: 'portrait-primary',
         icons: [
           {
-            src: 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+            src: '/api/uploads/q08dkhNCIxtWc4kuqnrv',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/webp',
             purpose: 'any'
           }
         ]

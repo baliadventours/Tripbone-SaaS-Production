@@ -28,7 +28,7 @@ function deriveBrandFromHostname(hostname: string): string {
 
 export function useTenantSEO() {
   const { tenant, isMaster, globalSEO } = useTenant();
-  const { settings } = useSettings();
+  const { settings, globalBrand } = useSettings();
   const location = useLocation();
 
   useEffect(() => {
@@ -39,15 +39,15 @@ export function useTenantSEO() {
     const derivedBrand = deriveBrandFromHostname(hostname);
     const isCustomDomain = derivedBrand !== 'Tripbone';
 
-    const siteName = settings?.siteName || tenant?.companyName || (isCustomDomain ? derivedBrand : (globalSEO?.siteName || 'Tripbone'));
+    const siteName = settings?.siteName || tenant?.companyName || (isCustomDomain ? derivedBrand : (globalBrand?.platformName || globalSEO?.siteName || 'Tripbone'));
     const siteDescription = settings?.metaDescription || settings?.siteDescription || (tenant as any)?.description || 
-        (!isMaster || isCustomDomain ? `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.` : globalSEO?.description);
+        (!isMaster || isCustomDomain ? `Explore amazing tours and travel packages curated by ${siteName}. Book directly online with instant confirmation.` : (globalBrand?.tagline || globalSEO?.description));
     const siteKeywords = settings?.siteKeywords || globalSEO?.keywords || '';
-    const siteImage = settings?.ogImage || settings?.heroImage || settings?.logoURL || tenant?.logo || globalSEO?.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
+    const siteImage = settings?.ogImage || settings?.heroImage || settings?.logoURL || tenant?.logo || globalBrand?.logoUrl || globalSEO?.image || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp';
 
     let title = siteName;
     if (isMaster && !isCustomDomain) {
-      title = globalSEO?.title || 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder';
+      title = globalSEO?.title || (globalBrand?.platformName ? `${globalBrand.platformName} - All-in-One AI Tour Operator Software & Website Builder` : 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder');
     } else {
       const isTourDetail = location.pathname.startsWith('/tour/');
       if (location.pathname === '/') {
@@ -103,7 +103,7 @@ export function useTenantSEO() {
        updateMeta('keywords', siteKeywords);
     }
 
-    const siteFavicon = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalSEO?.favicon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
+    const siteFavicon = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalBrand?.faviconUrl || globalSEO?.faviconUrl || globalSEO?.favicon || '/api/uploads/q08dkhNCIxtWc4kuqnrv';
     if (siteFavicon) {
       ['icon', 'shortcut icon', 'apple-touch-icon'].forEach(rel => {
         let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
@@ -136,13 +136,11 @@ export function useTenantSEO() {
           {
             src: siteFavicon,
             sizes: '192x192 512x512',
-            type: 'image/png',
             purpose: 'any'
           },
           {
             src: siteFavicon,
             sizes: '192x192 512x512',
-            type: 'image/png',
             purpose: 'maskable'
           }
         ]
@@ -162,5 +160,5 @@ export function useTenantSEO() {
       console.warn('Failed to construct dynamic manifest blob:', manifestErr);
     }
 
-  }, [tenant, settings, isMaster, globalSEO, location.pathname]);
+  }, [tenant, settings, globalBrand, isMaster, globalSEO, location.pathname]);
 }

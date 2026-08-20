@@ -296,13 +296,15 @@ export default function SaaSSuperAdmin() {
 
   useEffect(() => {
     if (globalBrand.faviconUrl) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
-      link.href = globalBrand.faviconUrl;
+      ['icon', 'shortcut icon', 'apple-touch-icon'].forEach(rel => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        link.href = globalBrand.faviconUrl;
+      });
     }
   }, [globalBrand.faviconUrl]);
 
@@ -4575,6 +4577,19 @@ export default function SaaSSuperAdmin() {
                   setSavingBrand(true);
                   try {
                     await setDoc(doc(db, 'settings', 'globalBrand'), globalBrand, { merge: true });
+                    try {
+                      await setDoc(doc(db, 'settings', 'globalSEO'), {
+                        title: globalBrand.platformName ? `${globalBrand.platformName} - All-in-One AI Tour Operator Software & Website Builder` : 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
+                        description: globalBrand.tagline || 'Modern Tour & Travel Website Builder',
+                        image: globalBrand.logoUrl || 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+                        siteName: globalBrand.platformName || 'Tripbone.com',
+                        favicon: globalBrand.faviconUrl,
+                        faviconUrl: globalBrand.faviconUrl,
+                        updatedAt: new Date().toISOString()
+                      }, { merge: true });
+                    } catch (seoErr) {
+                      console.warn('Failed to sync globalSEO doc:', seoErr);
+                    }
                     setSuccess('🎉 Platform branding configuration saved successfully!');
                   } catch (err: any) {
                     setError('Failed to save branding: ' + err.message);

@@ -107,15 +107,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const faviconUrl = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalBrand?.faviconUrl;
+    const faviconUrl = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalBrand?.faviconUrl || '/api/uploads/q08dkhNCIxtWc4kuqnrv';
     if (faviconUrl) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
-      link.href = faviconUrl;
+      ['icon', 'shortcut icon', 'apple-touch-icon'].forEach(rel => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        link.href = faviconUrl;
+      });
     }
   }, [globalBrand?.faviconUrl, settings?.faviconURL, tenant?.favicon, tenant?.logo]);
 
@@ -201,22 +203,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       unsubscribeLabels();
     };
   }, [tenantId, tenantLoading]);
-
-  useEffect(() => {
-    const favicon = settings?.faviconURL || tenant?.favicon || tenant?.logo || globalBrand?.faviconUrl;
-    if (favicon) {
-      ['icon', 'apple-touch-icon'].forEach(rel => {
-        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = rel;
-          document.head.appendChild(link);
-        }
-        link.href = favicon;
-      });
-    }
-  }, [settings?.faviconURL, tenant?.favicon, tenant?.logo, globalBrand?.faviconUrl]);
-
 
   function applySettings(data: SiteSettings) {
     // Apply colors to CSS variables

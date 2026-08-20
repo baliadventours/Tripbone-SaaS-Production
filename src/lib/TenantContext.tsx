@@ -54,31 +54,57 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [globalSEO, setGlobalSEO] = useState<any | null>(null);
   const [isImpersonating, setIsImpersonating] = useState(false);
 
-  // Fetch global SEO settings
+  // Fetch global SEO and global platform brand settings
   useEffect(() => {
     const seoRef = doc(db, 'settings', 'globalSEO');
-    const unsubscribe = onSnapshot(seoRef, (docSnap) => {
+    const brandRef = doc(db, 'settings', 'globalBrand');
+
+    const defaultSeo = {
+      title: 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
+      description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
+      image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
+      siteName: 'Tripbone SaaS',
+      favicon: '/api/uploads/q08dkhNCIxtWc4kuqnrv',
+      faviconUrl: '/api/uploads/q08dkhNCIxtWc4kuqnrv'
+    };
+
+    const unsubscribeBrand = onSnapshot(brandRef, (brandSnap) => {
+      if (brandSnap.exists()) {
+        const b = brandSnap.data();
+        setGlobalSEO((prev: any) => ({
+          ...(prev || defaultSeo),
+          siteName: b.platformName || prev?.siteName || defaultSeo.siteName,
+          title: b.platformName ? `${b.platformName} - All-in-One AI Tour Operator Software & Website Builder` : (prev?.title || defaultSeo.title),
+          description: b.tagline || prev?.description || defaultSeo.description,
+          image: b.logoUrl || prev?.image || defaultSeo.image,
+          favicon: b.faviconUrl || prev?.favicon || defaultSeo.favicon,
+          faviconUrl: b.faviconUrl || prev?.faviconUrl || defaultSeo.faviconUrl,
+          logoUrl: b.logoUrl || prev?.logoUrl || ''
+        }));
+      }
+    });
+
+    const unsubscribeSeo = onSnapshot(seoRef, (docSnap) => {
       if (docSnap.exists()) {
-        setGlobalSEO(docSnap.data());
+        const data = docSnap.data();
+        setGlobalSEO((prev: any) => ({
+          ...(prev || defaultSeo),
+          ...data,
+          favicon: data.favicon || data.faviconUrl || prev?.favicon || defaultSeo.favicon,
+          faviconUrl: data.faviconUrl || data.favicon || prev?.faviconUrl || defaultSeo.faviconUrl
+        }));
       } else {
-        setGlobalSEO({
-          title: 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
-          description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
-          image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
-          siteName: 'Tripbone SaaS'
-        });
+        setGlobalSEO((prev: any) => prev || defaultSeo);
       }
     }, (err) => {
       console.error('Error fetching global SEO:', err);
-      setGlobalSEO({
-        title: 'Tripbone.com - All-in-One AI Tour Operator Software & Website Builder',
-        description: 'Tripbone is a leading enterprise multi-tenant SaaS platform for tour operators, travel agencies, and destination management companies.',
-        image: 'https://i.ibb.co.com/pvLCVYkM/ALAS-HARUM8-optimized.webp',
-        siteName: 'Tripbone SaaS'
-      });
+      setGlobalSEO((prev: any) => prev || defaultSeo);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeBrand();
+      unsubscribeSeo();
+    };
   }, []);
 
   const stopImpersonation = () => {

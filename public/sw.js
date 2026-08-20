@@ -94,8 +94,8 @@ self.addEventListener('push', (e) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
-    badge: data.badge || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png',
+    icon: data.icon || '/api/uploads/q08dkhNCIxtWc4kuqnrv',
+    badge: data.badge || '/api/uploads/q08dkhNCIxtWc4kuqnrv',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/admin'

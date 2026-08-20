@@ -9,15 +9,15 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png",
+      "src": "/api/uploads/q08dkhNCIxtWc4kuqnrv",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png",
+      "src": "/api/uploads/q08dkhNCIxtWc4kuqnrv",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "maskable"
     }
   ]

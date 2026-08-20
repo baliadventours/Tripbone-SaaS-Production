@@ -7095,7 +7095,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
 
     // 2. Dispatch a system notification
     if ('Notification' in window && Notification.permission === 'granted') {
-      const brandIcon = siteSettings?.faviconURL || tenant?.favicon || tenant?.logo || 'https://i.ibb.co.com/20xQH0xN/android-chrome-512x512.png';
+      const brandIcon = siteSettings?.faviconURL || tenant?.favicon || tenant?.logo || '/api/uploads/q08dkhNCIxtWc4kuqnrv';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then((reg) => {
           reg.showNotification(title, {
