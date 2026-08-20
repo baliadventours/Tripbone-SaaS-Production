@@ -1259,11 +1259,15 @@ const toggleAddOn = (addon: AddOn) => {
           email: customerData.email,
           role: 'customer'
         },
-        status: "confirmed",
+        status: (summary.grandTotal <= 0 || Boolean(paymentId)) 
+          ? "confirmed" 
+          : ((paymentMethod === 'bank_transfer' || paymentMethod === 'pay_on_arrival' || paymentMethod === 'wise') ? 'pending' : 'pending'),
         updatedAt: serverTimestamp(),
         paymentId: paymentId || existingBooking?.paymentId || null,
         paymentMethod,
-        paymentStatus: (paymentMethod === 'bank_transfer' || paymentMethod === 'pay_on_arrival') ? 'pending' : 'paid',
+        paymentStatus: (summary.grandTotal <= 0 || Boolean(paymentId)) 
+          ? 'paid' 
+          : ((paymentMethod === 'bank_transfer' || paymentMethod === 'pay_on_arrival' || paymentMethod === 'wise') ? 'pending' : 'pending'),
         payoutStatus: 'pending',
         pricingBreakdown: {
           adultRate: applicableTier?.adultPrice || 0,
