@@ -63,48 +63,49 @@ export class WiseGateway implements PaymentGateway {
 
     try {
       PaymentLogger.logInfo(this.providerId, 'testConnection', { mode });
-      const baseUrl = this.getBaseUrl(mode);
 
-      // Verify token by querying /v2/profiles
-      const res = await fetch(`${baseUrl}/v2/profiles`, {
+      // Call backend server proxy to bypass browser CORS and keep tokens secure
+      const verifyRes = await fetch('/api/payment/wise/verify', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiToken.trim()}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          apiToken: apiToken.trim(),
+          mode,
+          profileId: config.profileId || config.merchantId || '',
+        }),
       });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        PaymentLogger.logError(this.providerId, 'testConnectionFailed', { status: res.status, err: errText });
+      const latencyMs = Date.now() - startTime;
+      const data = await verifyRes.json().catch(() => ({}));
+
+      if (verifyRes.ok && data.success) {
+        return {
+          success: true,
+          merchantName: data.merchantName || 'Wise Merchant Profile',
+          accountStatus: data.accountStatus || 'active',
+          mode,
+          message: data.message || 'Wise API connected successfully! Profiles and multi-currency transfers are active.',
+          latencyMs,
+          details: data.details,
+        };
+      } else {
         return {
           success: false,
           accountStatus: 'unverified',
           mode,
-          message: `Wise API rejected credentials (HTTP ${res.status}): Please check API Token permissions.`,
-          latencyMs: Date.now() - startTime,
+          message: data.message || `Wise verification failed (HTTP ${verifyRes.status}).`,
+          latencyMs,
         };
       }
-
-      const profiles = await res.json();
-      const profile = Array.isArray(profiles) && profiles.length > 0 ? profiles[0] : null;
-      const businessName = profile?.details?.companyName || profile?.details?.name || (profile?.type === 'business' ? 'Wise Business' : 'Wise Personal Profile');
-
-      return {
-        success: true,
-        merchantName: `${businessName} (ID: ${profile?.id || 'Active'})`,
-        accountStatus: 'active',
-        mode,
-        message: 'Wise API connected successfully! Profiles and multi-currency transfers are active.',
-        latencyMs: Date.now() - startTime,
-        details: { profileId: profile?.id, profileType: profile?.type },
-      };
     } catch (err: any) {
       PaymentLogger.logError(this.providerId, 'testConnectionError', err);
       return {
         success: false,
         accountStatus: 'unverified',
         mode,
-        message: `Network connection to Wise failed: ${err.message}`,
+        message: `Connection to Wise verification service failed: ${err.message}`,
         latencyMs: Date.now() - startTime,
       };
     }

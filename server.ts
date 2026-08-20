@@ -1534,6 +1534,89 @@ export async function createServer() {
   });
 
   // ==========================================
+  // WISE (TRANSFERWISE) CREDENTIAL VERIFICATION API
+  // ==========================================
+  app.post("/api/payment/wise/verify", async (req: any, res: any) => {
+    try {
+      const { apiToken, mode, profileId } = req.body;
+      if (!apiToken || typeof apiToken !== "string" || !apiToken.trim()) {
+        return res.status(400).json({
+          success: false,
+          accountStatus: "unverified",
+          message: "Wise API Token (Read/Write) is required."
+        });
+      }
+
+      const isSandbox = mode === "sandbox";
+      const baseUrl = isSandbox
+        ? "https://api.sandbox.transferwise.tech"
+        : "https://api.wise.com";
+
+      const tokenClean = apiToken.trim();
+      const headers = {
+        "Authorization": `Bearer ${tokenClean}`,
+        "Content-Type": "application/json",
+        "User-Agent": "Tripbone-SaaS/1.0"
+      };
+
+      console.log(`[Wise Server Proxy] Verifying Wise credentials against ${baseUrl}/v2/profiles...`);
+
+      const wiseResponse = await axios.get(`${baseUrl}/v2/profiles`, {
+        headers,
+        timeout: 12000
+      });
+
+      const profiles = wiseResponse.data;
+      if (!Array.isArray(profiles) || profiles.length === 0) {
+        return res.json({
+          success: true,
+          merchantName: "Wise Profile Connected",
+          accountStatus: "active",
+          mode: isSandbox ? "sandbox" : "live",
+          message: "Wise API token verified successfully, but no active profile records were returned.",
+          details: { profileCount: 0 }
+        });
+      }
+
+      // Find matching profile by provided ID, or prefer business profile, or first profile
+      let targetProfile = profiles.find((p: any) => String(p.id) === String(profileId)) ||
+                          profiles.find((p: any) => p.type === "business") ||
+                          profiles[0];
+
+      const businessName = targetProfile.details?.companyName ||
+                           targetProfile.details?.name ||
+                           (targetProfile.type === "business" ? "Wise Business Profile" : "Wise Personal Profile");
+
+      return res.json({
+        success: true,
+        merchantName: `${businessName} (Profile ID: ${targetProfile.id})`,
+        accountStatus: "active",
+        mode: isSandbox ? "sandbox" : "live",
+        message: "Wise API connection verified successfully! Profiles & multi-currency transfers are active.",
+        details: {
+          profileId: targetProfile.id,
+          profileType: targetProfile.type,
+          profiles: profiles.map((p: any) => ({ id: p.id, type: p.type, name: p.details?.companyName || p.details?.name }))
+        }
+      });
+    } catch (err: any) {
+      console.error("[Wise Server Proxy Error]:", err.response?.status, err.response?.data || err.message);
+      const status = err.response?.status;
+      let errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to verify Wise API credentials.";
+      if (status === 401 || status === 403) {
+        errorMsg = "Wise API rejected credentials (HTTP 401/403): Invalid token or insufficient permissions. Please check API token in Wise Settings.";
+      }
+      return res.status(status && status >= 400 && status < 600 ? status : 500).json({
+        success: false,
+        accountStatus: "unverified",
+        mode: req.body?.mode || "live",
+        message: errorMsg,
+        details: err.response?.data
+      });
+    }
+  });
+
+  // ==========================================
   // WEBHOOK INSPECTOR & OBSERVABILITY API
   // ==========================================
 
