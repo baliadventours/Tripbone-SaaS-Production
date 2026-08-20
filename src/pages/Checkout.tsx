@@ -677,10 +677,13 @@ export default function Checkout() {
            }
           
           if (existingBooking) {
-            const pkg = tourData.packages.find(p => p.name === existingBooking.packageName);
+            const pkg = tourData.packages?.find(p => p.name === existingBooking.packageName);
             if (pkg) {
               setSelectedPackage(pkg);
               setExpandedPackage(pkg.name);
+            } else if (tourData.packages && tourData.packages.length > 0) {
+              setSelectedPackage(tourData.packages[0]);
+              setExpandedPackage(tourData.packages[0].name);
             }
             if (existingBooking.selectedAccommodation) {
               setSelectedAccommodation(existingBooking.selectedAccommodation);
@@ -691,16 +694,32 @@ export default function Checkout() {
           } else if (tourData.packages && tourData.packages.length > 0) {
             const pkgParam = searchParams.get("package");
             const matchedPkg = pkgParam 
-              ? tourData.packages.find(p => p.name.toLowerCase() === pkgParam.toLowerCase()) 
+              ? tourData.packages.find(p => 
+                  p.name.toLowerCase() === pkgParam.toLowerCase() || 
+                  p.name.toLowerCase() === decodeURIComponent(pkgParam).toLowerCase()
+                ) 
               : null;
-            if (matchedPkg) {
-              setSelectedPackage(matchedPkg);
-              setExpandedPackage(matchedPkg.name);
-            } else {
-              // Collapsed by default
-              setSelectedPackage(null);
-              setExpandedPackage(null);
-            }
+            const targetPkg = matchedPkg || tourData.packages[0];
+            setSelectedPackage(targetPkg);
+            setExpandedPackage(targetPkg?.name || null);
+          } else {
+            // Tour has no explicit packages array; fallback to standard tour package
+            const defaultPkg: TourPackage = {
+              name: "Standard Package",
+              details: tourData.description || "",
+              inclusions: tourData.inclusions || [],
+              exclusions: tourData.exclusions || [],
+              meetingPoint: tourData.meetingPoint || "",
+              meetingPointType: "Meeting Point",
+              tiers: [{
+                minParticipants: 1,
+                maxParticipants: 999,
+                adultPrice: tourData.discountPrice || tourData.regularPrice || 0,
+                childPrice: Math.round((tourData.discountPrice || tourData.regularPrice || 0) * 0.75)
+              }]
+            };
+            setSelectedPackage(defaultPkg);
+            setExpandedPackage(defaultPkg.name);
           }
         }
       } catch (error) {
@@ -817,40 +836,70 @@ export default function Checkout() {
   }, [selectedPackage?.meetingPoint, tour?.meetingPoint, selectedTransportType]);
 
   const applicableTier = useMemo(() => {
-    if (!selectedPackage?.tiers || selectedPackage.tiers.length === 0) return null;
-    const tiers = selectedPackage.tiers;
-    // Base the "primary" tier display on adults count as requested
-    const count = adults;
+    const pkg = selectedPackage || (tour?.packages && tour.packages.length > 0 ? tour.packages[0] : null);
+    if (!pkg) return null;
+    
+    if (!pkg.tiers || pkg.tiers.length === 0) {
+      const basePrice = (pkg as any).price || (pkg as any).regularPrice || (pkg as any).adultPrice || tour?.discountPrice || tour?.regularPrice || 0;
+      return {
+        minParticipants: 1,
+        maxParticipants: 999,
+        adultPrice: basePrice,
+        childPrice: (pkg as any).childPrice || Math.round(basePrice * 0.75)
+      };
+    }
+    
+    const tiers = [...pkg.tiers].sort((a, b) => a.minParticipants - b.minParticipants);
+    const totalPax = Math.max(1, adults + children);
+    const count = adults > 0 ? adults : totalPax;
+    
     const findTier = tiers.find(
-      (t) => count >= t.minParticipants && count <= t.maxParticipants,
+      (t) => (count >= t.minParticipants && count <= t.maxParticipants) ||
+             (totalPax >= t.minParticipants && totalPax <= t.maxParticipants)
     );
-    return findTier || (count < (tiers[0]?.minParticipants || 0) ? tiers[0] : tiers[tiers.length - 1]);
-  }, [selectedPackage, adults]);
+    return findTier || (count < tiers[0].minParticipants ? tiers[0] : tiers[tiers.length - 1]);
+  }, [selectedPackage, tour, adults, children]);
 
   const getLowestAdultPrice = (pkg: TourPackage) => {
-    if (!pkg.tiers || pkg.tiers.length === 0) return 0;
+    if (!pkg) return tour?.discountPrice || tour?.regularPrice || 0;
+    if (!pkg.tiers || pkg.tiers.length === 0) {
+      return (pkg as any).price || (pkg as any).regularPrice || (pkg as any).adultPrice || tour?.discountPrice || tour?.regularPrice || 0;
+    }
     return Math.min(...pkg.tiers.map(t => t.adultPrice));
   };
 
-  const calculatePackagePrice = (pkg: TourPackage) => {
-    if (!pkg.tiers || pkg.tiers.length === 0) return 0;
-    const tiers = pkg.tiers;
+  const calculatePackagePrice = (pkg: TourPackage | null | undefined) => {
+    if (!pkg) {
+      const basePrice = tour?.discountPrice || tour?.regularPrice || 0;
+      return (basePrice * adults) + (Math.round(basePrice * 0.75) * children);
+    }
     
-    // Calculate adult rate based on adults count ONLY
+    if (!pkg.tiers || pkg.tiers.length === 0) {
+      const fallbackPrice = (pkg as any).price || (pkg as any).regularPrice || (pkg as any).adultPrice || tour?.discountPrice || tour?.regularPrice || 0;
+      const childPrice = (pkg as any).childPrice || Math.round(fallbackPrice * 0.75);
+      return (fallbackPrice * adults) + (childPrice * children);
+    }
+    
+    const tiers = [...pkg.tiers].sort((a, b) => a.minParticipants - b.minParticipants);
+    const totalPax = Math.max(1, adults + children);
+    
+    // Calculate adult rate based on adults count or group tier
     const adultTier = tiers.find(
-      (t) => adults >= t.minParticipants && adults <= t.maxParticipants,
-    ) || (adults < (tiers[0]?.minParticipants || 0) ? tiers[0] : tiers[tiers.length - 1]);
+      (t) => (adults >= t.minParticipants && adults <= t.maxParticipants) ||
+             (totalPax >= t.minParticipants && totalPax <= t.maxParticipants)
+    ) || (adults < tiers[0].minParticipants ? tiers[0] : tiers[tiers.length - 1]);
     
-    // Calculate child rate based on children count ONLY
+    // Calculate child rate based on children count or group tier
     const childTier = children > 0 
-      ? (tiers.find((t) => children >= t.minParticipants && children <= t.maxParticipants) || 
-         (children < (tiers[0]?.minParticipants || 0) ? tiers[0] : tiers[tiers.length - 1]))
+      ? (tiers.find((t) => (children >= t.minParticipants && children <= t.maxParticipants) ||
+                           (totalPax >= t.minParticipants && totalPax <= t.maxParticipants)) || 
+         (children < tiers[0].minParticipants ? tiers[0] : tiers[tiers.length - 1]))
       : adultTier;
 
-    const adultRate = adultTier?.adultPrice || 0;
-    const childRate = childTier?.childPrice || 0;
+    const adultRate = adultTier?.adultPrice ?? ((pkg as any).price || tour?.discountPrice || tour?.regularPrice || 0);
+    const childRate = childTier?.childPrice ?? Math.round(adultRate * 0.75);
     
-    return adultRate * adults + childRate * children;
+    return (adultRate * adults) + (childRate * children);
   };
 
   const handleApplyCoupon = async () => {
@@ -874,7 +923,8 @@ export default function Checkout() {
           ...querySnapshot.docs[0].data(),
         } as Coupon;
         // Basic min value check
-        const packageTotal = calculatePackagePrice(selectedPackage!);
+        const activePkg = selectedPackage || (tour?.packages && tour.packages.length > 0 ? tour.packages[0] : null);
+        const packageTotal = calculatePackagePrice(activePkg);
         if (packageTotal < (coupon.minBookingValue || 0)) {
           setCouponError(
             <span>Min booking value for this coupon is <FormattedPrice amount={coupon.minBookingValue || 0} /></span>
@@ -884,7 +934,8 @@ export default function Checkout() {
           setAppliedCoupon(coupon);
           setCouponInput("");
           try {
-            trackGASelectPromotion(coupon.code || couponInput, coupon.discountAmount || (coupon.discountPercentage ? (packageTotal * (coupon.discountPercentage / 100)) : 0));
+            const discVal = coupon.discountType === 'percentage' ? (packageTotal * (coupon.discountValue / 100)) : coupon.discountValue;
+            trackGASelectPromotion(coupon.code || couponInput, discVal);
           } catch (e) {
             console.warn('[Analytics] Coupon tracking notice:', e);
           }
@@ -898,23 +949,22 @@ export default function Checkout() {
   };
 
   const summary = useMemo(() => {
-    if (!selectedPackage)
-      return { packageTotal: 0, accommodationTotal: 0, guideTotal: 0, transportTotal: 0, addonsTotal: 0, discount: 0, agentDiscount: 0, grandTotal: 0, amountToPay: 0, amountPaid: 0 };
-    const packageTotal = calculatePackagePrice(selectedPackage);
+    const activePackage = selectedPackage || (tour?.packages && tour.packages.length > 0 ? tour.packages[0] : null);
+    const packageTotal = calculatePackagePrice(activePackage);
     const addonsTotal = selectedAddOns.reduce(
-      (sum, addon) => sum + addon.price * addon.quantity,
+      (sum, addon) => sum + (addon.price || 0) * (addon.quantity || 1),
       0,
     );
 
-    const accommodationTotal = selectedAccommodation ? selectedAccommodation.price : 0;
-    const guideTotal = selectedGuideOption ? selectedGuideOption.price : 0;
+    const accommodationTotal = selectedAccommodation ? (selectedAccommodation.price || 0) : 0;
+    const guideTotal = selectedGuideOption ? (selectedGuideOption.price || 0) : 0;
 
     let transportTotal = 0;
     if (selectedTransport && selectedTransport.type !== "meet") {
       if (selectedTransport.priceType === "per_person") {
-        transportTotal = selectedTransport.price * (adults + children);
+        transportTotal = (selectedTransport.price || 0) * (adults + children);
       } else {
-        transportTotal = selectedTransport.price;
+        transportTotal = selectedTransport.price || 0;
       }
     }
 
@@ -956,7 +1006,7 @@ export default function Checkout() {
       amountToPay,
       amountPaid
     };
-  }, [selectedPackage, selectedAccommodation, selectedGuideOption, selectedAddOns, selectedTransport, adults, children, appliedCoupon, existingBooking, userProfile]);
+  }, [selectedPackage, tour, selectedAccommodation, selectedGuideOption, selectedAddOns, selectedTransport, adults, children, appliedCoupon, existingBooking, userProfile]);
 
 const days = useMemo(() => {
   const arr = [];
@@ -3807,7 +3857,7 @@ const toggleAddOn = (addon: AddOn) => {
                             trackGAAddPaymentInfo({
                               tourTitle: tour?.title || 'Tour Booking',
                               totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
-                              paymentType: method.title || method.id,
+                              paymentType: method.label || method.id,
                               currency: selectedCurrency || 'USD'
                             });
                           } catch (e) {
@@ -4330,7 +4380,7 @@ const toggleAddOn = (addon: AddOn) => {
                             Package Price
                           </span>
                           <span className="font-bold text-gray-900 text-sm">
-                            {selectedPackage?.name}
+                            {selectedPackage?.name || tour?.packages?.[0]?.name || tour?.title || "Standard Package"}
                           </span>
                         </div>
                       </div>

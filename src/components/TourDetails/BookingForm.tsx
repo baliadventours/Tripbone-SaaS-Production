@@ -130,8 +130,10 @@ export default function BookingForm({ tour }: BookingFormProps) {
     }
 
     // Navigate to checkout page instead of opening modal
+    const pkgToPass = selectedPackage || (tour.packages && tour.packages.length > 0 ? tour.packages[0] : null);
+    const pkgParam = pkgToPass ? `&package=${encodeURIComponent(pkgToPass.name)}` : '';
     const timeParam = selectedTime ? `&time=${selectedTime}` : '';
-    navigate(`/checkout/${tour.id}?date=${date}&adults=${adults}&children=${children}${timeParam}`);
+    navigate(`/checkout/${tour.id}?date=${date}&adults=${adults}&children=${children}${timeParam}${pkgParam}`);
   };
 
   // Reset selected time if the newly selected date makes that time cut-off
