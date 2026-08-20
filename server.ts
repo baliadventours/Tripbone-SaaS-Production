@@ -1476,6 +1476,63 @@ export async function createServer() {
     }
   });
 
+  // POST /api/payment/paypal/client-token (PayPal Web SDK v6 Token Generator)
+  app.post("/api/payment/paypal/client-token", async (req: any, res: any) => {
+    try {
+      const { tenantId = "global" } = req.body;
+      const { clientId, secretKey, baseUrl } = await resolveTenantPaypalConfig(tenantId, req.body.credentials);
+      if (!clientId || !secretKey) {
+        return res.status(400).json({ success: false, error: "PayPal credentials not found." });
+      }
+
+      // 1. Fetch OAuth access token
+      const auth = Buffer.from(`${clientId}:${secretKey}`).toString("base64");
+      const tokenRes = await axios.post(`${baseUrl}/v1/oauth2/token`, "grant_type=client_credentials", {
+        headers: {
+          "Authorization": `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        timeout: 8000
+      });
+      const accessToken = tokenRes.data?.access_token;
+      if (!accessToken) {
+        return res.status(401).json({ success: false, error: "Failed to authenticate with PayPal." });
+      }
+
+      // 2. Generate identity client token for JS SDK v6
+      try {
+        const clientTokenRes = await axios.post(`${baseUrl}/v1/identity/generate-token`, {}, {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept-Language": "en_US",
+            "Content-Type": "application/json"
+          },
+          timeout: 8000
+        });
+
+        return res.json({
+          success: true,
+          clientToken: clientTokenRes.data?.client_token,
+          expiresIn: clientTokenRes.data?.expires_in || 3600
+        });
+      } catch (genErr: any) {
+        // Some account types can initialize v6 directly with clientId without client_token
+        return res.json({
+          success: true,
+          clientId,
+          fallbackToClientId: true,
+          message: "Client token generation fallback to clientId."
+        });
+      }
+    } catch (err: any) {
+      console.error("[PayPal Client Token Error]:", err.response?.status, err.response?.data || err.message);
+      return res.status(500).json({
+        success: false,
+        error: err.response?.data?.message || err.message || "Failed to generate PayPal client token."
+      });
+    }
+  });
+
   // ==========================================
   // WEBHOOK INSPECTOR & OBSERVABILITY API
   // ==========================================
@@ -7112,8 +7169,6 @@ export async function createServer() {
     const jsonString = JSON.stringify(seo.preloadedData).replace(/</g, '\\u003c');
     const dataScript = seo.preloadedData ? `\n    <script id="preloaded-data" type="application/json">${jsonString}</script>\n    <script>window.__PRELOADED_DATA__ = JSON.parse(document.getElementById('preloaded-data').innerHTML);</script>` : '';
 
-    const preloadTags = (seo.isProduct || seo.isArticle) && safeImage ? `\n    <link rel="preload" as="image" href="${safeImage}" />` : '';
-
     let modified = html;
 
     // 1. Direct placeholder replacements
@@ -7209,7 +7264,7 @@ export async function createServer() {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDesc}" />
-    <meta name="twitter:image" content="${safeImage}" />${dataScript}${preloadTags}${debugTag}${trackingHeadTags}`;
+    <meta name="twitter:image" content="${safeImage}" />${dataScript}${debugTag}${trackingHeadTags}`;
 
     modified = modified.replace('</head>', `${ogTags}</head>`);
 

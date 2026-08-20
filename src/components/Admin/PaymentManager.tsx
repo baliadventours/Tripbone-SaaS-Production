@@ -605,6 +605,18 @@ export default function PaymentManager() {
 
             {selectedProviderId === 'paypal' && (
               <div className="space-y-4">
+                <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
+                  <div className="px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-black uppercase tracking-wider shrink-0 mt-0.5">
+                    Web SDK v6
+                  </div>
+                  <div>
+                    <p className="font-bold">PayPal Web SDK v6 Enabled</p>
+                    <p className="text-[11px] text-blue-700 mt-0.5">
+                      Supports modular SDK loading, server-side client tokens, one-time payment sessions, and real-time eligibility checks (Pay Later, Venmo, Cards).
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
                     PayPal Client ID
