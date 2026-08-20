@@ -1186,6 +1186,297 @@ export async function createServer() {
   });
 
   // ==========================================
+  // SERVER-SIDE PAYPAL REST API ROUTING
+  // ==========================================
+
+  // Helper to resolve PayPal credentials for a tenant
+  async function resolveTenantPaypalConfig(tenantId: string, customCredentials?: any) {
+    const db = getAdminDb();
+    let clientId = customCredentials?.clientId || customCredentials?.apiKey || customCredentials?.publicKey || "";
+    let secretKey = customCredentials?.secretKey || customCredentials?.secret || "";
+    let mode = customCredentials?.mode || "";
+
+    if (!clientId || !secretKey) {
+      try {
+        const snap = await db.collection("paymentSettings").doc(tenantId).get();
+        if (snap.exists) {
+          const data = snap.data() || {};
+          const paypalCfg = data.providerConfigs?.paypal || {};
+          clientId = clientId || paypalCfg.publicKey || paypalCfg.apiKey || (data.paypalMode === 'live' ? data.paypalClientId : (data.paypalSandboxClientId || data.paypalClientId));
+          secretKey = secretKey || paypalCfg.secretKey || (data.paypalMode === 'live' ? data.paypalSecret : (data.paypalSandboxSecret || data.paypalSecret));
+          mode = mode || paypalCfg.mode || data.paypalMode || data.mode || "live";
+        }
+      } catch (e) {
+        console.warn("[PayPal Config] Could not fetch primary paymentSettings:", e);
+      }
+
+      if (!clientId || !secretKey) {
+        try {
+          const fallbackSnap = await db.collection("settings").doc(`payment_${tenantId}`).get();
+          if (fallbackSnap.exists) {
+            const data = fallbackSnap.data() || {};
+            clientId = clientId || data.paypalClientId || data.paypalSandboxClientId || data.publicKey;
+            secretKey = secretKey || data.paypalSecret || data.paypalSandboxSecret || data.secretKey;
+            mode = mode || data.paypalMode || data.mode || "live";
+          }
+        } catch (e) {}
+      }
+    }
+
+    mode = (mode || "live").toLowerCase();
+    const baseUrl = mode === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
+    return { clientId: (clientId || "").trim(), secretKey: (secretKey || "").trim(), mode, baseUrl };
+  }
+
+  // POST /api/payment/paypal/create-order
+  app.post("/api/payment/paypal/create-order", async (req: any, res: any) => {
+    try {
+      const { tenantId = "global", amount, currency = "USD", description = "Tour Booking", bookingId } = req.body;
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        return res.status(400).json({ success: false, error: "Invalid payment amount." });
+      }
+
+      const { clientId, secretKey, mode, baseUrl } = await resolveTenantPaypalConfig(tenantId, req.body.credentials);
+      if (!clientId || !secretKey) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "PayPal is not configured or missing Client ID / Secret in Admin Settings." 
+        });
+      }
+
+      // 1. Get OAuth Access Token
+      let accessToken = "";
+      try {
+        const auth = Buffer.from(`${clientId}:${secretKey}`).toString("base64");
+        const tokenRes = await axios.post(`${baseUrl}/v1/oauth2/token`, "grant_type=client_credentials", {
+          headers: {
+            "Authorization": `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          timeout: 10000
+        });
+        accessToken = tokenRes.data?.access_token;
+      } catch (authErr: any) {
+        console.error("[PayPal Auth Error]:", authErr.response?.status, authErr.response?.data || authErr.message);
+        return res.status(401).json({
+          success: false,
+          error: "Failed to authenticate with PayPal. Please verify your Client ID and Secret in Payment Settings.",
+          details: authErr.response?.data
+        });
+      }
+
+      // 2. Format Currency & Amount (0-decimal vs 2-decimal currencies)
+      const upperCurr = (currency || "USD").toUpperCase();
+      const zeroDecimalCurrencies = ["JPY", "HUF", "TWD", "KRW"];
+      const formattedAmount = zeroDecimalCurrencies.includes(upperCurr)
+        ? Math.round(numAmount).toString()
+        : numAmount.toFixed(2);
+
+      // Clean ASCII description compliant with PayPal's schema (max 127 chars, no unsafe chars)
+      const cleanDesc = (description || "Tour Booking")
+        .replace(/[^\w\s.,\-()]/g, "")
+        .trim()
+        .substring(0, 100) || "Tour Booking";
+
+      // 3. Create PayPal Order
+      try {
+        const orderPayload = {
+          intent: "CAPTURE",
+          purchase_units: [
+            {
+              reference_id: (bookingId || `booking_${Date.now()}`).substring(0, 50),
+              amount: {
+                currency_code: upperCurr,
+                value: formattedAmount
+              },
+              description: cleanDesc
+            }
+          ]
+        };
+
+        const orderRes = await axios.post(`${baseUrl}/v2/checkout/orders`, orderPayload, {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          },
+          timeout: 10000
+        });
+
+        console.log(`[PayPal Order Created] ID: ${orderRes.data?.id} for tenant: ${tenantId}, amount: ${formattedAmount} ${upperCurr}`);
+        return res.json({
+          success: true,
+          orderId: orderRes.data?.id,
+          status: orderRes.data?.status,
+          mode
+        });
+
+      } catch (orderErr: any) {
+        console.error("[PayPal Order Error]:", orderErr.response?.status, orderErr.response?.data || orderErr.message);
+        const paypalData = orderErr.response?.data || {};
+        const details = paypalData.details || [];
+        const issue = details[0]?.issue || paypalData.name || "UNPROCESSABLE_ENTITY";
+        let userMessage = details[0]?.description || paypalData.message || "PayPal rejected the order.";
+
+        if (issue === "PAYEE_ACCOUNT_RESTRICTED") {
+          userMessage = "The merchant PayPal account is currently restricted by PayPal. Please complete business verification on paypal.com or switch to Sandbox mode.";
+        } else if (issue === "DECIMAL_PRECISION") {
+          userMessage = `Currency ${upperCurr} requires a whole integer without decimals.`;
+        }
+
+        return res.status(orderErr.response?.status || 422).json({
+          success: false,
+          error: userMessage,
+          issue,
+          details: paypalData
+        });
+      }
+
+    } catch (err: any) {
+      console.error("[PayPal Create Order General Error]:", err);
+      return res.status(500).json({
+        success: false,
+        error: err.message || "Internal server error creating PayPal order."
+      });
+    }
+  });
+
+  // POST /api/payment/paypal/capture-order
+  app.post("/api/payment/paypal/capture-order", async (req: any, res: any) => {
+    try {
+      const { tenantId = "global", orderId } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ success: false, error: "Missing orderId." });
+      }
+
+      const { clientId, secretKey, baseUrl } = await resolveTenantPaypalConfig(tenantId, req.body.credentials);
+      if (!clientId || !secretKey) {
+        return res.status(400).json({ success: false, error: "PayPal credentials not found." });
+      }
+
+      const auth = Buffer.from(`${clientId}:${secretKey}`).toString("base64");
+      const tokenRes = await axios.post(`${baseUrl}/v1/oauth2/token`, "grant_type=client_credentials", {
+        headers: {
+          "Authorization": `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        timeout: 10000
+      });
+      const accessToken = tokenRes.data?.access_token;
+
+      const captureRes = await axios.post(`${baseUrl}/v2/checkout/orders/${orderId}/capture`, {}, {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        timeout: 10000
+      });
+
+      console.log(`[PayPal Order Captured] Order: ${orderId}, Status: ${captureRes.data?.status}`);
+      return res.json({
+        success: true,
+        status: captureRes.data?.status,
+        captureId: captureRes.data?.purchase_units?.[0]?.payments?.captures?.[0]?.id || captureRes.data?.id,
+        details: captureRes.data
+      });
+
+    } catch (err: any) {
+      console.error("[PayPal Capture Order Error]:", err.response?.status, err.response?.data || err.message);
+      return res.status(err.response?.status || 500).json({
+        success: false,
+        error: err.response?.data?.message || err.message || "Failed to capture PayPal payment."
+      });
+    }
+  });
+
+  // POST /api/payment/paypal/verify
+  app.post("/api/payment/paypal/verify", async (req: any, res: any) => {
+    try {
+      const { clientId, secretKey, mode = "live" } = req.body;
+      if (!clientId || !secretKey) {
+        return res.status(400).json({ success: false, message: "Client ID and Secret Key are required." });
+      }
+
+      const baseUrl = mode === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
+      const auth = Buffer.from(`${clientId.trim()}:${secretKey.trim()}`).toString("base64");
+
+      // 1. Check OAuth token
+      const tokenRes = await axios.post(`${baseUrl}/v1/oauth2/token`, "grant_type=client_credentials", {
+        headers: {
+          "Authorization": `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        timeout: 8000
+      });
+
+      const accessToken = tokenRes.data?.access_token;
+      if (!accessToken) {
+        return res.status(400).json({ success: false, message: "Could not obtain PayPal access token." });
+      }
+
+      // 2. Test order creation capabilities to verify merchant account status
+      try {
+        const testOrderRes = await axios.post(`${baseUrl}/v2/checkout/orders`, {
+          intent: "CAPTURE",
+          purchase_units: [
+            {
+              amount: {
+                currency_code: "USD",
+                value: "10.00"
+              },
+              description: "Tripbone Verification Test Order"
+            }
+          ]
+        }, {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          },
+          timeout: 8000
+        });
+
+        return res.json({
+          success: true,
+          accountStatus: "active",
+          mode,
+          message: `PayPal OAuth & Checkout Orders verified successfully in ${mode.toUpperCase()} mode!`,
+          testOrderId: testOrderRes.data?.id
+        });
+
+      } catch (orderTestErr: any) {
+        const errData = orderTestErr.response?.data || {};
+        const details = errData.details || [];
+        const issue = details[0]?.issue || errData.name;
+
+        if (issue === "PAYEE_ACCOUNT_RESTRICTED") {
+          return res.json({
+            success: true, // Credentials are valid
+            accountStatus: "restricted",
+            mode,
+            message: `PayPal credentials are valid, but the PayPal account has a restriction (PAYEE_ACCOUNT_RESTRICTED). Please complete business account verification at paypal.com, or test with Sandbox mode.`,
+            issues: ["PAYEE_ACCOUNT_RESTRICTED: The merchant account is restricted by PayPal until verification is completed in the PayPal dashboard."]
+          });
+        }
+
+        return res.json({
+          success: true,
+          accountStatus: "active",
+          mode,
+          message: `PayPal credentials verified (${mode.toUpperCase()} mode).`
+        });
+      }
+
+    } catch (err: any) {
+      console.error("[PayPal Verification Error]:", err.response?.status, err.response?.data || err.message);
+      return res.status(400).json({
+        success: false,
+        accountStatus: "unverified",
+        message: err.response?.data?.error_description || err.response?.data?.message || "Invalid PayPal credentials or connection failed."
+      });
+    }
+  });
+
+  // ==========================================
   // WEBHOOK INSPECTOR & OBSERVABILITY API
   // ==========================================
 
@@ -6821,7 +7112,7 @@ export async function createServer() {
     const jsonString = JSON.stringify(seo.preloadedData).replace(/</g, '\\u003c');
     const dataScript = seo.preloadedData ? `\n    <script id="preloaded-data" type="application/json">${jsonString}</script>\n    <script>window.__PRELOADED_DATA__ = JSON.parse(document.getElementById('preloaded-data').innerHTML);</script>` : '';
 
-    const preloadTags = safeImage ? `\n    <link rel="preload" as="image" href="${safeImage}" />` : '';
+    const preloadTags = (seo.isProduct || seo.isArticle) && safeImage ? `\n    <link rel="preload" as="image" href="${safeImage}" />` : '';
 
     let modified = html;
 
@@ -6905,6 +7196,8 @@ export async function createServer() {
     <meta name="description" content="${safeDesc}" />
     <meta name="keywords" content="${safeKeywords}" />
     <meta name="apple-mobile-web-app-title" content="${safeSiteName}" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="icon" href="${safeFavicon}" />
     <link rel="shortcut icon" href="${safeFavicon}" />
     <link rel="apple-touch-icon" href="${safeFavicon}" />

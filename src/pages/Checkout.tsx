@@ -53,7 +53,9 @@ import {
   Building2,
   X,
   Edit2,
+  AlertCircle,
 } from "lucide-react";
+import axios from "axios";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { cn, parseMeetingPoint } from "../lib/utils";
 import FormattedPrice from "../components/FormattedPrice";
@@ -568,6 +570,7 @@ export default function Checkout() {
     bankInstructions?: string;
     providerConfigs?: Record<string, any>;
   } | null>(null);
+  const [paypalErrorMessage, setPaypalErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -581,7 +584,19 @@ export default function Checkout() {
         }
         if (docSnap.exists()) {
           const settings = docSnap.data() as any;
-          setPaymentSettings(settings);
+          const paypalCfg = settings?.providerConfigs?.paypal;
+          const resolvedClientId = (settings.paypalClientId || paypalCfg?.publicKey || paypalCfg?.apiKey || "").trim();
+          const resolvedSandboxClientId = (settings.paypalSandboxClientId || (paypalCfg?.mode === 'sandbox' ? paypalCfg?.publicKey : '') || "").trim();
+          const resolvedMode = settings.paypalMode || paypalCfg?.mode || settings.mode || "live";
+          const resolvedEnabled = settings.isPaypalEnabled ?? paypalCfg?.enabled ?? false;
+
+          setPaymentSettings({
+            ...settings,
+            paypalClientId: resolvedClientId,
+            paypalSandboxClientId: resolvedSandboxClientId,
+            paypalMode: resolvedMode,
+            isPaypalEnabled: resolvedEnabled
+          });
         }
       } catch (err) {
         console.error("Error fetching payment settings", err);
@@ -4079,6 +4094,26 @@ const toggleAddOn = (addon: AddOn) => {
                           Please agree to Terms & Conditions above
                         </p>
                       )}
+
+                      {paypalErrorMessage && (
+                        <div className="mb-4 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-bold text-amber-950">{paypalErrorMessage}</p>
+                            <p className="text-[11px] text-amber-800 mt-1 font-medium">
+                              You can switch to another payment method (e.g. Bank Transfer / Credit Card / Pay on Arrival) to complete your reservation.
+                            </p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setPaypalErrorMessage(null)} 
+                            className="text-amber-500 hover:text-amber-800 font-black text-sm"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+
                       {paymentSettings && paymentSettings.isPaypalEnabled && (paymentSettings.paypalMode === 'live' ? paymentSettings.paypalClientId : (paymentSettings.paypalSandboxClientId || paymentSettings.paypalClientId)) && (
                         <div className="w-full">
                           <PayPalScriptProvider
@@ -4101,24 +4136,90 @@ const toggleAddOn = (addon: AddOn) => {
                                 height: 55
                               }}
                               forceReRender={[activePaypalAmount, activePaypalCurrency, paymentSettings.paypalClientId, paymentSettings.paypalSandboxClientId, paymentSettings.paypalMode, agreedToTerms]}
-                              createOrder={(data, actions) => {
+                              createOrder={async (data, actions) => {
+                                setPaypalErrorMessage(null);
+                                const activeTenant = tenantId || getActiveTenantId() || "global";
+                                
+                                // 1. Attempt Server-Side Order Creation (Modern PayPal standard)
+                                try {
+                                  const res = await axios.post("/api/payment/paypal/create-order", {
+                                    tenantId: activeTenant,
+                                    amount: activePaypalAmount,
+                                    currency: activePaypalCurrency,
+                                    description: safeDescription,
+                                    bookingId: existingBooking?.id || `bk_${Date.now()}`
+                                  });
+
+                                  if (res.data?.orderId) {
+                                    return res.data.orderId;
+                                  }
+                                  if (res.data?.error) {
+                                    setPaypalErrorMessage(res.data.error);
+                                    throw new Error(res.data.error);
+                                  }
+                                } catch (serverErr: any) {
+                                  const errMsg = serverErr.response?.data?.error || serverErr.message || "";
+                                  if (errMsg.includes("restricted") || errMsg.includes("PAYEE_ACCOUNT_RESTRICTED")) {
+                                    const userFriendlyMsg = "The merchant PayPal account is currently restricted or pending business verification by PayPal. Please select another payment method or contact support.";
+                                    setPaypalErrorMessage(userFriendlyMsg);
+                                    throw new Error(userFriendlyMsg);
+                                  }
+                                  console.warn("Server-side create-order fallback to client actions:", serverErr);
+                                }
+
+                                // 2. Fallback to actions.order.create with sanitized schema
+                                const zeroDecimalCurrencies = ["JPY", "HUF", "TWD", "KRW"];
+                                const formattedVal = zeroDecimalCurrencies.includes(activePaypalCurrency)
+                                  ? Math.round(activePaypalAmount).toString()
+                                  : activePaypalAmount.toFixed(2);
+                                const sanitizedDesc = safeDescription.replace(/[^\w\s.,\-()]/g, "").trim().substring(0, 100) || "Tour Booking";
+
                                 return actions.order.create({
                                   intent: 'CAPTURE',
                                   purchase_units: [
                                     {
                                       amount: {
-                                        value: activePaypalAmount.toFixed(2),
+                                        value: formattedVal,
                                         currency_code: activePaypalCurrency,
                                       },
-                                      description: safeDescription,
+                                      description: sanitizedDesc,
                                     },
                                   ],
                                 });
                               }}
-                              onApprove={handlePayPalApprove}
-                              onError={(err) => {
+                              onApprove={async (data, actions) => {
+                                setPaypalErrorMessage(null);
+                                try {
+                                  const activeTenant = tenantId || getActiveTenantId() || "global";
+                                  // Attempt server capture first
+                                  try {
+                                    const res = await axios.post("/api/payment/paypal/capture-order", {
+                                      tenantId: activeTenant,
+                                      orderId: data.orderID,
+                                    });
+                                    if (res.data?.success) {
+                                      await handleFinalBooking(res.data.captureId || data.orderID);
+                                      return;
+                                    }
+                                  } catch (serverCaptureErr) {
+                                    console.warn("Server-side capture fallback to client actions:", serverCaptureErr);
+                                  }
+
+                                  const details = await actions.order.capture();
+                                  await handleFinalBooking(details.id || data.orderID);
+                                } catch (err: any) {
+                                  console.error("PayPal capture error:", err);
+                                  setPaypalErrorMessage("Payment capture encountered an issue. If your account was charged, our team will confirm your booking immediately.");
+                                }
+                              }}
+                              onError={(err: any) => {
                                 console.error("PayPal Error:", err);
-                                alert("Payment failed. Please ensure your Client ID is correct in Admin settings.");
+                                const errStr = String(err?.message || err || "");
+                                if (errStr.includes("restricted") || errStr.includes("RESTRICTED")) {
+                                  setPaypalErrorMessage("The merchant PayPal account is currently restricted or pending business verification by PayPal. Please select another payment method.");
+                                } else {
+                                  setPaypalErrorMessage("PayPal encountered an issue processing this transaction. Please try another payment method or try again.");
+                                }
                               }}
                             />
                           </PayPalScriptProvider>

@@ -116,49 +116,20 @@ export function useTenantSEO() {
       });
     }
 
-    // Dynamic Client-Side Web App Manifest Injection & PWA Meta Synchronization
+    // Dynamic PWA Meta Synchronization
     const activeThemeColor = (settings as any)?.accentColor || settings?.primaryColor || '#00A651';
     updateMeta('apple-mobile-web-app-title', siteName);
+    updateMeta('apple-mobile-web-app-capable', 'yes');
+    updateMeta('mobile-web-app-capable', 'yes');
     updateMeta('theme-color', activeThemeColor);
 
-    try {
-      const manifestObj = {
-        name: siteName,
-        short_name: siteName.length > 20 ? siteName.slice(0, 20) : siteName,
-        description: siteDescription,
-        start_url: window.location.origin + '/',
-        scope: '/',
-        display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: activeThemeColor,
-        orientation: 'portrait-primary',
-        icons: [
-          {
-            src: siteFavicon,
-            sizes: '192x192 512x512',
-            purpose: 'any'
-          },
-          {
-            src: siteFavicon,
-            sizes: '192x192 512x512',
-            purpose: 'maskable'
-          }
-        ]
-      };
-
-      const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-      const manifestBlobUrl = URL.createObjectURL(manifestBlob);
-
-      let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-      if (!manifestLink) {
-        manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        document.head.appendChild(manifestLink);
-      }
-      manifestLink.href = manifestBlobUrl;
-    } catch (manifestErr) {
-      console.warn('Failed to construct dynamic manifest blob:', manifestErr);
+    let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
     }
+    manifestLink.href = '/manifest.json';
 
   }, [tenant, settings, globalBrand, isMaster, globalSEO, location.pathname]);
 }

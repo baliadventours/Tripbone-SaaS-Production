@@ -66,25 +66,37 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        const apiKey = import.meta.env.VITE_CURRENCY_API_KEY || '627b0b6c69788a442750e7f7';
-        const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
-        if (!response.ok) {
-          throw new Error(`HTTP status ${response.status}`);
+        let data: any = null;
+        try {
+          // Priority 1: Official open ExchangeRate API (Free, high availability, no key required)
+          const response = await fetch('https://open.er-api.com/v6/latest/USD');
+          if (response.ok) {
+            data = await response.json();
+          }
+        } catch (e) {
+          // Priority 2: Fallback to custom key if set
+          const apiKey = import.meta.env.VITE_CURRENCY_API_KEY;
+          if (apiKey) {
+            const fallbackRes = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
+            if (fallbackRes.ok) {
+              data = await fallbackRes.json();
+            }
+          }
         }
-        const data = await response.json();
         
-        if (data.result === 'success') {
-          const fetchedRates = { ...DEFAULT_RATES, ...data.conversion_rates };
+        if (data && (data.result === 'success' || data.rates || data.conversion_rates)) {
+          const newRates = data.rates || data.conversion_rates || {};
+          const fetchedRates = { ...DEFAULT_RATES, ...newRates };
           setRates(fetchedRates);
           localStorage.setItem('currency_rates_cache', JSON.stringify({
             rates: fetchedRates,
             timestamp: Date.now()
           }));
         } else {
-          throw new Error(data['error-type'] || 'API failure response');
+          setRates(DEFAULT_RATES);
         }
       } catch (error) {
-        console.warn('Failed to fetch currency rates from API, using robust default rates:', error);
+        console.warn('Currency rate update notice: using default currency matrix.');
       } finally {
         setIsLoading(false);
       }

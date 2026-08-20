@@ -46,6 +46,7 @@ export interface ConnectionResult {
   accountStatus: AccountStatus;
   mode: PaymentMode;
   message: string;
+  issues?: string[];
   details?: Record<string, any>;
 }
 

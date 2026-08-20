@@ -75,6 +75,54 @@ export class PaypalGateway implements PaymentGateway {
 
         const latencyMs = Date.now() - startTime;
         if (res.ok) {
+          const tokenData = await res.json().catch(() => ({}));
+          const accessToken = tokenData.access_token;
+
+          // Test order creation capability if token obtained
+          if (accessToken) {
+            try {
+              const testOrderRes = await fetch(`${baseUrl}/v2/checkout/orders`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  intent: 'CAPTURE',
+                  purchase_units: [
+                    {
+                      amount: {
+                        currency_code: 'USD',
+                        value: '10.00',
+                      },
+                      description: 'Tripbone Health Test',
+                    },
+                  ],
+                }),
+              });
+
+              if (!testOrderRes.ok) {
+                const orderErrData = await testOrderRes.json().catch(() => ({}));
+                const details = orderErrData.details || [];
+                const issue = details[0]?.issue || orderErrData.name;
+
+                if (issue === 'PAYEE_ACCOUNT_RESTRICTED') {
+                  return {
+                    success: true, // Credentials are valid
+                    merchantName: 'PayPal Account',
+                    accountStatus: 'restricted',
+                    mode: config.mode,
+                    message: 'PayPal credentials are valid, but merchant account has restrictions (PAYEE_ACCOUNT_RESTRICTED). Please complete business verification on paypal.com or switch to Sandbox mode.',
+                    issues: ['PAYEE_ACCOUNT_RESTRICTED: PayPal requires business verification on paypal.com for this account.'],
+                    latencyMs,
+                  };
+                }
+              }
+            } catch (orderCheckErr) {
+              console.warn('[PaypalGateway] Order capability check warning:', orderCheckErr);
+            }
+          }
+
           return {
             success: true,
             merchantName: 'PayPal Account',
@@ -83,10 +131,19 @@ export class PaypalGateway implements PaymentGateway {
             message: 'PayPal OAuth Client ID & Secret verified successfully.',
             latencyMs,
           };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          return {
+            success: false,
+            accountStatus: 'unverified',
+            mode: config.mode,
+            message: errData.error_description || errData.message || `PayPal OAuth authentication failed with HTTP ${res.status}.`,
+            latencyMs,
+          };
         }
       }
 
-      // Fallback test for Client ID
+      // Fallback test for Client ID only
       return {
         success: true,
         merchantName: 'PayPal Account',
