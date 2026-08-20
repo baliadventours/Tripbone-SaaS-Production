@@ -179,8 +179,9 @@ import ChannelManager from '../components/Admin/ChannelManager';
 import WebhookLogInspector from '../components/Admin/WebhookLogInspector';
 import DisasterRecoveryBackup from '../components/Admin/DisasterRecoveryBackup';
 import ConversionFunnelTracker from '../components/Admin/ConversionFunnelTracker';
+import AnalyticsManager from '../components/Admin/AnalyticsManager';
 
-type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel';
+type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-overview' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
 
 const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'locations' | 'labels', items: (Category | TourType | LocationMeta | TourLabel)[] }) => {
@@ -937,101 +938,6 @@ const BookingTimeManager = () => {
         </div>
     );
 };
-
-  const AnalyticsManager = ({ bookings, tours }: { bookings: Booking[], tours: Tour[] }) => {
-    const [viewMode, setViewMode] = useState<'traffic' | 'sales'>('traffic');
-
-    return (
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight text-left">Performance Analytics</h2>
-            <p className="text-gray-500 font-medium text-left">Deep dive into your guest interactions, conversions, and booking metrics.</p>
-          </div>
-          
-          <div className="bg-gray-100/60 p-1 rounded-xl flex gap-1 self-start select-none">
-            <button
-              onClick={() => setViewMode('traffic')}
-              className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'traffic'
-                  ? 'bg-white text-gray-950 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              <Icons.Globe className="w-3.5 h-3.5 text-primary" />
-              Guest Traffic
-            </button>
-            <button
-              onClick={() => setViewMode('sales')}
-              className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'sales'
-                  ? 'bg-white text-gray-950 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              <Icons.DollarSign className="w-3.5 h-3.5 text-primary" />
-              Sales & Bookings
-            </button>
-          </div>
-        </div>
-
-        {viewMode === 'traffic' ? (
-          <SimpleAnalyticsDashboard />
-        ) : (
-          <div className="space-y-8 animate-fadeIn text-left">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               <div className="bg-white p-8 rounded-[20px] border border-gray-100 shadow-sm">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Total Revenue</p>
-                  <h3 className="text-4xl font-black text-gray-900 tracking-tighter">
-                    ${bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0).toLocaleString()}
-                  </h3>
-                  <div className="mt-4 flex items-center gap-2 text-primary font-bold text-xs">
-                     <Icons.TrendingUp className="h-4 w-4" /> Syncing with master systems
-                  </div>
-               </div>
-               <div className="bg-white p-8 rounded-[20px] border border-gray-100 shadow-sm">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Average Booking Value</p>
-                  <h3 className="text-4xl font-black text-gray-900 tracking-tighter">
-                    ${bookings.length > 0 ? Math.round(bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0) / bookings.length) : 0}
-                  </h3>
-                  <div className="mt-4 flex items-center gap-2 text-blue-600 font-bold text-xs">
-                     <Icons.Users className="h-4 w-4" /> Based on {bookings.length} bookings
-                  </div>
-               </div>
-               <div className="bg-white p-8 rounded-[20px] border border-gray-100 shadow-sm">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Conversion Rate</p>
-                  <h3 className="text-4xl font-black text-gray-900 tracking-tighter">3.2%</h3>
-                  <div className="mt-4 flex items-center gap-2 text-amber-600 font-bold text-xs">
-                     <Icons.Monitor className="h-4 w-4" /> From organic traffic
-                  </div>
-               </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[20px] border border-gray-100 shadow-sm">
-               <h3 className="font-black text-gray-900 mb-8">Tour Popularity</h3>
-               <div className="space-y-6">
-                  {tours.slice(0, 5).map((tour, i) => {
-                    const tourBookings = bookings.filter(b => b.tourId === tour.id).length;
-                    const percentage = bookings.length > 0 ? (tourBookings / bookings.length) * 100 : 0;
-                    return (
-                      <div key={i} className="space-y-2">
-                        <div className="flex justify-between items-end">
-                          <span className="font-bold text-sm text-gray-900">{tour.title}</span>
-                          <span className="text-xs font-black text-gray-500">{tourBookings} Bookings</span>
-                        </div>
-                        <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary" style={{ width: `${Math.max(percentage * 5, 2)}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-               </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const ReviewManager = ({ tours }: { tours: Tour[] }) => {
     const { settings } = useSettings();
@@ -7752,6 +7658,17 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         ].filter(c => !c.hidden)
       },
       { 
+        id: 'analytics-group', 
+        label: 'Analytics', 
+        icon: BarChart3,
+        hidden: isAgent,
+        children: [
+          { id: 'analytics-overview', label: 'Traffic & Visitors', hidden: false },
+          { id: 'conversion-funnel', label: 'Conversion Funnel', hidden: false },
+          { id: 'google-analytics', label: 'GA4 & GTM Tracking', hidden: false },
+        ].filter(c => !c.hidden)
+      },
+      { 
         id: 'tours-group', 
         label: 'Tours', 
         icon: MapIcon,
@@ -7886,7 +7803,11 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       'developer-hub': 'Developer Hub',
       'user-settings': 'User Profile Setting',
       'backup': 'Disaster Recovery & 1-Click Backup',
+      'analytics': 'Analytics & Growth Hub',
+      'analytics-overview': 'Traffic & Visitor Insights',
       'conversion-funnel': 'Checkout Conversion Funnel & Drop-off Tracker',
+      'google-analytics': 'Google Analytics 4 & GTM Tracking',
+      'analytics-integration': 'Google Analytics 4 & GTM Tracking',
     };
     if (labelsMap[activeMenu]) return labelsMap[activeMenu];
 
@@ -12413,16 +12334,20 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
             </div>
           )}
 
-          {/* Meta Management (Categories, Types, Locations) */}
-          {activeMenu === 'analytics' && (
+          {/* Analytics & Conversion Hub */}
+          {(activeMenu === 'analytics' || activeMenu === 'analytics-overview') && (
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-              <AnalyticsManager bookings={bookings} tours={tours} />
+              <AnalyticsManager initialTab="traffic" bookings={bookings} />
             </div>
           )}
-
-          {activeMenu === 'google-analytics' && (
+          {activeMenu === 'conversion-funnel' && (
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-              <GoogleAnalytics />
+              <AnalyticsManager initialTab="funnel" bookings={bookings} />
+            </div>
+          )}
+          {(activeMenu === 'google-analytics' || activeMenu === 'analytics-integration') && (
+            <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+              <AnalyticsManager initialTab="ga4" bookings={bookings} />
             </div>
           )}
           {['categories', 'tour-types', 'locations', 'labels'].includes(activeMenu) && (
@@ -12654,11 +12579,6 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                   })}
                 </div>
               </div>
-            </div>
-          )}
-          {activeMenu === 'conversion-funnel' && (
-            <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-              <ConversionFunnelTracker bookings={bookings} />
             </div>
           )}
           {activeMenu === 'backup' && (
@@ -13211,11 +13131,6 @@ Stripe: /api/payment/stripe-webhook`}
           {activeMenu === 'website-builder' && (
              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
                 <WebsiteBuilder />
-             </div>
-          )}
-          {(activeMenu === 'analytics-integration' || activeMenu === 'analytics' || activeMenu === 'google-analytics') && (
-             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
-                <GoogleAnalytics />
              </div>
           )}
           {activeMenu === 'general-settings' && (
