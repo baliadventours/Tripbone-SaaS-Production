@@ -63,7 +63,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { sendBookingEmail } from "../lib/emailService";
 import { sendWhatsAppNotification } from "../lib/whatsappService";
 import { PaymentService } from "../services/payment/PaymentService";
-import { trackGABeginCheckout } from "../lib/googleAnalytics";
+import { 
+  trackGABeginCheckout, 
+  trackGAAddShippingInfo, 
+  trackGAAddPaymentInfo, 
+  trackGASelectPromotion 
+} from "../lib/googleAnalytics";
 
 type CheckoutStep = "selection" | "customer" | "payment";
 type PaymentMethod = "stripe" | "midtrans" | "xendit" | "razorpay" | "adyen" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
@@ -334,15 +339,25 @@ export default function Checkout() {
     navigate({ search: newParams.toString() }, { replace: false });
     window.scrollTo(0, 0);
 
-    if (newStep === "payment" && tour) {
+    if (tour) {
       try {
-        trackGABeginCheckout({
-          tourTitle: tour.title,
-          tourId: tour.id,
-          totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
-          participants: (adults || 0) + (children || 0) || 1,
-          currency: "USD"
-        });
+        if (newStep === "customer") {
+          trackGAAddShippingInfo({
+            tourTitle: tour.title,
+            totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
+            currency: selectedCurrency || "USD",
+            shippingTier: selectedTransport?.name || selectedTransportType || "Standard Pickup",
+            itemsCount: (adults || 0) + (children || 0) || 1
+          });
+        } else if (newStep === "payment") {
+          trackGABeginCheckout({
+            tourTitle: tour.title,
+            tourId: tour.id,
+            totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
+            participants: (adults || 0) + (children || 0) || 1,
+            currency: selectedCurrency || "USD"
+          });
+        }
       } catch (trackErr) {
         console.warn("[Analytics] Checkout tracking notice:", trackErr);
       }
@@ -868,6 +883,11 @@ export default function Checkout() {
         } else {
           setAppliedCoupon(coupon);
           setCouponInput("");
+          try {
+            trackGASelectPromotion(coupon.code || couponInput, coupon.discountAmount || (coupon.discountPercentage ? (packageTotal * (coupon.discountPercentage / 100)) : 0));
+          } catch (e) {
+            console.warn('[Analytics] Coupon tracking notice:', e);
+          }
         }
       }
     } catch (error) {
@@ -3781,9 +3801,19 @@ const toggleAddOn = (addon: AddOn) => {
                     .map((method) => (
                       <div
                         key={method.id}
-                        onClick={() =>
-                          setPaymentMethod(method.id as PaymentMethod)
-                        }
+                        onClick={() => {
+                          setPaymentMethod(method.id as PaymentMethod);
+                          try {
+                            trackGAAddPaymentInfo({
+                              tourTitle: tour?.title || 'Tour Booking',
+                              totalAmount: summary?.amountToPay || summary?.grandTotal || 0,
+                              paymentType: method.title || method.id,
+                              currency: selectedCurrency || 'USD'
+                            });
+                          } catch (e) {
+                            console.warn('[Analytics] Payment selection notice:', e);
+                          }
+                        }}
                         className={cn(
                           "p-6 rounded-[20px] border-2 transition-all cursor-pointer flex items-center justify-between bg-white",
                           paymentMethod === method.id

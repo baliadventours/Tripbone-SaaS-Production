@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
   BarChart, Bar, Cell, PieChart, Pie 
 } from 'recharts';
+import ConversionFunnelTracker from './ConversionFunnelTracker';
 
 interface PageViewLog {
   id: string;
@@ -456,6 +457,9 @@ export default function SimpleAnalyticsDashboard() {
         </div>
 
       </div>
+
+      {/* Checkout Conversion Funnel & Drop-off Tracker */}
+      <ConversionFunnelTracker totalVisitors={stats.uniqueCount || logs.length} />
 
       {/* Referrers, Keywords & Visited Pages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

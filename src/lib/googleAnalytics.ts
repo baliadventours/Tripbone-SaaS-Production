@@ -662,6 +662,83 @@ export const trackGABeginCheckout = (booking: {
 };
 
 /**
+ * Add Passenger / Shipping / Pickup Info Step (GA4 & GTM)
+ */
+export const trackGAAddShippingInfo = (booking: {
+  tourTitle: string;
+  totalAmount: number;
+  currency?: string;
+  shippingTier?: string;
+  itemsCount?: number;
+}) => {
+  trackGAEvent('add_shipping_info', 'ecommerce', booking.tourTitle, booking.totalAmount, {
+    currency: booking.currency || 'USD',
+    value: booking.totalAmount,
+    shipping_tier: booking.shippingTier || 'Standard Pickup'
+  });
+
+  if (typeof window !== 'undefined' && window.dataLayer) {
+    window.dataLayer.push({
+      event: 'add_shipping_info',
+      ecommerce: {
+        currency: booking.currency || 'USD',
+        value: booking.totalAmount,
+        shipping_tier: booking.shippingTier || 'Standard Pickup'
+      }
+    });
+  }
+};
+
+/**
+ * Add Payment Info Step (GA4 & GTM)
+ */
+export const trackGAAddPaymentInfo = (booking: {
+  tourTitle: string;
+  totalAmount: number;
+  paymentType: string;
+  currency?: string;
+}) => {
+  trackGAEvent('add_payment_info', 'ecommerce', booking.paymentType, booking.totalAmount, {
+    currency: booking.currency || 'USD',
+    value: booking.totalAmount,
+    payment_type: booking.paymentType
+  });
+
+  if (typeof window !== 'undefined' && window.dataLayer) {
+    window.dataLayer.push({
+      event: 'add_payment_info',
+      ecommerce: {
+        currency: booking.currency || 'USD',
+        value: booking.totalAmount,
+        payment_type: booking.paymentType
+      }
+    });
+  }
+};
+
+/**
+ * Promo Coupon Applied (GA4 & GTM)
+ */
+export const trackGASelectPromotion = (couponCode: string, discountValue?: number) => {
+  trackGAEvent('select_promotion', 'ecommerce', couponCode, discountValue || 0, {
+    promotion_id: couponCode,
+    promotion_name: `Coupon: ${couponCode}`,
+    discount: discountValue || 0
+  });
+
+  if (typeof window !== 'undefined' && window.dataLayer) {
+    window.dataLayer.push({
+      event: 'select_promotion',
+      ecommerce: {
+        promotion_id: couponCode,
+        promotion_name: `Coupon: ${couponCode}`,
+        discount: discountValue || 0
+      }
+    });
+  }
+};
+
+/**
  * Complete Purchase / Confirmed Booking (Google Ads + GA4 + GTM Conversion)
  */
 export const trackGAPurchase = (booking: {

@@ -176,6 +176,8 @@ import ProposalGenerator from '../components/Admin/ProposalGenerator';
 import UserManager from '../components/Admin/UserManager';
 import PaymentManager from '../components/Admin/PaymentManager';
 import ChannelManager from '../components/Admin/ChannelManager';
+import WebhookLogInspector from '../components/Admin/WebhookLogInspector';
+import DisasterRecoveryBackup from '../components/Admin/DisasterRecoveryBackup';
 
 type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
@@ -12648,6 +12650,20 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
               </div>
             </div>
           )}
+          {activeMenu === 'backup' && (
+            <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+              <DisasterRecoveryBackup
+                tours={tours}
+                bookings={bookings}
+                globalAddOns={globalAddOns}
+                globalTransports={globalTransports}
+                coupons={coupons}
+                onDataRestored={() => {
+                  window.location.reload();
+                }}
+              />
+            </div>
+          )}
           {activeMenu === 'custom-domain' && (
             <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
               <div>
@@ -12911,121 +12927,45 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                 </div>
               </div>
 
-              {/* Webhooks Setup and Logs */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                  {/* Webhooks list */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-xs space-y-6">
-                    <h3 className="font-black text-gray-900 text-lg tracking-tight">Registered Webhook Endpoints</h3>
-                    
-                    <div className="space-y-4">
-                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                          <p className="font-mono text-xs font-black text-gray-900 truncate max-w-sm">https://api.youragency.com/booking-webhooks</p>
-                          <div className="flex gap-2 mt-1.5 flex-wrap">
-                            <span className="text-[8px] font-black uppercase tracking-wider bg-orange-100 text-primary px-1.5 py-0.5 rounded font-sans">booking.created</span>
-                            <span className="text-[8px] font-black uppercase tracking-wider bg-orange-100 text-primary px-1.5 py-0.5 rounded font-sans">booking.updated</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <button 
-                            onClick={() => alert("Webhook integration verified!")}
-                            className="px-3 py-1.5 bg-white text-gray-700 font-bold border border-gray-200 rounded-lg text-[10px] uppercase tracking-wider hover:bg-gray-50 transition-all font-sans"
-                          >
-                            Ping Test
-                          </button>
-                          <button 
-                            onClick={() => alert("Webhook successfully deleted.")}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Icons.Trash className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
+              {/* Live Webhook Inspector & Sandbox Engine */}
+              <div className="space-y-6">
+                <WebhookLogInspector />
+              </div>
 
-                      {/* Add new webhooks panel */}
-                      <div className="pt-4 border-t border-gray-50 flex flex-col sm:flex-row gap-4">
-                        <input 
-                          type="text" 
-                          placeholder="https://api.myagency.com/v1/webhooks" 
-                          className="flex-1 bg-gray-50 border-gray-100 hover:border-gray-200 rounded-xl py-3 px-4 text-xs font-bold focus:outline-none transition-all"
-                        />
-                        <button 
-                          onClick={() => alert("Successfully registered new webhook endpoint!")}
-                          className="px-6 py-3 bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer font-sans"
-                        >
-                          <Icons.Plus className="h-4 w-4" /> Add Endpoint
-                        </button>
-                      </div>
-                    </div>
+              {/* Integration Curl & Code Examples */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-900 text-slate-100 rounded-3xl p-6 shadow-xl space-y-4 font-mono text-xs border border-slate-800">
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-sans">API Endpoint Reference</span>
+                    <span className="text-[9px] font-black text-primary bg-orange-500/15 px-2.5 py-0.5 rounded-full">cURL</span>
                   </div>
-
-                  {/* Webhook Deliveries logs */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-xs space-y-6">
-                    <h3 className="font-black text-gray-900 text-lg tracking-tight">Webhook Delivery History</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs font-mono text-gray-500">
-                        <thead className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                          <tr>
-                            <th className="py-2.5 px-3">Event Name</th>
-                            <th className="py-2.5 px-3">Target Endpoint</th>
-                            <th className="py-2.5 px-3">Status</th>
-                            <th className="py-2.5 px-3">Latency</th>
-                            <th className="py-2.5 px-3 text-right font-sans">Timestamp</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          <tr className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-3 px-3 font-bold text-gray-900 font-sans">booking.created</td>
-                            <td className="py-3 px-3 truncate max-w-[120px]">.../booking-webhooks</td>
-                            <td className="py-3 px-3"><span className="text-[9px] bg-emerald-50 text-emerald-700 font-black uppercase px-2 py-0.5 rounded font-sans">200 OK</span></td>
-                            <td className="py-3 px-3 text-gray-400">104 ms</td>
-                            <td className="py-3 px-3 text-right text-gray-400 font-sans">Just Now</td>
-                          </tr>
-                          <tr className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-3 px-3 font-bold text-gray-900 font-sans">inquiry.received</td>
-                            <td className="py-3 px-3 truncate max-w-[120px]">.../booking-webhooks</td>
-                            <td className="py-3 px-3"><span className="text-[9px] bg-emerald-50 text-emerald-700 font-black uppercase px-2 py-0.5 rounded font-sans">200 OK</span></td>
-                            <td className="py-3 px-3 text-gray-400">89 ms</td>
-                            <td className="py-3 px-3 text-right text-gray-400 font-sans">3 mins ago</td>
-                          </tr>
-                          <tr className="hover:bg-gray-50/50 transition-colors">
-                            <td className="py-3 px-3 font-bold text-gray-900 font-sans">booking.updated</td>
-                            <td className="py-3 px-3 truncate max-w-[120px]">.../booking-webhooks</td>
-                            <td className="py-3 px-3"><span className="text-[9px] bg-red-50 text-red-700 font-black uppercase px-2 py-0.5 rounded font-sans">500 ERR</span></td>
-                            <td className="py-3 px-3 text-gray-400">402 ms</td>
-                            <td className="py-3 px-3 text-right text-gray-400 font-sans">15 mins ago</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-slate-400 font-bold font-sans text-[10px] uppercase mb-1">Inbound OTA Webhook Receiver</p>
+                      <pre className="bg-slate-950 p-3.5 rounded-2xl overflow-x-auto text-[11px] text-orange-400 leading-normal">
+{`POST /api/webhooks/:channel/:tenantId
+Host: ${window.location.host}
+Headers: 
+  Idempotency-Key: uniq_evt_9981
+  Content-Type: application/json`}
+                      </pre>
                     </div>
                   </div>
                 </div>
 
-                {/* Integration Curl Examples */}
-                <div className="space-y-6">
-                  <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 shadow-xl space-y-4 font-mono text-xs">
-                    <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-sans">Quick Integration</span>
-                      <span className="text-[9px] font-black text-primary bg-orange-500/15 px-2 py-0.5 rounded">cURL</span>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-slate-400 font-bold font-sans text-[10px] uppercase mb-1">Retrieve Tours</p>
-                        <pre className="bg-slate-950 p-3.5 rounded-xl overflow-x-auto text-[11px] text-orange-400 leading-normal">
-{`curl -X GET https://api.bookingagent.co/v1/tours \\
-  -H "Authorization: Bearer sk_test_..."`}
-                        </pre>
-                      </div>
-                      <div>
-                        <p className="text-slate-400 font-bold font-sans text-[10px] uppercase mb-1">Create Booking Payload</p>
-                        <pre className="bg-slate-950 p-3.5 rounded-xl overflow-x-auto text-[11px] text-orange-400 leading-normal">
-{`curl -X POST https://api.bookingagent.co/v1/bookings \\
-  -H "Authorization: Bearer sk_test_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{"tourId": "t123", "pax": 2}'`}
-                        </pre>
-                      </div>
+                <div className="bg-slate-900 text-slate-100 rounded-3xl p-6 shadow-xl space-y-4 font-mono text-xs border border-slate-800">
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-sans">Payment Webhook URL</span>
+                    <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded-full">BYOPG</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-slate-400 font-bold font-sans text-[10px] uppercase mb-1">Payment Notification Endpoint</p>
+                      <pre className="bg-slate-950 p-3.5 rounded-2xl overflow-x-auto text-[11px] text-emerald-400 leading-normal">
+{`POST /api/payment/webhook/:provider/:tenantId
+Midtrans: /api/payment/midtrans-notification
+Stripe: /api/payment/stripe-webhook`}
+                      </pre>
                     </div>
                   </div>
                 </div>
