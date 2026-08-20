@@ -243,9 +243,16 @@ export interface PaymentSettings {
   swiftCode?: string;
   bankInstructions: string;
 
+  // Wise Settings
+  isWiseEnabled?: boolean;
+  wiseApiToken?: string;
+  wiseProfileId?: string;
+  wiseWebhookSecret?: string;
+
   // Pay on Arrival (Cash) Settings
   isPayOnArrivalEnabled?: boolean;
   payOnArrivalInstructions?: string;
+  providerConfigs?: Record<string, any>;
 }
 
 export interface BookingLog {

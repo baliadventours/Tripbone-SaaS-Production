@@ -681,6 +681,89 @@ export default function PaymentManager() {
               </div>
             )}
 
+            {selectedProviderId === 'wise' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-sky-50/70 border border-sky-200 rounded-2xl">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-sky-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="font-black text-xs text-sky-900 uppercase tracking-wide">
+                        Wise (TransferWise) Developer Integration
+                      </h4>
+                      <p className="text-xs text-sky-700 leading-relaxed">
+                        Wise lets you accept international bank payments with real mid-market exchange rates, receive payments into multi-currency borderless accounts, and automate transfers with low fees.
+                      </p>
+                      <div className="pt-2 flex items-center gap-3">
+                        <a
+                          href="https://docs.wise.com/guides/developer"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800 hover:text-sky-950 underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" /> Wise Developer Documentation
+                        </a>
+                        <a
+                          href="https://wise.com/settings/api-tokens"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800 hover:text-sky-950 underline"
+                        >
+                          <Key className="h-3.5 w-3.5" /> Generate Wise API Token
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
+                    Wise API Token (Read/Write)
+                  </label>
+                  <input
+                    type="password"
+                    value={currentConfig.apiKey || currentConfig.secretKey || ''}
+                    onChange={(e) => {
+                      handleConfigChange('apiKey', e.target.value);
+                      handleConfigChange('secretKey', e.target.value);
+                    }}
+                    placeholder="e.g. 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
+                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-mono font-bold"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Generated under Wise Settings &gt; API tokens. Required for profile verification, balance checks, and quotes.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
+                      Wise Profile ID (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={currentConfig.profileId || ''}
+                      onChange={(e) => handleConfigChange('profileId', e.target.value)}
+                      placeholder="e.g. 12345678 (Auto-detected if left blank)"
+                      className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
+                      Webhook Secret / Public Key (Optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={currentConfig.webhookSecret || ''}
+                      onChange={(e) => handleConfigChange('webhookSecret', e.target.value)}
+                      placeholder="Wise Webhook subscription public key"
+                      className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-mono font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {selectedProviderId === 'bank_transfer' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -698,15 +781,31 @@ export default function PaymentManager() {
 
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
-                    Account Number
+                    Account Number / IBAN
                   </label>
                   <input
                     type="text"
                     value={currentConfig.accountNumber || ''}
                     onChange={(e) => handleConfigChange('accountNumber', e.target.value)}
-                    placeholder="e.g. 1234567890"
+                    placeholder="e.g. 1234567890 or IBAN"
                     className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-bold"
                   />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
+                    SWIFT / BIC Code (For International Transfers)
+                  </label>
+                  <input
+                    type="text"
+                    value={currentConfig.swiftCode || ''}
+                    onChange={(e) => handleConfigChange('swiftCode', e.target.value.toUpperCase())}
+                    placeholder="e.g. CENAIDJA or BNINIDJA"
+                    className="w-full bg-slate-50 border border-gray-200 rounded-xl p-2.5 text-xs font-mono font-bold uppercase tracking-wider"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Standard 8 or 11 character SWIFT/BIC code for international wire and Wise/Revolut transfers.
+                  </p>
                 </div>
 
                 <div>

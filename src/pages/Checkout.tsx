@@ -54,6 +54,8 @@ import {
   X,
   Edit2,
   AlertCircle,
+  Copy,
+  Globe,
 } from "lucide-react";
 import axios from "axios";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
@@ -74,7 +76,7 @@ import {
 } from "../lib/googleAnalytics";
 
 type CheckoutStep = "selection" | "customer" | "payment";
-type PaymentMethod = "stripe" | "midtrans" | "xendit" | "razorpay" | "adyen" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
+type PaymentMethod = "stripe" | "midtrans" | "xendit" | "razorpay" | "adyen" | "wise" | "card" | "paypal" | "bank_transfer" | "pay_on_arrival";
 
 interface CountryWithPhoneCode {
   name: string;
@@ -562,6 +564,9 @@ export default function Checkout() {
     isXenditEnabled?: boolean;
     isRazorpayEnabled?: boolean;
     isAdyenEnabled?: boolean;
+    isWiseEnabled?: boolean;
+    wiseApiToken?: string;
+    wiseProfileId?: string;
     isBankTransferEnabled?: boolean;
     isPayOnArrivalEnabled?: boolean;
     bankName?: string;
@@ -1310,7 +1315,7 @@ const toggleAddOn = (addon: AddOn) => {
       const newBooking = { id: finalBookingId, ...bookingData } as Booking;
       
       // Send Email & WhatsApp Notifications in the background so the user is not held back on payment completion UX
-      const templateType = (paymentMethod === 'bank_transfer' || paymentMethod === 'pay_on_arrival') ? 'booking_pending' : 'booking_confirmed';
+      const templateType = (paymentMethod === 'bank_transfer' || paymentMethod === 'pay_on_arrival' || paymentMethod === 'wise') ? 'booking_pending' : 'booking_confirmed';
       Promise.all([
         sendBookingEmail(templateType, newBooking).catch(err => console.error("Send Customer Email Error:", err)),
         sendBookingEmail('admin_new_booking', newBooking).catch(err => console.error("Send Admin New Booking Email Error:", err)),
@@ -1319,7 +1324,7 @@ const toggleAddOn = (addon: AddOn) => {
           ? sendBookingEmail('supplier_new_booking', newBooking).catch(err => console.error("Send Supplier Email Error:", err))
           : Promise.resolve(),
         // Trigger WhatsApp Notifications
-        (paymentMethod !== 'bank_transfer' && paymentMethod !== 'pay_on_arrival')
+        (paymentMethod !== 'bank_transfer' && paymentMethod !== 'pay_on_arrival' && paymentMethod !== 'wise')
           ? sendWhatsAppNotification('booking_confirmation', newBooking).catch(err => console.error("Send Customer WhatsApp Error:", err))
           : Promise.resolve(),
         sendWhatsAppNotification('admin_notification', newBooking).catch(err => console.error("Send Admin WhatsApp Error:", err))
@@ -1328,7 +1333,7 @@ const toggleAddOn = (addon: AddOn) => {
       });
       
       // Trigger online payment gateway checkout session if applicable
-      if (['stripe', 'midtrans', 'xendit', 'razorpay', 'adyen'].includes(paymentMethod)) {
+      if (['stripe', 'midtrans', 'xendit', 'razorpay', 'adyen', 'wise'].includes(paymentMethod)) {
         try {
           const checkoutRes = await PaymentService.createCheckoutForBooking(
             {
@@ -3835,6 +3840,13 @@ const toggleAddOn = (addon: AddOn) => {
                       enabled: paymentSettings?.isAdyenEnabled ?? (paymentSettings?.providerConfigs?.adyen?.enabled ?? false),
                     },
                     {
+                      id: "wise",
+                      label: "Wise (TransferWise)",
+                      icon: Globe,
+                      des: "Low-fee international bank transfer with real mid-market exchange rate",
+                      enabled: paymentSettings?.isWiseEnabled ?? (paymentSettings?.providerConfigs?.wise?.enabled ?? false),
+                    },
+                    {
                       id: "paypal",
                       label: "PayPal Account",
                       icon: Wallet,
@@ -3963,6 +3975,100 @@ const toggleAddOn = (addon: AddOn) => {
                   </motion.div>
                 )}
 
+                {paymentMethod === "wise" && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-sky-50/40 rounded-[20px] p-8 border-2 border-dashed border-sky-200 space-y-6"
+                  >
+                    <div className="flex items-center gap-4 text-gray-900">
+                      <div className="h-12 w-12 rounded-xl bg-white border border-sky-100 flex items-center justify-center shadow-sm">
+                        <Globe className="h-6 w-6 text-sky-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-sm tracking-widest text-sky-950">
+                          Wise (TransferWise) Transfer
+                        </h4>
+                        <p className="text-[10px] text-sky-600 font-bold">
+                          Low fee, real mid-market exchange rate
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-6 pt-2">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                          Payment Destination
+                        </span>
+                        <p className="font-bold text-gray-900 border-b border-sky-100 pb-2 text-sm">
+                          {paymentSettings?.bankName || "Wise Merchant Account"} ({paymentSettings?.accountHolder || "Bali Adventours"})
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                          Amount To Transfer
+                        </span>
+                        <p className="font-black text-xl text-sky-700 border-b border-sky-100 pb-2">
+                          <FormattedPrice amount={summary.amountToPay} />
+                        </p>
+                      </div>
+                      {paymentSettings?.accountNumber && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                            Wise / IBAN Account
+                          </span>
+                          <div className="flex items-center justify-between border-b border-sky-100 pb-2">
+                            <span className="font-mono font-black text-base text-gray-900">
+                              {paymentSettings.accountNumber}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentSettings.accountNumber);
+                                alert("Account number copied to clipboard!");
+                              }}
+                              className="p-1 rounded bg-sky-100 hover:bg-sky-200 text-sky-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Copy className="h-3 w-3" /> Copy
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {paymentSettings?.swiftCode && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                            SWIFT / BIC Code
+                          </span>
+                          <div className="flex items-center justify-between border-b border-sky-100 pb-2">
+                            <span className="font-mono font-black text-base text-sky-700 uppercase">
+                              {paymentSettings.swiftCode}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentSettings.swiftCode || '');
+                                alert("SWIFT code copied to clipboard!");
+                              }}
+                              className="p-1 rounded bg-sky-100 hover:bg-sky-200 text-sky-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Copy className="h-3 w-3" /> Copy
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl text-xs text-sky-900 font-medium leading-relaxed border border-sky-100 space-y-2">
+                      <p className="font-bold flex items-center gap-1.5 text-sky-800">
+                        <Info className="h-4 w-4" /> Transfer Instructions:
+                      </p>
+                      <p className="text-gray-600">
+                        Open your Wise app or website, make a transfer to the account details above, and use your Booking ID as the transfer reference note. Your booking confirmation will be sent upon completion.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
                 {paymentMethod === "bank_transfer" && paymentSettings && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -3983,9 +4089,9 @@ const toggleAddOn = (addon: AddOn) => {
                       </div>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 gap-8 pt-4">
+                    <div className="grid sm:grid-cols-2 gap-6 pt-4">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-400 tracking-widest">
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
                           Bank Name
                         </span>
                         <p className="font-bold text-gray-900 border-b border-gray-100 pb-2">
@@ -3993,23 +4099,51 @@ const toggleAddOn = (addon: AddOn) => {
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-400 tracking-widest">
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
                           Account Number
                         </span>
-                        <p className="font-mono font-black text-lg text-primary border-b border-gray-100 pb-2">
-                          {paymentSettings.accountNumber || "N/A"}
-                        </p>
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                          <span className="font-mono font-black text-lg text-primary">
+                            {paymentSettings.accountNumber || "N/A"}
+                          </span>
+                          {paymentSettings.accountNumber && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentSettings.accountNumber);
+                                alert("Account number copied to clipboard!");
+                              }}
+                              className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Copy className="h-3 w-3" /> Copy
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-400 tracking-widest">
-                          SWIFT Code
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                          SWIFT / BIC Code
                         </span>
-                        <p className="font-mono font-black text-lg text-secondary border-b border-gray-100 pb-2">
-                          {paymentSettings.swiftCode || "N/A"}
-                        </p>
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                          <span className="font-mono font-black text-lg text-secondary uppercase">
+                            {paymentSettings.swiftCode || "N/A"}
+                          </span>
+                          {paymentSettings.swiftCode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentSettings.swiftCode || '');
+                                alert("SWIFT code copied to clipboard!");
+                              }}
+                              className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Copy className="h-3 w-3" /> Copy
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-400 tracking-widest">
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
                           Account Holder
                         </span>
                         <p className="font-bold text-gray-900 border-b border-gray-100 pb-2">
@@ -4017,7 +4151,7 @@ const toggleAddOn = (addon: AddOn) => {
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-400 tracking-widest">
+                        <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">
                           Amount To Pay
                         </span>
                         <p className="font-black text-xl text-secondary border-b border-gray-100 pb-2">
@@ -4061,6 +4195,7 @@ const toggleAddOn = (addon: AddOn) => {
 
                   {paymentMethod === "bank_transfer" ||
                   paymentMethod === "pay_on_arrival" ||
+                  paymentMethod === "wise" ||
                   paymentMethod === "stripe" ||
                   paymentMethod === "midtrans" ||
                   paymentMethod === "xendit" ||
@@ -4082,6 +4217,7 @@ const toggleAddOn = (addon: AddOn) => {
                             {paymentMethod === "xendit" && "Pay with Xendit (E-Wallet/VA)"}
                             {paymentMethod === "razorpay" && "Pay with Razorpay (UPI/Card)"}
                             {paymentMethod === "adyen" && "Pay with Adyen"}
+                            {paymentMethod === "wise" && "Complete Wise Booking"}
                             {(paymentMethod === "bank_transfer" || paymentMethod === "pay_on_arrival" || summary.grandTotal <= 0) && "Complete Booking"}
                             <Check className="h-5 w-5" />
                           </>

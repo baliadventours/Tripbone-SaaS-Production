@@ -5,6 +5,7 @@ import { RazorpayGateway } from './providers/RazorpayGateway';
 import { AdyenGateway } from './providers/AdyenGateway';
 import { PaypalGateway } from './providers/PaypalGateway';
 import { MidtransGateway } from './providers/MidtransGateway';
+import { WiseGateway } from './providers/WiseGateway';
 import { BankTransferGateway } from './providers/BankTransferGateway';
 import { PayOnArrivalGateway } from './providers/PayOnArrivalGateway';
 import { PaymentGatewayError, PaymentErrorCode } from './errors';
@@ -21,6 +22,7 @@ export class PaymentGatewayRegistry {
     this.registerGateway(new AdyenGateway());
     this.registerGateway(new PaypalGateway());
     this.registerGateway(new MidtransGateway());
+    this.registerGateway(new WiseGateway());
     this.registerGateway(new BankTransferGateway());
     this.registerGateway(new PayOnArrivalGateway());
   }

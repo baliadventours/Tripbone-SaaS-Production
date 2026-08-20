@@ -64,6 +64,7 @@ export class PaymentService {
         adyen: { providerId: 'adyen', mode: 'sandbox', enabled: false },
         paypal: { providerId: 'paypal', mode: 'sandbox', enabled: false },
         midtrans: { providerId: 'midtrans', mode: 'sandbox', enabled: false },
+        wise: { providerId: 'wise', mode: 'live', enabled: false },
         bank_transfer: { providerId: 'bank_transfer', mode: 'live', enabled: true },
         pay_on_arrival: { providerId: 'pay_on_arrival', mode: 'live', enabled: true },
       };
@@ -149,8 +150,20 @@ export class PaymentService {
           bankName: data.bankName || providerConfigs.bank_transfer.bankName,
           accountNumber: data.accountNumber || providerConfigs.bank_transfer.accountNumber,
           accountHolder: data.accountHolder || providerConfigs.bank_transfer.accountHolder,
-          instructions: data.paymentInstructions || providerConfigs.bank_transfer.instructions,
+          swiftCode: data.swiftCode || providerConfigs.bank_transfer.swiftCode,
+          instructions: data.paymentInstructions || data.instructions || providerConfigs.bank_transfer.instructions,
           enabled: true,
+        };
+      }
+
+      if (data.wiseApiToken || data.isWiseEnabled) {
+        providerConfigs.wise = {
+          ...providerConfigs.wise,
+          apiKey: data.wiseApiToken || providerConfigs.wise.apiKey,
+          secretKey: data.wiseApiToken || providerConfigs.wise.secretKey,
+          profileId: data.wiseProfileId || providerConfigs.wise.profileId,
+          mode: data.mode === 'live' ? 'live' : providerConfigs.wise.mode,
+          enabled: !!data.isWiseEnabled,
         };
       }
 
@@ -181,6 +194,7 @@ export class PaymentService {
         adyen: { providerId: 'adyen', mode: 'sandbox', enabled: false },
         paypal: { providerId: 'paypal', mode: 'sandbox', enabled: false },
         midtrans: { providerId: 'midtrans', mode: 'sandbox', enabled: false },
+        wise: { providerId: 'wise', mode: 'live', enabled: false },
         bank_transfer: { providerId: 'bank_transfer', mode: 'live', enabled: true },
         pay_on_arrival: { providerId: 'pay_on_arrival', mode: 'live', enabled: true },
       };
@@ -267,6 +281,7 @@ export class PaymentService {
       isRazorpayEnabled: updatedSettings.providerConfigs.razorpay?.enabled ?? false,
       isAdyenEnabled: updatedSettings.providerConfigs.adyen?.enabled ?? false,
       isPaypalEnabled: updatedSettings.providerConfigs.paypal?.enabled ?? false,
+      isWiseEnabled: updatedSettings.providerConfigs.wise?.enabled ?? false,
       creditCardEnabled: (updatedSettings.providerConfigs.paypal?.enabled || updatedSettings.providerConfigs.stripe?.enabled) ?? false,
       isMidtransEnabled: updatedSettings.providerConfigs.midtrans?.enabled ?? false,
       isBankTransferEnabled: updatedSettings.providerConfigs.bank_transfer?.enabled ?? true,
@@ -283,9 +298,12 @@ export class PaymentService {
       paypalSecret: updatedSettings.providerConfigs.paypal?.secretKey || '',
       midtransServerKey: updatedSettings.providerConfigs.midtrans?.secretKey || '',
       midtransClientKey: updatedSettings.providerConfigs.midtrans?.publicKey || '',
+      wiseApiToken: updatedSettings.providerConfigs.wise?.apiKey || updatedSettings.providerConfigs.wise?.secretKey || '',
+      wiseProfileId: updatedSettings.providerConfigs.wise?.profileId || '',
       bankName: updatedSettings.providerConfigs.bank_transfer?.bankName || '',
       accountNumber: updatedSettings.providerConfigs.bank_transfer?.accountNumber || '',
       accountHolder: updatedSettings.providerConfigs.bank_transfer?.accountHolder || '',
+      swiftCode: updatedSettings.providerConfigs.bank_transfer?.swiftCode || '',
       paymentInstructions: updatedSettings.providerConfigs.bank_transfer?.instructions || '',
       mode: (activeConfig as GatewayConfig)?.mode || 'sandbox',
     };

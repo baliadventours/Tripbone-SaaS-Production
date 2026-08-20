@@ -5,6 +5,7 @@ export type PaymentProviderId =
   | 'adyen' 
   | 'paypal' 
   | 'midtrans' 
+  | 'wise'
   | 'bank_transfer' 
   | 'pay_on_arrival'
   | string;
@@ -22,11 +23,13 @@ export interface GatewayConfig {
   secretKey?: string;
   publicKey?: string;
   merchantId?: string;
+  profileId?: string;
   webhookSecret?: string;
   clientSecret?: string;
   accountNumber?: string;
   bankName?: string;
   accountHolder?: string;
+  swiftCode?: string;
   instructions?: string;
   additionalParams?: Record<string, any>;
   // Verification metadata populated automatically when credentials are verified
