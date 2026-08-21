@@ -355,6 +355,28 @@
       },
       "required": ["title", "content", "category"]
     },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Tenant invoice and customer billing records",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "issueDate": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "currency": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "unpaid", "paid", "overdue", "cancelled"] },
+        "totalAmount": { "type": "number" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "tax": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "balanceDue": { "type": "number" },
+        "customer": { "type": "object" },
+        "items": { "type": "array" }
+      },
+      "required": ["invoiceNumber", "totalAmount", "status"]
+    },
     "WhatsAppChat": {
       "title": "WhatsApp Chat",
       "description": "Cached WhatsApp conversation details for admin CRM tracking",
@@ -470,6 +492,10 @@
     "popups": {
       "schema": "Popup",
       "description": "Marketing popups configuration"
+    },
+    "invoices": {
+      "schema": "Invoice",
+      "description": "Collection of customer invoices and billing records"
     },
     "bookings": {
       "schema": "Booking",

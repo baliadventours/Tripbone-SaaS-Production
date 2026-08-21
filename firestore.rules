@@ -90,8 +90,8 @@ service cloud.firestore {
     
     // --- Invoices ---
     match /invoices/{invoiceId} {
-      allow read: if isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().get('role', '') == 'admin' && resource.data.tenantId == getUserData().get('tenantId', ''));
-      allow write: if isSuperAdmin();
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
     }
 
     match /settings/{id} {
