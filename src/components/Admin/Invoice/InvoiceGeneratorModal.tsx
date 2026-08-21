@@ -171,7 +171,7 @@ export default function InvoiceGeneratorModal({
           if (paySettings && !initialInvoice) {
             const bankConf = paySettings.providerConfigs?.bank_transfer;
             if (bankConf) {
-              const credentials = bankConf.credentials || {};
+              const credentials = (bankConf as any).credentials || bankConf;
               if (credentials.bankName) setBankName(credentials.bankName);
               if (credentials.accountNumber) setAccountNumber(credentials.accountNumber);
               if (credentials.accountHolder) setAccountHolder(credentials.accountHolder);
