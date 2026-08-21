@@ -32,18 +32,21 @@ export default function InvoiceManager() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // 1. Subscribe to Firestore `invoices` collection
+  // 1. Subscribe to Firestore `tenant_invoices` collection
   useEffect(() => {
     setLoading(true);
-    const q = query(collection(db, 'invoices'));
+    const q = query(collection(db, 'tenant_invoices'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: TenantInvoice[] = [];
       snapshot.forEach((docSnap) => {
-        const data = docSnap.data() as TenantInvoice;
-        // Tenant Scoping
+        const data = docSnap.data() as any;
+        // Tenant Scoping & data validity check
         if (!data.tenantId || data.tenantId === activeTenantId || activeTenantId === 'global') {
-          list.push({ ...data, id: docSnap.id });
+          // Only treat as customer invoice if it has items or an invoiceNumber
+          if (data.invoiceNumber || (Array.isArray(data.items) && data.items.length > 0)) {
+            list.push({ ...data, id: docSnap.id });
+          }
         }
       });
 
@@ -153,7 +156,7 @@ export default function InvoiceManager() {
     }
 
     try {
-      await deleteDoc(doc(db, 'invoices', invoice.id));
+      await deleteDoc(doc(db, 'tenant_invoices', invoice.id));
       setActionNotice({ type: 'success', message: `Invoice #${invoice.invoiceNumber} deleted.` });
       setTimeout(() => setActionNotice(null), 3000);
     } catch (err: any) {

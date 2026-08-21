@@ -94,6 +94,11 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
     }
 
+    match /tenant_invoices/{invoiceId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
+    }
+
     match /settings/{id} {
       allow read: if true;
       allow write: if true;

@@ -143,7 +143,7 @@ export async function saveTenantInvoice(invoice: Partial<TenantInvoice>): Promis
   };
 
   const cleanData = sanitizeFirestoreData(invoiceData);
-  await setDoc(doc(db, 'invoices', id), cleanData, { merge: true });
+  await setDoc(doc(db, 'tenant_invoices', id), cleanData, { merge: true });
   return id;
 }
 
@@ -251,7 +251,7 @@ export async function sendInvoiceEmail(invoice: TenantInvoice, extraInfo?: any):
     };
 
     const updatedLogs = [...(invoice.auditLogs || []), log];
-    await setDoc(doc(db, 'invoices', invoice.id), {
+    await setDoc(doc(db, 'tenant_invoices', invoice.id), {
       sentAt: new Date().toISOString(),
       auditLogs: updatedLogs
     }, { merge: true });
