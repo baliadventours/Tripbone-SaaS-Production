@@ -57,6 +57,7 @@ const Terms = lazyWithRetry(() => import('./pages/Terms'));
 const Privacy = lazyWithRetry(() => import('./pages/Privacy'));
 const CustomPageView = lazyWithRetry(() => import('./pages/CustomPageView'));
 const ProposalView = lazyWithRetry(() => import('./pages/ProposalView'));
+const WaiverSigningPage = lazyWithRetry(() => import('./pages/WaiverSigningPage'));
 
 const SaaSHome = lazyWithRetry(() => import('./pages/SaaSHome'));
 const SaaSSuperAdmin = lazyWithRetry(() => import('./pages/SaaSSuperAdmin'));
@@ -188,9 +189,10 @@ function AppContent() {
   }, []);
   
   const isProposal = location.pathname.startsWith('/proposal/');
+  const isWaiver = location.pathname.startsWith('/waiver') || location.pathname.startsWith('/sign-waiver');
 
   // Hide main nav components on certain pages
-  const hideMainLayout = isAdmin || isSupplier || isAgent || isAuth || isProposal;
+  const hideMainLayout = isAdmin || isSupplier || isAgent || isAuth || isProposal || isWaiver;
   const hideMobileNav = hideMainLayout || isTourDetail || isCheckout;
   const hideFooter = hideMainLayout || isDashboard;
 
@@ -439,6 +441,9 @@ function AppContent() {
               <Route path="/supplier/*" element={<Admin />} />
               <Route path="/agent/*" element={<Admin />} />
               <Route path="/track-booking" element={<BookingTracker />} />
+              <Route path="/waiver" element={<WaiverSigningPage />} />
+              <Route path="/waiver/:bookingId" element={<WaiverSigningPage />} />
+              <Route path="/sign-waiver/:templateId" element={<WaiverSigningPage />} />
               <Route path="/booking-success/:id" element={<BookingSuccess />} />
               <Route path="/booking-confirmation/:id" element={<BookingSuccess />} />
               <Route path="*" element={<Home />} />

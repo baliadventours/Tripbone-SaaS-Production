@@ -343,6 +343,10 @@ export interface Booking {
   proposedUpdate?: any;
   payoutId?: string | null; // ID of the payout document this booking is linked to
   payoutStatus?: 'pending' | 'queued' | 'paid'; // Status in the payout lifecycle
+  waiverStatus?: 'pending' | 'signed' | 'exempt'; // Digital waiver completion status
+  signedWaiverId?: string; // Reference to signed waiver document
+  waiverSignedAt?: string; // Timestamp when waiver was signed
+  waiverSignedCount?: number; // Number of participants signed under this waiver
   createdAt: any;
   updatedAt?: any;
 }
@@ -889,3 +893,85 @@ export interface TenantInvoice {
   bookingId?: string;
   auditLogs?: InvoiceAuditLog[];
 }
+
+export type ActivityWaiverType = 'adventure' | 'water_sports' | 'trekking' | 'sightseeing' | 'transport' | 'custom';
+
+export interface WaiverTemplate {
+  id: string;
+  tenantId: string;
+  title: string;
+  activityType: ActivityWaiverType;
+  description?: string;
+  termsContent: string;
+  isDefault?: boolean;
+  active: boolean;
+
+  // Requirement toggles
+  requirePassportId: boolean;
+  requireEmergencyContact: boolean;
+  requireMedicalChecklist: boolean;
+  requireMinorParentSignature: boolean;
+  requirePhotoVideoConsent: boolean;
+
+  // Custom medical declaration questions
+  medicalQuestions?: string[];
+
+  // Tour associations
+  appliedTourIds?: string[];
+
+  createdAt: any;
+  updatedAt: any;
+}
+
+export interface WaiverParticipant {
+  fullName: string;
+  passportOrId?: string;
+  dateOfBirth?: string;
+  ageGroup: 'adult' | 'child' | 'infant';
+  isMinor?: boolean;
+  parentGuardianName?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  medicalConditions?: string[];
+  medicalNotes?: string;
+}
+
+export interface SignedWaiver {
+  id: string;
+  tenantId: string;
+  bookingId?: string;
+  bookingCode?: string;
+  tourId?: string;
+  tourTitle?: string;
+  tourDate?: string;
+  templateId: string;
+  templateTitle: string;
+  activityType?: ActivityWaiverType;
+
+  // Primary Signer
+  signerName: string;
+  signerEmail: string;
+  signerPhone: string;
+  signerCountry?: string;
+
+  // Participants & minors covered
+  participants: WaiverParticipant[];
+
+  // Declarations & Consents
+  termsAccepted: boolean;
+  medicalDeclared: boolean;
+  photoConsentAccepted: boolean;
+  minorConsentAccepted?: boolean;
+
+  // Digital signature & security audit
+  signatureDataUrl: string;
+  signedAt: string;
+  ipAddress?: string;
+  userAgent?: string;
+  status: 'valid' | 'revoked';
+
+  notes?: string;
+  createdAt: any;
+  updatedAt?: any;
+}
+

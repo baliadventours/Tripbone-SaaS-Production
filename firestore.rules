@@ -99,6 +99,18 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
     }
 
+    // --- Waivers ---
+    match /waiver_templates/{templateId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
+    }
+
+    match /signed_waivers/{waiverId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isSuperAdmin() || isAdmin() || isSignedIn();
+    }
+
     match /settings/{id} {
       allow read: if true;
       allow write: if true;

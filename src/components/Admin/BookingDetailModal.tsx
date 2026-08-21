@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { Booking, Tour, BookingLog } from '../../types';
+import { Booking, Tour, BookingLog, SignedWaiver } from '../../types';
 import { COUNTRIES } from '../../constants';
 import { PaymentTimeline } from './Payment/PaymentTimeline';
+import { WaiverViewerModal } from './Waiver/WaiverViewerModal';
+import { getSignedWaiverById, openWaiverWhatsApp } from '../../lib/waiverService';
+import { db, collection, query, where, getDocs } from '../../lib/firebase';
 
 interface BookingDetailModalProps {
   isOpen: boolean;
@@ -46,9 +50,52 @@ const BookingDetailModal = ({
   loadingStates = {},
   onAssignGuide
 }: BookingDetailModalProps) => {
+  const [isViewingWaiver, setIsViewingWaiver] = useState(false);
+  const [activeSignedWaiver, setActiveSignedWaiver] = useState<SignedWaiver | null>(null);
+  const [loadingWaiver, setLoadingWaiver] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   if (!booking) return null;
 
   const isAdmin = userRole === 'admin';
+  const isWaiverSigned = booking.waiverStatus === 'signed' || !!booking.signedWaiverId;
+
+  const handleViewSignedWaiver = async () => {
+    try {
+      setLoadingWaiver(true);
+      if (booking.signedWaiverId) {
+        const waiver = await getSignedWaiverById(booking.signedWaiverId);
+        if (waiver) {
+          setActiveSignedWaiver(waiver);
+          setIsViewingWaiver(true);
+          return;
+        }
+      }
+      
+      // Fallback: search by bookingId
+      const q = query(collection(db, 'signed_waivers'), where('bookingId', '==', booking.id));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const found = { ...snap.docs[0].data(), id: snap.docs[0].id } as SignedWaiver;
+        setActiveSignedWaiver(found);
+        setIsViewingWaiver(true);
+      } else {
+        alert('No signed waiver certificate found for this booking yet.');
+      }
+    } catch (err) {
+      console.error('Error fetching waiver certificate:', err);
+      alert('Error fetching waiver certificate.');
+    } finally {
+      setLoadingWaiver(false);
+    }
+  };
+
+  const handleCopyWaiverLink = () => {
+    const url = `${window.location.origin}/waiver/${booking.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
 
   return (
     <AnimatePresence>
@@ -307,7 +354,103 @@ const BookingDetailModal = ({
                   </p>
                 </div>
 
-                {/* 5. Pricing & Payments */}
+                {/* 5. Liability Waiver & Safety */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">
+                      Digital Liability Waiver & Safety
+                    </span>
+                    {isWaiverSigned ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700">
+                        <LucideIcons.ShieldCheck className="w-3 h-3 text-emerald-600" />
+                        Signed & Valid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700">
+                        <LucideIcons.Clock className="w-3 h-3 text-amber-600" />
+                        Pending Signature
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-xs space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <LucideIcons.FileText className={cn("w-4 h-4", isWaiverSigned ? "text-emerald-600" : "text-amber-500")} />
+                          <span className="text-xs font-black text-gray-900">
+                            {isWaiverSigned ? 'Activity Liability Waiver Executed' : 'Waiver Not Yet Signed'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 font-medium mt-1 leading-relaxed">
+                          {isWaiverSigned 
+                            ? `Signed by lead participant and stored securely with legal timestamp${booking.waiverSignedAt ? ` on ${new Date(booking.waiverSignedAt).toLocaleDateString()}` : ''}.`
+                            : 'Guest has not executed their digital liability release yet. You can dispatch signing links via WhatsApp or collect on-site via tablet/phone.'
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-50 grid grid-cols-2 gap-2">
+                      {isWaiverSigned ? (
+                        <button
+                          type="button"
+                          onClick={handleViewSignedWaiver}
+                          disabled={loadingWaiver}
+                          className="col-span-2 py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-black rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          {loadingWaiver ? (
+                            <LucideIcons.Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <LucideIcons.ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          )}
+                          View Signed Certificate
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openWaiverWhatsApp(booking)}
+                            className="py-2 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            <LucideIcons.PhoneCall className="w-3 h-3" />
+                            Send WhatsApp Link
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleCopyWaiverLink}
+                            className="py-2 px-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            {copiedLink ? (
+                              <>
+                                <LucideIcons.Check className="w-3 h-3 text-emerald-600" />
+                                Link Copied!
+                              </>
+                            ) : (
+                              <>
+                                <LucideIcons.Copy className="w-3 h-3 text-gray-500" />
+                                Copy Guest Link
+                              </>
+                            )}
+                          </button>
+
+                          <a
+                            href={`/waiver/${booking.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="col-span-2 py-2 px-3 bg-orange-50 hover:bg-orange-100 text-primary text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1.5 text-center"
+                          >
+                            <LucideIcons.ExternalLink className="w-3 h-3" />
+                            Open On-Site Tablet / Kiosk Signer
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6. Pricing & Payments */}
                 <div className="space-y-3">
                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Pricing & Payments</span>
                   <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-xs space-y-3">
@@ -443,6 +586,16 @@ const BookingDetailModal = ({
           </motion.div>
         </div>
       )}
+
+      {/* Digital Waiver Certificate Viewer Modal */}
+      <WaiverViewerModal
+        isOpen={isViewingWaiver}
+        onClose={() => {
+          setIsViewingWaiver(false);
+          setActiveSignedWaiver(null);
+        }}
+        waiver={activeSignedWaiver}
+      />
     </AnimatePresence>
   );
 };
