@@ -7633,169 +7633,119 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
     const isSupplier = currentUserProfile?.role === 'supplier';
     const isAgent = currentUserProfile?.role === 'agent';
     
+    interface MenuChildItem {
+      id: string;
+      label: string;
+      hidden?: boolean;
+    }
+
     interface MenuItem {
       id: string;
       label: string;
       icon?: any;
       hidden?: boolean;
-      children?: { id: string; label: string; hidden?: boolean }[];
+      badge?: string;
+      children?: MenuChildItem[];
     }
 
     const items: MenuItem[] = [
+      // 1. MAIN
       { 
         id: 'dashboard', 
         label: 'Dashboard', 
         icon: Layout,
+        hidden: isSupplier || isAgent
       },
+      // 2. OPERATIONS & BOOKINGS
       { 
-        id: 'booking-group', 
-        label: 'Booking', 
-        icon: Briefcase,
+        id: 'operations-group', 
+        label: isSupplier ? 'My Bookings' : 'Operations & Bookings', 
+        icon: CalendarIcon,
         children: [
-          { id: 'bookings', label: 'Booking List' },
-          { id: 'add-manual-booking', label: '+ Create Booking' },
-          { id: 'waivers', label: 'Digital Waivers & Safety' },
-          { id: 'invoices', label: 'Invoices & Billing' },
-          { id: 'conversion-funnel', label: 'Conversion Funnel & Drop-off', hidden: isAgent },
-          { id: 'guides', label: 'Drivers & Guides' },
+          { id: 'bookings', label: 'Bookings' },
+          { id: 'schedule', label: 'Operations Calendar', hidden: isAgent },
+          { id: 'waivers', label: 'Digital Waivers & Safety Kiosk' },
+          { id: 'guides', label: 'Drivers & Tour Guides', hidden: isAgent },
+          { id: 'invoices', label: 'Invoices & Guest Billing', hidden: isAgent || isSupplier },
           { id: 'channel-manager', label: 'Channel Manager (OTAs)', hidden: isAgent || isSupplier },
-          { id: 'import-bookings', label: 'Import Booking', hidden: isAgent || isSupplier },
-          { id: 'schedule', label: 'Calendar', hidden: isAgent },
-          { id: 'reports', label: 'Booking Reports', hidden: isAgent || isSupplier }
-        ].filter(c => !c.hidden)
+          { id: 'reports', label: 'Booking Reports & Manifests', hidden: isAgent || isSupplier },
+          { id: 'import-bookings', label: 'Import Bookings (OTA/CSV)', hidden: isAgent || isSupplier }
+        ].filter(c => !c.hidden) as MenuChildItem[]
       },
+      // 3. INVENTORY & TOURS
       { 
-        id: 'analytics-group', 
-        label: 'Analytics', 
-        icon: BarChart3,
+        id: 'inventory-group', 
+        label: isSupplier ? 'My Tour Catalog' : 'Inventory & Tours', 
+        icon: Compass,
         hidden: isAgent,
         children: [
-          { id: 'analytics-overview', label: 'Traffic & Visitors', hidden: false },
-          { id: 'conversion-funnel', label: 'Conversion Funnel', hidden: false },
-          { id: 'google-analytics', label: 'GA4 & GTM Tracking', hidden: false },
-        ].filter(c => !c.hidden)
+          { id: 'all-tours', label: 'Tours & Packages' },
+          { id: 'categories', label: 'Categories & Tour Types', hidden: isSupplier },
+          { id: 'locations', label: 'Destinations & Locations', hidden: isSupplier },
+          { id: 'labels', label: 'Tour Badges & Labels', hidden: isSupplier },
+          { id: 'addons', label: 'Add-ons & Extra Services', hidden: isSupplier },
+          { id: 'transports', label: 'Transport & Vehicle Fleet', hidden: isSupplier },
+          { id: 'live-inventory', label: 'Live Inventory & Limits', hidden: isSupplier }
+        ].filter(c => !c.hidden) as MenuChildItem[]
       },
+      // 4. CRM & SALES
       { 
-        id: 'tours-group', 
-        label: 'Tours', 
-        icon: MapIcon,
-        hidden: isAgent,
-        children: [
-          { id: 'tours', label: 'Add Tour' },
-          { id: 'all-tours', label: 'All Tours' },
-          { id: 'categories', label: 'Categories', hidden: isSupplier },
-          { id: 'locations', label: 'Destination', hidden: isSupplier },
-          { id: 'labels', label: 'Labels', hidden: isSupplier },
-          { id: 'addons', label: 'Add Ons', hidden: isSupplier },
-          { id: 'transports', label: 'Transport', hidden: isSupplier },
-          { id: 'guides', label: 'Drivers & Guides' },
-          { id: 'urgency-points', label: 'Urgency Features', hidden: isSupplier }
-        ].filter(c => !c.hidden)
-      },
-      { 
-        id: 'inquiry-group', 
-        label: 'Inquiry', 
+        id: 'crm-group', 
+        label: 'CRM & Sales', 
         icon: MessageSquare,
-        hidden: isAgent || isSupplier,
         children: [
-          { id: 'inquiries', label: 'Incoming Inquiry' },
-          { id: 'ai-hub', label: 'Proposal Generator' }
-        ]
+          { id: 'inquiries', label: 'Inquiries & Leads' },
+          { id: 'ai-hub', label: 'AI Proposal Generator', hidden: isSupplier },
+          { id: 'reviews', label: 'Reviews & Ratings', hidden: isSupplier || isAgent },
+          { id: 'tickets', label: 'Support & Help Tickets' }
+        ].filter(c => !c.hidden) as MenuChildItem[]
       },
+      // 5. MARKETING & PROMOTIONS
       { 
-        id: 'coupons-group', 
-        label: 'Coupons', 
+        id: 'marketing-group', 
+        label: 'Marketing & Promotions', 
         icon: Tag,
         hidden: isSupplier || isAgent,
         children: [
-          { id: 'add-coupon-trigger', label: 'Add Coupon' },
-          { id: 'coupons', label: 'All Coupons' }
+          { id: 'coupons', label: 'Coupons & Discount Codes' },
+          { id: 'popups-manager', label: 'Smart Popups & Urgency Banners' },
+          { id: 'analytics-overview', label: 'Traffic & Visitor Insights' },
+          { id: 'conversion-funnel', label: 'Checkout Conversion Funnel' },
+          { id: 'google-analytics', label: 'GA4 & GTM Tracking' }
         ]
       },
-      {
-        id: 'tickets',
-        label: 'Support & Tickets',
-        icon: LifeBuoy,
-        hidden: isSupplier || isAgent
-      },
+      // 6. WEBSITE & CONTENT
       { 
-        id: 'blog-group', 
-        label: 'Blog', 
-        icon: FileText,
+        id: 'website-group', 
+        label: 'Website & Content', 
+        icon: Globe,
         hidden: isSupplier || isAgent,
         children: [
-          { id: 'add-blog-trigger', label: 'Add Blog' },
-          { id: 'blog', label: 'All Blog' },
-          { id: 'blog-categories', label: 'Categories' }
+          { id: 'website-builder', label: 'Visual Website Builder' },
+          { id: 'pages', label: 'Custom Pages' },
+          { id: 'blog', label: 'Blog & Articles' }
         ]
       },
-      { 
-        id: 'pages-group', 
-        label: 'Pages', 
-        icon: Layers,
-        hidden: isSupplier || isAgent,
-        children: [
-          { id: 'add-page-trigger', label: 'Add Page' },
-          { id: 'pages', label: 'All Pages' }
-        ]
-      },
-      { 
-        id: 'popups-group', 
-        label: 'Pop Ups', 
-        icon: Sparkles,
-        hidden: isSupplier || isAgent,
-        children: [
-          { id: 'add-popup-trigger', label: 'Add Pop up' },
-          { id: 'popups-manager', label: 'All Pop Ups' }
-        ]
-      },
-      {
-        id: 'reviews',
-        label: 'Reviews',
-        icon: Star,
-        hidden: isSupplier || isAgent
-      },
-      {
-        id: 'guides',
-        label: 'Drivers & Guides',
-        icon: UserCheck,
-        hidden: isAgent
-      },
-      {
-        id: 'users',
-        label: 'User Management',
-        icon: Users,
-        hidden: isSupplier || isAgent
-      },
-      {
-        id: 'website-builder',
-        label: 'Website Builder',
-        icon: LayoutTemplate,
-        hidden: isSupplier || isAgent
-      },
+      // 7. FINANCE & PAYOUTS
       {
         id: 'payouts',
-        label: 'Finance Report',
-        icon: Wallet,
-        hidden: isSupplier || isAgent
+        label: isSupplier || isAgent ? 'My Earnings & Payouts' : 'Finance & Payouts',
+        icon: DollarSign
       },
+      // 8. SETTINGS & SYSTEM
       { 
         id: 'settings-group', 
-        label: 'Setting', 
+        label: 'Settings & System', 
         icon: Settings,
+        hidden: isSupplier || isAgent,
         children: [
-          { id: 'analytics-integration', label: 'Analytics Integration' },
-          { id: 'backup', label: 'Disaster Recovery & Backup', hidden: isSupplier || isAgent },
-          { id: 'company-info', label: 'Company Info', hidden: isSupplier || isAgent },
-          { id: 'seo', label: 'SEO Setting', hidden: isSupplier || isAgent },
-          { id: 'payment-settings', label: 'Payment Setting', hidden: isSupplier || isAgent },
-          { id: 'communication', label: 'Communication Setting', hidden: isSupplier || isAgent },
-          { id: 'website', label: 'Website Setting', hidden: isSupplier || isAgent },
-          { id: 'domain', label: 'Custom Domain', hidden: isSupplier || isAgent },
-          { id: 'docs-system', label: 'Docs System (docs.tripbone.com)' },
-          { id: 'guide-pdf', label: 'Panduan Website (PDF)' },
-          { id: 'company-profile', label: 'My Company Profile', hidden: !isSupplier && !isAgent },
-        ].filter(c => !c.hidden)
+          { id: 'general-settings', label: 'Company Profile & Branding' },
+          { id: 'users', label: 'User Management & Permissions' },
+          { id: 'payment-settings', label: 'Payment Gateways (BYOPG)' },
+          { id: 'custom-domain', label: 'Custom Domain & SSL' },
+          { id: 'developer-hub', label: 'Developer Hub & API' },
+          { id: 'backup', label: 'Disaster Recovery & Backup' }
+        ]
       }
     ];
 
@@ -11714,14 +11664,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
           <nav className="flex-1 px-4 space-y-1 overflow-y-auto mt-4 scrollbar-hide">
             {menuItems.map((item) => {
               const isActive = activeMenu === item.id;
-              const isChildActive = item.children?.some(c => {
-                if (item.id === 'settings-group' && activeMenu === 'general-settings') return true;
-                if (item.id === 'coupons-group' && activeMenu === 'coupons') return true;
-                if (item.id === 'blog-group' && activeMenu === 'blog') return true;
-                if (item.id === 'pages-group' && activeMenu === 'pages') return true;
-                if (item.id === 'popups-group' && activeMenu === 'popups-manager') return true;
-                return activeMenu === c.id;
-              });
+              const isChildActive = item.children?.some(c => activeMenu === c.id);
               const isExpanded = expandedMenu === item.id;
 
               return (
@@ -11740,7 +11683,6 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                             setActiveMenu(item.id as MenuId);
                             setExpandedMenu(null);
                         }
-                        if (item.id === 'tours') setActiveTab('basic');
                     }}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-3 rounded-[10px] transition-all group",
@@ -11758,47 +11700,14 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                   {isSidebarOpen && isExpanded && item.children && (
                     <div className="ml-9 space-y-1">
                       {item.children.map((child) => {
-                        const isChildHighlighted = 
-                          activeMenu === child.id || 
-                          (activeMenu === 'general-settings' && settingsActiveTab === child.id) ||
-                          (activeMenu === 'coupons' && child.id === 'coupons') ||
-                          (activeMenu === 'blog' && child.id === 'blog') ||
-                          (activeMenu === 'pages' && child.id === 'pages') ||
-                          (activeMenu === 'popups-manager' && child.id === 'popups-manager');
+                        const isChildHighlighted = activeMenu === child.id;
 
                         return (
                           <button
                             key={child.id}
                             onClick={() => {
                               setSelectedPartner(null);
-                              const settingTabs = ['company-info', 'seo', 'website', 'domain', 'builder'];
-                              if (settingTabs.includes(child.id)) {
-                                  setActiveMenu('general-settings');
-                                  setSettingsActiveTab(child.id);
-                              } else if (child.id === 'add-manual-booking') {
-                                  setActiveMenu('bookings');
-                                  setIsManualBookingModalOpen(true);
-                              } else if (child.id === 'tours') {
-                                  resetForm();
-                                  setActiveMenu('tours');
-                              } else if (child.id === 'add-coupon-trigger') {
-                                  setActiveMenu('coupons');
-                              } else if (child.id === 'add-blog-trigger') {
-                                  setActiveMenu('blog');
-                                  setAutoOpenBlogModal(true);
-                              } else if (child.id === 'add-page-trigger') {
-                                  setActiveMenu('pages');
-                              } else if (child.id === 'add-popup-trigger') {
-                                  setActiveMenu('popups-manager');
-                              } else if (child.id === 'blog-categories') {
-                                  setActiveMenu('blog');
-                              } else if (child.id === 'guide-pdf') {
-                                  navigate('/panduan');
-                              } else if (child.id === 'docs-system') {
-                                  navigate('/docs');
-                              } else {
-                                  setActiveMenu(child.id as MenuId);
-                              }
+                              setActiveMenu(child.id as MenuId);
                             }}
                             className={cn(
                               "w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between group/child",
@@ -11824,19 +11733,15 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
             <div className="pt-4 mt-4 border-t border-gray-100 space-y-1">
               {isSidebarOpen && (
                 <div className="px-4 py-2">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Other Menu</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Account & System</p>
                 </div>
               )}
               
               {[
-                { id: 'billing', label: 'Billing & Plans', icon: CreditCard },
-                { id: 'backup', label: 'Disaster Recovery', icon: Database },
-                { id: 'custom-domain', label: 'Custom Domain', icon: Globe },
-                { id: 'tickets', label: 'Support & Ticket', icon: LifeBuoy },
-                { id: 'developer-hub', label: 'Developer Hub', icon: Terminal },
-                { id: 'user-settings', label: 'User Setting', icon: User },
+                { id: 'user-settings', label: 'My Account Settings', icon: User },
+                { id: 'billing', label: 'Subscription & Plans', icon: CreditCard, hidden: currentUserProfile?.role === 'supplier' || currentUserProfile?.role === 'agent' },
                 { id: 'logout-trigger', label: 'Log Out', icon: LogOut }
-              ].map((item) => {
+              ].filter(i => !i.hidden).map((item) => {
                 const isActive = activeMenu === item.id;
                 return (
                   <button
