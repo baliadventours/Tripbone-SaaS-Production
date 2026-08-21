@@ -21,6 +21,7 @@ import {
 import { cn, formatPrice } from "../../lib/utils";
 import { sendCustomWhatsApp, generateBookingMessage } from "../../lib/whatsappService";
 import { sendBookingEmail } from "../../lib/emailService";
+import CreateManualBookingModal from "./CreateManualBookingModal";
 
 interface BookingManagerProps {
   setGlobalSelectedBooking: (booking: Booking | null) => void;
@@ -67,6 +68,7 @@ export default function BookingManager({
     localStorage.setItem("booking_manager_view_mode", viewMode);
   }, [viewMode]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateBookingOpen, setIsCreateBookingOpen] = useState(false);
   
   // High-performance Pagination (Critical for 1000 Bookings/Day)
   const [currentPage, setCurrentPage] = useState(1);
@@ -867,6 +869,12 @@ export default function BookingManager({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setIsCreateBookingOpen(true)}
+              className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white font-black text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shadow-orange-500/20 active:scale-[0.98]"
+            >
+              <Icons.Plus className="h-3.5 w-3.5 stroke-[2.5]" /> Create Booking
+            </button>
             <button
               onClick={exportToExcelFormat}
               className="px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-semibold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
@@ -1705,6 +1713,15 @@ export default function BookingManager({
           </div>
         </div>
       )}
+
+      {/* Manual Booking Creation Modal */}
+      <CreateManualBookingModal
+        isOpen={isCreateBookingOpen}
+        onClose={() => setIsCreateBookingOpen(false)}
+        tours={tours}
+        allGuides={allGuides}
+        currentUserProfile={currentUserProfile}
+      />
     </div>
   );
 }

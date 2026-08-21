@@ -180,6 +180,7 @@ import WebhookLogInspector from '../components/Admin/WebhookLogInspector';
 import DisasterRecoveryBackup from '../components/Admin/DisasterRecoveryBackup';
 import ConversionFunnelTracker from '../components/Admin/ConversionFunnelTracker';
 import AnalyticsManager from '../components/Admin/AnalyticsManager';
+import CreateManualBookingModal from '../components/Admin/CreateManualBookingModal';
 
 type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-overview' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
@@ -7050,6 +7051,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
   const [globalSelectedBooking, setGlobalSelectedBooking] = useState<Booking | null>(null);
   const [originalBooking, setOriginalBooking] = useState<Booking | null>(null);
   const [isBookingDetailOpen, setIsBookingDetailOpen] = useState(false);
+  const [isManualBookingModalOpen, setIsManualBookingModalOpen] = useState(false);
   const [isEditingTrip, setIsEditingTrip] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assignBooking, setAssignBooking] = useState<Booking | null>(null);
@@ -7649,6 +7651,7 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         icon: Briefcase,
         children: [
           { id: 'bookings', label: 'Booking List' },
+          { id: 'add-manual-booking', label: '+ Create Booking' },
           { id: 'conversion-funnel', label: 'Conversion Funnel & Drop-off', hidden: isAgent },
           { id: 'guides', label: 'Drivers & Guides' },
           { id: 'channel-manager', label: 'Channel Manager (OTAs)', hidden: isAgent || isSupplier },
@@ -11766,6 +11769,9 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
                               if (settingTabs.includes(child.id)) {
                                   setActiveMenu('general-settings');
                                   setSettingsActiveTab(child.id);
+                              } else if (child.id === 'add-manual-booking') {
+                                  setActiveMenu('bookings');
+                                  setIsManualBookingModalOpen(true);
                               } else if (child.id === 'tours') {
                                   resetForm();
                                   setActiveMenu('tours');
@@ -15906,6 +15912,15 @@ Stripe: /api/payment/stripe-webhook`}
         loadingStates={loadingStates}
         updateBookingStatus={updateBookingStatus}
         onAssignGuide={(b) => { setAssignBooking(b); setIsAssignOpen(true); }}
+      />
+
+      {/* Global Manual Booking Creation Modal */}
+      <CreateManualBookingModal
+        isOpen={isManualBookingModalOpen}
+        onClose={() => setIsManualBookingModalOpen(false)}
+        tours={tours}
+        allGuides={allGuides}
+        currentUserProfile={currentUserProfile}
       />
 
       <AnimatePresence>
