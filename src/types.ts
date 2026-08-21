@@ -782,3 +782,110 @@ export interface LandingPageSection {
   contactWhatsapp?: string;
   contactMapEmbedUrl?: string;
 }
+
+export interface InvoiceLineItem {
+  id: string;
+  type: 'tour_package' | 'addon' | 'transport' | 'custom_service';
+  title: string;
+  description?: string;
+  tourId?: string;
+  tourTitle?: string;
+  packageName?: string;
+  paxAdults?: number;
+  paxChildren?: number;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface InvoicePaymentButton {
+  enabled: boolean;
+  label: string;
+  url: string;
+  description?: string;
+}
+
+export interface InvoiceBankDetails {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  swiftCode?: string;
+  branch?: string;
+  qrisUrl?: string;
+  paypalEmail?: string;
+  instructions?: string;
+}
+
+export interface InvoiceCustomerInfo {
+  name: string;
+  email: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  company?: string;
+  country?: string;
+  passportOrTaxId?: string;
+}
+
+export interface InvoiceAuditLog {
+  id: string;
+  action: 'created' | 'updated' | 'sent_email' | 'sent_whatsapp' | 'marked_paid' | 'cancelled' | 'payment_link_clicked';
+  timestamp: string;
+  actorName?: string;
+  notes?: string;
+}
+
+export interface TenantInvoice {
+  id: string;
+  invoiceNumber: string;
+  tenantId: string;
+  tenantName?: string;
+  tenantLogo?: string;
+  tenantEmail?: string;
+  tenantPhone?: string;
+  tenantAddress?: string;
+  tenantWebsite?: string;
+  tenantTaxId?: string;
+
+  // Customer
+  customer: InvoiceCustomerInfo;
+
+  // Dates & Currency
+  issueDate: string;
+  dueDate: string;
+  currency: string;
+  status: 'draft' | 'unpaid' | 'paid' | 'overdue' | 'cancelled';
+
+  // Line items
+  items: InvoiceLineItem[];
+
+  // Price calculations
+  subtotal: number;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  discountAmount: number;
+  taxRate?: number;
+  taxAmount: number;
+  totalAmount: number;
+  paidAmount?: number;
+  balanceDue?: number;
+
+  // Payment button & bank instructions
+  paymentButton: InvoicePaymentButton;
+  bankDetails?: InvoiceBankDetails;
+  paymentInstructions?: string;
+
+  // Notes & terms
+  notes?: string;
+  terms?: string;
+
+  // Metadata & Audit
+  createdById?: string;
+  createdByName?: string;
+  createdAt: any;
+  updatedAt: any;
+  sentAt?: any;
+  paidAt?: any;
+  bookingId?: string;
+  auditLogs?: InvoiceAuditLog[];
+}

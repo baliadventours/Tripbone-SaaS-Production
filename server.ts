@@ -13,6 +13,7 @@ import { parseRestValue, parseRestDocument, fetchFromREST, generateContentWithFa
 import geminiRouter from "./src/server/routes/gemini.js";
 import { securityHeadersMiddleware, sanitizeBodyMiddleware, createRateLimiter } from "./src/server/security.js";
 import { handleSendEmail } from "./src/services/emailHandler.js";
+import { buildInvoiceEmailHtml } from "./src/services/invoiceEmailTemplate.js";
 import { sendWhatsAppMessage, formatWhatsAppMessage, sendWhatsAppTemplateMessage } from "./src/services/whatsappHandler.js";
 import { generateVoucherPdf } from "./src/services/email/voucherGenerator.js";
 import { generateManifestPdf } from "./src/services/email/manifestGenerator.js";
@@ -409,6 +410,80 @@ export async function createServer() {
     } catch (error: any) {
       console.error("[API /api/send-proposal-email] Error:", error);
       return res.status(500).json({ error: error.message || "Failed to send proposal email" });
+    }
+  });
+
+  // API Route: Send Invoice Email with Interactive Payment Button
+  app.post("/api/send-invoice-email", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const { invoice, tenantId } = req.body;
+      const targetEmail = (req.body.to || invoice?.customer?.email || '').trim();
+
+      if (!targetEmail) {
+        return res.status(400).json({ error: "Recipient customer email address is required." });
+      }
+
+      if (!invoice) {
+        return res.status(400).json({ error: "Invoice payload is required." });
+      }
+
+      console.log(`[API /api/send-invoice-email] Generating and dispatching invoice email #${invoice.invoiceNumber} to ${targetEmail}`);
+
+      // 1. Resolve tenant settings to get branding
+      const resolvedTenantId = tenantId || invoice.tenantId || 'global';
+      const adminDb = getAdminDb();
+      let companyName = invoice.tenantName || 'Tour & Travel Operator';
+      let companyEmail = invoice.tenantEmail || '';
+      let companyPhone = invoice.tenantPhone || '';
+      let companyWebsite = invoice.tenantWebsite || '';
+      let companyAddress = invoice.tenantAddress || '';
+      let companyLogo = invoice.tenantLogo || '';
+
+      try {
+        const settingsDoc = await adminDb.collection('settings').doc(resolvedTenantId === 'global' ? 'general' : resolvedTenantId).get();
+        if (settingsDoc.exists) {
+          const s = settingsDoc.data();
+          if (s) {
+            companyName = s.siteName || s.brandName || companyName;
+            companyEmail = s.supportEmail || s.contactEmail || companyEmail;
+            companyPhone = s.contactPhone || s.whatsappNumber || companyPhone;
+            companyWebsite = s.siteUrl || companyWebsite;
+            companyAddress = s.address || companyAddress;
+            companyLogo = s.logo || s.lightLogo || companyLogo;
+          }
+        }
+      } catch (settingsErr) {
+        console.warn("[API /api/send-invoice-email] Failed to read tenant settings for branding:", settingsErr);
+      }
+
+      // 2. Generate HTML email
+      const { subject, html } = buildInvoiceEmailHtml({
+        invoice,
+        companyName,
+        companyEmail,
+        companyPhone,
+        companyWebsite,
+        companyAddress,
+        companyLogo
+      });
+
+      // 3. Dispatch via emailHandler pipeline
+      const origin = req.headers.origin || (req.headers.referer ? req.headers.referer.replace(/\/$/, '') : null) || `https://${req.headers.host}`;
+      const result = await handleSendEmail({
+        to: targetEmail,
+        subject,
+        html,
+        type: 'invoice',
+        tenantId: resolvedTenantId,
+        origin
+      }, authHeader);
+
+      console.log(`[API /api/send-invoice-email] Invoice email successfully dispatched to ${targetEmail}`);
+      return res.json({ success: true, message: `Invoice #${invoice.invoiceNumber} successfully emailed to ${targetEmail}`, result });
+    } catch (error: any) {
+      console.error("[API /api/send-invoice-email] Error:", error);
+      return res.status(500).json({ error: error.message || "Failed to dispatch invoice email" });
     }
   });
 
