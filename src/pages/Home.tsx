@@ -28,6 +28,7 @@ import LazySection from "../components/LazySection";
 const TopRatedTours = lazy(() => import("../components/Home/TopRatedTours"));
 const ReviewSlider = lazy(() => import("../components/Home/ReviewSlider"));
 const BlogSection = lazy(() => import("../components/Home/BlogSection"));
+const CarRentalShowcase = lazy(() => import("../components/Home/CarRentalShowcase"));
 
 const CategoryIcon = ({
   iconName,
@@ -2142,6 +2143,13 @@ export default function Home() {
         </div>
         )}
 
+        {/* Car Rental & Chauffeur Charter Showcase (Positioned between Featured Tours & Guest Favorites) */}
+        {settings?.carRentalModule?.enabled !== false && settings?.carRentalModule?.showOnHomepage !== false && (
+          <LazySection>
+            <CarRentalShowcase />
+          </LazySection>
+        )}
+
         {/* 4. Most Favorites Tours Slider */}
         {(!builderSettings || builderSettings.blocks.find(b => b.id === 'guestFavorites')?.active !== false) && (
         <LazySection>
@@ -2429,6 +2437,13 @@ export default function Home() {
       <div className="hidden md:block">
         {(!builderSettings || builderSettings.blocks.find(b => b.id === 'hero')?.active !== false) && renderHero()}
         {(!builderSettings || builderSettings.blocks.find(b => b.id === 'featuredTours')?.active !== false) && renderFeaturedTours()}
+
+        {/* Car Rental & Chauffeur Charter Showcase (Positioned between Featured Tours & Guest Favorites) */}
+        {settings?.carRentalModule?.enabled !== false && settings?.carRentalModule?.showOnHomepage !== false && (
+          <LazySection>
+            <CarRentalShowcase />
+          </LazySection>
+        )}
 
         {(!builderSettings || builderSettings.blocks.find(b => b.id === 'guestFavorites')?.active !== false) && (
           <LazySection>

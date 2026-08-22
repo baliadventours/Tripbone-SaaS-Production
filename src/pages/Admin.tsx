@@ -183,8 +183,10 @@ import DisasterRecoveryBackup from '../components/Admin/DisasterRecoveryBackup';
 import ConversionFunnelTracker from '../components/Admin/ConversionFunnelTracker';
 import AnalyticsManager from '../components/Admin/AnalyticsManager';
 import CreateManualBookingModal from '../components/Admin/CreateManualBookingModal';
+import FleetManager from '../components/Admin/CarRental/FleetManager';
+import RentalModuleSettings from '../components/Admin/CarRental/RentalModuleSettings';
 
-type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-overview' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel' | 'invoices' | 'waivers';
+type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-overview' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel' | 'invoices' | 'waivers' | 'car-rental' | 'car-fleet' | 'car-rental-settings';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
 
 const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'locations' | 'labels', items: (Category | TourType | LocationMeta | TourLabel)[] }) => {
@@ -7772,6 +7774,16 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         label: 'Website Builder',
         icon: LayoutTemplate,
         hidden: isSupplier || isAgent
+      },
+      { 
+        id: 'car-rental-group', 
+        label: 'Car Rental', 
+        icon: Car,
+        hidden: isSupplier || isAgent,
+        children: [
+          { id: 'car-fleet', label: 'Fleet & Pricing' },
+          { id: 'car-rental-settings', label: 'Module Settings' },
+        ]
       },
       {
         id: 'payouts',
@@ -15806,6 +15818,20 @@ Stripe: /api/payment/stripe-webhook`}
       {/* Digital Liability Waivers & Safety Kiosk */}
       {activeMenu === 'waivers' && (
         <WaiverManager />
+      )}
+
+      {/* Car Rental Fleet & Pricing Management */}
+      {(activeMenu === 'car-fleet' || activeMenu === 'car-rental') && (
+        <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+          <FleetManager openMediaGallery={openMediaGallery} />
+        </div>
+      )}
+
+      {/* Car Rental Module Activation & Settings */}
+      {activeMenu === 'car-rental-settings' && (
+        <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+          <RentalModuleSettings />
+        </div>
       )}
 
       {/* Other Views Placeholders */}

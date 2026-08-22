@@ -3,11 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { useSettings } from '../../lib/SettingsContext';
+import DualHeroSearch from './DualHeroSearch';
 
 export default function SearchForm() {
   const navigate = useNavigate();
+  const { settings } = useSettings();
   const [keyword, setKeyword] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+
+  const rentalModuleActive = settings?.carRentalModule?.enabled !== false && settings?.carRentalModule?.heroSearchTab !== false;
+
+  if (rentalModuleActive) {
+    return <DualHeroSearch />;
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,3 +60,4 @@ export default function SearchForm() {
     </motion.div>
   );
 }
+

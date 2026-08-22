@@ -40,6 +40,7 @@ const About = lazyWithRetry(() => import('./pages/About'));
 const Destinations = lazyWithRetry(() => import('./pages/Destinations'));
 const BlogArchive = lazyWithRetry(() => import('./pages/BlogArchive'));
 const BlogPostDetail = lazyWithRetry(() => import('./pages/BlogPostDetail'));
+const CarRentals = lazyWithRetry(() => import('./pages/CarRentals'));
 const Auth = lazyWithRetry(() => import('./pages/Auth'));
 const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
 const PriceList = lazyWithRetry(() => import('./pages/PriceList'));
@@ -416,6 +417,8 @@ function AppContent() {
               </Route>
               <Route path="/" element={<Home />} />
               <Route path="/tours" element={<Tours />} />
+              <Route path="/rentals" element={<CarRentals />} />
+              <Route path="/car-rental" element={<CarRentals />} />
               <Route path="/blog" element={<BlogArchive />} />
               <Route path="/blog/:slug" element={<BlogPostDetail />} />
               <Route path="/about" element={<About />} />

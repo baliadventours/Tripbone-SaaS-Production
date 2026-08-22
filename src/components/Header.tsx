@@ -897,6 +897,9 @@ export default function Header() {
                 <>
                   <Link to="/" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Home</Link>
                   <Link to="/tours" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Tours</Link>
+                  {settings?.carRentalModule?.enabled !== false && (
+                    <Link to="/rentals" className="text-sm font-black text-gray-900 hover:text-primary transition-colors">Rentals</Link>
+                  )}
                   <Link to="/planner" className="relative text-sm font-black text-primary hover:text-orange-700 transition-colors flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
                     AI Planner

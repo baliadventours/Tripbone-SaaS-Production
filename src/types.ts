@@ -99,6 +99,133 @@ export interface ImportantInfoSection {
   content: string[];
 }
 
+// ----------------------------------------------------
+// Car Rental & Chauffeur Charter Module Types
+// ----------------------------------------------------
+
+export type RentalCategory = 
+  | 'economy' 
+  | 'standard_mpv' 
+  | 'executive' 
+  | 'luxury_vip' 
+  | 'minibus' 
+  | 'suv' 
+  | 'convertible' 
+  | 'van'
+  | string;
+
+export type RentalTransmission = 'automatic' | 'manual';
+export type RentalFuelType = 'petrol' | 'diesel' | 'hybrid' | 'electric';
+export type RentalServiceMode = 'self_drive' | 'with_driver';
+
+export interface RentalZone {
+  id: string;
+  name: string; // e.g. "Standard Zone (South & Central)", "Highlands & East Coast", "Far North / Extended"
+  description: string;
+  surcharge: number; // Flat fee added for distance coverage
+  coveredAreas?: string[]; // e.g. ["Kuta", "Seminyak", "Sanur", "Ubud", "Canggu"]
+  isDefault?: boolean;
+}
+
+export interface RentalAddOn {
+  id: string;
+  name: string;
+  price: number;
+  type: 'per_day' | 'per_booking';
+  description?: string;
+  icon?: string;
+}
+
+export interface RentalPricingConfig {
+  withDriver?: {
+    enabled: boolean;
+    halfDayPrice?: number; // 4-6 hours rate
+    fullDayPrice?: number; // 10-12 hours rate
+    hourlyPrice?: number; // hourly charter rate
+    overtimePricePerHour?: number; // overtime charge per hr
+  };
+  selfDrive?: {
+    enabled: boolean;
+    dailyPrice?: number; // 24h daily rate
+    depositRequired?: number; // Refundable security deposit
+    minimumDays?: number; // Minimum days requirement (default 1)
+  };
+}
+
+export interface RentalVehicle {
+  id: string;
+  name: string; // e.g. "Toyota Avanza MPV"
+  model: string; // e.g. "Avanza 1.5 Veloz"
+  brand: string; // e.g. "Toyota"
+  category: RentalCategory;
+  images: string[];
+  featuredImage: string;
+  passengerCapacity: number;
+  luggageCapacity: number;
+  doors: number;
+  transmission: RentalTransmission;
+  fuelType: RentalFuelType;
+  hasAC: boolean;
+  licensePlate?: string;
+  year?: number;
+  status: 'available' | 'maintenance' | 'booked' | 'hidden';
+  description: string;
+  features: string[]; // e.g. ["Bluetooth", "Air Conditioning", "USB Charger", "Comprehensive Insurance"]
+  inclusions: string[]; // e.g. ["English-speaking Driver", "Fuel & Petrol", "Parking Fees"]
+  exclusions: string[]; // e.g. ["Toll Fees", "Entrance Tickets", "Overtime past 10h"]
+  pricing: RentalPricingConfig;
+  customZones?: RentalZone[];
+  addOns?: RentalAddOn[];
+  rating?: number;
+  reviewsCount?: number;
+  isPopular?: boolean;
+  sortOrder?: number;
+  tenantId?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface CarRentalModuleSettings {
+  enabled: boolean; // Master module toggle
+  showOnHomepage: boolean; // Show fleet showcase section on homepage
+  heroSearchTab: boolean; // Show dual tab search form on hero
+  moduleTitle?: string; // e.g. "Private Car Rentals & Chauffeur Charters"
+  moduleSubtitle?: string; // e.g. "Explore the island in comfort with vetted modern vehicles and professional private drivers."
+  defaultDepositPercentage?: number;
+  depositPolicy?: string;
+  driverInclusionNote?: string;
+  selfDriveRequirementNote?: string;
+  zones?: RentalZone[];
+  globalAddOns?: RentalAddOn[];
+}
+
+export interface RentalBookingDetails {
+  vehicleId: string;
+  vehicleName: string;
+  vehicleCategory: string;
+  vehicleImage?: string;
+  serviceMode: RentalServiceMode; // 'self_drive' | 'with_driver'
+  durationType: 'hourly' | 'half_day' | 'full_day' | 'multi_day';
+  durationHours?: number;
+  durationDays?: number;
+  pickupDate: string;
+  pickupTime: string;
+  dropoffDate?: string;
+  dropoffTime?: string;
+  pickupLocation: string;
+  dropoffLocation?: string;
+  flightNumber?: string;
+  zoneId?: string;
+  zoneName?: string;
+  zoneSurcharge?: number;
+  baseRate: number;
+  selectedAddOns?: { id: string; name: string; price: number; quantity?: number }[];
+  addOnsTotal?: number;
+  securityDeposit?: number;
+  overtimeRatePerHour?: number;
+  notes?: string;
+}
+
 export interface TourLabel {
   id: string;
   name: string;
@@ -343,6 +470,8 @@ export interface Booking {
   proposedUpdate?: any;
   payoutId?: string | null; // ID of the payout document this booking is linked to
   payoutStatus?: 'pending' | 'queued' | 'paid'; // Status in the payout lifecycle
+  bookingType?: 'tour' | 'rental'; // Service classification
+  rentalDetails?: RentalBookingDetails; // Rental details if bookingType is 'rental'
   waiverStatus?: 'pending' | 'signed' | 'exempt'; // Digital waiver completion status
   signedWaiverId?: string; // Reference to signed waiver document
   waiverSignedAt?: string; // Timestamp when waiver was signed
@@ -590,6 +719,7 @@ export interface SiteSettings {
   sitemapUrl?: string;
   // Theme Settings
   themeMode?: 'default' | 'custom';
+  carRentalModule?: CarRentalModuleSettings;
   brandingPreset?: 'default' | 'swiss-minimalist' | 'tech-dark' | 'elegant-editorial' | 'nordic-forest' | 'retro-adventure' | 'tokyo-neon' | 'mediterranean-breeze' | 'brutalist-mono' | 'royal-safari' | 'zen-oasis' | 'alpine-chalet' | 'sunset-ibiza';
   sectionStyles?: {
     topNav?: string;
