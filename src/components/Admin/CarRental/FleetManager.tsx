@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Car, 
   Plus, 
@@ -18,12 +18,18 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Key,
-  UserCheck
+  UserCheck,
+  UploadCloud,
+  FolderOpen,
+  Star,
+  CheckCircle2,
+  Link as LinkIcon
 } from 'lucide-react';
 import { RentalVehicle, RentalCategory, RentalTransmission, RentalFuelType } from '../../../types';
 import { getRentalVehicles, saveRentalVehicle, deleteRentalVehicle, DEFAULT_RENTAL_FLEET } from '../../../lib/carRentalService';
 import { useTenant } from '../../../lib/TenantContext';
 import { useSettings } from '../../../lib/SettingsContext';
+import { uploadImage } from '../../../lib/imgbb';
 import FormattedPrice from '../../FormattedPrice';
 import SmartImage from '../../SmartImage';
 import { cn } from '../../../lib/utils';
@@ -43,6 +49,13 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'pricing' | 'features'>('info');
 
+  // Photo upload states
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [uploadStatusText, setUploadStatusText] = useState('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [showManualUrl, setShowManualUrl] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     loadFleet();
   }, [tenantId]);
@@ -57,6 +70,77 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUploadFiles = async (files: FileList | File[]) => {
+    if (!files || files.length === 0 || !editingVehicle) return;
+
+    const fileList = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (fileList.length === 0) {
+      alert('Please select valid image files (JPG, PNG, WebP, etc.).');
+      return;
+    }
+
+    try {
+      setIsUploadingPhoto(true);
+      setUploadStatusText(`Optimizing & uploading ${fileList.length} photo${fileList.length > 1 ? 's' : ''}...`);
+
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        setUploadStatusText(`Uploading photo ${i + 1} of ${fileList.length} (${file.name})...`);
+        const url = await uploadImage(file);
+        if (url) {
+          uploadedUrls.push(url);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        const currentImages = editingVehicle.images || [];
+        const updatedImages = Array.from(new Set([...currentImages, ...uploadedUrls]));
+        const currentFeatured = editingVehicle.featuredImage;
+        const newFeatured = !currentFeatured || currentFeatured.includes('unsplash.com/photo-1549399542') 
+          ? uploadedUrls[0] 
+          : currentFeatured;
+
+        setEditingVehicle({
+          ...editingVehicle,
+          featuredImage: newFeatured,
+          images: updatedImages,
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to upload vehicle photos:', error);
+      alert(`Photo upload failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsUploadingPhoto(false);
+      setUploadStatusText('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSetFeaturedPhoto = (url: string) => {
+    if (!editingVehicle) return;
+    setEditingVehicle({
+      ...editingVehicle,
+      featuredImage: url,
+    });
+  };
+
+  const handleRemovePhoto = (url: string) => {
+    if (!editingVehicle) return;
+    const currentImages = (editingVehicle.images || []).filter(img => img !== url);
+    let newFeatured = editingVehicle.featuredImage;
+    if (newFeatured === url) {
+      newFeatured = currentImages.length > 0 ? currentImages[0] : '';
+    }
+    setEditingVehicle({
+      ...editingVehicle,
+      featuredImage: newFeatured,
+      images: currentImages,
+    });
   };
 
   const handleOpenAdd = () => {
@@ -487,16 +571,211 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
                     </div>
                   </div>
 
-                  {/* Photo URL */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Featured Vehicle Image URL</label>
+                  {/* Vehicle Photos Upload & Gallery Manager */}
+                  <div className="space-y-3 bg-gray-50/70 p-4 sm:p-5 rounded-2xl border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="block text-xs font-black text-gray-900">
+                          Vehicle Photos & Visual Gallery *
+                        </label>
+                        <p className="text-[11px] text-gray-500 font-medium">
+                          Upload high-resolution vehicle photos. Files are automatically compressed and converted to WebP for lightning-fast loading.
+                        </p>
+                      </div>
+
+                      {openMediaGallery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openMediaGallery((urls) => {
+                              if (urls && urls.length > 0) {
+                                const currentImages = editingVehicle.images || [];
+                                const updatedImages = Array.from(new Set([...currentImages, ...urls]));
+                                const currentFeatured = editingVehicle.featuredImage;
+                                const newFeatured = !currentFeatured || currentFeatured.includes('unsplash.com/photo-1549399542')
+                                  ? urls[0]
+                                  : currentFeatured;
+                                setEditingVehicle({
+                                  ...editingVehicle,
+                                  featuredImage: newFeatured,
+                                  images: updatedImages,
+                                });
+                              }
+                            }, true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-bold transition shadow-xs shrink-0 self-start sm:self-auto"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5 text-primary" />
+                          <span>Select from Media Gallery</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Hidden Native File Input */}
                     <input
-                      type="url"
-                      placeholder="https://images.unsplash.com/photo-..."
-                      value={editingVehicle.featuredImage || ''}
-                      onChange={(e) => setEditingVehicle({ ...editingVehicle, featuredImage: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900"
+                      type="file"
+                      ref={fileInputRef}
+                      multiple
+                      accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/svg+xml"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          handleUploadFiles(e.target.files);
+                        }
+                      }}
+                      className="hidden"
                     />
+
+                    {/* Upload Dropzone */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingOver(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        setIsDraggingOver(false);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingOver(false);
+                        if (e.dataTransfer.files) {
+                          handleUploadFiles(e.dataTransfer.files);
+                        }
+                      }}
+                      onClick={() => {
+                        if (!isUploadingPhoto && fileInputRef.current) {
+                          fileInputRef.current.click();
+                        }
+                      }}
+                      className={cn(
+                        "relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-3",
+                        isDraggingOver 
+                          ? "border-primary bg-primary/5 scale-[1.01]" 
+                          : "border-gray-300 hover:border-primary hover:bg-white bg-white/50",
+                        isUploadingPhoto && "pointer-events-none opacity-80"
+                      )}
+                    >
+                      {isUploadingPhoto ? (
+                        <div className="py-4 flex flex-col items-center gap-2.5">
+                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                          <p className="text-xs font-bold text-gray-800 animate-pulse">
+                            {uploadStatusText || 'Converting to WebP & Uploading...'}
+                          </p>
+                          <span className="text-[10px] text-gray-400 font-medium">Please keep this window open</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="w-12 h-12 rounded-2xl bg-orange-50 text-primary flex items-center justify-center shadow-xs">
+                            <UploadCloud className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-black text-gray-900 hover:text-primary transition-colors block">
+                              Click to upload vehicle photo or drag & drop here
+                            </span>
+                            <span className="text-[11px] text-gray-500 font-medium block mt-0.5">
+                              Supports JPG, PNG, WebP (multi-photo upload supported)
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                              ✓ Auto WebP Compression
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold">
+                              ✓ Instant Cloud Storage
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Uploaded Photos Gallery Preview & Management */}
+                    {(editingVehicle.images && editingVehicle.images.length > 0) || editingVehicle.featuredImage ? (
+                      <div className="space-y-2 pt-2">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-gray-500">
+                          <span>
+                            Current Photos ({Array.from(new Set([...(editingVehicle.images || []), ...(editingVehicle.featuredImage ? [editingVehicle.featuredImage] : [])])).length})
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            Click star icon to change main cover photo
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {Array.from(new Set([...(editingVehicle.images || []), ...(editingVehicle.featuredImage ? [editingVehicle.featuredImage] : [])])).map((imgUrl, idx) => {
+                            const isFeatured = editingVehicle.featuredImage === imgUrl;
+                            return (
+                              <div
+                                key={idx}
+                                className={cn(
+                                  "group relative aspect-[16/11] rounded-xl overflow-hidden border-2 bg-gray-100 shadow-xs transition-all",
+                                  isFeatured ? "border-primary ring-2 ring-primary/20 shadow-md" : "border-gray-200 hover:border-gray-300"
+                                )}
+                              >
+                                <img
+                                  src={imgUrl}
+                                  alt={`Vehicle Photo ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+
+                                {/* Badge */}
+                                {isFeatured ? (
+                                  <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-primary text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                                    <Star className="w-2.5 h-2.5 fill-white" />
+                                    <span>Main Cover</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetFeaturedPhoto(imgUrl)}
+                                    className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/70 hover:bg-primary text-white text-[9px] font-bold uppercase transition opacity-0 group-hover:opacity-100 flex items-center gap-1 backdrop-blur-xs"
+                                    title="Set as Main Cover Photo"
+                                  >
+                                    <Star className="w-2.5 h-2.5" />
+                                    <span>Set Main</span>
+                                  </button>
+                                )}
+
+                                {/* Delete Photo */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePhoto(imgUrl)}
+                                  className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-600/90 hover:bg-red-700 text-white transition opacity-0 group-hover:opacity-100 shadow-xs"
+                                  title="Delete photo"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* Optional URL input toggle */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowManualUrl(!showManualUrl)}
+                        className="text-[11px] font-bold text-gray-500 hover:text-gray-800 inline-flex items-center gap-1 transition"
+                      >
+                        <LinkIcon className="w-3 h-3" />
+                        <span>{showManualUrl ? 'Hide manual image URL option' : 'Or enter image URL manually (optional)'}</span>
+                      </button>
+
+                      {showManualUrl && (
+                        <div className="mt-2 space-y-2 bg-white p-3 rounded-xl border border-gray-200">
+                          <label className="block text-[10px] font-bold text-gray-600">Manual Featured Image URL</label>
+                          <input
+                            type="url"
+                            placeholder="https://images.unsplash.com/..."
+                            value={editingVehicle.featuredImage || ''}
+                            onChange={(e) => setEditingVehicle({ ...editingVehicle, featuredImage: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-900"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
