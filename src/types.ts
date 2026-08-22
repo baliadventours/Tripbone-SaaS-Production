@@ -185,6 +185,32 @@ export interface RentalVehicle {
   updatedAt?: any;
 }
 
+export interface RentalAutomationsConfig {
+  enabled: boolean;
+  bookingConfirmationWhatsApp: {
+    enabled: boolean;
+    template: string;
+  };
+  driverDispatchWhatsApp: {
+    enabled: boolean;
+    template: string;
+  };
+  preTripReminderWhatsApp: {
+    enabled: boolean;
+    template: string;
+    sendHoursBefore?: number;
+  };
+  postTripReviewWhatsApp: {
+    enabled: boolean;
+    template: string;
+  };
+  emailConfirmation?: {
+    enabled: boolean;
+    subject: string;
+    template: string;
+  };
+}
+
 export interface CarRentalModuleSettings {
   enabled: boolean; // Master module toggle
   showOnHomepage: boolean; // Show fleet showcase section on homepage
@@ -197,6 +223,7 @@ export interface CarRentalModuleSettings {
   selfDriveRequirementNote?: string;
   zones?: RentalZone[];
   globalAddOns?: RentalAddOn[];
+  automations?: RentalAutomationsConfig;
 }
 
 export interface RentalBookingDetails {
@@ -224,6 +251,23 @@ export interface RentalBookingDetails {
   securityDeposit?: number;
   overtimeRatePerHour?: number;
   notes?: string;
+
+  // Operational Dispatch & Driver Tracking
+  assignedDriverId?: string;
+  assignedDriverName?: string;
+  assignedDriverPhone?: string;
+  assignedVehiclePlate?: string;
+  dispatchNotifiedAt?: string;
+
+  // Handover, Mileage, Fuel & Deposit Inspection
+  depositStatus?: 'pending' | 'received' | 'refunded' | 'forfeited';
+  depositPaidAmount?: number;
+  balanceDue?: number;
+  odometerStart?: number;
+  odometerEnd?: number;
+  fuelStart?: string;
+  fuelEnd?: string;
+  inspectionNotes?: string;
 }
 
 export interface TourLabel {

@@ -185,8 +185,10 @@ import AnalyticsManager from '../components/Admin/AnalyticsManager';
 import CreateManualBookingModal from '../components/Admin/CreateManualBookingModal';
 import FleetManager from '../components/Admin/CarRental/FleetManager';
 import RentalModuleSettings from '../components/Admin/CarRental/RentalModuleSettings';
+import CarRentalBookingManager from '../components/Admin/CarRental/CarRentalBookingManager';
+import RentalAutomations from '../components/Admin/CarRental/RentalAutomations';
 
-type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-overview' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel' | 'invoices' | 'waivers' | 'car-rental' | 'car-fleet' | 'car-rental-settings';
+type MenuId = 'dashboard' | 'tours' | 'all-tours' | 'categories' | 'tour-types' | 'locations' | 'addons' | 'transports' | 'coupons' | 'schedule' | 'blog' | 'ai-hub' | 'analytics' | 'analytics-overview' | 'analytics-integration' | 'google-analytics' | 'reviews' | 'communication' | 'payments' | 'settings' | 'users' | 'users-admins' | 'users-suppliers' | 'users-agents' | 'users-customers' | 'payment-settings' | 'pages' | 'urgency-points' | 'timeslots' | 'bookings' | 'channel-manager' | 'import-bookings' | 'guides' | 'overview' | 'inventory' | 'operations' | 'content' | 'settings-group' | 'general-settings' | 'popups-manager' | 'labels' | 'partners' | 'suppliers' | 'agents' | 'company-profile' | 'access-roles' | 'reports' | 'payouts' | 'live-inventory' | 'backup' | 'inquiries' | 'tickets' | 'billing' | 'custom-domain' | 'developer-hub' | 'user-settings' | 'logout-trigger' | 'website-builder' | 'conversion-funnel' | 'invoices' | 'waivers' | 'car-rental' | 'car-rental-bookings' | 'car-fleet' | 'car-rental-automations' | 'car-rental-settings';
 type Tab = 'basic' | 'content' | 'inclusions' | 'pricing' | 'itinerary' | 'accommodations' | 'guides' | 'addOns' | 'transports' | 'faq' | 'info' | 'seo';
 
 const MetaManager = ({ type, items }: { type: 'categories' | 'tour-types' | 'locations' | 'labels', items: (Category | TourType | LocationMeta | TourLabel)[] }) => {
@@ -7695,6 +7697,18 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         ].filter(c => !c.hidden)
       },
       { 
+        id: 'car-rental-group', 
+        label: 'Car Rental', 
+        icon: Car,
+        hidden: isSupplier || isAgent,
+        children: [
+          { id: 'car-rental-bookings', label: 'Rental Bookings' },
+          { id: 'car-fleet', label: 'Fleet & Pricing' },
+          { id: 'car-rental-automations', label: 'Booking Automations' },
+          { id: 'car-rental-settings', label: 'Module Settings & Zones' },
+        ]
+      },
+      { 
         id: 'inquiry-group', 
         label: 'Inquiry', 
         icon: MessageSquare,
@@ -7775,16 +7789,6 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
         icon: LayoutTemplate,
         hidden: isSupplier || isAgent
       },
-      { 
-        id: 'car-rental-group', 
-        label: 'Car Rental', 
-        icon: Car,
-        hidden: isSupplier || isAgent,
-        children: [
-          { id: 'car-fleet', label: 'Fleet & Pricing' },
-          { id: 'car-rental-settings', label: 'Module Settings' },
-        ]
-      },
       {
         id: 'payouts',
         label: 'Finance Report',
@@ -7829,6 +7833,10 @@ export default function Admin({ overrideMenu, overrideTab, isCentralPortal = fal
       'waivers': 'Digital Liability Waivers & Safety Kiosk',
       'google-analytics': 'Google Analytics 4 & GTM Tracking',
       'analytics-integration': 'Google Analytics 4 & GTM Tracking',
+      'car-rental-bookings': 'Car Rental & Charter Bookings',
+      'car-fleet': 'Car Rental Fleet & Pricing Management',
+      'car-rental-automations': 'Car Rental Customer Booking Automations',
+      'car-rental-settings': 'Car Rental Module Settings & Pricing Zones',
     };
     if (labelsMap[activeMenu]) return labelsMap[activeMenu];
 
@@ -15820,10 +15828,24 @@ Stripe: /api/payment/stripe-webhook`}
         <WaiverManager />
       )}
 
+      {/* Car Rental Booking Management */}
+      {activeMenu === 'car-rental-bookings' && (
+        <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+          <CarRentalBookingManager allGuides={allGuides} />
+        </div>
+      )}
+
       {/* Car Rental Fleet & Pricing Management */}
       {(activeMenu === 'car-fleet' || activeMenu === 'car-rental') && (
         <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
           <FleetManager openMediaGallery={openMediaGallery} />
+        </div>
+      )}
+
+      {/* Car Rental Customer Booking Automations */}
+      {activeMenu === 'car-rental-automations' && (
+        <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4">
+          <RentalAutomations />
         </div>
       )}
 
