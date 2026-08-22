@@ -508,5 +508,28 @@ service cloud.firestore {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow write: if isAdmin();
     }
+
+    // --- Car Rental Fleet & Bookings ---
+    match /rental_vehicles/{vehicleId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || (isSignedIn() && incoming().tenantId != null) || (isSignedIn() && resource.data.tenantId != null) || isSignedIn();
+      allow delete: if isSuperAdmin() || isAdmin() || (isSignedIn() && resource.data.tenantId != null) || isSignedIn();
+    }
+
+    match /rentalVehicles/{vehicleId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || (isSignedIn() && incoming().tenantId != null) || (isSignedIn() && resource.data.tenantId != null) || isSignedIn();
+      allow delete: if isSuperAdmin() || isAdmin() || (isSignedIn() && resource.data.tenantId != null) || isSignedIn();
+    }
+
+    match /rental_bookings/{bookingId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
+    }
+
+    match /rentalBookings/{bookingId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isAdmin() || isSignedIn();
+    }
   }
 }

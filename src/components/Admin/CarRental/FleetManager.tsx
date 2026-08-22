@@ -48,6 +48,12 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'pricing' | 'features'>('info');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Photo upload states
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -199,9 +205,10 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
     try {
       await deleteRentalVehicle(id);
       setVehicles(prev => prev.filter(v => v.id !== id));
-    } catch (err) {
+      showToast('Vehicle deleted successfully.', 'success');
+    } catch (err: any) {
       console.error('Failed to delete vehicle:', err);
-      alert('Failed to delete vehicle.');
+      showToast(`Failed to delete vehicle: ${err?.message || 'Permission denied'}`, 'error');
     }
   };
 
@@ -210,8 +217,10 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
     try {
       await saveRentalVehicle({ ...v, status: newStatus }, tenantId);
       setVehicles(prev => prev.map(item => item.id === v.id ? { ...item, status: newStatus } : item));
-    } catch (err) {
+      showToast(`Vehicle is now ${newStatus === 'available' ? 'visible & available' : 'hidden'}.`, 'success');
+    } catch (err: any) {
       console.error('Failed to update status:', err);
+      showToast(`Failed to update status: ${err?.message || 'Error occurred'}`, 'error');
     }
   };
 
@@ -228,16 +237,35 @@ export default function FleetManager({ openMediaGallery }: FleetManagerProps = {
       await loadFleet();
       setIsModalOpen(false);
       setEditingVehicle(null);
-    } catch (err) {
+      showToast('Vehicle saved to fleet successfully!', 'success');
+    } catch (err: any) {
       console.error('Failed to save vehicle:', err);
-      alert('Failed to save vehicle.');
+      showToast(`Failed to save vehicle: ${err?.message || 'Check permissions or internet connection'}`, 'error');
+      alert(`Error saving vehicle: ${err?.message || 'Failed to save to database. Please check permissions.'}`);
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 text-left">
+    <div className="space-y-6 text-left relative">
+      {/* Toast Alert */}
+      {toast && (
+        <div 
+          className={cn(
+            "fixed top-6 right-6 z-[999] px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-sm font-bold animate-in fade-in slide-in-from-top-4 duration-200 border",
+            toast.type === 'success' ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-red-50 text-red-800 border-red-200"
+          )}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-150 shadow-sm">
         <div>

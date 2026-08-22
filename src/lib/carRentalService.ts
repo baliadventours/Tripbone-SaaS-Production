@@ -290,19 +290,27 @@ export const DEFAULT_RENTAL_FLEET: RentalVehicle[] = [
 export function sanitizeFirestoreData(data: any): any {
   if (data === undefined) return null;
   if (data === null) return null;
+  if (typeof data !== 'object') return data;
+  if (data instanceof Date) return data;
+  // Preserve Firestore FieldValues (serverTimestamp, deleteField, arrayUnion, etc.)
+  if (
+    data?._methodName || 
+    data?.constructor?.name === 'FieldValue' || 
+    data?.constructor?.name === 'ServerTimestampTransform' ||
+    typeof data?.isEqual === 'function'
+  ) {
+    return data;
+  }
   if (Array.isArray(data)) {
     return data.map(item => sanitizeFirestoreData(item));
   }
-  if (typeof data === 'object' && !(data instanceof Date)) {
-    const cleaned: any = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        cleaned[key] = sanitizeFirestoreData(value);
-      }
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      cleaned[key] = sanitizeFirestoreData(value);
     }
-    return cleaned;
   }
-  return data;
+  return cleaned;
 }
 
 /**
@@ -367,14 +375,14 @@ export async function saveRentalVehicle(vehicle: Partial<RentalVehicle>, tenantI
     category: vehicle.category || 'standard_mpv',
     images: vehicle.images || [],
     featuredImage: vehicle.featuredImage || vehicle.images?.[0] || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1000&q=80',
-    passengerCapacity: vehicle.passengerCapacity || 5,
-    luggageCapacity: vehicle.luggageCapacity || 3,
-    doors: vehicle.doors || 5,
+    passengerCapacity: Number(vehicle.passengerCapacity) || 5,
+    luggageCapacity: Number(vehicle.luggageCapacity) || 3,
+    doors: Number(vehicle.doors) || 5,
     transmission: vehicle.transmission || 'automatic',
     fuelType: vehicle.fuelType || 'petrol',
     hasAC: vehicle.hasAC !== false,
     licensePlate: vehicle.licensePlate || '',
-    year: vehicle.year || new Date().getFullYear(),
+    year: Number(vehicle.year) || new Date().getFullYear(),
     status: vehicle.status || 'available',
     description: vehicle.description || '',
     features: vehicle.features || [],
@@ -386,10 +394,10 @@ export async function saveRentalVehicle(vehicle: Partial<RentalVehicle>, tenantI
     },
     customZones: vehicle.customZones || [],
     addOns: vehicle.addOns || [],
-    rating: vehicle.rating || 5.0,
-    reviewsCount: vehicle.reviewsCount || 0,
-    isPopular: vehicle.isPopular || false,
-    sortOrder: vehicle.sortOrder || 1,
+    rating: Number(vehicle.rating) || 5.0,
+    reviewsCount: Number(vehicle.reviewsCount) || 0,
+    isPopular: Boolean(vehicle.isPopular),
+    sortOrder: Number(vehicle.sortOrder) || 1,
     tenantId: effectiveTenantId,
     updatedAt: serverTimestamp(),
     createdAt: vehicle.createdAt || serverTimestamp(),

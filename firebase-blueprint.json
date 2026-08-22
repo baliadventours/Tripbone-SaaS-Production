@@ -474,6 +474,32 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "email", "createdAt"]
+    },
+    "RentalVehicle": {
+      "title": "Rental Vehicle",
+      "description": "Fleet vehicle available for chauffeur charters and self-drive rentals",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "brand": { "type": "string" },
+        "category": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "featuredImage": { "type": "string" },
+        "passengerCapacity": { "type": "number" },
+        "luggageCapacity": { "type": "number" },
+        "transmission": { "type": "string" },
+        "fuelType": { "type": "string" },
+        "hasAC": { "type": "boolean" },
+        "year": { "type": "number" },
+        "status": { "type": "string" },
+        "description": { "type": "string" },
+        "pricing": { "type": "object" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" }
+      },
+      "required": ["name", "category", "pricing"]
     }
   },
   "firestore": {
@@ -600,6 +626,10 @@
     "aiTips": {
       "schema": "AITip",
       "description": "Collection of smart Bali travel tips"
+    },
+    "rental_vehicles": {
+      "schema": "RentalVehicle",
+      "description": "Collection of rental and chauffeur fleet vehicles"
     }
   }
 }

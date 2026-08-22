@@ -95,6 +95,10 @@ const TENANT_SPECIFIC_COLLECTIONS = [
   'inquiries',
   'whatsapp_chats',
   'whatsapp_messages',
+  'rental_vehicles',
+  'rentalVehicles',
+  'rental_bookings',
+  'rentalBookings',
   'users',
   'communicationSettings',
   'settings'
