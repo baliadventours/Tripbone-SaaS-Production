@@ -520,6 +520,8 @@ export interface Booking {
   signedWaiverId?: string; // Reference to signed waiver document
   waiverSignedAt?: string; // Timestamp when waiver was signed
   waiverSignedCount?: number; // Number of participants signed under this waiver
+  invoiceId?: string; // Linked invoice ID if invoiced
+  invoiceNumber?: string; // Linked invoice number
   createdAt: any;
   updatedAt?: any;
 }
